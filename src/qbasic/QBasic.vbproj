@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>QBasic</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <AssemblyName>qbasic</AssemblyName>
+    <Authors>Cory Smith</Authors>
+    <Company>AddressOf.com</Company>
+    <Product>Community QBasic</Product>
+    <Copyright>(c) 2010-2024, Cory Smith</Copyright>
+    <ApplicationIcon>Resources\qbasic.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\vbPGE\src\vbPixelGameEngine\vbPixelGameEngine.vbproj" />
+  </ItemGroup>
+
+</Project>

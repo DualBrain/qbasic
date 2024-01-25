@@ -5,7 +5,7 @@ VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{778DAE3C-4631-46EA-AA77-85C1314464D9}") = "QBasic", "qbasic\QBasic.vbproj", "{3F1EFF30-0174-44D1-AC4C-52EF2F1103D0}"
 EndProject
-Project("{778DAE3C-4631-46EA-AA77-85C1314464D9}") = "vbPixelGameEngine", "..\..\vbPGE\src\vbPixelGameEngine\vbPixelGameEngine.vbproj", "{FCB99B1E-E1ED-455E-A5E5-0B747049EC17}"
+Project("{778DAE3C-4631-46EA-AA77-85C1314464D9}") = "vbPixelGameEngine", "..\..\vbPixelGameEngine\src\vbPixelGameEngine\vbPixelGameEngine.vbproj", "{FCB99B1E-E1ED-455E-A5E5-0B747049EC17}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

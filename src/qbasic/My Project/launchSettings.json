@@ -1,7 +1,8 @@
 {
   "profiles": {
     "QBasic": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "workingDirectory": "C:\\BAS"
     },
     "WSL": {
       "commandName": "WSL2",

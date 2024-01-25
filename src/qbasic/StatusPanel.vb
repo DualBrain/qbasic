@@ -9,6 +9,9 @@ Public Class StatusPanel
   Public Property DocumentRow As Integer
   Public Property DocumentCol As Integer
 
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+
   Public Sub Render() Implements IContext.Render
     If Dialog Then
       QPrintRC($" {Text}".PadRight(80), 25, 1, OneColor(15, 3))

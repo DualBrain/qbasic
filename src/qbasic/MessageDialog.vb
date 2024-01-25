@@ -12,6 +12,9 @@ Public Class MessageDialog
   Private ReadOnly m_lrRow As Integer
   Private ReadOnly m_lrCol As Integer
 
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+
   Sub New(text As String)
 
     m_text = text
@@ -23,6 +26,11 @@ Public Class MessageDialog
     m_ulCol = 14
     m_lrRow = m_ulRow + needed
     m_lrCol = 66
+
+    Me.CursorRow = m_lrRow - 1
+    Dim w = m_lrCol - m_ulCol
+    Dim btnOffset = (w - 8) \ 2
+    Me.CursorCol = m_ulCol + btnOffset + 3
 
   End Sub
 
@@ -42,8 +50,6 @@ Public Class MessageDialog
     QPrintRC("<", m_lrRow - 1, m_ulCol + btnOffset, OneColor(15, 8))
     QPrintRC("OK", m_lrRow - 1, m_ulCol + btnOffset + 3, OneColor(0, 8))
     QPrintRC(">", m_lrRow - 1, m_ulCol + btnOffset + 7, OneColor(15, 8))
-
-    LOCATE(m_lrRow - 1, m_ulCol + btnOffset + 3)
 
   End Sub
 

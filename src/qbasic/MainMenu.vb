@@ -19,6 +19,9 @@ Public Class MainMenu
 
   Public Property AltPressed As Boolean
 
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+
   Public Property Selected As Integer
     Get
       Return m_selected

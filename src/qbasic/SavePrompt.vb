@@ -12,6 +12,21 @@ Public Class SavePrompt
   Private ReadOnly m_lrRow As Integer
   Private ReadOnly m_lrCol As Integer
 
+  Private m_cursorRow As Integer
+  Private m_cursorCol As Integer
+
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+    Get
+      Return m_cursorRow
+    End Get
+  End Property
+
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+    Get
+      Return m_cursorCol
+    End Get
+  End Property
+
   Sub New(Optional selected As Integer = 0)
 
     m_selected = selected
@@ -59,22 +74,14 @@ Public Class SavePrompt
     Button("< Help >", m_lrRow - 1, m_ulCol + helpOffset, m_selected = 3)
 
     Select Case m_selected
-      Case 0 : LOCATE(m_lrRow - 1, m_ulCol + yesOffset + yesCursorOffset)
-      Case 1 : LOCATE(m_lrRow - 1, m_ulCol + noOffset + noCursorOffset)
-      Case 2 : LOCATE(m_lrRow - 1, m_ulCol + cancelOffset + cancelCursorOffset)
-      Case 3 : LOCATE(m_lrRow - 1, m_ulCol + helpOffset + helpCursorOffset)
+      Case 0 : m_cursorRow = m_lrRow - 1 : m_cursorCol = m_ulCol + yesOffset + yesCursorOffset
+      Case 1 : m_cursorRow = m_lrRow - 1 : m_cursorCol = m_ulCol + noOffset + noCursorOffset
+      Case 2 : m_cursorRow = m_lrRow - 1 : m_cursorCol = m_ulCol + cancelOffset + cancelCursorOffset
+      Case 3 : m_cursorRow = m_lrRow - 1 : m_cursorCol = m_ulCol + helpOffset + helpCursorOffset
       Case Else
         m_selected = 0
     End Select
 
-  End Sub
-
-  Public Shared Sub Button(text As String, row As Integer, col As Integer, Optional selected As Boolean = False)
-    QPrintRC(text, row, col, OneColor(0, 8))
-    If selected Then
-      QPrintRC("<", row, col, OneColor(15, 8))
-      QPrintRC(">", row, col + text.Length - 1, OneColor(15, 8))
-    End If
   End Sub
 
   Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys

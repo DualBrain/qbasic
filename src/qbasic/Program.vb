@@ -1,7 +1,12 @@
 Imports VbPixelGameEngine
 Imports QB.Video
 Imports System.Timers
-Imports System.Drawing.Text
+Imports System.Runtime.InteropServices.RuntimeInformation
+Imports System.Runtime.InteropServices.OSPlatform
+Imports System.Reflection
+Imports System.Drawing
+Imports System.Net.Mime.MediaTypeNames
+Imports System.Runtime.InteropServices
 
 Friend Module Program
 
@@ -31,8 +36,11 @@ Friend Class QBasic
 
   Private WithEvents WorkTimer As New Timer(1)
 
+  Private m_pathspec As String
+
   Friend Sub New()
-    AppName = "QBasic?"
+    AppName = "Community QBasic"
+    m_pathspec = IO.Path.Combine(Environment.CurrentDirectory(), If(IsOSPlatform(Windows), "*.BAS", "*.*"))
   End Sub
 
   Private m_workTimerActive As Boolean
@@ -49,7 +57,21 @@ Friend Class QBasic
 
   End Sub
 
+  <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
+  Private Shared Function SendMessage(hWnd As IntPtr, Msg As UInteger, wParam As UInteger, lParam As IntPtr) As IntPtr
+  End Function
+
   Protected Overrides Function OnUserCreate() As Boolean
+
+    If OperatingSystem.IsWindowsVersionAtLeast(7) Then
+      Dim assem = Assembly.GetExecutingAssembly
+      Dim ico = Icon.ExtractAssociatedIcon(assem.Location)
+      Const WM_SETICON As UInteger = &H80
+      Const ICON_SMALL As UInteger = 0
+      Const ICON_BIG As UInteger = 1
+      Dim unused = SendMessage(m_hWnd, WM_SETICON, ICON_SMALL, ico.Handle)
+      unused = SendMessage(m_hWnd, WM_SETICON, ICON_BIG, ico.Handle)
+    End If
 
     Init()
 
@@ -608,15 +630,18 @@ Friend Class QBasic
 
         Dim cc = m_cursorCol
         Dim cr = m_cursorRow
-        If m_document1.Focused Then
+        If m_context IsNot Nothing Then
+          cc = m_context.CursorCol
+          cr = m_context.CursorRow
+        ElseIf m_document1.Focused Then
           cc = m_document1.CursorCol
           cr = m_document1.CursorRow
         ElseIf m_document2.Focused Then
           cc = m_document2.CursorCol
           cr = m_document2.CursorRow
         ElseIf m_immediate.Focused Then
-          'cc = m_immediate.CursorCol
-          'cr = m_immediate.CursorRow
+          cc = m_immediate.CursorCol
+          cr = m_immediate.CursorRow
         Else
         End If
 
@@ -891,7 +916,7 @@ since it last changed. Either:
   End Function
 
   Private Sub OpenAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New OpenDialog(m_pathspec)
   End Sub
 
   Private Sub SaveAction()

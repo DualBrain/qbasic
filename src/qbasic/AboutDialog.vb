@@ -10,7 +10,15 @@ Public Class AboutDialog
   Private ReadOnly m_lrRow As Integer = 17
   Private ReadOnly m_lrCol As Integer = 66
 
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+
   Sub New()
+
+    Me.CursorRow = m_lrRow - 1
+    Dim w = m_lrCol - m_ulCol
+    Dim btnOffset = (w - 8) \ 2
+    Me.CursorCol = m_ulCol + btnOffset + 3
 
   End Sub
 

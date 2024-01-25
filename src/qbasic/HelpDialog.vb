@@ -13,6 +13,23 @@ Public Class HelpDialog
   Private ReadOnly m_lrRow As Integer
   Private ReadOnly m_lrCol As Integer
 
+  Private m_selected As Integer
+
+  Private m_cursorRow As Integer
+  Private m_cursorCol As Integer
+
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+    Get
+      Return m_cursorRow
+    End Get
+  End Property
+
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+    Get
+      Return m_cursorCol
+    End Get
+  End Property
+
   Sub New(caption As String, body As String)
 
     m_caption = caption
@@ -55,14 +72,13 @@ Public Class HelpDialog
     Dim btnOffset = (w - 8) \ 2
     Button("<  OK  >", m_lrRow - 1, m_ulCol + btnOffset, True)
 
-  End Sub
+    Select Case m_selected
+      Case 0 : m_cursorRow = m_ulRow + 2 : m_cursorCol = m_ulCol + 4
+      Case 1 : m_cursorRow = m_lrRow - 1 : m_cursorCol = m_ulCol + btnOffset + 3
+      Case Else
+        m_selected = 0
+    End Select
 
-  Public Shared Sub Button(text As String, row As Integer, col As Integer, Optional selected As Boolean = False)
-    QPrintRC(text, row, col, OneColor(0, 8))
-    If selected Then
-      QPrintRC("<", row, col, OneColor(15, 8))
-      QPrintRC(">", row, col + text.Length - 1, OneColor(15, 8))
-    End If
   End Sub
 
   Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
@@ -75,7 +91,12 @@ Public Class HelpDialog
           Case ConsoleKey.Enter, ConsoleKey.Spacebar
             Return False
           Case ConsoleKey.F1
-          Case ConsoleKey.Tab
+          Case ConsoleKey.Tab ' Change selected button...
+            If shift Then
+              m_selected -= 1 : If m_selected < 0 Then m_selected = 5
+            Else
+              m_selected += 1 : If m_selected > 5 Then m_selected = 0
+            End If
           Case ConsoleKey.LeftArrow, ConsoleKey.RightArrow, ConsoleKey.UpArrow, ConsoleKey.DownArrow
           Case Else
         End Select

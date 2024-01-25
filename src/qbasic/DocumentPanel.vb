@@ -127,13 +127,13 @@ Public Class DocumentPanel
     End Get
   End Property
 
-  Public ReadOnly Property CursorRow As Integer
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
     Get
       Return m_ed.TSRow + m_ed.CurLine - m_ed.TL
     End Get
   End Property
 
-  Public ReadOnly Property CursorCol As Integer
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
     Get
       Return m_ed.LSCol + (m_ed.CurCol - m_ed.LC)
     End Get
@@ -198,8 +198,8 @@ Public Class DocumentPanel
     ' Scrollbars
     If ScrollBars Then
       'TODO: Determine current position within the scrollbars...
-      If Height > 5 Then VScrollBar(Row + 1, lrCol, lrRow - 2)
-      If Height > 3 Then HScrollBar(lrRow - 1, Col + 1, lrCol - 1)
+      If Height > 5 Then VScrollBar(Row + 1, lrCol, lrRow - 2, 1)
+      If Height > 3 Then HScrollBar(lrRow - 1, Col + 1, lrCol - 1, 1)
     End If
 
     ' Title

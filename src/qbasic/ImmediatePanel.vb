@@ -13,13 +13,13 @@ Public Class ImmediatePanel
 
   Public Property Focused As Boolean = False
 
-  Public ReadOnly Property CursorRow As Integer
+  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
     Get
       Return 1
     End Get
   End Property
 
-  Public ReadOnly Property CursorCol As Integer
+  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
     Get
       Return 1
     End Get

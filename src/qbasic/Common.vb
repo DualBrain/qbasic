@@ -491,6 +491,14 @@ Module Common
 
 #Region "Other"
 
+  Friend Sub Button(text As String, row As Integer, col As Integer, Optional selected As Boolean = False)
+    QPrintRC(text, row, col, OneColor(0, 8))
+    If selected Then
+      QPrintRC("<", row, col, OneColor(15, 8))
+      QPrintRC(">", row, col + text.Length - 1, OneColor(15, 8))
+    End If
+  End Sub
+
   Friend Sub HLine(row As Integer, ulCol As Integer, lrCol As Integer, ch As Integer, colr As Integer)
 
     Dim lc = ChrW(195), rc = ChrW(180)
@@ -526,22 +534,22 @@ Module Common
 
   End Sub
 
-  Friend Sub VScrollBar(ulRow As Integer, col As Integer, lrRow As Integer)
-    QPrintRC(ChrW(24), ulRow, col, OneColor(1, 8))
+  Friend Sub VScrollBar(ulRow As Integer, col As Integer, lrRow As Integer, arrowFg As Integer)
+    QPrintRC(ChrW(24), ulRow, col, OneColor(arrowFg, 8))
     For r = ulRow + 1 To lrRow - 1
       QPrintRC(ChrW(177), r, col, OneColor(0, 8))
     Next
-    QPrintRC(ChrW(25), lrRow, col, OneColor(1, 8))
+    QPrintRC(ChrW(25), lrRow, col, OneColor(arrowFg, 8))
     ' position...
-    QPrintRC(ChrW(32), 4, col, OneColor(0, 0))
+    QPrintRC(ChrW(32), ulRow + 1, col, OneColor(0, 0))
   End Sub
 
-  Friend Sub HScrollBar(row As Integer, ulCol As Integer, lrCol As Integer)
-    QPrintRC(ChrW(27), row, ulCol, OneColor(1, 8))
+  Friend Sub HScrollBar(row As Integer, ulCol As Integer, lrCol As Integer, arrowFg As Integer)
+    QPrintRC(ChrW(27), row, ulCol, OneColor(arrowFg, 8))
     For c = ulCol + 1 To lrCol - 1
       QPrintRC(ChrW(177), row, c, OneColor(0, 8))
     Next
-    QPrintRC(ChrW(26), row, lrCol, OneColor(1, 8))
+    QPrintRC(ChrW(26), row, lrCol, OneColor(arrowFg, 8))
     ' position...
     QPrintRC(ChrW(32), row, ulCol + 1, OneColor(0, 0))
   End Sub

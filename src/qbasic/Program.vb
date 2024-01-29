@@ -12,7 +12,7 @@ Friend Module Program
 
   Sub Main()
     Dim demo As New QBasic
-    If demo.Construct(640, 400, 2, 2) Then ', False, True) Then
+    If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
       demo.ShowEngineName = False : demo.ShowFPS = False
       demo.Start()
     End If

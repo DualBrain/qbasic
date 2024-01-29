@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\vbPGE\src\vbPixelGameEngine\vbPixelGameEngine.vbproj" />
+    <ProjectReference Include="..\..\..\vbPixelGameEngine\src\vbPixelGameEngine\vbPixelGameEngine.vbproj" />
   </ItemGroup>
 
 </Project>

@@ -15,8 +15,8 @@ Public Class HelpDialog
 
   Private m_selected As Integer
 
-  Private m_cursorRow As Integer
-  Private m_cursorCol As Integer
+  Private m_cursorRow As Integer = 1
+  Private m_cursorCol As Integer = 1
 
   Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
     Get

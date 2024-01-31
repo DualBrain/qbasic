@@ -1,6 +1,4 @@
-﻿Imports System.Runtime.ConstrainedExecution
-Imports System.Text
-Imports QB.Video
+﻿Imports QB.Video
 
 Module Common
 
@@ -17,6 +15,8 @@ Module Common
     '     which doesn't seem to match what the documentation states.
     ' NOTE: page is currently not implemented.
     ' If page is -1, use current page.
+    If page <> 0 Then
+    End If
     'If page > -1 Then SCREEN(, , page, page)
     Dim row = CSRLIN()
     Dim col = POS(0)
@@ -110,7 +110,8 @@ Module Common
   End Sub
 
   Friend Sub ButtonPress(ByRef button As Integer, ByRef status As Integer, ByRef count As Integer, ByRef x As Integer, ByRef y As Integer)
-
+    If button <> 0 OrElse status <> 0 OrElse count <> 0 OrElse x <> 0 OrElse y <> 0 Then
+    End If
   End Sub
 
   Friend Sub ClearScr(ulRow As Integer, ulCol As Integer, lrRow As Integer, lrCol As Integer, colr As Integer, page As Integer)
@@ -163,7 +164,8 @@ Module Common
   End Function
 
   Friend Sub GetCursor(ByRef x As Integer, ByRef y As Integer, ByRef button As Integer)
-
+    If x <> 0 OrElse y <> 0 OrElse button <> 0 Then
+    End If
   End Sub
 
   Friend Sub GetVMode(ByRef mode As Integer, ByRef page As Integer, ByRef pageSize As Integer, ByRef rows As Integer, ByRef columns As Integer)

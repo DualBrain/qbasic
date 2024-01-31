@@ -831,6 +831,8 @@ Namespace Global.QB
     End Sub
 
     Private Shared Sub GraphicsInit(width%, height%)
+      If width <> 0 OrElse height <> 0 Then
+      End If
       'm_display = New Sprite(width%, height%)
     End Sub
 

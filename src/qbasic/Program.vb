@@ -5,7 +5,6 @@ Imports System.Runtime.InteropServices.RuntimeInformation
 Imports System.Runtime.InteropServices.OSPlatform
 Imports System.Reflection
 Imports System.Drawing
-Imports System.Net.Mime.MediaTypeNames
 Imports System.Runtime.InteropServices
 
 Friend Module Program
@@ -27,6 +26,7 @@ Friend Class QBasic
   Private m_context As IContext
 
   Private WithEvents Menu As MainMenu
+  Private ReadOnly m_help As New HelpPanel
   Private ReadOnly m_document1 As New DocumentPanel
   Private ReadOnly m_document2 As New DocumentPanel
   Private ReadOnly m_immediate As New ImmediatePanel
@@ -36,7 +36,7 @@ Friend Class QBasic
 
   Private WithEvents WorkTimer As New Timer(1)
 
-  Private m_pathspec As String
+  Private ReadOnly m_pathspec As String
 
   Friend Sub New()
     AppName = "Community QBasic"
@@ -131,6 +131,56 @@ Friend Class QBasic
     m_document1.Focused = True
     m_document2.Visible = False
 
+    If False Then
+      m_document1.Text = <qbasic><![CDATA[Rem calculator
+cls
+10
+print "input first operand"
+input a
+print "select operation"
+input b
+print "addition(a)"
+print "subtraction(s)"
+print "multiplication(m)"
+print "division(d)"
+print "exponentification(e)"
+print "rooting(r)"
+print "Quit(q)"
+do 
+next$ = inkey$
+Loop until next$ <> "" 
+gosub input_var2
+
+select case next$
+case "a"
+c = a + b
+print "sum is:";c
+case "s"
+c = a - b
+print "Difference is:";c
+case "m"
+c= a*b
+print "Product is :";c
+case "d"
+c = a/b
+print "Quotient is:";c
+case "e"
+c = a^b
+print "Exponentification is:"c
+case "r"
+c = a^ 1/b
+print "Root is:";c
+case "q"
+end
+
+end select
+sleep 3
+goto 10
+]]></qbasic>.Value
+    End If
+
+    m_context = New WelcomeDialog()
+
     DrawScreen()
 
     WorkTimer.Enabled = True
@@ -141,6 +191,7 @@ Friend Class QBasic
 
   Private Sub DrawScreen()
 
+    m_help.Render()
     m_document1.Render()
     m_document2.Render()
     m_immediate.Render()
@@ -156,7 +207,10 @@ Friend Class QBasic
       m_statusPanel.Text = "<Shift+F1=Help> <F6=Window> <F2=Subs> <F5=Run> <F8=Step>"
     End If
 
-    If m_document1.Focused Then
+    If m_help.Focused Then
+      m_statusPanel.DocumentRow = m_help.DocumentRow
+      m_statusPanel.DocumentCol = m_help.DocumentCol
+    ElseIf m_document1.Focused Then
       m_statusPanel.DocumentRow = m_document1.DocumentRow
       m_statusPanel.DocumentCol = m_document1.DocumentCol
     ElseIf m_document2.Focused Then
@@ -192,11 +246,74 @@ Friend Class QBasic
     Dim isShift = GetKey(Key.SHIFT).Held OrElse GetKey(Key.SHIFT).Pressed
     Dim isControl = GetKey(Key.CTRL).Held OrElse GetKey(Key.CTRL).Pressed
 
+    If keys IsNot Nothing Then
+      For index = keys.Count - 1 To 0 Step -1
+        If Not isControl AndAlso Not isAlt AndAlso Not isShift Then
+          Select Case keys(index)
+            Case ConsoleKey.F11
+              ToggleFullScreen()
+              If Not IsFullScreen Then
+                ' Whenever we restore the window, will need to "reattach" the icon in the title bar.
+                If OperatingSystem.IsWindowsVersionAtLeast(7) Then
+                  Dim assem = Assembly.GetExecutingAssembly
+                  Dim ico = Icon.ExtractAssociatedIcon(assem.Location)
+                  Const WM_SETICON As UInteger = &H80
+                  Const ICON_SMALL As UInteger = 0
+                  Const ICON_BIG As UInteger = 1
+                  Dim unused = SendMessage(m_hWnd, WM_SETICON, ICON_SMALL, ico.Handle)
+                  unused = SendMessage(m_hWnd, WM_SETICON, ICON_BIG, ico.Handle)
+                Else
+                  'TODO: How to set the icon on Linux?
+                End If
+              End If
+              keys.RemoveAt(index)
+            Case Else
+          End Select
+        ElseIf isControl AndAlso isAlt AndAlso isShift Then
+          Select Case keys(index)
+            Case ConsoleKey.OemPlus
+              IncreasePixelSize()
+              keys.RemoveAt(index)
+            Case ConsoleKey.OemMinus
+              DecreasePixelSize()
+              keys.RemoveAt(index)
+            Case Else
+          End Select
+        End If
+      Next
+    End If
+
     If m_context IsNot Nothing Then
       m_context.Render()
       If Not m_context.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift) Then
         If TypeOf m_context Is SavePrompt Then
           m_selected = CType(m_context, SavePrompt).Selected
+        ElseIf TypeOf m_context Is WelcomeDialog Then
+          m_selected = CType(m_context, WelcomeDialog).Selected
+          If m_selected = 0 Then
+            m_help.Title = "Survival Guide"
+            m_help.Content = <content><![CDATA[
+Using QBasic:
+
+  * To activate the QBasic menu bar, press Alt.
+  * To activate menus and commands, press the highlighted letter.
+  * To move between menus and command, use the direction keys.
+  * To get help on a selected keyword, command, or dialog box, press F1.
+  * To exit Help, press Esc.
+
+Browsing the QBasic Help system:
+
+  * To select one of the following topics, press the Tab key or the first
+    letter of the topic. Then press the Enter key to see:
+
+    <Index>         The Index for QBasic Help
+    <Contents>      The Table of Contents for QBasic Help topics
+    <Using Help>    Information on using QBasic Help
+
+Tip: These topics are also available from the Help menu.
+]]></content>.Value
+            ShowHelp()
+          End If
         End If
         m_context = Nothing : DrawScreen()
       End If
@@ -264,22 +381,44 @@ Friend Class QBasic
                   handled = True
                 Case ConsoleKey.F6 ' Make the previous window the active window
                   If m_document1.Focused Then
-                    If m_immediate.Visible Then
+                    If m_help.Visible Then
+                      FocusHelp()
+                    ElseIf m_immediate.Visible Then
                       FocusImmediate()
                     ElseIf m_document2.Visible Then
                       FocusDocument2()
+                    Else
+                      FocusDocument1()
                     End If
                   ElseIf m_document2.Visible AndAlso m_document2.Focused Then
                     If m_document1.Visible Then
                       FocusDocument1()
+                    ElseIf m_help.Visible Then
+                      FocusHelp()
                     ElseIf m_immediate.Visible Then
                       FocusImmediate()
+                    Else
+                      FocusDocument2()
                     End If
                   ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
                     If m_document2.Visible Then
                       FocusDocument2()
+                    ElseIf m_document1.Visible Then
+                      FocusDocument1()
+                    ElseIf m_help.Visible Then
+                      FocusHelp()
                     Else
                       FocusImmediate()
+                    End If
+                  ElseIf m_help.Visible AndAlso m_help.Focused Then
+                    If m_immediate.Visible Then
+                      FocusImmediate()
+                    ElseIf m_document2.Visible Then
+                      FocusDocument2()
+                    ElseIf m_document1.Visible Then
+                      FocusDocument1()
+                    Else
+                      FocusHelp()
                     End If
                   End If
                   handled = True
@@ -324,67 +463,6 @@ Friend Class QBasic
                   handled = True
                 Case ConsoleKey.F10 ' Switch between multiple windows and full-screen active window
                   handled = True
-                Case ConsoleKey.A ' Word Left (WordStar)
-                  handled = True
-                Case ConsoleKey.C ' Page down (WordStar)
-                  handled = True
-                Case ConsoleKey.D ' Cursor right (WordStar)
-                  handled = True
-                Case ConsoleKey.E ' Cursor up (WordStar)
-                  handled = True
-                Case ConsoleKey.F ' Word Right (WordStar)
-                  handled = True
-                Case ConsoleKey.G ' Delete selected text / Delete one character at the cursor (WordStar)
-                  handled = True
-                Case ConsoleKey.H ' Delete one character to the left of the cursor (WordStar)
-                  handled = True
-                Case ConsoleKey.J ' Cursor to beginning of next line (WordStar)
-                  handled = True
-                Case ConsoleKey.K '...
-                  m_isK = True
-                  handled = True
-                Case ConsoleKey.L ' Repeat find for same text
-                  handled = True
-                Case ConsoleKey.N ' Insert Line above
-                  handled = True
-                Case ConsoleKey.P ' Insert special characters...
-                  m_isCtrlP = True
-                  handled = True
-                Case ConsoleKey.Q '... 
-                  m_isQ = True
-                  handled = True
-                Case ConsoleKey.R ' Page up (WordStar)
-                  handled = True
-                Case ConsoleKey.S ' Cursor left (WordStar)
-                  handled = True
-                Case ConsoleKey.T ' Delete the rest of the word the cursor is on (WordStar)
-                  handled = True
-                Case ConsoleKey.V ' Switch between insert and overstrike modes (WordStar)
-                  handled = True
-                Case ConsoleKey.W ' Scroll up (WordStar)
-                  handled = True
-                Case ConsoleKey.X ' Cursor dn (WordStar)
-                  handled = True
-                Case ConsoleKey.Y ' Cut current line
-                  handled = True
-                Case ConsoleKey.Z ' Scroll dn (WordStar)
-                  handled = True
-                Case ConsoleKey.Enter ' Cursor to beginning of next line
-                  handled = True
-                Case ConsoleKey.Insert ' Copy to Clipboard
-                  handled = True
-                Case ConsoleKey.LeftArrow ' Word Left
-                  handled = True
-                Case ConsoleKey.RightArrow ' Word Right
-                  handled = True
-                Case ConsoleKey.UpArrow ' Scroll up
-                  handled = True
-                Case ConsoleKey.DownArrow ' Scroll dn
-                  handled = True
-                Case ConsoleKey.PageUp ' Left one window
-                  handled = True
-                Case ConsoleKey.PageDown ' Right one window
-                  handled = True
                 Case Else
               End Select
             ElseIf m_isAlt Then
@@ -392,83 +470,99 @@ Friend Class QBasic
                 Case ConsoleKey.Add ' Increase size of active window
                   Menu.AltPressed = False
                   Dim max = 24
-                  If m_document2.Visible AndAlso m_immediate.Visible Then
-                    max -= 2
-                  ElseIf m_document2.Visible OrElse m_immediate.Visible Then
-                    max -= 1
-                  End If
-                  If m_document1.Focused Then
-                    If m_document1.Height < max Then
-                      If m_document2.Visible Then
-                        If m_document2.Height > 2 Then
-                          m_document1.Height += 1
-                          m_document2.Row += 1 : m_document2.Height -= 1
-                        ElseIf m_immediate.Height > 2 Then
-                          m_document1.Height += 1
-                          m_document2.Row += 1
-                          m_immediate.Row += 1 : m_immediate.Height -= 1
-                        End If
-                      ElseIf m_immediate.Visible Then
-                        If m_immediate.Height > 2 Then
-                          m_document1.Height += 1
-                          m_immediate.Row += 1 : m_immediate.Height -= 1
-                        End If
-                      End If
+                  Dim visibleCount = 3
+                  If Not m_help.Visible Then visibleCount -= 1
+                  If Not m_document2.Visible Then visibleCount -= 1
+                  If Not m_immediate.Visible Then visibleCount -= 1
+                  max -= visibleCount
+                  If m_help.Visible AndAlso m_help.Focused AndAlso m_help.EditorHeight < max Then
+                    If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then ' Shrink Document1?
+                      m_document1.EditorHeight -= 1 : m_document1.EditorTop += 1
+                      m_help.EditorHeight += 1
+                    ElseIf m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then ' Shrink Document2?
+                      m_document2.EditorHeight -= 1 : m_document2.EditorTop += 1
+                      If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
+                      m_help.EditorHeight += 1
+                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then ' Shrink Immediate?
+                      m_immediate.EditorTop += 1
+                      m_immediate.EditorHeight -= 1
+                      If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
+                      If m_document2.Visible Then m_document2.EditorTop += 1 ' If shrink, move Document2 down.
+                      m_help.EditorHeight += 1
                     End If
-                  ElseIf m_document2.Focused Then
-                    If m_document2.Height < max Then
-                      If m_document1.Height > 2 Then
-                        m_document1.Height -= 1
-                        m_document2.Row -= 1 : m_document2.Height += 1
-                      ElseIf m_immediate.Height > 2 Then
-                        m_document2.Row += 1 : m_document2.Height += 1
-                        m_immediate.Row += 1 : m_immediate.Height -= 1
-                      End If
+                  ElseIf m_document1.Visible AndAlso m_document1.Focused AndAlso m_document1.EditorHeight < max Then
+                    If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
+                      m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
+                      m_document1.EditorHeight += 1
+                    ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
+                      m_help.EditorHeight -= 1
+                      m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
+                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
+                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                      m_document1.EditorHeight += 1
                     End If
-                  ElseIf m_immediate.Focused Then
-                    If m_immediate.Height < 12 Then
-                      If m_document2.Visible Then
-                        If m_document2.Height > 2 Then
-                          m_document2.Height -= 1
-                          m_immediate.Row -= 1 : m_immediate.Height += 1
-                        ElseIf m_document1.Height > 2 Then
-                          m_document1.Height -= 1
-                          m_document2.Row -= 1
-                          m_immediate.Row -= 1 : m_immediate.Height += 1
-                        End If
-                      Else
-                        If m_document1.Height > 2 Then
-                          m_document1.Height -= 1
-                          m_immediate.Row -= 1 : m_immediate.Height += 1
-                        End If
-                      End If
+                  ElseIf m_document2.Visible AndAlso m_document2.Focused AndAlso m_document2.EditorHeight < max Then
+                    If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
+                      m_document1.EditorHeight -= 1
+                      m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                    ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
+                      m_help.EditorHeight -= 1
+                      If m_document1.Visible Then m_document1.EditorTop -= 1
+                      m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
+                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                      m_document2.EditorHeight += 1
+                    End If
+                  ElseIf m_immediate.Visible AndAlso m_immediate.Focused AndAlso m_immediate.EditorHeight < 12 Then
+                    If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
+                      m_document2.EditorHeight -= 1
+                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
+                    ElseIf m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
+                      m_document1.EditorHeight -= 1
+                      If m_document2.Visible Then m_document2.EditorTop -= 1
+                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
+                    ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
+                      m_help.EditorHeight -= 1
+                      If m_document1.Visible Then m_document1.EditorTop -= 1
+                      If m_document2.Visible Then m_document2.EditorTop -= 1
+                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
                     End If
                   End If
                   handled = True
                 Case ConsoleKey.Subtract ' Decrease size of active window
                   Menu.AltPressed = False
-                  If m_document1.Focused Then
-                    If m_document1.Height > 2 Then
-                      If m_document2.Visible Then
-                        m_document1.Height -= 1
-                        m_document2.Row -= 1 : m_document2.Height += 1
-                      ElseIf m_immediate.Visible AndAlso m_immediate.Height < 12 Then
-                        m_document1.Height -= 1
-                        m_immediate.Row -= 1 : m_immediate.Height += 1
-                      End If
+                  If m_help.Focused AndAlso m_help.EditorHeight > 2 Then
+                    m_help.EditorHeight -= 1
+                    m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
+                  ElseIf m_document1.Focused AndAlso m_document1.EditorHeight > 2 Then
+                    If m_help.Visible Then
+                      m_help.EditorHeight += 1
+                      m_document1.EditorTop += 1 : m_document1.EditorHeight -= 1
+                    ElseIf m_document2.Visible Then
+                      m_document1.EditorHeight -= 1
+                      m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
+                      m_document1.EditorHeight -= 1
+                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
                     End If
-                  ElseIf m_document2.Focused Then
-                    If m_document1.Height > 2 Then
-                      m_document2.Height -= 1
-                      m_document2.Row -= 1 : m_document2.Height += 1
-                    ElseIf m_immediate.Visible Then
-                      If m_immediate.Height > 2 AndAlso m_immediate.Height < 12 Then
-                        m_document2.Height += 1
-                        m_immediate.Row += 1 : m_immediate.Height -= 1
-                      End If
+                  ElseIf m_document2.Focused AndAlso m_document2.EditorHeight > 2 Then
+                    If m_document1.Visible Then
+                      m_document1.EditorHeight += 1
+                      m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
+                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
+                      m_document2.EditorHeight -= 1
+                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight += 1
                     End If
-                  ElseIf m_immediate.Focused Then
+                  ElseIf m_immediate.Focused AndAlso m_immediate.EditorHeight > 2 Then
                     If m_document2.Visible Then
+                      m_document2.EditorHeight += 1
+                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                    ElseIf m_document1.Visible Then
+                      m_document1.EditorHeight += 1
+                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                    ElseIf m_help.Visible Then
+                      m_help.EditorHeight += 1
+                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
                     End If
                   End If
                   handled = True
@@ -478,16 +572,17 @@ Friend Class QBasic
                   handled = True
                 Case Else
               End Select
-            ElseIf Not isShift AndAlso Not isControl AndAlso Not isShift Then
+            ElseIf Not isControl AndAlso Not isAlt AndAlso Not isShift Then
               Select Case key
 
                 Case ConsoleKey.Escape
-                  If Menu.AltPressed Then
+                  If Menu.AltPressed AndAlso Menu.Focused Then
                     Menu.Reset()
                     handled = True
                   End If
 
                 Case ConsoleKey.F1 ' Help on keywords or topics (or right mouse click on word)
+                  'TODO: if in a document and on a keyword, open help.
                   handled = True
                 Case ConsoleKey.F2 ' Display a list of loaded SUB procedures
                   handled = True
@@ -503,15 +598,41 @@ Friend Class QBasic
                       FocusDocument2()
                     ElseIf m_immediate.Visible Then
                       FocusImmediate()
+                    ElseIf m_help.Visible Then
+                      FocusHelp()
+                    Else
+                      FocusDocument1()
                     End If
                   ElseIf m_document2.Visible AndAlso m_document2.Focused Then
                     If m_immediate.Visible Then
                       FocusImmediate()
+                    ElseIf m_help.Visible Then
+                      FocusHelp()
                     ElseIf m_document1.Visible Then
                       FocusDocument1()
+                    Else
+                      FocusDocument2()
                     End If
                   ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
-                    FocusDocument1()
+                    If m_help.Visible Then
+                      FocusHelp()
+                    ElseIf m_document1.Visible Then
+                      FocusDocument1()
+                    ElseIf m_document2.Visible Then
+                      FocusDocument2()
+                    Else
+                      FocusImmediate()
+                    End If
+                  ElseIf m_help.Visible AndAlso m_help.Focused Then
+                    If m_document1.Visible Then
+                      FocusDocument1()
+                    ElseIf m_document2.Visible Then
+                      FocusDocument2()
+                    ElseIf m_immediate.Visible Then
+                      FocusImmediate()
+                    Else
+                      FocusHelp()
+                    End If
                   End If
                   handled = True
                 Case ConsoleKey.F7 ' Execute to cursor
@@ -561,18 +682,24 @@ Friend Class QBasic
         End If
 
         If cursorVisible Then
-          If m_document1.Focused Then
-            cursorVisible = m_document1.Height > 2
+          If m_help.Focused Then
+            cursorVisible = m_help.EditorHeight > 2
+          ElseIf m_document1.Focused Then
+            cursorVisible = m_document1.EditorHeight > 2
           ElseIf m_document2.Focused Then
-            cursorVisible = m_document2.Height > 2
+            cursorVisible = m_document2.EditorHeight > 2
           ElseIf m_immediate.Focused Then
-            cursorVisible = m_immediate.Height > 2
+            cursorVisible = m_immediate.EditorHeight > 2
           Else
           End If
         End If
 
         If cursorVisible AndAlso Not handled Then
-          If m_document1.Focused Then
+          If m_help.Focused Then
+            If Not m_help.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift) Then
+              HideHelp()
+            End If
+          ElseIf m_document1.Focused Then
             m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
           ElseIf m_document2.Focused Then
             m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
@@ -633,6 +760,9 @@ Friend Class QBasic
         If m_context IsNot Nothing Then
           cc = m_context.CursorCol
           cr = m_context.CursorRow
+        ElseIf m_help.Focused Then
+          cc = m_help.CursorCol
+          cr = m_help.CursorRow
         ElseIf m_document1.Focused Then
           cc = m_document1.CursorCol
           cr = m_document1.CursorRow
@@ -706,33 +836,89 @@ Friend Class QBasic
 
   End Function
 
+  Private Sub ShowHelp()
+    m_help.EditorTop = 2 : m_help.EditorHeight = 21
+    Dim row = 22
+    If m_document1.Visible Then
+      m_document1.EditorTop = row
+      If m_document2.Visible Then
+        If m_immediate.Visible Then
+          m_document2.EditorTop = 23
+          m_immediate.EditorTop = 24
+          m_document2.EditorHeight = 2
+          m_document1.EditorHeight = 2
+          m_immediate.EditorHeight = 2
+        Else
+          m_document2.EditorTop = 24
+          m_document2.EditorHeight = 2
+          m_document1.EditorHeight = 3
+        End If
+      Else
+        If m_immediate.Visible Then
+          m_immediate.EditorTop = 24
+          m_document1.EditorHeight = 3
+          m_immediate.EditorHeight = 2
+        Else
+          m_document1.EditorHeight = 4
+        End If
+      End If
+    End If
+    m_help.Visible = True : FocusHelp()
+  End Sub
+
+  Private Sub HideHelp()
+    m_help.Visible = False
+    Dim h = (m_document1.EditorTop - 1) + m_document1.EditorHeight
+    m_document1.EditorTop = 2
+    m_document1.EditorHeight = h
+    FocusDocument1()
+  End Sub
+
   Private Sub FocusDocument1()
+    m_help.Focused = False
+    m_help.ScrollBars = False
     m_immediate.Focused = False
     m_document2.Focused = False
     m_document2.ScrollBars = False
     m_document1.Focused = True
     m_document1.ScrollBars = True
-    m_cursorRow = m_document1.Row + 1
-    m_cursorCol = m_document1.Col + 1
+    m_cursorRow = m_document1.EditorTop + 1
+    m_cursorCol = m_document1.EditorLeft + 1
   End Sub
 
   Private Sub FocusDocument2()
+    m_help.Focused = False
+    m_help.ScrollBars = False
     m_immediate.Focused = False
     m_document1.Focused = False
     m_document1.ScrollBars = False
     m_document2.Focused = True
     m_document2.ScrollBars = True
-    m_cursorRow = m_document2.Row + 1
-    m_cursorCol = m_document2.Col + 1
+    m_cursorRow = m_document2.EditorTop + 1
+    m_cursorCol = m_document2.EditorLeft + 1
+  End Sub
+
+  Private Sub FocusHelp()
+    m_document1.Focused = False
+    m_document1.ScrollBars = False
+    m_document2.Focused = False
+    m_document2.ScrollBars = False
+    m_immediate.Focused = False
+    m_help.Focused = True
+    m_help.ScrollBars = True
+    m_cursorRow = m_help.EditorTop + 1
+    m_cursorCol = m_help.EditorLeft + 1
   End Sub
 
   Private Sub FocusImmediate()
+    m_help.Focused = False
+    m_help.ScrollBars = False
     m_document1.Focused = False
     m_document1.ScrollBars = False
     m_document2.Focused = False
     m_document2.ScrollBars = False
     m_immediate.Focused = True
-    m_cursorRow = m_immediate.Row + 1
+    m_cursorRow = m_immediate.EditorTop + 1
     m_cursorCol = m_immediate.Col + 1
   End Sub
 
@@ -783,6 +969,8 @@ Friend Class QBasic
     If GetKey(Key.F8).Pressed Then result.Add(ConsoleKey.F8)
     If GetKey(Key.F9).Pressed Then result.Add(ConsoleKey.F9)
     If GetKey(Key.F10).Pressed Then result.Add(ConsoleKey.F10)
+    If GetKey(Key.F11).Pressed Then result.Add(ConsoleKey.F11)
+    If GetKey(Key.F12).Pressed Then result.Add(ConsoleKey.F12)
 
     If GetKey(Key.SPACE).Pressed Then result.Add(ConsoleKey.Spacebar)
     If GetKey(Key.A).Pressed Then result.Add(ConsoleKey.A)
@@ -997,15 +1185,104 @@ since it last changed. Either:
   End Sub
 
   Private Sub UsingHelpAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_help.Title = "Using Help"
+    m_help.Content = <content><![CDATA[  <Contents>  <Index>  <Back>
+---
+Using QBasic Help:
+
+  * To get help on a Basic keyword, place the cursor on it and press F1
+    or click the right mouse button.
+
+  * To get help on a QBasic menu, command, or dialog box, place the cursor
+    on the menu item or <Help> button and press F1.
+
+  * To view QBasic Help topics, press Alt+H, then press the highlighted
+    letter to choose a command.
+
+  * To move the cursor into the Help window, press Shift+F6.
+
+  * To scroll the help information, press PgDn or PgUp.
+
+  * To copy help information (such as a programming example) to the
+    View window, use the commands on the QBasic Edit menu.
+
+  * To close the Help window, press Esc.
+
+In the Help window, you can display information on:
+
+  * Help topics (identified by highlighted arrowheads < >)
+
+  * Basic keywords
+
+To move the cursor to a Help topic, press Tab or the first letter of the
+topic. To display the topic or keyword information, place the cursor
+anywhere on the topic or keyword and press F1 or click the right mouse
+button.
+
+QBasic saves the last 20 Help topics you viewed. To review them press
+Alt+F1 or click the <Back> button repeatedly.
+]]></content>.Value
+    ShowHelp()
   End Sub
 
   Private Sub ContentsAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_help.Title = "Table of Contents"
+    m_help.Content = <content><![CDATA[  <Contents>  <Index>  <Back>
+---
+
+  +Orientation-------------------------+ +Keys--------------------------+
+  | <Using Help>                       | | <Shortcut Keys Summary>      |
+  | <Using Menus and Commands>         | | <Editing Keys>               |
+  | <Using a Dialog Box>               | | <View and Search Keys>       |
+  | <Syntax Conventions>               | | <Run and Debug Keys>         |
+  +------------------------------------+ | <Help Keys>                  |
+  +Using QBasic------------------------+ +------------------------------+ 
+  | <QBasic Command Line>              | +Quick Reference---------------+
+  | <Basic Character Set>              | | <ASCII Character Codes>      |
+  | <Keywords by Programming Task>     | | <Keyboard Scan Codes>        |
+  | <QBasic Environment Limits>        | | <Run-Time Error Codes>       |
+  | <Version Differences>              | | <Copyright and Trademarks>   |
+  | <Converting BASICA Programs>       | +------------------------------+ 
+  | <Beyond QBasic>                    | 
+  +------------------------------------+
+
+]]></content>.Value
+    ShowHelp()
   End Sub
 
   Private Sub IndexAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_help.Title = "QBasic Online Help Index"
+    m_help.Content = <content><![CDATA[  <Contents>  <Index>  <Back>
+---
+To get help on a QBasic keyword in the list below:
+    1. Press the key of the first letter of the keyword.
+    2. Use the direction keys to move the cursor to the keyword.
+    3. Press F1 to display the help text in the Help window.
+                                                                  +===+
+==================================================================| A |
+                                                                  +===+
+  ABS Function                       APPEND Keyword
+  ABSOLUTE Keyword                   AS Keyword
+  ACCESS Keyword                     ASC Function
+  AND Operator                       ATN Function
+  ANY Keyword
+                                                                  +===+
+==================================================================| B |
+                                                                  +===+
+  BASE Keyword                       BLOAD Statement
+  Basic Character Set                Boolean Operators
+  BEEP Statement                     BSAVE Statement
+  BINARY Keyword
+                                                                  +===+
+==================================================================| C |
+                                                                  +===+
+  CALL Statement                     COLOR Statement
+  CALL ABSOLUTE Statement            COM Statement
+  CASE Keyword                       COMMON Statement
+  ...
+
+]]></content>.Value
+    ShowHelp()
   End Sub
 
   Private Sub SyntaxCheckingAction()
@@ -1078,17 +1355,17 @@ since it last changed. Either:
     Dim visible = m_document2.Visible
     If visible Then
       m_document2.Visible = False
-      m_document1.Height += m_document2.Height - 1 '21
+      m_document1.EditorHeight += m_document2.EditorHeight - 1 '21
       If Not m_document1.Focused AndAlso Not m_immediate.Focused Then
         FocusDocument1()
       End If
     Else
-      Dim h = m_document1.Height - 1
+      Dim h = m_document1.EditorHeight - 1
       Dim h2 = h \ 2
       Dim h1 = h - h2
-      m_document1.Height = h1 + 1
-      m_document2.Row = 2 + h1
-      m_document2.Height = h2 + 1
+      m_document1.EditorHeight = h1 + 1
+      m_document2.EditorTop = 2 + h1
+      m_document2.EditorHeight = h2 + 1
       m_document2.ScrollBars = False
       m_document2.Visible = True
     End If

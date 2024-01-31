@@ -6,10 +6,10 @@ Public Class ImmediatePanel
 
   Public Property Visible As Boolean = True
 
-  Public Property Row As Integer = 22
+  Public Property EditorTop As Integer = 22
   Public Property Col As Integer = 1
   Public Property Width As Integer = 80
-  Public Property Height As Integer = 4
+  Public Property EditorHeight As Integer = 4
 
   Public Property Focused As Boolean = False
 
@@ -41,16 +41,16 @@ Public Class ImmediatePanel
 
     If Visible Then
 
-      Dim lrRow = Row + Height - 1
+      Dim lrRow = EditorTop + EditorHeight - 1
       Dim lrCol = Col + Width - 1
 
-      ClearScr0(Row + 1, Col + 1, lrRow - 1, lrCol - 1, OneColor(8, 1))
-      Box0(Row, Col, lrRow, lrCol, 1, OneColor(8, 1))
-      HLine(Row, Col, lrCol, 1, OneColor(8, 1))
+      ClearScr0(EditorTop + 1, Col + 1, lrRow - 1, lrCol - 1, OneColor(8, 1))
+      Box0(EditorTop, Col, lrRow, lrCol, 1, OneColor(8, 1))
+      HLine(EditorTop, Col, lrCol, 1, OneColor(8, 1))
 
       Dim title = " Immediate "
       Dim titleOffset = (Width - title.Length) \ 2
-      QPrintRC(title, Row, Col + titleOffset, OneColor(8, 1))
+      QPrintRC(title, EditorTop, Col + titleOffset, OneColor(8, 1))
 
     End If
 

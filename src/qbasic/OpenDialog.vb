@@ -2,6 +2,7 @@
 Imports System.Runtime.InteropServices.RuntimeInformation
 Imports System.Runtime.InteropServices.OSPlatform
 Imports System.Reflection
+Imports System.ComponentModel.Design
 
 Public Class OpenDialog
   Inherits PgeX
@@ -26,7 +27,13 @@ Public Class OpenDialog
   Private m_folderTopIndex As Integer
   Private m_fileTopIndex As Integer
 
-  Private m_textIndex As Integer
+  'Private m_textOffset As Integer
+  'Private m_textCursor As Integer
+
+  'Private m_textSelected As Boolean
+  'Private m_textSelectBegin As Integer
+  'Private m_textSelectEnd As Integer
+
   Private m_fileIndex As Integer
   Private m_folderIndex As Integer
 
@@ -55,7 +62,10 @@ Public Class OpenDialog
 
     m_folder = IO.Path.GetDirectoryName(m_initialPath)
     m_filespec = IO.Path.GetFileName(m_initialPath)
-    m_textIndex = m_filespec.Length
+    'm_textCursor = m_filespec.Length
+    'm_textSelected = True
+    'm_textSelectBegin = 0
+    'm_textSelectEnd = m_filespec.Length - 1
     If IO.Directory.Exists(m_folder) Then
       For Each file In IO.Directory.GetFiles(m_folder, m_filespec)
         m_files.Add(IO.Path.GetFileName(file))
@@ -75,6 +85,18 @@ Public Class OpenDialog
     m_lrRow = m_ulRow + needed
     m_lrCol = 73
 
+    m_filespecTextBox.Text = m_filespec
+    m_filespecTextBox.Location = New Location(m_ulRow + 2, m_ulCol + 14)
+    m_filespecTextBox.Size = New Size(1, 50)
+    m_filespecTextBox.TabStop = True
+    m_filespecTextBox.TabOrder = 0
+    m_filespecTextBox.Visible = True
+    m_filespecTextBox.Focused = True
+    m_filespecTextBox.Foreground = 0
+    m_filespecTextBox.Background = 8
+    m_filespecTextBox.SelectAll()
+    m_controls.Add(m_filespecTextBox)
+
   End Sub
 
   Private m_selected As Integer
@@ -84,6 +106,9 @@ Public Class OpenDialog
       Return m_selected
     End Get
   End Property
+
+  Private ReadOnly m_controls As New List(Of Control)
+  Private ReadOnly m_filespecTextBox As New TextBox
 
   Public Sub Render() Implements IContext.Render
 
@@ -99,7 +124,16 @@ Public Class OpenDialog
 
     QPrintRC("File Name:", m_ulRow + 2, m_ulCol + 2, OneColor(0, 8))
     Box0(m_ulRow + 1, m_ulCol + 13, m_ulRow + 3, m_lrCol - 2, 1, OneColor(0, 8))
-    QPrintRC(m_filespec, m_ulRow + 2, m_ulCol + 14, OneColor(8, 0))
+
+    For Each control In m_controls
+      control.OnDraw()
+    Next
+
+    'QPrintRC(m_filespec, m_ulRow + 2, m_ulCol + 14, OneColor(0, 8))
+    'If m_textSelected Then
+    '  PaintBox0(m_ulRow + 2, m_ulCol + 14 + m_textSelectBegin, m_ulRow + 2, m_ulCol + 14 + m_textSelectEnd, OneColor(8, 0))
+    'End If
+
     QPrintRC(m_folder, m_ulRow + 4, m_ulCol + 2, OneColor(0, 8))
     QPrintRC("Files", m_ulRow + 5, m_ulCol + 22, OneColor(0, 8))
     QPrintRC("Dirs/Drives", m_ulRow + 5, m_lrCol - 15, OneColor(0, 8))
@@ -143,7 +177,10 @@ Public Class OpenDialog
     Button("< Help >", m_lrRow - 1, m_ulCol + helpOffset, m_selected = 5)
 
     Select Case m_selected
-      Case 0 : m_cursorRow = m_ulRow + 2 : m_cursorCol = m_ulCol + 14 + m_textIndex
+      Case 0
+        'm_cursorRow = m_ulRow + 2 : m_cursorCol = m_ulCol + 14 + m_textCursor
+        m_cursorRow = m_filespecTextBox.CursorRow
+        m_cursorCol = m_filespecTextBox.CursorCol
       Case 1 : m_cursorRow = m_ulRow + 7 + (m_fileIndex Mod 8) : m_cursorCol = m_ulCol + 5 + ((m_fileIndex \ 8) * (cOffset + 2))
       Case 2 : m_cursorRow = m_ulRow + 7 + m_folderIndex : m_cursorCol = m_lrCol - 15
       Case 3 : m_cursorRow = m_lrRow - 1 : m_cursorCol = m_ulCol + okOffset + okCursorOffset
@@ -156,6 +193,22 @@ Public Class OpenDialog
   End Sub
 
   Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+
+    If m_selected = 0 Then
+      If keys?.Count > 0 Then
+        For Each key In keys
+          Dim e = New KeyPressEventArgs(key, capsLock, ctrl, alt, shift)
+          m_filespecTextBox.OnKeyPress(e)
+          If Not e.Handled Then
+            Select Case e.Key
+              Case ConsoleKey.Escape : m_selected = 1 : Return False
+              Case Else
+            End Select
+          End If
+        Next
+      End If
+      Return True
+    End If
 
     If keys?.Count > 0 Then
       For Each key In keys
@@ -183,15 +236,21 @@ Public Class OpenDialog
               Case Else
                 Return False ' Current selected button...
             End Select
+          Case ConsoleKey.Home
+            Select Case m_selected
+              Case Else
+            End Select
+          Case ConsoleKey.End
+            Select Case m_selected
+              Case Else
+            End Select
           Case ConsoleKey.LeftArrow
             Select Case m_selected
-              Case 0 : If m_textIndex > 0 Then m_textIndex -= 1
               Case 1 : If m_fileIndex - 8 > 0 Then m_fileIndex -= 8 Else m_fileIndex = 0
               Case Else
             End Select
           Case ConsoleKey.RightArrow
             Select Case m_selected
-              Case 0 : If m_textIndex < m_filespec.Length Then m_textIndex += 1
               Case 1 : If m_fileIndex + 8 < m_files.Count Then m_fileIndex += 8 Else m_fileIndex = m_files.Count - 1
               Case Else
             End Select

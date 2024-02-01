@@ -250,6 +250,9 @@ goto 10
       For index = keys.Count - 1 To 0 Step -1
         If Not isControl AndAlso Not isAlt AndAlso Not isShift Then
           Select Case keys(index)
+            Case ConsoleKey.Insert
+              ToggleInsertMode()
+              keys.RemoveAt(index)
             Case ConsoleKey.F11
               ToggleFullScreen()
               If Not IsFullScreen Then

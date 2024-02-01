@@ -1,6 +1,86 @@
 ﻿Imports QB.Video
 
-Module Common
+Friend Module Common
+
+  Friend Property Insert As Boolean
+
+  Friend Sub ToggleInsertMode()
+    Insert = Not Insert
+    CsrSize()
+  End Sub
+
+  Friend Sub CsrSize()
+    Dim BScan = 12
+    ' The below has been modified to match behavior in EDIT.COM (MS-DOS).
+    If Insert Then                          'If in insert mode,
+      'LOCATE , , , BScan \ 2, BScan            '  make large size cursor
+      LOCATE(, , , BScan - 2, BScan)            '  use 2 scan line cursor.
+    Else                                        'Overtype mode,
+      'LOCATE , , , BScan - 1, BScan            '  use 2 scan line cursor.
+      LOCATE(, , , 0, BScan)                     '  make large size cursor
+    End If
+  End Sub
+
+  Friend Function GetChar(key As ConsoleKey, capsLock As Boolean, shift As Boolean) As Char
+    Dim result = "?"c
+    Select Case key
+
+      Case ConsoleKey.Oem1 ' ;: (186)
+        If shift Then result = ":"c Else result = ";"c
+      Case ConsoleKey.OemPlus ' =+ (187)
+        If shift Then result = "+"c Else result = "="c
+      Case ConsoleKey.OemComma ' ,< (188)
+        If shift Then result = "<"c Else result = ","c
+      Case ConsoleKey.OemMinus ' -_ (189)
+        If shift Then result = "_"c Else result = "-"c
+      Case ConsoleKey.OemPeriod ' .> (190)
+        If shift Then result = ">"c Else result = "."c
+      Case ConsoleKey.Oem2 ' /?
+        If shift Then result = "?"c Else result = "/"c
+      Case ConsoleKey.Oem3 ' `~
+        If shift Then result = "~"c Else result = "`"c
+      Case ConsoleKey.Oem4 ' [{ (219)
+        If shift Then result = "{"c Else result = "["c
+      Case ConsoleKey.Oem5 ' \| (220)
+        If shift Then result = "|"c Else result = "\"c
+      Case ConsoleKey.Oem6 ' ]} (221)
+        If shift Then result = "}"c Else result = "]"c
+      Case ConsoleKey.Oem7 ' '" (222)
+        If shift Then result = """"c Else result = "'"c
+
+      Case ConsoleKey.Spacebar
+        result = " "c
+
+      Case ConsoleKey.A To ConsoleKey.Z
+
+        result = ChrW(key)
+        If capsLock Then
+          If shift Then result = CChar($"{result}".ToLower)
+        Else
+          If Not shift Then result = CChar($"{result}".ToLower)
+        End If
+
+      Case ConsoleKey.Add : Return "+"c
+      Case ConsoleKey.Multiply : Return "*"c
+      Case ConsoleKey.Divide : Return "/"c
+      Case ConsoleKey.Subtract : Return "-"c
+
+      Case ConsoleKey.D1 : If shift Then Return "!"c Else Return "1"c
+      Case ConsoleKey.D2 : If shift Then Return "@"c Else Return "2"c
+      Case ConsoleKey.D3 : If shift Then Return "#"c Else Return "3"c
+      Case ConsoleKey.D4 : If shift Then Return "$"c Else Return "4"c
+      Case ConsoleKey.D5 : If shift Then Return "%"c Else Return "5"c
+      Case ConsoleKey.D6 : If shift Then Return "^"c Else Return "6"c
+      Case ConsoleKey.D7 : If shift Then Return "&"c Else Return "7"c
+      Case ConsoleKey.D8 : If shift Then Return "*"c Else Return "8"c
+      Case ConsoleKey.D9 : If shift Then Return "("c Else Return "9"c
+      Case ConsoleKey.D0 : If shift Then Return ")"c Else Return "0"c
+
+      Case Else
+        Stop
+    End Select
+    Return result
+  End Function
 
 #Region "Helper Methods"
 

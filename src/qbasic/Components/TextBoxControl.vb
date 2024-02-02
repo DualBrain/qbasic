@@ -1,7 +1,17 @@
-﻿Public Class TextBox
+﻿Public Class TextBoxControl
   Inherits Control
 
   Public Property Text As String
+    Get
+      Return m_text
+    End Get
+    Set(value As String)
+      m_text = value
+      SelectAll()
+    End Set
+  End Property
+
+  Private m_text As String
 
   Private m_cursorOffset As Integer = 0
   Private m_textOffset As Integer = 0
@@ -19,8 +29,8 @@
   Public Sub SelectAll()
     m_selected = True
     m_selectionStart = 0
-    m_selectionEnd = Text.Length - 1
-    m_cursorOffset = Text.Length
+    m_selectionEnd = m_text.Length - 1
+    m_cursorOffset = m_text.Length
   End Sub
 
   Public Overrides Sub OnKeyPress(e As KeyPressEventArgs)
@@ -55,23 +65,23 @@
         Case ConsoleKey.End
           If e.Shift Then
             If m_selected Then
-              If m_selectionEnd = Text.Length - 1 Then
+              If m_selectionEnd = m_text.Length - 1 Then
               ElseIf m_cursorOffset > m_selectionEnd Then
-                m_selectionStart = Text.Length - 1
+                m_selectionStart = m_text.Length - 1
               ElseIf m_cursorOffset <= m_selectionStart Then
                 m_selectionStart = m_selectionEnd + 1
-                m_selectionEnd = Text.Length - 1
+                m_selectionEnd = m_text.Length - 1
               End If
               If m_selectionEnd < m_selectionStart Then QB.Core.SWAP(m_selectionStart, m_selectionEnd)
             Else
-              m_selectionStart = m_cursorOffset : m_selectionEnd = Text.Length - 1 : m_selected = True
+              m_selectionStart = m_cursorOffset : m_selectionEnd = m_text.Length - 1 : m_selected = True
             End If
           Else
             m_selected = False
           End If
-          m_cursorOffset = Text.Length
+          m_cursorOffset = m_text.Length
           If m_textOffset + m_cursorOffset > Size.Cols - 1 Then
-            m_textOffset = Text.Length - Size.Cols
+            m_textOffset = m_text.Length - Size.Cols
             m_cursorOffset = Size.Cols - 1
           End If
           e.Handled = True
@@ -119,17 +129,19 @@
           End If
           e.Handled = True
         Case ConsoleKey.Delete
-          Text = Left(Text, m_cursorOffset) + Mid(Text, m_cursorOffset + 2)
+          m_text = Left(m_text, m_cursorOffset) + Mid(m_text, m_cursorOffset + 2)
+          m_selected = False
           e.Handled = True
         Case ConsoleKey.Backspace
           If m_cursorOffset > 0 Then
-            If m_cursorOffset <= Text?.Length Then
-              Dim leftSide = If(m_cursorOffset > 1, Text?.Substring(0, m_cursorOffset - 1), "")
-              Dim rightSide = If(m_cursorOffset <= Text?.Length, Text?.Substring(m_cursorOffset), "")
-              Text = leftSide & rightSide
+            If m_cursorOffset <= m_text?.Length Then
+              Dim leftSide = If(m_cursorOffset > 1, m_text?.Substring(0, m_cursorOffset - 1), "")
+              Dim rightSide = If(m_cursorOffset <= m_text?.Length, m_text?.Substring(m_cursorOffset), "")
+              m_text = leftSide & rightSide
             End If
             m_cursorOffset -= 1
           End If
+          m_selected = False
           e.Handled = True
         Case ConsoleKey.A To ConsoleKey.Z,
              ConsoleKey.Spacebar,
@@ -138,23 +150,32 @@
              ConsoleKey.Oem1, ConsoleKey.Oem2, ConsoleKey.Oem3, ConsoleKey.Oem4, ConsoleKey.Oem5, ConsoleKey.Oem6, ConsoleKey.Oem7,
              ConsoleKey.OemPlus, ConsoleKey.OemMinus,
              ConsoleKey.OemComma, ConsoleKey.OemPeriod
+          If m_selected Then
+            ' need to remove the selection...
+            Dim leftSide = If(m_selectionStart > 0, m_text.Substring(0, m_selectionStart), "")
+            Dim rightSide = If(m_selectionEnd + 1 < m_text.Length, m_text.Substring(m_selectionEnd + 1), "")
+            m_text = leftSide & rightSide
+            m_cursorOffset = m_selectionStart
+            m_selected = False
+          End If
           If Insert Then
-            If m_cursorOffset <= Text?.Length Then
-              Dim leftSide = If(m_cursorOffset > 0, Text.Substring(0, m_cursorOffset), "")
-              Dim rightSide = If(m_cursorOffset <= Text.Length, Text.Substring(m_cursorOffset), "")
-              Text = leftSide & GetChar(e.Key, e.CapsLock, e.Shift) & rightSide
+            If m_cursorOffset <= m_text?.Length Then
+              Dim leftSide = If(m_cursorOffset > 0, m_text.Substring(0, m_cursorOffset), "")
+              Dim rightSide = If(m_cursorOffset <= m_text.Length, m_text.Substring(m_cursorOffset), "")
+              m_text = leftSide & GetChar(e.Key, e.CapsLock, e.Shift) & rightSide
             Else
-              Text &= GetChar(e.Key, e.CapsLock, e.Shift)
+              m_text &= GetChar(e.Key, e.CapsLock, e.Shift)
             End If
           Else
-            If m_cursorOffset <= Text?.Length Then
-              Dim leftSide = If(m_cursorOffset > 0, Text.Substring(0, m_cursorOffset), "")
-              Dim rightSide = If(m_cursorOffset < Text.Length, Text.Substring(m_cursorOffset + 1), "")
-              Text = leftSide & GetChar(e.Key, e.CapsLock, e.Shift) & rightSide
+            If m_cursorOffset <= m_text?.Length Then
+              Dim leftSide = If(m_cursorOffset > 0, m_text.Substring(0, m_cursorOffset), "")
+              Dim rightSide = If(m_cursorOffset < m_text.Length, m_text.Substring(m_cursorOffset + 1), "")
+              m_text = leftSide & GetChar(e.Key, e.CapsLock, e.Shift) & rightSide
             Else
-              Text &= GetChar(e.Key, e.CapsLock, e.Shift)
+              m_text &= GetChar(e.Key, e.CapsLock, e.Shift)
             End If
           End If
+          m_selected = False
           m_cursorOffset += 1
         Case Else
       End Select
@@ -170,16 +191,16 @@
     If Not Visible Then Return
 
     Dim c = Size.Cols
-    Dim txt = Text
+    Dim txt = m_text
     If m_textOffset < txt?.Length Then
       If c > txt.Length - m_textOffset Then c = txt.Length - m_textOffset
-      txt = Text.Substring(m_textOffset, c)
+      txt = m_text.Substring(m_textOffset, c)
     Else
       txt = ""
     End If
 
     QPrintRC(txt?.PadRight(Size.Cols), Location.Row, Location.Col, OneColor(Foreground, Background))
-    If m_selected Then
+    If Focused AndAlso m_selected Then
       PaintBox0(Location.Row, Location.Col + m_selectionStart, Location.Row, Location.Col + m_selectionEnd, OneColor(Background, Foreground))
     End If
 

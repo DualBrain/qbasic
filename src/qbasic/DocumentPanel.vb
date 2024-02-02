@@ -232,6 +232,7 @@ Public Class DocumentPanel
   End Function
 
   Public Sub Clear()
+    Title = "Untitled"
     m_document.Clear()
     m_document.Add("")
     CurrentLine = 1

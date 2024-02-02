@@ -37,6 +37,7 @@ Friend Class QBasic
   Private WithEvents WorkTimer As New Timer(1)
 
   Private ReadOnly m_pathspec As String
+  Private m_path As String
 
   Friend Sub New()
     AppName = "Community QBasic"
@@ -130,54 +131,6 @@ Friend Class QBasic
 
     m_document1.Focused = True
     m_document2.Visible = False
-
-    If False Then
-      m_document1.Text = <qbasic><![CDATA[Rem calculator
-cls
-10
-print "input first operand"
-input a
-print "select operation"
-input b
-print "addition(a)"
-print "subtraction(s)"
-print "multiplication(m)"
-print "division(d)"
-print "exponentification(e)"
-print "rooting(r)"
-print "Quit(q)"
-do 
-next$ = inkey$
-Loop until next$ <> "" 
-gosub input_var2
-
-select case next$
-case "a"
-c = a + b
-print "sum is:";c
-case "s"
-c = a - b
-print "Difference is:";c
-case "m"
-c= a*b
-print "Product is :";c
-case "d"
-c = a/b
-print "Quotient is:";c
-case "e"
-c = a^b
-print "Exponentification is:"c
-case "r"
-c = a^ 1/b
-print "Root is:";c
-case "q"
-end
-
-end select
-sleep 3
-goto 10
-]]></qbasic>.Value
-    End If
 
     m_context = New WelcomeDialog()
 
@@ -317,6 +270,20 @@ Tip: These topics are also available from the Help menu.
 ]]></content>.Value
             ShowHelp()
           End If
+        ElseIf TypeOf m_context Is OpenDialog Then
+          Dim o = CType(m_context, OpenDialog)
+          Select Case o.DialogResult
+            Case DialogResult.Ok
+              m_path = o.Path
+              If IO.File.Exists(m_path) Then
+                m_document1.Clear()
+                m_document1.Title = IO.Path.GetFileName(m_path)
+                m_document1.Text = IO.File.ReadAllText(m_path)
+              End If
+            Case DialogResult.Cancel
+            Case DialogResult.Help
+            Case Else
+          End Select
         End If
         m_context = Nothing : DrawScreen()
       End If

@@ -3,13 +3,13 @@
   Public Property Location As New Location(1, 1)
   Public Property Size As New Size(1, 1)
 
-  Public Property Foreground As Integer
-  Public Property Background As Integer
+  Public Property Foreground As Integer = 0
+  Public Property Background As Integer = 8
 
   Public Property TabOrder As Integer
 
-  Public Property TabStop As Boolean
-  Public Property Visible As Boolean
+  Public Property TabStop As Boolean = True
+  Public Property Visible As Boolean = True
   Public Property Focused As Boolean
 
   Public Property CursorVisible As Boolean

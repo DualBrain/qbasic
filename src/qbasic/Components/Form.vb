@@ -17,17 +17,17 @@
   ''' DialogResult will be set to this value if Enter is pressed.
   ''' </summary>
   ''' <returns></returns>
-  Public Property AcceptAction As Integer
+  Public Property AcceptAction As DialogResult = DialogResult.None
   ''' <summary>
   ''' DialogResult will be set to this value if Esc is pressed.
   ''' </summary>
   ''' <returns></returns>
-  Public Property CancelAction As Integer
+  Public Property CancelAction As DialogResult = DialogResult.None
   ''' <summary>
   ''' DialogResult can be used to determine how the Form was closed.
   ''' </summary>
   ''' <returns></returns>
-  Public Property DialogResult As Integer
+  Public Property DialogResult As DialogResult = DialogResult.None
 
   Public Sub New(text As String,
                  location As Location,
@@ -35,8 +35,8 @@
     Me.Text = text
     Me.Location = location
     Me.Size = size
-    Me.Visible = True
-    Me.Focused = True
+    Visible = True
+    Focused = True
   End Sub
 
   Public Overrides Sub OnKeyPress(e As KeyPressEventArgs)
@@ -76,16 +76,16 @@
             Loop
           End If
           e.Handled = True
-        Case ConsoleKey.Enter
-          If AcceptAction <> 0 Then
-            DialogResult = AcceptAction
-            e.Handled = True
-          End If
-        Case ConsoleKey.Escape
-          If CancelAction <> 0 Then
-            DialogResult = CancelAction
-            e.Handled = True
-          End If
+          'Case ConsoleKey.Enter
+          '  If AcceptAction <> DialogResult.None Then
+          '    DialogResult = AcceptAction
+          '    e.Handled = True
+          '  End If
+          'Case ConsoleKey.Escape
+          '  If CancelAction <> DialogResult.None Then
+          '    DialogResult = CancelAction
+          '    e.Handled = True
+          '  End If
         Case Else
       End Select
     End If
@@ -106,8 +106,29 @@
       QPrintRC(text, Location.Row, Location.Col + textOffset, OneColor(Foreground, Background))
     End If
 
+    Dim btnHasFocus = False
+    For Each control In Controls
+      If TypeOf control Is ButtonControl Then
+        CType(control, ButtonControl).Highlight = False
+        If control.Focused Then btnHasFocus = True
+      End If
+    Next
+    If Not btnHasFocus Then
+      For Each control In Controls
+        If TypeOf control Is ButtonControl AndAlso CType(control, ButtonControl).Default Then CType(control, ButtonControl).Highlight = True : Exit For
+      Next
+    End If
+
     For Each control In Controls
       control.OnDraw()
+    Next
+
+    For index = 0 To Controls.Count - 1
+      If Controls(index).Focused Then
+        m_cursorRow = Controls(index).CursorRow
+        m_cursorCol = Controls(index).CursorCol
+        Exit For
+      End If
     Next
 
   End Sub

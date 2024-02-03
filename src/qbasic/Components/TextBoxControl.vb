@@ -20,7 +20,8 @@
   Private m_selectionStart As Integer
   Private m_selectionEnd As Integer
 
-  Public Sub New()
+  Public Sub New(parent As Control)
+    Me.Parent = parent
     CursorVisible = True
     m_cursorRow = Location.Row
     m_cursorCol = Location.Col + m_cursorOffset
@@ -185,8 +186,11 @@
 
   Public Overrides Sub OnDraw()
 
-    m_cursorRow = Location.Row
-    m_cursorCol = Location.Col + m_cursorOffset
+    Dim top = If(Parent?.Location.Row, 1) + Location.Row - 1
+    Dim left = If(Parent?.Location.Col, 1) + Location.Col - 1
+
+    m_cursorRow = top
+    m_cursorCol = left + m_cursorOffset
 
     If Not Visible Then Return
 
@@ -199,9 +203,9 @@
       txt = ""
     End If
 
-    QPrintRC(txt?.PadRight(Size.Cols), Location.Row, Location.Col, OneColor(Foreground, Background))
+    QPrintRC(txt?.PadRight(Size.Cols), top, left, OneColor(Foreground, Background))
     If Focused AndAlso m_selected Then
-      PaintBox0(Location.Row, Location.Col + m_selectionStart, Location.Row, Location.Col + m_selectionEnd, OneColor(Background, Foreground))
+      PaintBox0(top, left + m_selectionStart, top, left + m_selectionEnd, OneColor(Background, Foreground))
     End If
 
   End Sub

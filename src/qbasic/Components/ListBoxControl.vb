@@ -18,7 +18,8 @@
     End Get
   End Property
 
-  Public Sub New()
+  Public Sub New(parent As Control)
+    Me.Parent = parent
     CursorVisible = True
     Clear()
   End Sub
@@ -89,12 +90,15 @@
 
   Public Overrides Sub OnDraw()
 
-    Box0(Location.Row, Location.Col, Location.Row + Size.Rows - 1, Location.Col + Size.Cols - 1, 1, OneColor(Foreground, Background))
+    Dim top = If(Parent?.Location.Row, 1) + Location.Row - 1
+    Dim left = If(Parent?.Location.Col, 1) + Location.Col - 1
 
-    Dim ulRow = Location.Row + 1
-    Dim ulCol = Location.Col + 2
-    Dim lrRow = Location.Row + Size.Rows - 1
-    Dim lrCol = Location.Col + Size.Cols - 1
+    Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(Foreground, Background))
+
+    Dim ulRow = top + 1
+    Dim ulCol = left + 2
+    Dim lrRow = top + Size.Rows - 1
+    Dim lrCol = left + Size.Cols - 1
     Dim w = Size.Cols - 4
     Dim h = Size.Rows - 2
 

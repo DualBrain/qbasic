@@ -30,7 +30,8 @@
 
   Private m_cursorOffset As Integer = 0
 
-  Public Sub New()
+  Public Sub New(parent As Control)
+    Me.Parent = parent
     CursorVisible = True
     m_cursorRow = Location.Row
     m_cursorCol = Location.Col + m_cursorOffset
@@ -50,12 +51,15 @@
 
   Public Overrides Sub OnDraw()
 
-    m_cursorRow = Location.Row
-    m_cursorCol = Location.Col + m_cursorOffset
+    Dim top = If(Parent?.Location.Row, 1) + Location.Row - 1
+    Dim left = If(Parent?.Location.Col, 1) + Location.Col - 1
+
+    m_cursorRow = top
+    m_cursorCol = left + m_cursorOffset
 
     If Not Visible Then Return
 
-    Common.Button(m_text, Location.Row, Location.Col, Focused OrElse Highlight)
+    Common.Button(m_text, top, left, Focused OrElse Highlight)
 
   End Sub
 

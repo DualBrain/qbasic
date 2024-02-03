@@ -1082,7 +1082,7 @@ since it last changed. Either:
   End Sub
 
   Private Sub SaveAsAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New SaveAsDialog(m_pathspec, If(m_document1.Title <> "Untitled", m_document1.Title, "*.BAS"))
   End Sub
 
   Private Sub PrintAction()

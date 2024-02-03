@@ -12,6 +12,8 @@
   Public Property Visible As Boolean = True
   Public Property Focused As Boolean
 
+  Public Property Parent As Control
+
   Public Property CursorVisible As Boolean
   Protected m_cursorRow As Integer
   Public ReadOnly Property CursorRow As Integer

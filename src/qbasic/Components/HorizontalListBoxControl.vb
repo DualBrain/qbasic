@@ -18,7 +18,8 @@
     End Get
   End Property
 
-  Public Sub New()
+  Public Sub New(parent As Control)
+    Me.Parent = parent
     CursorVisible = True
     Clear()
   End Sub
@@ -98,17 +99,20 @@
 
   Public Overrides Sub OnDraw()
 
-    Box0(Location.Row, Location.Col, Location.Row + Size.Rows - 1, Location.Col + Size.Cols - 1, 1, OneColor(Foreground, Background))
+    Dim top = If(Parent?.Location.Row, 1) + Location.Row - 1
+    Dim left = If(Parent?.Location.Col, 1) + Location.Col - 1
+
+    Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(Foreground, Background))
     Dim index = 0
     Dim col = 0
     Dim cOffset = 0
     For Each item In Items
       If item.Length > cOffset Then cOffset = item.Length
     Next
-    Dim ulRow = Location.Row + 1
-    Dim ulCol = Location.Col + 2
-    Dim lrRow = Location.Row + Size.Rows - 1
-    Dim lrCol = Location.Col + Size.Cols - 1
+    Dim ulRow = top + 1
+    Dim ulCol = left + 2
+    Dim lrRow = top + Size.Rows - 1
+    Dim lrCol = left + Size.Cols - 1
     Do
       If ulCol + (col * (cOffset + 2)) > lrCol Then Exit Do
       If (col * 8) + index > Items.Count - 1 Then Exit Do

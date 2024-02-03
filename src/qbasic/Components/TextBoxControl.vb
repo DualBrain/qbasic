@@ -1,4 +1,4 @@
-﻿Public Class TextBoxControl
+﻿Public Class TextboxControl
   Inherits Control
 
   Public Property Text As String

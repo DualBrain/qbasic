@@ -1086,7 +1086,7 @@ since it last changed. Either:
   End Sub
 
   Private Sub PrintAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New PrintDialog()
   End Sub
 
   Private Async Function ExitActionAsync() As Task
@@ -1143,11 +1143,11 @@ since it last changed. Either:
   End Sub
 
   Private Sub NewSubAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New NewSubDialog()
   End Sub
 
   Private Sub NewFunctionAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New NewFunctionDialog
   End Sub
 
   Private Sub TopicAction()
@@ -1262,11 +1262,11 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub HelpPathAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New HelpPathDialog()
   End Sub
 
   Private Sub DisplayAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New DisplayDialog()
   End Sub
 
   Private Sub SetNextStatementAction()
@@ -1306,7 +1306,7 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub ChangeAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New ChangeDialog()
   End Sub
 
   Private Sub RepeatLastFindAction()
@@ -1314,7 +1314,7 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub FindAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New FindDialog()
   End Sub
 
   Private Sub OutputScreenAction()
@@ -1342,7 +1342,7 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub SubsAction()
-    m_context = New MessageDialog("Not implemented.")
+    m_context = New SubsDialog()
   End Sub
 
   Private Sub AboutAction()

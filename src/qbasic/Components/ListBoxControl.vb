@@ -1,4 +1,4 @@
-﻿Public Class ListBoxControl
+﻿Public Class ListboxControl
   Inherits Control
 
   Public Property Items As New List(Of String)

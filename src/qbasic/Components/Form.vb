@@ -30,6 +30,15 @@
   Public Property DialogResult As DialogResult = DialogResult.None
 
   Public Sub New(text As String,
+                 size As Size)
+    Me.Text = text
+    Location = New Location((25 - size.Rows) \ 2, ((80 - size.Cols) \ 2) - 1)
+    Me.Size = size
+    Visible = True
+    Focused = True
+  End Sub
+
+  Public Sub New(text As String,
                  location As Location,
                  size As Size)
     Me.Text = text
@@ -56,13 +65,20 @@
             End If
           Next
           Controls(selectedIndex).Focused = False
+          Dim isRadio = TypeOf Controls(selectedIndex) Is RadioButtonControl
           If e.Shift Then
             Do
               selectedIndex -= 1
               If selectedIndex < 0 Then selectedIndex = Controls.Count - 1
               If Controls(selectedIndex).Visible Then
-                Controls(selectedIndex).Focused = True
-                Exit Do
+                If (isRadio AndAlso TypeOf Controls(selectedIndex) IsNot RadioButtonControl) OrElse
+                   (Not isRadio) Then
+                  If (TypeOf Controls(selectedIndex) Is RadioButtonControl AndAlso CType(Controls(selectedIndex), RadioButtonControl).Checked) OrElse
+                     (TypeOf Controls(selectedIndex) IsNot RadioButtonControl) Then
+                    Controls(selectedIndex).Focused = True
+                    Exit Do
+                  End If
+                End If
               End If
             Loop
           Else
@@ -70,8 +86,14 @@
               selectedIndex += 1
               If selectedIndex > Controls.Count - 1 Then selectedIndex = 0
               If Controls(selectedIndex).Visible Then
-                Controls(selectedIndex).Focused = True
-                Exit Do
+                If (isRadio AndAlso TypeOf Controls(selectedIndex) IsNot RadioButtonControl) OrElse
+                   (Not isRadio) Then
+                  If (TypeOf Controls(selectedIndex) Is RadioButtonControl AndAlso CType(Controls(selectedIndex), RadioButtonControl).Checked) OrElse
+                     (TypeOf Controls(selectedIndex) IsNot RadioButtonControl) Then
+                    Controls(selectedIndex).Focused = True
+                    Exit Do
+                  End If
+                End If
               End If
             Loop
           End If
@@ -86,6 +108,52 @@
           '    DialogResult = CancelAction
           '    e.Handled = True
           '  End If
+        Case ConsoleKey.UpArrow, ConsoleKey.LeftArrow
+          Dim selectedIndex = 0
+          For index = 0 To Controls.Count - 1
+            If Controls(index).Focused Then
+              selectedIndex = index : Exit For
+            End If
+          Next
+          If TypeOf Controls(selectedIndex) Is RadioButtonControl Then
+            Dim prevIndex = selectedIndex - 1
+            Do
+              If prevIndex < 0 Then prevIndex = Controls.Count - 1
+              If prevIndex = selectedIndex Then Exit Do
+              If TypeOf Controls(prevIndex) Is RadioButtonControl Then
+                CType(Controls(selectedIndex), RadioButtonControl).Checked = False
+                CType(Controls(selectedIndex), RadioButtonControl).Focused = False
+                CType(Controls(prevIndex), RadioButtonControl).Checked = True
+                CType(Controls(prevIndex), RadioButtonControl).Focused = True
+                e.Handled = True
+                Exit Do
+              End If
+              prevIndex -= 1
+            Loop
+          End If
+        Case ConsoleKey.DownArrow, ConsoleKey.RightArrow
+          Dim selectedIndex = 0
+          For index = 0 To Controls.Count - 1
+            If Controls(index).Focused Then
+              selectedIndex = index : Exit For
+            End If
+          Next
+          If TypeOf Controls(selectedIndex) Is RadioButtonControl Then
+            Dim nextIndex = selectedIndex + 1
+            Do
+              If nextIndex > Controls.Count - 1 Then nextIndex = 0
+              If nextIndex = selectedIndex Then Exit Do
+              If TypeOf Controls(nextIndex) Is RadioButtonControl Then
+                CType(Controls(selectedIndex), RadioButtonControl).Checked = False
+                CType(Controls(selectedIndex), RadioButtonControl).Focused = False
+                CType(Controls(nextIndex), RadioButtonControl).Checked = True
+                CType(Controls(nextIndex), RadioButtonControl).Focused = True
+                e.Handled = True
+                Exit Do
+              End If
+              nextIndex += 1
+            Loop
+          End If
         Case Else
       End Select
     End If

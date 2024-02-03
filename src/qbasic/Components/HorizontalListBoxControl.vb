@@ -1,4 +1,4 @@
-﻿Public Class HorizontalListBoxControl
+﻿Public Class HorizontalListboxControl
   Inherits Control
 
   Public Property Items As New List(Of String)

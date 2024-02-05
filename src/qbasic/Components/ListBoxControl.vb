@@ -117,7 +117,7 @@
       If index > m_visibleIndex + h - 1 OrElse index > Items.Count - 1 Then Exit Do
     Loop
 
-    VScrollBar(ulRow, lrCol, lrRow - 1, Foreground)
+    VScrollBar(0, ulRow, lrCol, lrRow - 1, Foreground)
 
     If SelectedIndex = -1 Then
       m_cursorRow = ulRow

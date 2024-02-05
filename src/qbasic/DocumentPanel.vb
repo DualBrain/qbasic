@@ -163,28 +163,20 @@ Public Class DocumentPanel
 
     If Not Visible Then Exit Sub
 
-    'Dim ScrRows = 25
-
     TextRows = EditorHeight - 2
     TextColumns = EditorWidth - 2
 
-    TopScreenRow = EditorTop + 1 'CSRLIN()       'Calc the top line of window
-    LeftScreenColumn = EditorLeft + 1 'POS(0)       'Calc Left margin of window
-    'Both are to inside of frame
-    'TextRows = MinInt(MaxInt(TextRows, 3), ScrRows - EditorTop + 1)
-    'TextColumns = MinInt(MaxInt(TextColumns, 11), 80 - EditorLeft + 1)
+    TopScreenRow = EditorTop + 1 'Calc the top line of window
+    LeftScreenColumn = EditorLeft + 1 'Calc Left margin of window
 
     If TopTextLine < 1 Then TopTextLine = 1             'Top of window row number
-    If LeftTextColumn < 1 Then LeftTextColumn = 1             'Set window column to 1
-    If CurrentLine < 1 Then CurrentLine = 1   'make top line the cursor col.
-    If CurrentColumn < 1 Then CurrentColumn = 1     'establish cursor column at 1
-
-    If CurrentColumn < LeftTextColumn Then LeftTextColumn = CurrentColumn
-    If CurrentColumn > (TextColumns - 1) Then LeftTextColumn = CurrentColumn - (TextColumns - 1)
+    If LeftTextColumn < 1 Then LeftTextColumn = 1       'Set window column to 1
+    If CurrentLine < 1 Then CurrentLine = 1             'make top line the cursor col.
+    If CurrentColumn < 1 Then CurrentColumn = 1         'establish cursor column at 1
 
     'Make sure the cursor stays in the window
-    'CurrentLine = MinInt(CurrentLine, TopTextLine + TextRows - 1)
-    'CurrentColumn = MinInt(CurrentColumn, LeftTextColumn + TextColumns - 1)
+    If CurrentColumn < LeftTextColumn Then LeftTextColumn = CurrentColumn
+    If CurrentColumn > (TextColumns - 1) Then LeftTextColumn = CurrentColumn - (TextColumns - 1)
 
     Dim lrRow = EditorTop + EditorHeight - 1
     Dim lrCol = EditorLeft + EditorWidth - 1
@@ -199,6 +191,7 @@ Public Class DocumentPanel
     ' Content Area
     ClearScr0(EditorTop + 1, EditorLeft + 1, lrRow - 1, lrCol - 1, OneColor(8, 1))
 
+    ' Draw the current portion of (visible) text.
     LOCATE(TopScreenRow, LeftScreenColumn, 0)
     Call HideCursor()
     Call APrint0(m_document.ToArray,
@@ -218,8 +211,24 @@ Public Class DocumentPanel
     ' Scrollbars
     If ScrollBars Then
       'TODO: Determine current position within the scrollbars...
-      If EditorHeight > 5 Then VScrollBar(EditorTop + 1, lrCol, lrRow - 2, 1)
-      If EditorHeight > 3 Then HScrollBar(lrRow - 1, EditorLeft + 1, lrCol - 1, 1)
+      Dim vPct = CurrentLine / m_document.Count
+      'If CurrentLine < TextRows Then vPct = 0
+      If CurrentLine = 1 Then vPct = 0
+      If vPct > 1 Then vPct = 1
+
+      Dim maxCols = 1
+      For Each line In m_document
+        If line.Length > maxCols Then maxCols = line.Length
+      Next
+
+      Dim hPct = CurrentColumn / maxCols
+      'If CurrentColumn < TextColumns Then hPct = 0
+      If CurrentColumn = 1 Then hPct = 0
+      If hPct > 1 Then hPct = 1
+
+      If EditorHeight > 5 Then VScrollBar(vPct, EditorTop + 1, lrCol, lrRow - 2, 1)
+      If EditorHeight > 3 Then HScrollBar(hPct, lrRow - 1, EditorLeft + 1, lrCol - 1, 1)
+
     End If
 
     ' Title

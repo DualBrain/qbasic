@@ -98,7 +98,7 @@ Public Class HelpPanel
       ' Scrollbars
       If ScrollBars Then
         'TODO: Determine current position within the scrollbars...
-        If EditorHeight > 5 Then VScrollBar(EditorTop + 1, lrCol, lrRow - 1, 1)
+        If EditorHeight > 5 Then VScrollBar(0, EditorTop + 1, lrCol, lrRow - 1, 1)
         'If EditorHeight > 3 Then HScrollBar(lrRow - 1, EditorLeft + 1, lrCol - 1, 1)
       End If
 

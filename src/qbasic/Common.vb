@@ -1,4 +1,6 @@
-﻿Imports QB.Video
+﻿Imports Basic.VisualBasic
+Imports System.Runtime.InteropServices.JavaScript.JSType
+Imports QB.Video
 
 Friend Module Common
 
@@ -616,24 +618,28 @@ Friend Module Common
 
   End Sub
 
-  Friend Sub VScrollBar(ulRow As Integer, col As Integer, lrRow As Integer, arrowFg As Integer)
+  Friend Sub VScrollBar(pct As Double, ulRow As Integer, col As Integer, lrRow As Integer, arrowFg As Integer)
     QPrintRC(ChrW(24), ulRow, col, OneColor(arrowFg, 8))
     For r = ulRow + 1 To lrRow - 1
       QPrintRC(ChrW(176), r, col, OneColor(0, 8))
     Next
     QPrintRC(ChrW(25), lrRow, col, OneColor(arrowFg, 8))
     ' position...
-    QPrintRC(ChrW(32), ulRow + 1, col, OneColor(0, 0))
+    Dim range = (lrRow - 1) - (ulRow + 1)
+    Dim current = CInt(Fix(pct * range)) + 1
+    QPrintRC(ChrW(32), ulRow + current, col, OneColor(0, 0))
   End Sub
 
-  Friend Sub HScrollBar(row As Integer, ulCol As Integer, lrCol As Integer, arrowFg As Integer)
+  Friend Sub HScrollBar(pct As Double, row As Integer, ulCol As Integer, lrCol As Integer, arrowFg As Integer)
     QPrintRC(ChrW(27), row, ulCol, OneColor(arrowFg, 8))
     For c = ulCol + 1 To lrCol - 1
       QPrintRC(ChrW(176), row, c, OneColor(0, 8))
     Next
     QPrintRC(ChrW(26), row, lrCol, OneColor(arrowFg, 8))
     ' position...
-    QPrintRC(ChrW(32), row, ulCol + 1, OneColor(0, 0))
+    Dim range = (lrCol - 1) - (ulCol + 1)
+    Dim current = CInt(Fix(pct * range)) + 1
+    QPrintRC(ChrW(32), row, ulCol + current, OneColor(0, 0))
   End Sub
 
 #End Region

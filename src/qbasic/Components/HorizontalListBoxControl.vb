@@ -141,7 +141,7 @@
       m_cursorCol = ulCol
     End If
 
-    HScrollBar(lrRow, ulCol - 1, lrCol - 1, Foreground)
+    HScrollBar(0, lrRow, ulCol - 1, lrCol - 1, Foreground)
 
   End Sub
 

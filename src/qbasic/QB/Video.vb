@@ -889,7 +889,7 @@ Namespace Global.QB
         Next
       End If
       If noCr Then
-        m_cursorCol += If(text?.Length, 0)
+        'm_cursorCol += If(text?.Length, 0)
       Else
         m_cursorCol = 1
         m_cursorRow += 1

@@ -6,6 +6,12 @@ Imports System.Runtime.InteropServices.OSPlatform
 Imports System.Reflection
 Imports System.Drawing
 Imports System.Runtime.InteropServices
+Imports Basic.Parser
+Imports Basic
+Imports Basic.Environment
+Imports Basic.IO
+Imports Basic.Audio
+Imports Basic.Input
 
 Friend Module Program
 
@@ -34,29 +40,33 @@ Friend Class QBasic
 
   Private m_t As Single
 
-  Private WithEvents WorkTimer As New Timer(1)
+  Private WithEvents InterpreterTimer As New Timer(1)
+  Private WithEvents DisplayTimer As New Timer(1)
+
+  Private WithEvents Interpreter As Interactive
+  Private Display As New Display(DisplayTimer)
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
 
   Friend Sub New()
     AppName = "Community QBasic"
-    m_pathspec = IO.Path.Combine(Environment.CurrentDirectory(), If(IsOSPlatform(Windows), "*.BAS", "*.*"))
+    m_pathspec = System.IO.Path.Combine(System.Environment.CurrentDirectory(), If(IsOSPlatform(Windows), "*.BAS", "*.*"))
   End Sub
 
-  Private m_workTimerActive As Boolean
-  Private Sub WorkTimer_Elapsed(sender As Object, e As ElapsedEventArgs) Handles WorkTimer.Elapsed
+  'Private m_workTimerActive As Boolean
+  'Private Sub WorkTimer_Elapsed(sender As Object, e As ElapsedEventArgs) Handles WorkTimer.Elapsed
 
-    If m_workTimerActive Then Return
-    m_workTimerActive = True
-    Try
-      'Dim value = $"{Now:HH:mm:ss}.{Now.Millisecond:000}"
-      'QPrintRC(value, 1, 55, 14, 8)
-    Finally
-      m_workTimerActive = False
-    End Try
+  '  If m_workTimerActive Then Return
+  '  m_workTimerActive = True
+  '  Try
+  '    'Dim value = $"{Now:HH:mm:ss}.{Now.Millisecond:000}"
+  '    'QPrintRC(value, 1, 55, 14, 8)
+  '  Finally
+  '    m_workTimerActive = False
+  '  End Try
 
-  End Sub
+  'End Sub
 
   <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
   Private Shared Function SendMessage(hWnd As IntPtr, Msg As UInteger, wParam As UInteger, lParam As IntPtr) As IntPtr
@@ -136,7 +146,25 @@ Friend Class QBasic
 
     DrawScreen()
 
-    WorkTimer.Enabled = True
+    InterpreterTimer.Enabled = True
+
+    Dim env As IEnvironment = Nothing
+    Dim fs As IVirtualFileSystem = New WindowsFileSystem
+    Dim snd As ISound = Nothing
+    Dim kbd As IKeyboard = Nothing
+    Dim gpio As IGpio = Nothing
+
+    Interpreter = New Interactive(Dialect.QBasic,
+                                  env,
+                                  Display,
+                                  InterpreterTimer,
+                                  fs,
+                                  snd,
+                                  kbd,
+                                  gpio,
+                                  "QBasic",
+                                  1000,
+                                  "en-US")
 
     Return True
 
@@ -275,10 +303,10 @@ Tip: These topics are also available from the Help menu.
           Select Case o.DialogResult
             Case DialogResult.Ok
               m_path = o.Path
-              If IO.File.Exists(m_path) Then
+              If System.IO.File.Exists(m_path) Then
                 m_document1.Clear()
-                m_document1.Title = IO.Path.GetFileName(m_path)
-                m_document1.Text = IO.File.ReadAllText(m_path)
+                m_document1.Title = System.IO.Path.GetFileName(m_path)
+                m_document1.Text = System.IO.File.ReadAllText(m_path)
               End If
             Case DialogResult.Cancel
             Case DialogResult.Help
@@ -289,8 +317,8 @@ Tip: These topics are also available from the Help menu.
           Select Case o.DialogResult
             Case DialogResult.Ok
               m_path = o.Path
-              IO.File.WriteAllText(m_path, m_document1.Text)
-              m_document1.Title = IO.Path.GetFileName(m_path)
+              System.IO.File.WriteAllText(m_path, m_document1.Text)
+              m_document1.Title = System.IO.Path.GetFileName(m_path)
               m_document1.Changed = False
             Case DialogResult.Cancel
             Case DialogResult.Help
@@ -299,519 +327,608 @@ Tip: These topics are also available from the Help menu.
         End If
         m_context = Nothing : DrawScreen()
       End If
+
     Else
 
-      If Not m_isAlt Then
-        m_isAlt = GetKey(Key.ALT).Pressed
-        Menu.AltPressed = True
-      Else
-        m_isAlt = GetKey(Key.ALT).Held
-        If Not m_isAlt AndAlso Menu.AltPressed Then Menu.ShowAccelerators = True
-      End If
-
-      If Not Menu.ShowAccelerators AndAlso
-         Not Menu.Focused Then
-
-        ' End+Enter - Insert Line below???
-        ' End,Enter - Insert a blank line below the cursor position
-        ' Home,Ctrl+N - Insert a blank line above the cursor position (WordStar)
-
-        Dim handled = False
+      If Interpreter.IsRunning Then
 
         If keys IsNot Nothing Then
-
           For Each key In keys
-
-            If m_isCtrlP Then
-              If isControl Then
-                Select Case key
-                  Case Else
-                    m_isCtrlP = False
-                End Select
-              Else
-                m_isCtrlP = False
-              End If
-              handled = True
-            ElseIf m_isK Then
-              Select Case key
-                Case ConsoleKey.D0, ConsoleKey.D1, ConsoleKey.D2, ConsoleKey.D3 ' Set bookmarks (maximum of 4)
-                Case Else
-                  m_isK = False
-              End Select
-              handled = True
-            ElseIf m_isQ Then
-              Select Case key
-                Case ConsoleKey.D0, ConsoleKey.D1, ConsoleKey.D2, ConsoleKey.D3 ' Go to set bookmarks
-                Case ConsoleKey.A ' Search for and replace text
-                Case ConsoleKey.D ' Move cursor to end of line (WordStar)
-                Case ConsoleKey.E ' Move cursor to top of window (WordStar)
-                Case ConsoleKey.F ' Search for text (WordStar)
-                Case ConsoleKey.S ' Cursor to beginning of current line (WordStar)
-                Case ConsoleKey.X ' Move cursor to bottom of window (WordStar)
-                Case ConsoleKey.Y ' Cut to end of line (WordStar)
-                Case Else
-                  m_isQ = False
-              End Select
-              handled = True
-            ElseIf isShift Then
-              Select Case key
-                Case ConsoleKey.F1 ' Help on QBasic Help
-                  handled = True
-                Case ConsoleKey.F2 ' Display the next procedure
-                  handled = True
-                Case ConsoleKey.F5 ' Start program execution from beginning
-                  handled = True
-                Case ConsoleKey.F6 ' Make the previous window the active window
-                  If m_document1.Focused Then
-                    If m_help.Visible Then
-                      FocusHelp()
-                    ElseIf m_immediate.Visible Then
-                      FocusImmediate()
-                    ElseIf m_document2.Visible Then
-                      FocusDocument2()
-                    Else
-                      FocusDocument1()
-                    End If
-                  ElseIf m_document2.Visible AndAlso m_document2.Focused Then
-                    If m_document1.Visible Then
-                      FocusDocument1()
-                    ElseIf m_help.Visible Then
-                      FocusHelp()
-                    ElseIf m_immediate.Visible Then
-                      FocusImmediate()
-                    Else
-                      FocusDocument2()
-                    End If
-                  ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
-                    If m_document2.Visible Then
-                      FocusDocument2()
-                    ElseIf m_document1.Visible Then
-                      FocusDocument1()
-                    ElseIf m_help.Visible Then
-                      FocusHelp()
-                    Else
-                      FocusImmediate()
-                    End If
-                  ElseIf m_help.Visible AndAlso m_help.Focused Then
-                    If m_immediate.Visible Then
-                      FocusImmediate()
-                    ElseIf m_document2.Visible Then
-                      FocusDocument2()
-                    ElseIf m_document1.Visible Then
-                      FocusDocument1()
-                    Else
-                      FocusHelp()
-                    End If
-                  End If
-                  handled = True
-                Case ConsoleKey.UpArrow ' Select Character/lines
-                  handled = True
-                Case ConsoleKey.DownArrow ' Select Character/lines
-                  handled = True
-                Case ConsoleKey.LeftArrow ' Select Character/lines
-                  handled = True
-                Case ConsoleKey.RightArrow ' Select Character/lines
-                  handled = True
-                Case ConsoleKey.Insert ' Insert From Clipboard
-                  handled = True
-                Case ConsoleKey.Delete ' Cut selected text
-                  handled = True
-                Case ConsoleKey.PageUp ' Select Screen up
-                  handled = True
-                Case ConsoleKey.PageDown ' Select Screen down
-                  handled = True
-                Case ConsoleKey.Tab ' Delete leading spaces from selected lines
-                  handled = True
-                Case Else
-              End Select
-            ElseIf isShift AndAlso isControl Then
-              Select Case key
-                Case ConsoleKey.UpArrow ' Select Words
-                  handled = True
-                Case ConsoleKey.DownArrow ' Select Words
-                  handled = True
-                Case ConsoleKey.LeftArrow ' Select Words
-                  handled = True
-                Case ConsoleKey.RightArrow ' Select Words
-                Case ConsoleKey.Home ' Select to beginning of file
-                  handled = True
-                Case ConsoleKey.End ' Select to end of file
-                  handled = True
-                Case Else
-              End Select
-            ElseIf isControl Then
-              Select Case key
-                Case ConsoleKey.F2 ' Display the previous procedure
-                  handled = True
-                Case ConsoleKey.F10 ' Switch between multiple windows and full-screen active window
-                  handled = True
-                Case Else
-              End Select
-            ElseIf m_isAlt Then
-              Select Case key
-                Case ConsoleKey.Add ' Increase size of active window
-                  Menu.AltPressed = False
-                  Dim max = 24
-                  Dim visibleCount = 3
-                  If Not m_help.Visible Then visibleCount -= 1
-                  If Not m_document2.Visible Then visibleCount -= 1
-                  If Not m_immediate.Visible Then visibleCount -= 1
-                  max -= visibleCount
-                  If m_help.Visible AndAlso m_help.Focused AndAlso m_help.EditorHeight < max Then
-                    If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then ' Shrink Document1?
-                      m_document1.EditorHeight -= 1 : m_document1.EditorTop += 1
-                      m_help.EditorHeight += 1
-                    ElseIf m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then ' Shrink Document2?
-                      m_document2.EditorHeight -= 1 : m_document2.EditorTop += 1
-                      If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
-                      m_help.EditorHeight += 1
-                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then ' Shrink Immediate?
-                      m_immediate.EditorTop += 1
-                      m_immediate.EditorHeight -= 1
-                      If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
-                      If m_document2.Visible Then m_document2.EditorTop += 1 ' If shrink, move Document2 down.
-                      m_help.EditorHeight += 1
-                    End If
-                  ElseIf m_document1.Visible AndAlso m_document1.Focused AndAlso m_document1.EditorHeight < max Then
-                    If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
-                      m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
-                      m_document1.EditorHeight += 1
-                    ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
-                      m_help.EditorHeight -= 1
-                      m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
-                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
-                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                      m_document1.EditorHeight += 1
-                    End If
-                  ElseIf m_document2.Visible AndAlso m_document2.Focused AndAlso m_document2.EditorHeight < max Then
-                    If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
-                      m_document1.EditorHeight -= 1
-                      m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
-                    ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
-                      m_help.EditorHeight -= 1
-                      If m_document1.Visible Then m_document1.EditorTop -= 1
-                      m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
-                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
-                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                      m_document2.EditorHeight += 1
-                    End If
-                  ElseIf m_immediate.Visible AndAlso m_immediate.Focused AndAlso m_immediate.EditorHeight < 12 Then
-                    If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
-                      m_document2.EditorHeight -= 1
-                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
-                    ElseIf m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
-                      m_document1.EditorHeight -= 1
-                      If m_document2.Visible Then m_document2.EditorTop -= 1
-                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
-                    ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
-                      m_help.EditorHeight -= 1
-                      If m_document1.Visible Then m_document1.EditorTop -= 1
-                      If m_document2.Visible Then m_document2.EditorTop -= 1
-                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
-                    End If
-                  End If
-                  handled = True
-                Case ConsoleKey.Subtract ' Decrease size of active window
-                  Menu.AltPressed = False
-                  If m_help.Focused AndAlso m_help.EditorHeight > 2 Then
-                    m_help.EditorHeight -= 1
-                    m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
-                  ElseIf m_document1.Focused AndAlso m_document1.EditorHeight > 2 Then
-                    If m_help.Visible Then
-                      m_help.EditorHeight += 1
-                      m_document1.EditorTop += 1 : m_document1.EditorHeight -= 1
-                    ElseIf m_document2.Visible Then
-                      m_document1.EditorHeight -= 1
-                      m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
-                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
-                      m_document1.EditorHeight -= 1
-                      m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
-                    End If
-                  ElseIf m_document2.Focused AndAlso m_document2.EditorHeight > 2 Then
-                    If m_document1.Visible Then
-                      m_document1.EditorHeight += 1
-                      m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
-                    ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
-                      m_document2.EditorHeight -= 1
-                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight += 1
-                    End If
-                  ElseIf m_immediate.Focused AndAlso m_immediate.EditorHeight > 2 Then
-                    If m_document2.Visible Then
-                      m_document2.EditorHeight += 1
-                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                    ElseIf m_document1.Visible Then
-                      m_document1.EditorHeight += 1
-                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                    ElseIf m_help.Visible Then
-                      m_help.EditorHeight += 1
-                      m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                    End If
-                  End If
-                  handled = True
-                Case ConsoleKey.F, ConsoleKey.E, ConsoleKey.V, ConsoleKey.S, ConsoleKey.R, ConsoleKey.D, ConsoleKey.O, ConsoleKey.H
-                  Menu.ShowAccelerators = True
-                  Menu.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
-                  handled = True
-                Case Else
-              End Select
-            ElseIf Not isControl AndAlso Not isAlt AndAlso Not isShift Then
-              Select Case key
-
-                Case ConsoleKey.Escape
-                  If Menu.AltPressed AndAlso Menu.Focused Then
-                    Menu.Reset()
-                    handled = True
-                  End If
-
-                Case ConsoleKey.F1 ' Help on keywords or topics (or right mouse click on word)
-                  'TODO: if in a document and on a keyword, open help.
-                  handled = True
-                Case ConsoleKey.F2 ' Display a list of loaded SUB procedures
-                  handled = True
-                Case ConsoleKey.F3 ' Repeat find for same text
-                  handled = True
-                Case ConsoleKey.F4 ' Switch between the output screen and the View window
-                  handled = True
-                Case ConsoleKey.F5 ' Continue running
-                  handled = True
-                Case ConsoleKey.F6 ' Make the next window the active window
-                  If m_document1.Focused Then
-                    If m_document2.Visible Then
-                      FocusDocument2()
-                    ElseIf m_immediate.Visible Then
-                      FocusImmediate()
-                    ElseIf m_help.Visible Then
-                      FocusHelp()
-                    Else
-                      FocusDocument1()
-                    End If
-                  ElseIf m_document2.Visible AndAlso m_document2.Focused Then
-                    If m_immediate.Visible Then
-                      FocusImmediate()
-                    ElseIf m_help.Visible Then
-                      FocusHelp()
-                    ElseIf m_document1.Visible Then
-                      FocusDocument1()
-                    Else
-                      FocusDocument2()
-                    End If
-                  ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
-                    If m_help.Visible Then
-                      FocusHelp()
-                    ElseIf m_document1.Visible Then
-                      FocusDocument1()
-                    ElseIf m_document2.Visible Then
-                      FocusDocument2()
-                    Else
-                      FocusImmediate()
-                    End If
-                  ElseIf m_help.Visible AndAlso m_help.Focused Then
-                    If m_document1.Visible Then
-                      FocusDocument1()
-                    ElseIf m_document2.Visible Then
-                      FocusDocument2()
-                    ElseIf m_immediate.Visible Then
-                      FocusImmediate()
-                    Else
-                      FocusHelp()
-                    End If
-                  End If
-                  handled = True
-                Case ConsoleKey.F7 ' Execute to cursor
-                  handled = True
-                Case ConsoleKey.F8 ' Single step
-                  handled = True
-                Case ConsoleKey.F9 ' Toggle breakpoint
-                  handled = True
-                Case ConsoleKey.F10 ' Procedure step
-                  handled = True
-
-                Case ConsoleKey.Backspace ' Delete one character to the left of the cursor
-                  'handled = True
-                Case ConsoleKey.Insert ' Switch to insert/overstrike
-                  'handled = True
-                Case ConsoleKey.Home ' Move cursor to first indention level of the current line
-                  'handled = True
-                Case ConsoleKey.End ' Move cursor to end of line
-                  'handled = True
-                Case ConsoleKey.Delete ' Erase selected text / Delete one character at the cursor
-                  'handled = True
-                Case ConsoleKey.PageUp ' Page up
-                  'handled = True
-                Case ConsoleKey.PageDown ' Page Down
-                  'handled = True
-
-                Case ConsoleKey.UpArrow ': m_codeRow -= 1 : If m_codeRow < 1 Then m_codeRow = 1 ' Cursor Up
-                  'handled = True
-                Case ConsoleKey.DownArrow ': m_codeRow += 1 : If m_codeRow > 18 Then m_codeRow = 18 ' Cursor Dn
-                  'handled = True
-                Case ConsoleKey.LeftArrow ': m_codeCol -= 1 : If m_codeCol < 1 Then m_codeCol = 1 ' Cursor Left
-                  'handled = True
-                Case ConsoleKey.RightArrow ': m_codeCol += 1 : If m_codeCol > 78 Then m_codeCol = 78 ' Cursor Right
-                  'handled = True
-                Case ConsoleKey.Spacebar ': m_code &= " "c : m_codeCol += 1
-                  'handled = True
-
-                Case ConsoleKey.A To ConsoleKey.Z ': m_code &= ChrW(key) : m_codeCol += 1
-                  'handled = True
-
-                Case Else
-              End Select
-            End If
-
+            Select Case key
+              Case ConsoleKey.Escape
+                Interpreter.Reset()
+              Case Else
+            End Select
           Next
-
-        End If
-
-        If cursorVisible Then
-          If m_help.Focused Then
-            cursorVisible = m_help.EditorHeight > 2
-          ElseIf m_document1.Focused Then
-            cursorVisible = m_document1.EditorHeight > 2
-          ElseIf m_document2.Focused Then
-            cursorVisible = m_document2.EditorHeight > 2
-          ElseIf m_immediate.Focused Then
-            cursorVisible = m_immediate.EditorHeight > 2
-          Else
-          End If
-        End If
-
-        If cursorVisible AndAlso Not handled Then
-          If m_help.Focused Then
-            If Not m_help.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift) Then
-              HideHelp()
-            End If
-          ElseIf m_document1.Focused Then
-            m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
-          ElseIf m_document2.Focused Then
-            m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
-          ElseIf m_immediate.Focused Then
-            m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
-          Else
-          End If
         End If
 
       Else
-        cursorVisible = False
 
-        Menu.ProcessKeys(keys, Me.CapsLock, isControl, isAlt, isShift)
+        If Not m_isAlt Then
+          m_isAlt = GetKey(Key.ALT).Pressed
+          Menu.AltPressed = True
+        Else
+          m_isAlt = GetKey(Key.ALT).Held
+          If Not m_isAlt AndAlso Menu.AltPressed Then Menu.ShowAccelerators = True
+        End If
+
+        If Not Menu.ShowAccelerators AndAlso
+           Not Menu.Focused Then
+
+          ' End+Enter - Insert Line below???
+          ' End,Enter - Insert a blank line below the cursor position
+          ' Home,Ctrl+N - Insert a blank line above the cursor position (WordStar)
+
+          Dim handled = False
+
+          If keys IsNot Nothing Then
+
+            For Each key In keys
+
+              If m_isCtrlP Then
+                If isControl Then
+                  Select Case key
+                    Case Else
+                      m_isCtrlP = False
+                  End Select
+                Else
+                  m_isCtrlP = False
+                End If
+                handled = True
+              ElseIf m_isK Then
+                Select Case key
+                  Case ConsoleKey.D0, ConsoleKey.D1, ConsoleKey.D2, ConsoleKey.D3 ' Set bookmarks (maximum of 4)
+                  Case Else
+                    m_isK = False
+                End Select
+                handled = True
+              ElseIf m_isQ Then
+                Select Case key
+                  Case ConsoleKey.D0, ConsoleKey.D1, ConsoleKey.D2, ConsoleKey.D3 ' Go to set bookmarks
+                  Case ConsoleKey.A ' Search for and replace text
+                  Case ConsoleKey.D ' Move cursor to end of line (WordStar)
+                  Case ConsoleKey.E ' Move cursor to top of window (WordStar)
+                  Case ConsoleKey.F ' Search for text (WordStar)
+                  Case ConsoleKey.S ' Cursor to beginning of current line (WordStar)
+                  Case ConsoleKey.X ' Move cursor to bottom of window (WordStar)
+                  Case ConsoleKey.Y ' Cut to end of line (WordStar)
+                  Case Else
+                    m_isQ = False
+                End Select
+                handled = True
+              ElseIf isShift Then
+                Select Case key
+                  Case ConsoleKey.F1 ' Help on QBasic Help
+                    handled = True
+                  Case ConsoleKey.F2 ' Display the next procedure
+                    handled = True
+                  Case ConsoleKey.F5 ' Start program execution from beginning
+                    handled = True
+                  Case ConsoleKey.F6 ' Make the previous window the active window
+                    If m_document1.Focused Then
+                      If m_help.Visible Then
+                        FocusHelp()
+                      ElseIf m_immediate.Visible Then
+                        FocusImmediate()
+                      ElseIf m_document2.Visible Then
+                        FocusDocument2()
+                      Else
+                        FocusDocument1()
+                      End If
+                    ElseIf m_document2.Visible AndAlso m_document2.Focused Then
+                      If m_document1.Visible Then
+                        FocusDocument1()
+                      ElseIf m_help.Visible Then
+                        FocusHelp()
+                      ElseIf m_immediate.Visible Then
+                        FocusImmediate()
+                      Else
+                        FocusDocument2()
+                      End If
+                    ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
+                      If m_document2.Visible Then
+                        FocusDocument2()
+                      ElseIf m_document1.Visible Then
+                        FocusDocument1()
+                      ElseIf m_help.Visible Then
+                        FocusHelp()
+                      Else
+                        FocusImmediate()
+                      End If
+                    ElseIf m_help.Visible AndAlso m_help.Focused Then
+                      If m_immediate.Visible Then
+                        FocusImmediate()
+                      ElseIf m_document2.Visible Then
+                        FocusDocument2()
+                      ElseIf m_document1.Visible Then
+                        FocusDocument1()
+                      Else
+                        FocusHelp()
+                      End If
+                    End If
+                    handled = True
+                  Case ConsoleKey.UpArrow ' Select Character/lines
+                    handled = True
+                  Case ConsoleKey.DownArrow ' Select Character/lines
+                    handled = True
+                  Case ConsoleKey.LeftArrow ' Select Character/lines
+                    handled = True
+                  Case ConsoleKey.RightArrow ' Select Character/lines
+                    handled = True
+                  Case ConsoleKey.Insert ' Insert From Clipboard
+                    handled = True
+                  Case ConsoleKey.Delete ' Cut selected text
+                    handled = True
+                  Case ConsoleKey.PageUp ' Select Screen up
+                    handled = True
+                  Case ConsoleKey.PageDown ' Select Screen down
+                    handled = True
+                  Case ConsoleKey.Tab ' Delete leading spaces from selected lines
+                    handled = True
+                  Case Else
+                End Select
+              ElseIf isShift AndAlso isControl Then
+                Select Case key
+                  Case ConsoleKey.UpArrow ' Select Words
+                    handled = True
+                  Case ConsoleKey.DownArrow ' Select Words
+                    handled = True
+                  Case ConsoleKey.LeftArrow ' Select Words
+                    handled = True
+                  Case ConsoleKey.RightArrow ' Select Words
+                  Case ConsoleKey.Home ' Select to beginning of file
+                    handled = True
+                  Case ConsoleKey.End ' Select to end of file
+                    handled = True
+                  Case Else
+                End Select
+              ElseIf isControl Then
+                Select Case key
+                  Case ConsoleKey.F2 ' Display the previous procedure
+                    handled = True
+                  Case ConsoleKey.F10 ' Switch between multiple windows and full-screen active window
+                    handled = True
+                  Case Else
+                End Select
+              ElseIf m_isAlt Then
+                Select Case key
+                  Case ConsoleKey.Add ' Increase size of active window
+                    Menu.AltPressed = False
+                    Dim max = 24
+                    Dim visibleCount = 3
+                    If Not m_help.Visible Then visibleCount -= 1
+                    If Not m_document2.Visible Then visibleCount -= 1
+                    If Not m_immediate.Visible Then visibleCount -= 1
+                    max -= visibleCount
+                    If m_help.Visible AndAlso m_help.Focused AndAlso m_help.EditorHeight < max Then
+                      If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then ' Shrink Document1?
+                        m_document1.EditorHeight -= 1 : m_document1.EditorTop += 1
+                        m_help.EditorHeight += 1
+                      ElseIf m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then ' Shrink Document2?
+                        m_document2.EditorHeight -= 1 : m_document2.EditorTop += 1
+                        If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
+                        m_help.EditorHeight += 1
+                      ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then ' Shrink Immediate?
+                        m_immediate.EditorTop += 1
+                        m_immediate.EditorHeight -= 1
+                        If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
+                        If m_document2.Visible Then m_document2.EditorTop += 1 ' If shrink, move Document2 down.
+                        m_help.EditorHeight += 1
+                      End If
+                    ElseIf m_document1.Visible AndAlso m_document1.Focused AndAlso m_document1.EditorHeight < max Then
+                      If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
+                        m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
+                        m_document1.EditorHeight += 1
+                      ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
+                        m_help.EditorHeight -= 1
+                        m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
+                      ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
+                        m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                        m_document1.EditorHeight += 1
+                      End If
+                    ElseIf m_document2.Visible AndAlso m_document2.Focused AndAlso m_document2.EditorHeight < max Then
+                      If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
+                        m_document1.EditorHeight -= 1
+                        m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                      ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
+                        m_help.EditorHeight -= 1
+                        If m_document1.Visible Then m_document1.EditorTop -= 1
+                        m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                      ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
+                        m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                        m_document2.EditorHeight += 1
+                      End If
+                    ElseIf m_immediate.Visible AndAlso m_immediate.Focused AndAlso m_immediate.EditorHeight < 12 Then
+                      If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
+                        m_document2.EditorHeight -= 1
+                        m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
+                      ElseIf m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
+                        m_document1.EditorHeight -= 1
+                        If m_document2.Visible Then m_document2.EditorTop -= 1
+                        m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
+                      ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
+                        m_help.EditorHeight -= 1
+                        If m_document1.Visible Then m_document1.EditorTop -= 1
+                        If m_document2.Visible Then m_document2.EditorTop -= 1
+                        m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
+                      End If
+                    End If
+                    handled = True
+                  Case ConsoleKey.Subtract ' Decrease size of active window
+                    Menu.AltPressed = False
+                    If m_help.Focused AndAlso m_help.EditorHeight > 2 Then
+                      m_help.EditorHeight -= 1
+                      m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
+                    ElseIf m_document1.Focused AndAlso m_document1.EditorHeight > 2 Then
+                      If m_help.Visible Then
+                        m_help.EditorHeight += 1
+                        m_document1.EditorTop += 1 : m_document1.EditorHeight -= 1
+                      ElseIf m_document2.Visible Then
+                        m_document1.EditorHeight -= 1
+                        m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                      ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
+                        m_document1.EditorHeight -= 1
+                        m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
+                      End If
+                    ElseIf m_document2.Focused AndAlso m_document2.EditorHeight > 2 Then
+                      If m_document1.Visible Then
+                        m_document1.EditorHeight += 1
+                        m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
+                      ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
+                        m_document2.EditorHeight -= 1
+                        m_immediate.EditorTop += 1 : m_immediate.EditorHeight += 1
+                      End If
+                    ElseIf m_immediate.Focused AndAlso m_immediate.EditorHeight > 2 Then
+                      If m_document2.Visible Then
+                        m_document2.EditorHeight += 1
+                        m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                      ElseIf m_document1.Visible Then
+                        m_document1.EditorHeight += 1
+                        m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                      ElseIf m_help.Visible Then
+                        m_help.EditorHeight += 1
+                        m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
+                      End If
+                    End If
+                    handled = True
+                  Case ConsoleKey.F, ConsoleKey.E, ConsoleKey.V, ConsoleKey.S, ConsoleKey.R, ConsoleKey.D, ConsoleKey.O, ConsoleKey.H
+                    Menu.ShowAccelerators = True
+                    Menu.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+                    handled = True
+                  Case Else
+                End Select
+              ElseIf Not isControl AndAlso Not isAlt AndAlso Not isShift Then
+                Select Case key
+
+                  Case ConsoleKey.Escape
+                    If Menu.AltPressed AndAlso Menu.Focused Then
+                      Menu.Reset()
+                      handled = True
+                    End If
+
+                  Case ConsoleKey.F1 ' Help on keywords or topics (or right mouse click on word)
+                    'TODO: if in a document and on a keyword, open help.
+                    handled = True
+                  Case ConsoleKey.F2 ' Display a list of loaded SUB procedures
+                    handled = True
+                  Case ConsoleKey.F3 ' Repeat find for same text
+                    handled = True
+                  Case ConsoleKey.F4 ' Switch between the output screen and the View window
+                    handled = True
+                  Case ConsoleKey.F5 ' Continue running
+                    'CLS() : LOCATE(25, 1) : PRINT("Press any key to continue", False)
+                    'Dim tree As Parser
+                    'Dim buffer() As Byte = m_document1.Text.ToByteArray
+                    'Using s As New System.IO.MemoryStream()
+                    '  s.Write(buffer, 0, buffer.Length)
+                    '  s.Seek(0, System.IO.SeekOrigin.Begin)
+                    '  tree = New Parser(s, Dialect.QBasic)
+                    'End Using
+                    'Dim row = 1, col = 1
+                    'Dim fg = 8, bg = 0
+                    'For Each line In tree.Lines
+                    '  If row > 24 Then Exit For
+                    '  LOCATE(row, col)
+                    '  If line.LineNumber IsNot Nothing Then
+                    '    QB.Video.COLOR(fg, bg) : PRINT($"{line.LineNumber} ", True)
+                    '  End If
+                    '  For Each statement In line.Statements
+                    '    Debug.WriteLine(m_cursorCol)
+                    '    For Each token In statement.Tokens
+                    '      If TypeOf token Is KeywordToken Then
+                    '        QB.Video.COLOR(9, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is StringLiteralToken Then
+                    '        QB.Video.COLOR(12, bg) : PRINT($"""{token}""", True)
+                    '      ElseIf TypeOf token Is NumericLiteralToken Then
+                    '        QB.Video.COLOR(8, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is CommentToken Then
+                    '        QB.Video.COLOR(10, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is FunctionToken OrElse TypeOf token Is VariableToken Then
+                    '        QB.Video.COLOR(13, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is IdentifierToken Then
+                    '        QB.Video.COLOR(8, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is SyntaxErrorToken Then
+                    '        QB.Video.COLOR(14, 4) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is ArithmaticOperatorToken Then
+                    '        QB.Video.COLOR(11, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is RelationalOperatorToken Then
+                    '        QB.Video.COLOR(14, bg) : PRINT($"{token}", True)
+                    '      ElseIf TypeOf token Is ParenOpenToken OrElse
+                    '             TypeOf token Is ParenCloseToken Then
+                    '        QB.Video.COLOR(7, bg) : PRINT($"{token}", True)
+                    '      ElseIf token Is Nothing Then
+                    '        QB.Video.COLOR(15, 4) : PRINT($"{token}", True)
+                    '      Else
+                    '        QB.Video.COLOR(8, bg) : PRINT($"{token}", True)
+                    '      End If
+                    '      Debug.WriteLine(m_cursorCol)
+                    '    Next
+                    '  Next
+                    '  row += 1
+                    'Next
+                    'QB.Video.COLOR(7, 0)
+                    Interpreter.Source = m_document1.Text
+                    Interpreter.Run()
+                    handled = True
+                  Case ConsoleKey.F6 ' Make the next window the active window
+                    If m_document1.Focused Then
+                      If m_document2.Visible Then
+                        FocusDocument2()
+                      ElseIf m_immediate.Visible Then
+                        FocusImmediate()
+                      ElseIf m_help.Visible Then
+                        FocusHelp()
+                      Else
+                        FocusDocument1()
+                      End If
+                    ElseIf m_document2.Visible AndAlso m_document2.Focused Then
+                      If m_immediate.Visible Then
+                        FocusImmediate()
+                      ElseIf m_help.Visible Then
+                        FocusHelp()
+                      ElseIf m_document1.Visible Then
+                        FocusDocument1()
+                      Else
+                        FocusDocument2()
+                      End If
+                    ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
+                      If m_help.Visible Then
+                        FocusHelp()
+                      ElseIf m_document1.Visible Then
+                        FocusDocument1()
+                      ElseIf m_document2.Visible Then
+                        FocusDocument2()
+                      Else
+                        FocusImmediate()
+                      End If
+                    ElseIf m_help.Visible AndAlso m_help.Focused Then
+                      If m_document1.Visible Then
+                        FocusDocument1()
+                      ElseIf m_document2.Visible Then
+                        FocusDocument2()
+                      ElseIf m_immediate.Visible Then
+                        FocusImmediate()
+                      Else
+                        FocusHelp()
+                      End If
+                    End If
+                    handled = True
+                  Case ConsoleKey.F7 ' Execute to cursor
+                    handled = True
+                  Case ConsoleKey.F8 ' Single step
+                    handled = True
+                  Case ConsoleKey.F9 ' Toggle breakpoint
+                    handled = True
+                  Case ConsoleKey.F10 ' Procedure step
+                    handled = True
+
+                  Case ConsoleKey.Backspace ' Delete one character to the left of the cursor
+                  'handled = True
+                  Case ConsoleKey.Insert ' Switch to insert/overstrike
+                  'handled = True
+                  Case ConsoleKey.Home ' Move cursor to first indention level of the current line
+                  'handled = True
+                  Case ConsoleKey.End ' Move cursor to end of line
+                  'handled = True
+                  Case ConsoleKey.Delete ' Erase selected text / Delete one character at the cursor
+                  'handled = True
+                  Case ConsoleKey.PageUp ' Page up
+                  'handled = True
+                  Case ConsoleKey.PageDown ' Page Down
+                  'handled = True
+
+                  Case ConsoleKey.UpArrow ': m_codeRow -= 1 : If m_codeRow < 1 Then m_codeRow = 1 ' Cursor Up
+                  'handled = True
+                  Case ConsoleKey.DownArrow ': m_codeRow += 1 : If m_codeRow > 18 Then m_codeRow = 18 ' Cursor Dn
+                  'handled = True
+                  Case ConsoleKey.LeftArrow ': m_codeCol -= 1 : If m_codeCol < 1 Then m_codeCol = 1 ' Cursor Left
+                  'handled = True
+                  Case ConsoleKey.RightArrow ': m_codeCol += 1 : If m_codeCol > 78 Then m_codeCol = 78 ' Cursor Right
+                  'handled = True
+                  Case ConsoleKey.Spacebar ': m_code &= " "c : m_codeCol += 1
+                  'handled = True
+
+                  Case ConsoleKey.A To ConsoleKey.Z ': m_code &= ChrW(key) : m_codeCol += 1
+                    'handled = True
+
+                  Case Else
+                End Select
+              End If
+
+            Next
+
+          End If
+
+          If cursorVisible Then
+            If m_help.Focused Then
+              cursorVisible = m_help.EditorHeight > 2
+            ElseIf m_document1.Focused Then
+              cursorVisible = m_document1.EditorHeight > 2
+            ElseIf m_document2.Focused Then
+              cursorVisible = m_document2.EditorHeight > 2
+            ElseIf m_immediate.Focused Then
+              cursorVisible = m_immediate.EditorHeight > 2
+            Else
+            End If
+          End If
+
+          If cursorVisible AndAlso Not handled Then
+            If m_help.Focused Then
+              If Not m_help.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift) Then
+                HideHelp()
+              End If
+            ElseIf m_document1.Focused Then
+              m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+            ElseIf m_document2.Focused Then
+              m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+            ElseIf m_immediate.Focused Then
+              m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+            Else
+            End If
+          End If
+
+        Else
+          cursorVisible = False
+
+          Menu.ProcessKeys(keys, Me.CapsLock, isControl, isAlt, isShift)
+        End If
+
       End If
 
     End If
 
-    DrawScreen()
+    If Interpreter.IsRunning Then
 
-    ' Draws pixels to screen...
-    For r = 0 To 24
-      For c = 0 To 79
-
-        Dim index = (r * 80) + c
-        Dim ch = CByte(Screen0(index) And &HFF)
-        Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
-        Dim map = CharMap(m_textH, ch)
-
-        Dim x = c * m_textW
-        Dim y = r * m_textH
-
-        Dim fg, bg As Integer
-        SplitColor(clr, fg, bg)
-
-        Dim fgc = m_palette(fg)
-        Dim bgc = m_palette(bg)
-
-        For dy = 0 To m_textH - 1
-          Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
-          Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
-          Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
-          Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
-          Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
-          Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
-          Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
-          Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
+      Dim p = Interpreter.Display.Pixels(Interpreter.Display.VisualPage)
+      Dim w = Interpreter.Display.ScreenWidth
+      Dim h = Interpreter.Display.ScreenHeight
+      Dim pxl As Pixel
+      For y = 0 To h - 1
+        For x = 0 To w - 1
+          Dim c = p(y * w + x)
+          pxl.I = c
+          If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
+            Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
+          End If
+          Draw(x, y, pxl)
         Next
-
       Next
-    Next
 
-    ' Blinking cursor...
-    If cursorVisible AndAlso m_cursorVisible Then
-      If CInt(Fix(m_t * 8)) Mod 2 = 0 Then
+    Else
+      DrawScreen()
+      ' Draws pixels to screen...
+      For r = 0 To 24
+        For c = 0 To 79
 
-        Dim cc = m_cursorCol
-        Dim cr = m_cursorRow
-        If m_context IsNot Nothing Then
-          cc = m_context.CursorCol
-          cr = m_context.CursorRow
-        ElseIf m_help.Focused Then
-          cc = m_help.CursorCol
-          cr = m_help.CursorRow
-        ElseIf m_document1.Focused Then
-          cc = m_document1.CursorCol
-          cr = m_document1.CursorRow
-        ElseIf m_document2.Focused Then
-          cc = m_document2.CursorCol
-          cr = m_document2.CursorRow
-        ElseIf m_immediate.Focused Then
-          cc = m_immediate.CursorCol
-          cr = m_immediate.CursorRow
-        Else
-        End If
+          Dim index = (r * 80) + c
+          Dim ch = CByte(Screen0(index) And &HFF)
+          Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
+          Dim map = CharMap(m_textH, ch)
 
-        Dim strt = CursorStart
-        Dim stp = CursorStop
+          Dim x = c * m_textW
+          Dim y = r * m_textH
 
-        If stp = 0 Then ' RULE: If stop=0, nothing...
-          If strt = 0 Then ' ...unless start=0
-            ' draw a single line at top of block
-          Else
-            strt = -1
-          End If
-        ElseIf stp < strt Then ' RULE: If stop<start, from stop to bottom
-          strt = stp : stp = 14
-        ElseIf strt = stp Then ' RULE: If start=stop, single line at start...
-          If strt <= 3 Then
-          Else '...(or bottom if start=>4)
-            strt = 14 : stp = 14
-          End If
-        ElseIf strt >= 3 Then ' RULE: Calcuate difference between start and stop
-          If stp - strt = 1 Then ' If difference is 1, draw two lines at bottom
-            strt = 14 : stp = 14
-          ElseIf stp - strt = 2 Then ' If difference is 2, draw two lines at bottom
-            strt = 13 : stp = 14
-          Else ' Draw "half" cursor...
-            strt = 7 : stp = 14
-          End If
-        ElseIf strt <= 1 Then ' RULE: If start<=1 then...
-          If stp <= 3 Then ' ... start to difference + 1
-            stp = stp - strt + 1
-          Else ' ...start to bottom...
-            stp = 14
-          End If
-        ElseIf stp = 2 Then ' RULE: If start=2...
-          If stp = 3 Then ' If stop=3, then 2 to 3
-          ElseIf stp = 4 Then ' If stop=4, then 3 lines at bottom
-            strt = 12
-            stp = 14
-          Else ' Otherwise 2 to bottom
-            strt = 2
-            stp = 14
-          End If
-        End If
-
-        If strt > -1 Then
-          Dim x = (cc - 1) * m_textW
-          Dim y = (cr - 1) * m_textH
-          Dim c = SCREEN(cr, cc, 1)
           Dim fg, bg As Integer
-          SplitColor(c, fg, bg)
-          Dim cclr = Presets.Gray
-          If bg = 8 Then cclr = Presets.Black
-          For i = strt To stp
-            DrawLine(x, y + i, x + 7, y + i, cclr)
-          Next
-        End If
+          SplitColor(clr, fg, bg)
 
+          Dim fgc = m_palette(fg)
+          Dim bgc = m_palette(bg)
+
+          For dy = 0 To m_textH - 1
+            Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
+            Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
+            Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
+            Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
+            Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
+            Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
+            Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
+            Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
+          Next
+
+        Next
+      Next
+
+      ' Blinking cursor...
+      If cursorVisible AndAlso m_cursorVisible Then
+        If CInt(Fix(m_t * 8)) Mod 2 = 0 Then
+
+          Dim cc = m_cursorCol
+          Dim cr = m_cursorRow
+          If m_context IsNot Nothing Then
+            cc = m_context.CursorCol
+            cr = m_context.CursorRow
+          ElseIf m_help.Focused Then
+            cc = m_help.CursorCol
+            cr = m_help.CursorRow
+          ElseIf m_document1.Focused Then
+            cc = m_document1.CursorCol
+            cr = m_document1.CursorRow
+          ElseIf m_document2.Focused Then
+            cc = m_document2.CursorCol
+            cr = m_document2.CursorRow
+          ElseIf m_immediate.Focused Then
+            cc = m_immediate.CursorCol
+            cr = m_immediate.CursorRow
+          Else
+          End If
+
+          Dim strt = CursorStart
+          Dim stp = CursorStop
+
+          If stp = 0 Then ' RULE: If stop=0, nothing...
+            If strt = 0 Then ' ...unless start=0
+              ' draw a single line at top of block
+            Else
+              strt = -1
+            End If
+          ElseIf stp < strt Then ' RULE: If stop<start, from stop to bottom
+            strt = stp : stp = 14
+          ElseIf strt = stp Then ' RULE: If start=stop, single line at start...
+            If strt <= 3 Then
+            Else '...(or bottom if start=>4)
+              strt = 14 : stp = 14
+            End If
+          ElseIf strt >= 3 Then ' RULE: Calcuate difference between start and stop
+            If stp - strt = 1 Then ' If difference is 1, draw two lines at bottom
+              strt = 14 : stp = 14
+            ElseIf stp - strt = 2 Then ' If difference is 2, draw two lines at bottom
+              strt = 13 : stp = 14
+            Else ' Draw "half" cursor...
+              strt = 7 : stp = 14
+            End If
+          ElseIf strt <= 1 Then ' RULE: If start<=1 then...
+            If stp <= 3 Then ' ... start to difference + 1
+              stp = stp - strt + 1
+            Else ' ...start to bottom...
+              stp = 14
+            End If
+          ElseIf stp = 2 Then ' RULE: If start=2...
+            If stp = 3 Then ' If stop=3, then 2 to 3
+            ElseIf stp = 4 Then ' If stop=4, then 3 lines at bottom
+              strt = 12
+              stp = 14
+            Else ' Otherwise 2 to bottom
+              strt = 2
+              stp = 14
+            End If
+          End If
+
+          If strt > -1 Then
+            Dim x = (cc - 1) * m_textW
+            Dim y = (cr - 1) * m_textH
+            Dim c = SCREEN(cr, cc, 1)
+            Dim fg, bg As Integer
+            SplitColor(c, fg, bg)
+            Dim cclr = Presets.Gray
+            If bg = 8 Then cclr = Presets.Black
+            For i = strt To stp
+              DrawLine(x, y + i, x + 7, y + i, cclr)
+            Next
+          End If
+
+        End If
       End If
+
     End If
 
     Return Not m_exit
@@ -1093,7 +1210,7 @@ since it last changed. Either:
     If m_document1.Title = "Untitled" Then
       SaveAsAction()
     Else
-      IO.File.WriteAllText(m_path, m_document1.Text)
+      System.IO.File.WriteAllText(m_path, m_document1.Text)
       m_document1.Changed = False
     End If
   End Sub

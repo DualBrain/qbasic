@@ -291,6 +291,7 @@ Tip: These topics are also available from the Help menu.
               m_path = o.Path
               IO.File.WriteAllText(m_path, m_document1.Text)
               m_document1.Title = IO.Path.GetFileName(m_path)
+              m_document1.Changed = False
             Case DialogResult.Cancel
             Case DialogResult.Help
             Case Else
@@ -1093,6 +1094,7 @@ since it last changed. Either:
       SaveAsAction()
     Else
       IO.File.WriteAllText(m_path, m_document1.Text)
+      m_document1.Changed = False
     End If
   End Sub
 

@@ -179,6 +179,9 @@ Public Class DocumentPanel
     If CurrentLine < 1 Then CurrentLine = 1   'make top line the cursor col.
     If CurrentColumn < 1 Then CurrentColumn = 1     'establish cursor column at 1
 
+    If CurrentColumn < LeftTextColumn Then LeftTextColumn = CurrentColumn
+    If CurrentColumn > (TextColumns - 1) Then LeftTextColumn = CurrentColumn - (TextColumns - 1)
+
     'Make sure the cursor stays in the window
     'CurrentLine = MinInt(CurrentLine, TopTextLine + TextRows - 1)
     'CurrentColumn = MinInt(CurrentColumn, LeftTextColumn + TextColumns - 1)

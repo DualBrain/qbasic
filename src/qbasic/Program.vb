@@ -284,6 +284,17 @@ Tip: These topics are also available from the Help menu.
             Case DialogResult.Help
             Case Else
           End Select
+        ElseIf TypeOf m_context Is SaveAsDialog Then
+          Dim o = CType(m_context, SaveAsDialog)
+          Select Case o.DialogResult
+            Case DialogResult.Ok
+              m_path = o.Path
+              IO.File.WriteAllText(m_path, m_document1.Text)
+              m_document1.Title = IO.Path.GetFileName(m_path)
+            Case DialogResult.Cancel
+            Case DialogResult.Help
+            Case Else
+          End Select
         End If
         m_context = Nothing : DrawScreen()
       End If
@@ -1078,7 +1089,11 @@ since it last changed. Either:
   End Sub
 
   Private Sub SaveAction()
-    m_context = New MessageDialog("Not implemented.")
+    If m_document1.Title = "Untitled" Then
+      SaveAsAction()
+    Else
+      IO.File.WriteAllText(m_path, m_document1.Text)
+    End If
   End Sub
 
   Private Sub SaveAsAction()

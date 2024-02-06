@@ -1,4 +1,6 @@
-﻿Imports QB.Video
+﻿Imports System.Reflection.Metadata
+Imports Basic.Input
+Imports QB.Video
 Imports VbPixelGameEngine
 
 Public Class DocumentPanel
@@ -181,9 +183,10 @@ Public Class DocumentPanel
     Dim lrRow = EditorTop + EditorHeight - 1
     Dim lrCol = EditorLeft + EditorWidth - 1
 
-    ' Box
+    ' Box (the whole region)
     Box0(EditorTop, EditorLeft, EditorTop + EditorHeight - 1, lrCol, 1, OneColor(8, 1))
 
+    ' Draw horizontal bottom line; to connect regions
     If EditorTop > 2 Then
       HLine(EditorTop, EditorLeft, lrCol, 1, OneColor(8, 1))
     End If
@@ -193,7 +196,6 @@ Public Class DocumentPanel
 
     ' Draw the current portion of (visible) text.
     LOCATE(TopScreenRow, LeftScreenColumn, 0)
-    Call HideCursor()
     Call APrint0(m_document.ToArray,
                  TopTextLine - 1,
                  TextRows,
@@ -201,37 +203,56 @@ Public Class DocumentPanel
                  TextColumns,
                  WindowColor)
     LOCATE(TopScreenRow + CurrentLine - TopTextLine, LeftScreenColumn + (CurrentColumn - LeftTextColumn), 1)
-    Call ShowCursor()
+
+    ' Highlight "selection"
+    If BlockTopLeft IsNot Nothing Then
+      Dim tr = BlockTopLeft.Row
+      Dim lc = BlockTopLeft.Column
+      Dim br = BlockBottomRight.Row
+      Dim rc = BlockBottomRight.Column
+      If br - tr = 0 Then
+        PaintBox0(TopScreenRow + tr - TopTextLine, LeftScreenColumn + lc - LeftTextColumn, TopScreenRow + tr - TopTextLine, LeftScreenColumn + rc - LeftTextColumn, OneColor(1, 8))
+      Else
+        For r = tr To br
+          PaintBox0(TopScreenRow + r - TopTextLine, LeftScreenColumn + 1 - LeftTextColumn, TopScreenRow + r - TopTextLine, LeftScreenColumn + EditorWidth - 2 - LeftTextColumn, OneColor(1, 8))
+        Next
+      End If
+    End If
 
     ' Expand/Collapse Tool
     QPrintRC(ChrW(180), EditorTop, lrCol - 4, OneColor(8, 1))
-    QPrintRC(ChrW(24), EditorTop, lrCol - 3, OneColor(1, 8))
+    If EditorHeight = 24 Then
+      QPrintRC(ChrW(18), EditorTop, lrCol - 3, OneColor(1, 8))
+    Else
+      QPrintRC(ChrW(24), EditorTop, lrCol - 3, OneColor(1, 8))
+    End If
     QPrintRC(ChrW(195), EditorTop, lrCol - 2, OneColor(8, 1))
 
-    ' Scrollbars
     If ScrollBars Then
-      'TODO: Determine current position within the scrollbars...
-      Dim vPct = CurrentLine / m_document.Count
-      'If CurrentLine < TextRows Then vPct = 0
-      If CurrentLine = 1 Then vPct = 0
-      If vPct > 1 Then vPct = 1
-
-      Dim maxCols = 1
-      For Each line In m_document
-        If line.Length > maxCols Then maxCols = line.Length
-      Next
-
-      Dim hPct = CurrentColumn / maxCols
-      'If CurrentColumn < TextColumns Then hPct = 0
-      If CurrentColumn = 1 Then hPct = 0
-      If hPct > 1 Then hPct = 1
-
-      If EditorHeight > 5 Then VScrollBar(vPct, EditorTop + 1, lrCol, lrRow - 2, 1)
-      If EditorHeight > 3 Then HScrollBar(hPct, lrRow - 1, EditorLeft + 1, lrCol - 1, 1)
-
+      If EditorHeight > 5 Then
+        ' Determine vertical percent
+        Dim percent = CurrentLine / m_document.Count
+        If CurrentLine = 1 Then percent = 0
+        If percent > 1 Then percent = 1
+        ' Draw scroll bar
+        VScrollBar(percent, EditorTop + 1, lrCol, lrRow - 2, 1)
+      End If
+      If EditorHeight > 3 Then
+        ' Determine maximum width of text across all lines
+        Dim maxCols = 1
+        For Each line In m_document
+          If line.Length > maxCols Then maxCols = line.Length
+        Next
+        ' Determine horizontal percent
+        Dim percent = CurrentColumn / maxCols
+        If CurrentColumn = 1 Then percent = 0
+        If percent > 1 Then percent = 1
+        ' Draw scroll bar
+        HScrollBar(percent, lrRow - 1, EditorLeft + 1, lrCol - 1, 1)
+      End If
     End If
 
-    ' Title
+    ' Document Title
     Dim title = $" {Me.Title} "
     Dim titleOffset = (EditorWidth - title.Length) \ 2
     QPrintRC(title, EditorTop, EditorLeft + titleOffset, OneColor(1, 8))
@@ -239,33 +260,20 @@ Public Class DocumentPanel
   End Sub
 
   Public Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
-    Editor(keys, capsLock, ctrl, alt, shift)
-    Return True
-  End Function
-
-  Public Sub Clear()
-    Title = "Untitled"
-    m_document.Clear()
-    m_document.Add("")
-    CurrentLine = 1
-    CurrentColumn = 1
-  End Sub
-
-  Private Sub Editor(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean)
 
     ' Handle keyboard/mouse
     If keys IsNot Nothing Then
       For Each key In keys
-        If ctrl AndAlso Not alt AndAlso Not shift Then
+        If ctrl AndAlso Not alt Then ' shift can be in either state
           Select Case key
             Case ConsoleKey.A ' Word Left (WordStar)
-            Case ConsoleKey.C : CursorPageDownAction() ' Page down (WordStar)
-            Case ConsoleKey.D : CursorRightAction() ' Cursor right (WordStar)
-            Case ConsoleKey.E : CursorUpAction() ' Cursor up (WordStar)
+            Case ConsoleKey.C : CursorPageDownAction(shift) ' Page down (WordStar)
+            Case ConsoleKey.D : CursorRightAction(shift) ' Cursor right (WordStar)
+            Case ConsoleKey.E : CursorUpAction(shift) ' Cursor up (WordStar)
             Case ConsoleKey.F ' Word Right (WordStar)
             Case ConsoleKey.G ' Delete selected text / Delete one character at the cursor (WordStar)
             Case ConsoleKey.H : BackspaceAction() ' Delete one character to the left of the cursor (WordStar)
-            Case ConsoleKey.J : CursorNextLineAction() ' Cursor to beginning of next line (WordStar)
+            Case ConsoleKey.J : CursorNextLineAction(shift) ' Cursor to beginning of next line (WordStar)
             Case ConsoleKey.K '...
               'm_isK = True
             Case ConsoleKey.L ' Repeat find for same text
@@ -274,37 +282,22 @@ Public Class DocumentPanel
               'm_isCtrlP = True
             Case ConsoleKey.Q '... 
               'm_isQ = True
-            Case ConsoleKey.R : CursorPageUpAction() ' Page up (WordStar)
-            Case ConsoleKey.S : CursorLeftAction() ' Cursor left (WordStar)
+            Case ConsoleKey.R : CursorPageUpAction(shift) ' Page up (WordStar)
+            Case ConsoleKey.S : CursorLeftAction(shift) ' Cursor left (WordStar)
             Case ConsoleKey.T ' Delete the rest of the word the cursor is on (WordStar)
             Case ConsoleKey.V ' Switch between insert and overstrike modes (WordStar)
-            Case ConsoleKey.X : CursorDownAction() ' Cursor dn (WordStar)
+            Case ConsoleKey.X : CursorDownAction(shift) ' Cursor dn (WordStar)
             Case ConsoleKey.Y ' Cut current line
-            Case ConsoleKey.Enter : CursorNextLineAction() ' Cursor to beginning of next line (skipping spaces)
+            Case ConsoleKey.Enter : CursorNextLineAction(shift) ' Cursor to beginning of next line (skipping spaces)
             Case ConsoleKey.Insert ' Copy to Clipboard
             Case ConsoleKey.LeftArrow ' Word Left
             Case ConsoleKey.RightArrow ' Word Right
-            Case ConsoleKey.UpArrow, ConsoleKey.W : ScrollUpAction() ' Scroll up, Scroll up (WordStar)
-            Case ConsoleKey.DownArrow, ConsoleKey.Z : ScrollDownAction() ' Scroll dn, Scroll dn (WordStar)
+            Case ConsoleKey.UpArrow, ConsoleKey.W : ScrollUpAction(shift) ' Scroll up, Scroll up (WordStar)
+            Case ConsoleKey.DownArrow, ConsoleKey.Z : ScrollDownAction(shift) ' Scroll dn, Scroll dn (WordStar)
             Case ConsoleKey.PageUp ' Left one window
             Case ConsoleKey.PageDown ' Right one window
-            Case ConsoleKey.Home : DocumentHomeAction()
-            Case ConsoleKey.End : DocumentEndAction()
-            Case Else
-          End Select
-        End If
-        If Not ctrl AndAlso Not alt AndAlso shift Then
-          Select Case key
-            Case ConsoleKey.LeftArrow
-            Case ConsoleKey.RightArrow
-            Case ConsoleKey.UpArrow
-            Case ConsoleKey.DownArrow
-            Case ConsoleKey.Home
-            Case ConsoleKey.End
-            Case ConsoleKey.PageUp
-            Case ConsoleKey.PageDown
-            Case ConsoleKey.Insert
-            Case ConsoleKey.Delete
+            Case ConsoleKey.Home : DocumentHomeAction(shift)
+            Case ConsoleKey.End : DocumentEndAction(shift)
             Case Else
           End Select
         End If
@@ -318,7 +311,6 @@ Public Class DocumentPanel
                  ConsoleKey.Oem1, ConsoleKey.Oem2, ConsoleKey.Oem3, ConsoleKey.Oem4, ConsoleKey.Oem5, ConsoleKey.Oem6, ConsoleKey.Oem7,
                  ConsoleKey.OemPlus, ConsoleKey.OemMinus,
                  ConsoleKey.OemComma, ConsoleKey.OemPeriod
-
               If Insert Then
                 If CurrentColumn <= m_document(CurrentLine - 1).Length Then
                   Dim leftSide = If(CurrentColumn > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
@@ -327,33 +319,56 @@ Public Class DocumentPanel
                 Else
                   m_document(CurrentLine - 1) &= GetChar(key, capsLock, shift)
                 End If
-                CurrentColumn += 1
-                Changed = True
               Else
-                Stop
+                If CurrentColumn <= m_document(CurrentLine - 1).Length Then
+                  Dim leftSide = If(CurrentColumn > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
+                  Dim rightSide = If(CurrentColumn < m_document(CurrentLine - 1).Length, m_document(CurrentLine - 1).Substring(CurrentColumn), "")
+                  m_document(CurrentLine - 1) = leftSide & GetChar(key, capsLock, shift) & rightSide
+                Else
+                  m_document(CurrentLine - 1) &= GetChar(key, capsLock, shift)
+                End If
               End If
+              CurrentColumn += 1
+              Changed = True
 
-            Case ConsoleKey.Tab : TabAction()
-            Case ConsoleKey.LeftArrow : CursorLeftAction()
-            Case ConsoleKey.RightArrow : CursorRightAction()
-            Case ConsoleKey.UpArrow : CursorUpAction()
-            Case ConsoleKey.DownArrow : CursorDownAction()
-            Case ConsoleKey.Home : CursorHomeAction()
-            Case ConsoleKey.End : CursorEndOfLineAction()
-            Case ConsoleKey.PageUp : CursorPageUpAction()
-            Case ConsoleKey.PageDown : CursorPageDownAction()
-            Case ConsoleKey.Insert : ToggleInsertMode()
+            Case ConsoleKey.Tab : TabAction(shift) ' Insert x spaces ("tab") or Delete leading spaces from selected lines
+            Case ConsoleKey.LeftArrow : CursorLeftAction(shift) ' Cursor left or Select Character/lines
+            Case ConsoleKey.RightArrow : CursorRightAction(shift) ' Cursor right or Select Character/lines
+            Case ConsoleKey.UpArrow : CursorUpAction(shift) ' Cursor up or Select Character/lines
+            Case ConsoleKey.DownArrow : CursorDownAction(shift) ' Cursor down or Select Character/lines
+            Case ConsoleKey.Home : CursorHomeAction(shift)
+            Case ConsoleKey.End : CursorEndOfLineAction(shift)
+            Case ConsoleKey.PageUp : CursorPageUpAction(shift) ' Cursor page up or Select Screen up
+            Case ConsoleKey.PageDown : CursorPageDownAction(shift) ' Cursor page down or Select Screen down
+            Case ConsoleKey.Insert : InsertAction(shift) ' Toggle insert mode or Insert From Clipboard
             Case ConsoleKey.Backspace : BackspaceAction()
-            Case ConsoleKey.Delete : DeleteAction()
+            Case ConsoleKey.Delete : DeleteAction(shift) ' Delete at cursor or Cut selected text
             Case ConsoleKey.Enter : EnterAction()
-            Case ConsoleKey.Escape
+            Case ConsoleKey.Escape : EscapeAction()
             Case Else
           End Select
         End If
       Next
     End If
 
+    Return True
+
+  End Function
+
+  Public Sub Clear()
+    Title = "Untitled"
+    m_document.Clear()
+    m_document.Add("")
+    CurrentLine = 1
+    CurrentColumn = 1
+    ClearBlock()
   End Sub
+
+  Private Sub ClearBlock()
+    BlockTopLeft = Nothing
+    BlockBottomRight = Nothing
+  End Sub
+
 
 #Region "Actions"
 
@@ -375,84 +390,298 @@ Public Class DocumentPanel
       End If
       CurrentColumn -= 1
     End If
+    ClearBlock()
   End Sub
 
-  Private Sub CursorDownAction()
-    CurrentLine += 1 : CursorDown()
-  End Sub
-
-  Private Sub CursorEndOfLineAction()
-    If CurrentLine <= m_document.Count Then
-      CurrentColumn = m_document(CurrentLine - 1).Length + 1
-    Else
-      CurrentColumn = 1
-    End If
-  End Sub
-
-  Private Sub CursorHomeAction()
-    CurrentColumn = 1
-  End Sub
-
-  Private Sub CursorLeftAction()
-    CurrentColumn -= 1 : CursorLeft()
-  End Sub
-
-  Private Sub CursorNextLineAction()
-    CurrentLine += 1 : CursorDown()
-    Dim offset = 0
-    If CurrentLine < m_document.Count Then
-      For Each ch In m_document(CurrentLine - 1)
-        If ch = " "c Then offset += 1 Else Exit For
+  Private Sub CursorHomeAction(shift As Boolean)
+    Dim l = 1
+    ' Determine how many spaces at the beginning of the line...
+    If m_document(CurrentLine - 1).Length > 0 Then
+      For index = 0 To m_document(CurrentLine - 1).Length - 1
+        Select Case m_document(CurrentLine - 1)(index)
+          Case " "c
+          Case Else
+            l = index + 1 : Exit For
+        End Select
       Next
     End If
-    CurrentColumn = 1 + offset
-  End Sub
-
-  Private Sub CursorPageDownAction()
-    If TopTextLine <= (m_document.Count - 1) - (TextRows - 1) Then
-      TopTextLine += TextRows - 1                    'calc top line of next page
-      CurrentLine += TextRows - 1               'update current line
-    End If
-  End Sub
-
-  Private Sub CursorPageUpAction()
-    If TopTextLine > 1 Then                           'ignore if already at the top
-      Dim x = TopTextLine                             'save Ed.TL for a moment
-      TopTextLine = MaxInt(1, TopTextLine - TextRows)
-      x -= TopTextLine                                'calc dif. between new and old
-      CurrentLine -= x                           'don't move cursor unless we have to
-    End If
-  End Sub
-
-  Private Sub CursorRightAction()
-    CurrentColumn += 1 : CursorRight()
-  End Sub
-
-  Private Sub CursorUpAction()
-    CurrentLine -= 1 : CursorUp()
-  End Sub
-
-  Private Sub DocumentEndAction()
-    Dim pages = m_document.Count \ TextRows
-    TopTextLine = pages * TextRows
-    CurrentLine = m_document.Count : CurrentColumn = 1
-  End Sub
-
-  Private Sub DocumentHomeAction()
-    CurrentLine = 1 : CurrentColumn = 1 : TopTextLine = 1
-  End Sub
-
-  Private Sub DeleteAction()
-    If CurrentColumn > m_document(CurrentLine - 1).Length Then
-      If CurrentLine < m_document.Count Then
-        m_document(CurrentLine - 1) = m_document(CurrentLine - 1) + LTrim(m_document(CurrentLine))
-        m_document.RemoveAt(CurrentLine)
-        Changed = True
+    If shift Then
+      If BlockTopLeft Is Nothing Then
+        If CurrentColumn - 1 > 1 Then
+          BlockBottomRight = New Location(CurrentLine, CurrentColumn - 1)
+          CurrentColumn = l : CursorLeft()
+          BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+        End If
+      Else
+        ' Move the cursor
+        Dim prev = CurrentColumn
+        CurrentColumn = l : CursorLeft()
+        ' Adjust the selection
+        If prev > CurrentColumn Then
+          BlockBottomRight.Column = CurrentColumn - 1
+        ElseIf prev > BlockTopLeft.Column Then
+          ' Shift selection to right
+          BlockBottomRight.Column = BlockTopLeft.Column - 1
+          BlockTopLeft.Column = CurrentColumn
+        ElseIf CurrentColumn < BlockBottomRight.Column Then
+          ' Grow to the left
+          BlockTopLeft.Column = CurrentColumn
+        Else
+          ' Expand to the right...
+          BlockBottomRight.Column = CurrentColumn - 1
+        End If
+        ' If result of select would invert, clear
+        If BlockBottomRight.Column < BlockTopLeft.Column AndAlso
+         BlockTopLeft.Row = BlockBottomRight.Row Then
+          ClearBlock()
+        End If
       End If
     Else
-      m_document(CurrentLine - 1) = Left(m_document(CurrentLine - 1), CurrentColumn - 1) + Mid(m_document(CurrentLine - 1), CurrentColumn + 1)
-      Changed = True
+      ClearBlock()
+      CurrentColumn = l
     End If
+  End Sub
+
+  Private Sub CursorEndOfLineAction(shift As Boolean)
+    Dim l = 1
+    ' Determine how many spaces at the beginning of the line...
+    If m_document(CurrentLine - 1).Length > 0 Then
+      For index = m_document(CurrentLine - 1).Length - 1 To 0 Step -1
+        Select Case m_document(CurrentLine - 1)(index)
+          Case " "c
+          Case Else
+            l = index + 1 : Exit For
+        End Select
+      Next
+    End If
+    If shift Then
+      If BlockTopLeft Is Nothing Then
+        If CurrentColumn - 1 < l Then
+          BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+          CurrentColumn = l : CursorLeft()
+          BlockBottomRight = New Location(CurrentLine, CurrentColumn - 1)
+        End If
+      Else
+        Dim prev = CurrentColumn
+        ' Move the cursor
+        CurrentColumn = l : CursorLeft()
+        ' Adjust the selection
+        If prev <= BlockBottomRight.Column Then
+          ' Shift selection to the right...
+          BlockTopLeft.Column = BlockBottomRight.Column + 1
+          BlockBottomRight.Column = CurrentColumn - 1
+        Else
+          ' Expand to the right...
+          BlockBottomRight.Column = CurrentColumn - 1
+        End If
+        ' If result of select would invert, clear
+        If BlockBottomRight.Column < BlockTopLeft.Column AndAlso
+           BlockTopLeft.Row = BlockBottomRight.Row Then
+          ClearBlock()
+        End If
+      End If
+    Else
+      'If CurrentLine <= m_document.Count Then
+      '  CurrentColumn = m_document(CurrentLine - 1).Length + 1
+      'Else
+      CurrentColumn = l '1
+      'End If
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub CursorNextLineAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      CurrentLine += 1 : CursorDown()
+      Dim offset = 0
+      If CurrentLine < m_document.Count Then
+        For Each ch In m_document(CurrentLine - 1)
+          If ch = " "c Then offset += 1 Else Exit For
+        Next
+      End If
+      CurrentColumn = 1 + offset
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub CursorPageDownAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      If TopTextLine <= (m_document.Count - 1) - (TextRows - 1) Then
+        TopTextLine += TextRows - 1                    'calc top line of next page
+        CurrentLine += TextRows - 1               'update current line
+      End If
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub CursorPageUpAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      If TopTextLine > 1 Then                           'ignore if already at the top
+        Dim x = TopTextLine                             'save Ed.TL for a moment
+        TopTextLine = MaxInt(1, TopTextLine - TextRows)
+        x -= TopTextLine                                'calc dif. between new and old
+        CurrentLine -= x                           'don't move cursor unless we have to
+      End If
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub CursorLeftAction(shift As Boolean)
+    If shift Then
+      If BlockTopLeft Is Nothing Then
+        CurrentColumn -= 1 : CursorLeft()
+        BlockBottomRight = New Location(CurrentLine, CurrentColumn)
+        BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+      Else
+        ' Move the cursor
+        CurrentColumn -= 1 : CursorLeft()
+        ' Adjust the selection
+        If CurrentColumn < BlockTopLeft.Column Then
+          ' Grow to the left...
+          BlockTopLeft.Column = CurrentColumn
+        Else
+          ' Shrink from the right...
+          BlockBottomRight.Column = CurrentColumn - 1
+        End If
+        ' If result of select would invert, clear
+        If BlockBottomRight.Column < BlockTopLeft.Column AndAlso
+           BlockTopLeft.Row = BlockBottomRight.Row Then
+          ClearBlock()
+        End If
+      End If
+    Else
+      ClearBlock()
+      CurrentColumn -= 1 : CursorLeft()
+    End If
+  End Sub
+
+  Private Sub CursorRightAction(shift As Boolean)
+    If shift Then
+      If BlockTopLeft Is Nothing Then
+        BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+        BlockBottomRight = New Location(CurrentLine, CurrentColumn)
+        CurrentColumn += 1 : CursorRight()
+      Else
+        ' If result of select would leave just one character, clear
+        If CurrentColumn = BlockTopLeft.Column AndAlso
+           BlockTopLeft.Column = BlockBottomRight.Column AndAlso
+           BlockTopLeft.Row = BlockBottomRight.Row Then
+          ClearBlock()
+        Else
+          ' Adjust the selection
+          If CurrentColumn > BlockBottomRight.Column Then
+            ' Expand right side
+            BlockBottomRight.Column = CurrentColumn
+          Else
+            ' Shrink left side
+            BlockTopLeft.Column = CurrentColumn + 1
+          End If
+        End If
+        ' Move the cursor
+        CurrentColumn += 1 : CursorRight()
+      End If
+    Else
+      ClearBlock()
+      CurrentColumn += 1 : CursorRight()
+    End If
+  End Sub
+
+  Private Sub CursorUpAction(shift As Boolean)
+    If shift Then
+      If BlockTopLeft Is Nothing Then
+        BlockBottomRight = New Location(CurrentLine, CurrentColumn)
+        CurrentLine -= 1 : CursorUp()
+        BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+      Else
+        CurrentLine -= 1 : CursorUp()
+        If CurrentLine >= BlockTopLeft.Row Then
+          BlockBottomRight.Row = CurrentLine
+        Else
+          BlockTopLeft.Row = CurrentLine
+        End If
+        If CurrentLine = BlockTopLeft.Row AndAlso
+           BlockTopLeft.Row = BlockBottomRight.Row AndAlso
+           BlockTopLeft.Column = BlockBottomRight.Column Then
+          ClearBlock()
+        End If
+      End If
+    Else
+      ClearBlock()
+      CurrentLine -= 1 : CursorUp()
+    End If
+  End Sub
+
+  Private Sub CursorDownAction(shift As Boolean)
+    If shift Then
+      If BlockTopLeft Is Nothing Then
+        BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+        CurrentLine += 1 : CursorDown()
+        BlockBottomRight = New Location(CurrentLine, CurrentColumn)
+      Else
+        CurrentLine += 1 : CursorDown()
+        If CurrentLine <= BlockBottomRight.Row Then
+          BlockTopLeft.Row = CurrentLine
+        Else
+          BlockBottomRight.Row = CurrentLine
+        End If
+        If CurrentLine = BlockTopLeft.Row AndAlso
+           BlockTopLeft.Row = BlockBottomRight.Row AndAlso
+           BlockTopLeft.Column = BlockBottomRight.Column Then
+          ClearBlock()
+        End If
+      End If
+    Else
+      ClearBlock()
+      CurrentLine += 1 : CursorDown()
+    End If
+  End Sub
+
+  Private Sub DocumentEndAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      Dim pages = m_document.Count \ TextRows
+      TopTextLine = pages * TextRows
+      CurrentLine = m_document.Count : CurrentColumn = 1
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub DocumentHomeAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      CurrentLine = 1 : CurrentColumn = 1 : TopTextLine = 1
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub DeleteAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      If CurrentColumn > m_document(CurrentLine - 1).Length Then
+        If CurrentLine < m_document.Count Then
+          m_document(CurrentLine - 1) = m_document(CurrentLine - 1) + LTrim(m_document(CurrentLine))
+          m_document.RemoveAt(CurrentLine)
+          Changed = True
+        End If
+      Else
+        m_document(CurrentLine - 1) = Left(m_document(CurrentLine - 1), CurrentColumn - 1) + Mid(m_document(CurrentLine - 1), CurrentColumn + 1)
+        Changed = True
+      End If
+      ClearBlock()
+    End If
+  End Sub
+
+  Private Sub EscapeAction()
+    ClearBlock()
   End Sub
 
   Private Sub EnterAction()
@@ -469,6 +698,14 @@ Public Class DocumentPanel
     Changed = True
   End Sub
 
+  Friend Sub InsertAction(shift As Boolean)
+    If shift Then
+      Stop
+    Else
+      ToggleInsertMode()
+    End If
+  End Sub
+
   Private Sub InsertLineAboveAction()
     If CurrentLine >= m_document.Count Then
       m_document.Add("")
@@ -482,26 +719,64 @@ Public Class DocumentPanel
     '---- Pretty much identical to Enter (in insert mode), but don't move the cursor... 
     'CurLine += 1 : CurCol = 1
     Changed = True
+    ClearBlock()
   End Sub
 
-  Private Sub ScrollDownAction()
+  Private Sub ScrollDownAction(shift As Boolean)
     If CurrentLine < m_document.Count Then TopTextLine += 1
     If CurrentLine < TopTextLine Then CurrentLine = TopTextLine
+    If Not shift Then ClearBlock()
   End Sub
 
-  Private Sub ScrollUpAction()
+  Private Sub ScrollUpAction(shift As Boolean)
     If TopTextLine > 1 Then TopTextLine -= 1
     If CurrentLine > (TopTextLine - 1) + TextRows - 1 Then CurrentLine = (TopTextLine - 1) + TextRows - 1
+    If Not shift Then ClearBlock()
   End Sub
 
-  Private Sub TabAction()
-    If CurrentColumn <= m_document(CurrentLine - 1).Length Then
-      Dim leftSide = If(CurrentColumn > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
-      Dim rightSide = If(CurrentColumn <= m_document(CurrentLine - 1).Length, m_document(CurrentLine - 1).Substring(CurrentColumn - 1), "")
-      m_document(CurrentLine - 1) = leftSide & Space(TabSize) & rightSide
-      Changed = True
+  Private Sub TabAction(shift As Boolean)
+    Dim tr = CurrentLine
+    Dim br = CurrentLine
+    If BlockTopLeft IsNot Nothing Then
+      tr = BlockTopLeft.Row
+      br = BlockBottomRight.Row
     End If
-    CurrentColumn += TabSize
+    If shift Then
+      Dim remove = 255
+      For index = tr To br
+        For i = 0 To m_document(index - 1).Length - 1
+          Select Case m_document(index - 1)(i)
+            Case " "c
+            Case Else
+              If i < remove Then remove = i : Exit For
+          End Select
+        Next
+      Next
+      If remove > 0 Then
+        For index = tr To br
+          If m_document(index - 1).Length - 1 > 2 Then
+            m_document(index - 1) = m_document(index - 1).Substring(2)
+          End If
+        Next
+      End If
+    Else
+      If br - tr > 0 Then
+        For index = tr To br
+          If m_document(index - 1).Length > 0 Then
+            m_document(index - 1) = "  " & m_document(index - 1)
+            Changed = True
+          End If
+        Next
+      Else
+        If CurrentColumn <= m_document(CurrentLine - 1).Length Then
+          Dim leftSide = If(CurrentColumn > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
+          Dim rightSide = If(CurrentColumn <= m_document(CurrentLine - 1).Length, m_document(CurrentLine - 1).Substring(CurrentColumn - 1), "")
+          m_document(CurrentLine - 1) = leftSide & Space(TabSize) & rightSide
+          Changed = True
+        End If
+        CurrentColumn += TabSize
+      End If
+    End If
   End Sub
 
 #End Region

@@ -92,7 +92,11 @@ Public Class HelpPanel
 
       ' Expand/Collapse Tool
       QPrintRC(ChrW(180), EditorTop, lrCol - 4, OneColor(8, 0))
-      QPrintRC(ChrW(24), EditorTop, lrCol - 3, OneColor(0, 8))
+      If EditorHeight = 24 Then
+        QPrintRC(ChrW(18), EditorTop, lrCol - 3, OneColor(0, 8))
+      Else
+        QPrintRC(ChrW(24), EditorTop, lrCol - 3, OneColor(0, 8))
+      End If
       QPrintRC(ChrW(195), EditorTop, lrCol - 2, OneColor(8, 0))
 
       ' Scrollbars

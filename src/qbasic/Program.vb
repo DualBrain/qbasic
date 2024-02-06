@@ -44,7 +44,7 @@ Friend Class QBasic
   Private WithEvents DisplayTimer As New Timer(1)
 
   Private WithEvents Interpreter As Interactive
-  Private Display As New Display(DisplayTimer)
+  Private ReadOnly Display As New Display(DisplayTimer)
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
@@ -54,25 +54,24 @@ Friend Class QBasic
     m_pathspec = System.IO.Path.Combine(System.Environment.CurrentDirectory(), If(IsOSPlatform(Windows), "*.BAS", "*.*"))
   End Sub
 
-  'Private m_workTimerActive As Boolean
-  'Private Sub WorkTimer_Elapsed(sender As Object, e As ElapsedEventArgs) Handles WorkTimer.Elapsed
-
-  '  If m_workTimerActive Then Return
-  '  m_workTimerActive = True
-  '  Try
-  '    'Dim value = $"{Now:HH:mm:ss}.{Now.Millisecond:000}"
-  '    'QPrintRC(value, 1, 55, 14, 8)
-  '  Finally
-  '    m_workTimerActive = False
-  '  End Try
-
-  'End Sub
-
   <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
   Private Shared Function SendMessage(hWnd As IntPtr, Msg As UInteger, wParam As UInteger, lParam As IntPtr) As IntPtr
   End Function
 
   Protected Overrides Function OnUserCreate() As Boolean
+
+    Dim w As Integer, h As Integer
+    Dim result = GetScreenSize()
+    w = result.w : h = result.h
+
+    Select Case h
+      Case <= 1080
+      Case <= 1440
+        IncreasePixelSize()
+      Case Else
+        IncreasePixelSize()
+        IncreasePixelSize()
+    End Select
 
     If OperatingSystem.IsWindowsVersionAtLeast(7) Then
       Dim assem = Assembly.GetExecutingAssembly
@@ -253,12 +252,19 @@ Friend Class QBasic
               keys.RemoveAt(index)
             Case Else
           End Select
+        ElseIf isControl AndAlso Not isAlt AndAlso Not isShift Then
+          Select Case keys(index)
+            Case ConsoleKey.V ' Insert and Overstrike
+              ToggleInsertMode()
+              keys.RemoveAt(index)
+            Case Else
+          End Select
         ElseIf isControl AndAlso isAlt AndAlso isShift Then
           Select Case keys(index)
-            Case ConsoleKey.OemPlus
+            Case ConsoleKey.Add, ConsoleKey.OemPlus
               IncreasePixelSize()
               keys.RemoveAt(index)
-            Case ConsoleKey.OemMinus
+            Case ConsoleKey.Subtract, ConsoleKey.OemMinus
               DecreasePixelSize()
               keys.RemoveAt(index)
             Case Else
@@ -399,10 +405,12 @@ Tip: These topics are also available from the Help menu.
               ElseIf isShift Then
                 Select Case key
                   Case ConsoleKey.F1 ' Help on QBasic Help
+                    UsingHelpAction()
                     handled = True
                   Case ConsoleKey.F2 ' Display the next procedure
                     handled = True
                   Case ConsoleKey.F5 ' Start program execution from beginning
+                    StartAction()
                     handled = True
                   Case ConsoleKey.F6 ' Make the previous window the active window
                     If m_document1.Focused Then
@@ -447,24 +455,6 @@ Tip: These topics are also available from the Help menu.
                       End If
                     End If
                     handled = True
-                  Case ConsoleKey.UpArrow ' Select Character/lines
-                    handled = True
-                  Case ConsoleKey.DownArrow ' Select Character/lines
-                    handled = True
-                  Case ConsoleKey.LeftArrow ' Select Character/lines
-                    handled = True
-                  Case ConsoleKey.RightArrow ' Select Character/lines
-                    handled = True
-                  Case ConsoleKey.Insert ' Insert From Clipboard
-                    handled = True
-                  Case ConsoleKey.Delete ' Cut selected text
-                    handled = True
-                  Case ConsoleKey.PageUp ' Select Screen up
-                    handled = True
-                  Case ConsoleKey.PageDown ' Select Screen down
-                    handled = True
-                  Case ConsoleKey.Tab ' Delete leading spaces from selected lines
-                    handled = True
                   Case Else
                 End Select
               ElseIf isShift AndAlso isControl Then
@@ -487,12 +477,14 @@ Tip: These topics are also available from the Help menu.
                   Case ConsoleKey.F2 ' Display the previous procedure
                     handled = True
                   Case ConsoleKey.F10 ' Switch between multiple windows and full-screen active window
+                    ZoomEditorAction()
                     handled = True
                   Case Else
                 End Select
               ElseIf m_isAlt Then
                 Select Case key
                   Case ConsoleKey.Add ' Increase size of active window
+                    'NOTE: The OemPlus doesn't seem to work for this purpose in the original; just beeps.
                     Menu.AltPressed = False
                     Dim max = 24
                     Dim visibleCount = 3
@@ -554,7 +546,7 @@ Tip: These topics are also available from the Help menu.
                       End If
                     End If
                     handled = True
-                  Case ConsoleKey.Subtract ' Decrease size of active window
+                  Case ConsoleKey.Subtract, ConsoleKey.OemMinus ' Decrease size of active window
                     Menu.AltPressed = False
                     If m_help.Focused AndAlso m_help.EditorHeight > 2 Then
                       m_help.EditorHeight -= 1
@@ -608,67 +600,19 @@ Tip: These topics are also available from the Help menu.
 
                   Case ConsoleKey.F1 ' Help on keywords or topics (or right mouse click on word)
                     'TODO: if in a document and on a keyword, open help.
+                    TopicAction()
                     handled = True
                   Case ConsoleKey.F2 ' Display a list of loaded SUB procedures
+                    SubsAction()
                     handled = True
                   Case ConsoleKey.F3 ' Repeat find for same text
+                    RepeatLastFindAction()
                     handled = True
                   Case ConsoleKey.F4 ' Switch between the output screen and the View window
+                    OutputScreenAction()
                     handled = True
                   Case ConsoleKey.F5 ' Continue running
-                    'CLS() : LOCATE(25, 1) : PRINT("Press any key to continue", False)
-                    'Dim tree As Parser
-                    'Dim buffer() As Byte = m_document1.Text.ToByteArray
-                    'Using s As New System.IO.MemoryStream()
-                    '  s.Write(buffer, 0, buffer.Length)
-                    '  s.Seek(0, System.IO.SeekOrigin.Begin)
-                    '  tree = New Parser(s, Dialect.QBasic)
-                    'End Using
-                    'Dim row = 1, col = 1
-                    'Dim fg = 8, bg = 0
-                    'For Each line In tree.Lines
-                    '  If row > 24 Then Exit For
-                    '  LOCATE(row, col)
-                    '  If line.LineNumber IsNot Nothing Then
-                    '    QB.Video.COLOR(fg, bg) : PRINT($"{line.LineNumber} ", True)
-                    '  End If
-                    '  For Each statement In line.Statements
-                    '    Debug.WriteLine(m_cursorCol)
-                    '    For Each token In statement.Tokens
-                    '      If TypeOf token Is KeywordToken Then
-                    '        QB.Video.COLOR(9, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is StringLiteralToken Then
-                    '        QB.Video.COLOR(12, bg) : PRINT($"""{token}""", True)
-                    '      ElseIf TypeOf token Is NumericLiteralToken Then
-                    '        QB.Video.COLOR(8, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is CommentToken Then
-                    '        QB.Video.COLOR(10, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is FunctionToken OrElse TypeOf token Is VariableToken Then
-                    '        QB.Video.COLOR(13, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is IdentifierToken Then
-                    '        QB.Video.COLOR(8, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is SyntaxErrorToken Then
-                    '        QB.Video.COLOR(14, 4) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is ArithmaticOperatorToken Then
-                    '        QB.Video.COLOR(11, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is RelationalOperatorToken Then
-                    '        QB.Video.COLOR(14, bg) : PRINT($"{token}", True)
-                    '      ElseIf TypeOf token Is ParenOpenToken OrElse
-                    '             TypeOf token Is ParenCloseToken Then
-                    '        QB.Video.COLOR(7, bg) : PRINT($"{token}", True)
-                    '      ElseIf token Is Nothing Then
-                    '        QB.Video.COLOR(15, 4) : PRINT($"{token}", True)
-                    '      Else
-                    '        QB.Video.COLOR(8, bg) : PRINT($"{token}", True)
-                    '      End If
-                    '      Debug.WriteLine(m_cursorCol)
-                    '    Next
-                    '  Next
-                    '  row += 1
-                    'Next
-                    'QB.Video.COLOR(7, 0)
-                    Interpreter.Source = m_document1.Text
-                    Interpreter.Run()
+                    RestartAction()
                     handled = True
                   Case ConsoleKey.F6 ' Make the next window the active window
                     If m_document1.Focused Then
@@ -716,40 +660,14 @@ Tip: These topics are also available from the Help menu.
                   Case ConsoleKey.F7 ' Execute to cursor
                     handled = True
                   Case ConsoleKey.F8 ' Single step
+                    StepAction()
                     handled = True
                   Case ConsoleKey.F9 ' Toggle breakpoint
+                    ToggleBreakpointAction()
                     handled = True
                   Case ConsoleKey.F10 ' Procedure step
+                    ProcedureStepAction()
                     handled = True
-
-                  Case ConsoleKey.Backspace ' Delete one character to the left of the cursor
-                  'handled = True
-                  Case ConsoleKey.Insert ' Switch to insert/overstrike
-                  'handled = True
-                  Case ConsoleKey.Home ' Move cursor to first indention level of the current line
-                  'handled = True
-                  Case ConsoleKey.End ' Move cursor to end of line
-                  'handled = True
-                  Case ConsoleKey.Delete ' Erase selected text / Delete one character at the cursor
-                  'handled = True
-                  Case ConsoleKey.PageUp ' Page up
-                  'handled = True
-                  Case ConsoleKey.PageDown ' Page Down
-                  'handled = True
-
-                  Case ConsoleKey.UpArrow ': m_codeRow -= 1 : If m_codeRow < 1 Then m_codeRow = 1 ' Cursor Up
-                  'handled = True
-                  Case ConsoleKey.DownArrow ': m_codeRow += 1 : If m_codeRow > 18 Then m_codeRow = 18 ' Cursor Dn
-                  'handled = True
-                  Case ConsoleKey.LeftArrow ': m_codeCol -= 1 : If m_codeCol < 1 Then m_codeCol = 1 ' Cursor Left
-                  'handled = True
-                  Case ConsoleKey.RightArrow ': m_codeCol += 1 : If m_codeCol > 78 Then m_codeCol = 78 ' Cursor Right
-                  'handled = True
-                  Case ConsoleKey.Spacebar ': m_code &= " "c : m_codeCol += 1
-                  'handled = True
-
-                  Case ConsoleKey.A To ConsoleKey.Z ': m_code &= ChrW(key) : m_codeCol += 1
-                    'handled = True
 
                   Case Else
                 End Select
@@ -1428,15 +1346,21 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub ContinueAction()
-    m_context = New MessageDialog("Not implemented.")
+    Interpreter.Reset()
+    Interpreter.Source = m_document1.Text
+    Interpreter.Run()
   End Sub
 
   Private Sub RestartAction()
-    m_context = New MessageDialog("Not implemented.")
+    Interpreter.Reset()
+    Interpreter.Source = m_document1.Text
+    Interpreter.Run()
   End Sub
 
   Private Sub StartAction()
-    m_context = New MessageDialog("Not implemented.")
+    Interpreter.Reset()
+    Interpreter.Source = m_document1.Text
+    Interpreter.Run()
   End Sub
 
   Private Sub ChangeAction()
@@ -1481,6 +1405,81 @@ To get help on a QBasic keyword in the list below:
 
   Private Sub AboutAction()
     m_context = New AboutDialog()
+  End Sub
+
+  Private m_windowFocused As Boolean
+
+  Private m_help_visible As Boolean
+  Private m_help_top As Integer
+  Private m_help_height As Integer
+  Private m_document1_visible As Boolean
+  Private m_document1_top As Integer
+  Private m_document1_height As Integer
+  Private m_document2_visible As Boolean
+  Private m_document2_top As Integer
+  Private m_document2_height As Integer
+  Private m_immediate_visible As Boolean
+  Private m_immediate_top As Integer
+  Private m_immediate_height As Integer
+
+  Private Sub ZoomEditorAction()
+    If m_windowFocused Then
+      m_help.Visible = m_help_visible
+      m_help.EditorTop = m_help_top
+      m_help.EditorHeight = m_help_height
+      m_document1.Visible = m_document1_visible
+      m_document1.EditorTop = m_document1_top
+      m_document1.EditorHeight = m_document1_height
+      m_document2.Visible = m_document2_visible
+      m_document2.EditorTop = m_document2_top
+      m_document2.EditorHeight = m_document2_height
+      m_immediate.Visible = m_immediate_visible
+      m_immediate.EditorTop = m_immediate_top
+      m_immediate.EditorHeight = m_immediate_height
+      m_windowFocused = False
+    Else
+      m_help_visible = m_help.Visible
+      m_help_top = m_help.EditorTop
+      m_help_height = m_help.EditorHeight
+      m_document1_visible = m_document1.Visible
+      m_document1_top = m_document1.EditorTop
+      m_document1_height = m_document1.EditorHeight
+      m_document2_visible = m_document2.Visible
+      m_document2_top = m_document2.EditorTop
+      m_document2_height = m_document2.EditorHeight
+      m_immediate_visible = m_immediate.Visible
+      m_immediate_top = m_immediate.EditorTop
+      m_immediate_height = m_immediate.EditorHeight
+      If m_help.Focused Then
+        m_help.EditorTop = 2
+        m_help.EditorHeight = 24
+        m_document1.Visible = False
+        m_document2.Visible = False
+        m_immediate.Visible = False
+        m_windowFocused = True
+      ElseIf m_document1.Focused Then
+        m_help.Visible = False
+        m_document1.EditorTop = 2
+        m_document1.EditorHeight = 24
+        m_document2.Visible = False
+        m_immediate.Visible = False
+        m_windowFocused = True
+      ElseIf m_document2.Focused Then
+        m_help.Visible = False
+        m_document1.Visible = False
+        m_document2.EditorTop = 2
+        m_document2.EditorHeight = 24
+        m_immediate.Visible = False
+        m_windowFocused = True
+      Else
+        'NOTE: Not valid if currently focused on the Immediate window.
+        'm_help.Visible = False
+        'm_document1.Visible = False
+        'm_document2.Visible = False
+        'm_immediate.EditorTop = 2
+        'm_immediate.EditorHeight = 24
+      End If
+    End If
   End Sub
 
 #End Region

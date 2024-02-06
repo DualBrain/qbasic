@@ -266,11 +266,11 @@ Public Class DocumentPanel
       For Each key In keys
         If ctrl AndAlso Not alt Then ' shift can be in either state
           Select Case key
-            Case ConsoleKey.A ' Word Left (WordStar)
+            Case ConsoleKey.A : WordLeftAction(shift) ' Word Left (WordStar)
             Case ConsoleKey.C : CursorPageDownAction(shift) ' Page down (WordStar)
             Case ConsoleKey.D : CursorRightAction(shift) ' Cursor right (WordStar)
             Case ConsoleKey.E : CursorUpAction(shift) ' Cursor up (WordStar)
-            Case ConsoleKey.F ' Word Right (WordStar)
+            Case ConsoleKey.F : WordRightAction(shift) ' Word Right (WordStar)
             Case ConsoleKey.G ' Delete selected text / Delete one character at the cursor (WordStar)
             Case ConsoleKey.H : BackspaceAction() ' Delete one character to the left of the cursor (WordStar)
             Case ConsoleKey.J : CursorNextLineAction(shift) ' Cursor to beginning of next line (WordStar)
@@ -290,8 +290,8 @@ Public Class DocumentPanel
             Case ConsoleKey.Y ' Cut current line
             Case ConsoleKey.Enter : CursorNextLineAction(shift) ' Cursor to beginning of next line (skipping spaces)
             Case ConsoleKey.Insert ' Copy to Clipboard
-            Case ConsoleKey.LeftArrow ' Word Left
-            Case ConsoleKey.RightArrow ' Word Right
+            Case ConsoleKey.LeftArrow : WordLeftAction(shift) ' Word Left
+            Case ConsoleKey.RightArrow : WordRightAction(shift) ' Word Right
             Case ConsoleKey.UpArrow, ConsoleKey.W : ScrollUpAction(shift) ' Scroll up, Scroll up (WordStar)
             Case ConsoleKey.DownArrow, ConsoleKey.Z : ScrollDownAction(shift) ' Scroll dn, Scroll dn (WordStar)
             Case ConsoleKey.PageUp ' Left one window
@@ -371,6 +371,82 @@ Public Class DocumentPanel
 
 
 #Region "Actions"
+
+  Private Sub WordLeftAction(shift As Boolean)
+    Dim r = CurrentLine
+    Dim c = CurrentColumn
+    Dim flagged = False
+    If c > m_document(r - 1).Length Then
+      c = m_document(r - 1).Length
+    End If
+    Do
+      c -= 1
+      If c < 1 Then
+        r -= 1 : If r < 1 Then r = 1 : Exit Do
+        c = m_document(r - 1).Length
+      End If
+      Dim ch = m_document(r - 1)(c - 1)
+      Select Case ch
+        Case " "c, ChrW(10), ChrW(13),
+             ";"c, ","c, "("c, ")"c,
+             ":"c, "="c, "+"c, "-"c,
+             "/"c, "\"c, "*"c, ChrW(34)
+          If flagged Then
+            c += 1
+            Exit Do
+          End If
+          flagged = True
+        Case Else
+          'If flagged Then
+          '  Exit Do
+          'End If
+      End Select
+    Loop
+    If shift Then
+      Stop
+    Else
+      ClearBlock()
+      CurrentLine = r : CursorUp()
+      CurrentColumn = c : CursorLeft()
+    End If
+  End Sub
+
+  Private Sub WordRightAction(shift As Boolean)
+    Dim r = CurrentLine
+    Dim c = CurrentColumn
+    Dim flagged = False
+    Do
+      c += 1
+      If c > m_document(r - 1).Length - 1 Then
+        r += 1 : c = 1
+      End If
+      If r > m_document.Count - 1 AndAlso
+         c > m_document(r - 1).Length - 1 Then
+        c -= 1
+        Exit Do
+      End If
+      Dim ch = m_document(r - 1)(c - 1)
+      Select Case ch
+        Case " "c, ChrW(10), ChrW(13),
+             ";"c, ","c, "("c, ")"c,
+             ":"c, "="c, "+"c, "-"c,
+             "/"c, "\"c, "*"c, ChrW(34)
+          flagged = True
+        Case Else
+          If flagged Then
+            c -= 1 : If c < 1 Then c = 1
+            Exit Do
+          End If
+      End Select
+    Loop
+    If shift Then
+      Stop
+    Else
+      ClearBlock()
+      CurrentLine = r : CursorDown()
+      CurrentColumn = c + 1 : CursorRight()
+    End If
+  End Sub
 
   Private Sub BackspaceAction()
     If CurrentColumn = 1 Then

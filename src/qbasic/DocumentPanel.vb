@@ -387,23 +387,56 @@ Public Class DocumentPanel
       End If
       Dim ch = m_document(r - 1)(c - 1)
       Select Case ch
-        Case " "c, ChrW(10), ChrW(13),
-             ";"c, ","c, "("c, ")"c,
-             ":"c, "="c, "+"c, "-"c,
-             "/"c, "\"c, "*"c, ChrW(34)
+        Case " "c,
+             ":"c, ";"c, ","c, "("c, ")"c,
+             "+"c, "-"c, "/"c, "\"c, "*"c,
+             ChrW(34), "'"c,
+             "="c, ">"c, "<"c,
+             ChrW(10), ChrW(13)
           If flagged Then
             c += 1
+            If c > m_document(r - 1).Length Then
+              c = 1
+              r += 1
+            End If
             Exit Do
           End If
-          flagged = True
+          'flagged = True
         Case Else
-          'If flagged Then
-          '  Exit Do
-          'End If
+          flagged = True
       End Select
     Loop
     If shift Then
-      Stop
+      If BlockTopLeft Is Nothing Then
+        BlockTopLeft = New Location(r, c)
+        BlockBottomRight = New Location(CurrentLine, CurrentColumn - 1)
+        CurrentLine = r : CursorDown()
+        CurrentColumn = c : CursorRight()
+      Else
+        Dim prevLine = CurrentLine
+        Dim prevColumn = CurrentColumn
+        CurrentLine = r : CursorDown()
+        CurrentColumn = c : CursorRight()
+        If prevLine = BlockBottomRight.Row AndAlso
+           prevColumn > BlockTopLeft.Column AndAlso
+           c < BlockBottomRight.Column Then
+          ' Shrink
+          'BlockBottomRight.Row = CurrentLine
+          BlockBottomRight.Column = CurrentColumn - 1
+        ElseIf prevLine > BlockTopLeft.Row AndAlso r <= BlockBottomRight.Row Then
+          ' Shrink
+          BlockBottomRight.Row = CurrentLine
+          BlockBottomRight.Column = CurrentColumn - 1
+        Else
+          ' Expand
+          If CurrentLine < BlockTopLeft.Row Then
+            BlockTopLeft.Row = CurrentLine
+          End If
+          If CurrentColumn < BlockTopLeft.Column Then
+            BlockTopLeft.Column = CurrentColumn
+          End If
+        End If
+      End If
     Else
       ClearBlock()
       CurrentLine = r : CursorUp()
@@ -417,30 +450,78 @@ Public Class DocumentPanel
     Dim flagged = False
     Do
       c += 1
-      If c > m_document(r - 1).Length - 1 Then
-        r += 1 : c = 1
-      End If
+      Do
+        If r > m_document.Count Then Exit Do
+        If c > m_document(r - 1).Length Then
+          If shift AndAlso c = m_document(r - 1).Length + 1 Then
+            Exit Do
+          Else
+            r += 1 : c = 1 : If Not shift Then flagged = True
+          End If
+        Else
+          Exit Do
+        End If
+      Loop
       If r > m_document.Count - 1 AndAlso
-         c > m_document(r - 1).Length - 1 Then
+         c > m_document(r - 1).Length Then
         c -= 1
         Exit Do
       End If
-      Dim ch = m_document(r - 1)(c - 1)
+      ' Using CHRW(254) as an virtual end of line "char"
+      Dim ch = If(c > m_document(r - 1).Length, ChrW(254), m_document(r - 1)(c - 1))
       Select Case ch
-        Case " "c, ChrW(10), ChrW(13),
-             ";"c, ","c, "("c, ")"c,
-             ":"c, "="c, "+"c, "-"c,
-             "/"c, "\"c, "*"c, ChrW(34)
-          flagged = True
+        Case " "c,
+             ":"c, ";"c, ","c, "("c, ")"c,
+             "+"c, "-"c, "/"c, "\"c, "*"c,
+             ChrW(34), "'"c,
+             "="c, ">"c, "<"c,
+             ChrW(10), ChrW(13),
+             ChrW(254)
+          If shift AndAlso flagged Then
+            Exit Do
+          ElseIf Not shift Then
+            flagged = True
+          End If
         Case Else
-          If flagged Then
-            c -= 1 : If c < 1 Then c = 1
+          If shift AndAlso Not flagged Then
+            flagged = True
+          ElseIf Not shift AndAlso flagged Then
+            c -= 1 : If c < 0 Then c = 0
             Exit Do
           End If
       End Select
     Loop
     If shift Then
-      Stop
+      If BlockTopLeft Is Nothing Then
+        BlockTopLeft = New Location(CurrentLine, CurrentColumn)
+        BlockBottomRight = New Location(r, c - 1)
+        CurrentLine = r : CursorDown()
+        CurrentColumn = c : CursorRight()
+      Else
+        Dim prevLine = CurrentLine
+        Dim prevColumn = CurrentColumn
+        CurrentLine = r : CursorDown()
+        CurrentColumn = c : CursorRight()
+        If prevLine = BlockTopLeft.Row AndAlso
+           prevColumn < BlockBottomRight.Column AndAlso
+           c > BlockTopLeft.Column Then
+          ' Shrink
+          'BlockTopLeft.Row = CurrentLine
+          BlockTopLeft.Column = CurrentColumn '- 1
+        ElseIf prevLine < BlockBottomRight.Row AndAlso r >= BlockTopLeft.Row Then
+          ' Shrink
+          BlockTopLeft.Row = CurrentLine
+          BlockTopLeft.Column = CurrentColumn - 1
+        Else
+          ' Grow
+          If CurrentLine > BlockBottomRight.Row Then
+            BlockBottomRight.Row = CurrentLine
+          End If
+          If CurrentColumn > BlockBottomRight.Column Then
+            BlockBottomRight.Column = CurrentColumn - 1
+          End If
+        End If
+      End If
     Else
       ClearBlock()
       CurrentLine = r : CursorDown()

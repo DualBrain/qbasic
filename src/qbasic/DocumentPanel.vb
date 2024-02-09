@@ -18,57 +18,8 @@ Public Class DocumentPanel
     Public Column As Integer
   End Class
 
-  'Private Structure BlkCoords                    ' Structure for Block coordinates
-  '  Dim B As Integer                             ' Block coordinates
-  '  Dim PB As Integer                            ' Previous block coordinates
-  '  Dim P As Integer                             ' Paint coordinates
-  '  Dim PP As Integer                            ' Previous paint coordinates
-  'End Structure
-
-  'Private Structure EditInfo
-
-  'Public Rows As Integer             ' Text Window Rows
-  'Public Wide As Integer             ' Text Window Columns
-  'Public Wrap As Integer             ' Right Margin for Word Wrap (0 for No Wrap)
-  'Public AColor As Integer           ' Window Color
-  'Public Frame As Boolean            ' Display Frame Flag
-
-  'Public LSCol As Integer            ' Left Screen Column of editable window
-  'Public LC As Integer               ' Left Text Column
-  'Public CurCol As Integer           ' Current text column
-  'Public TSRow As Integer            ' Top Screen Row of editable window
-  'Public TL As Integer               ' Top Text Line
-  'Public CurLine As Integer          ' Current text Line
-
-  '' Contains the "highlight"
-  'Public UlCRow As Integer           ' Upper Left Block Row
-  'Public UlCCol As Integer           ' Upper Left Block Column
-  'Public BrCRow As Integer           ' Lower Right Block Row
-  'Public BrCCol As Integer           ' Lower Right Block Column
-  'Public CBlock As Boolean           ' Column Block Flag
-
-  'Public WasMarked As Boolean        ' Flag that something has been marked
-  'Public DelBlock As Boolean         ' Flag to Delete highlighted block
-  'Public InsBlock As Boolean         ' Flag to Paste Buffer contents
-  'Public Text2Paste As Boolean       ' Flag that something is in the Paste buffer
-  'Public CopyBlock As Boolean        ' Flag to paste the buffer now
-
-  'Public Presses As Integer          ' Mouse presses.                Read Only!
-  'Public MRow As Integer             ' Mouse Screen Row.             Read Only!
-  'Public MCol As Integer             ' Mouse Screen Column.          Read Only!
-
-  'Public UnKnownKey As Boolean       ' Flag, True if key pressed but not handled
-  'Public Insert As Boolean          ' Insert State (False = Overtype, True = Insert)
-  'Public LCount As Integer           ' Number of text lines.         Read Only!
-  'Public MErr As Integer             ' Error flag  (1 = Out of memory, 2 = Too many lines)
-
-  'End Structure
-
   'Private Const NumPad As String = "12346789"              ' Shifted arrow keys
   'Private Const NumPad2 As String = "stOPQKMGHK"           ' Unshifted arrow keys
-  'Private Const SkipTbl As String = " ^*()[]-=+,.<>/\"     ' Word delimiters
-  'Private Const ZERO As String = ChrW(0)
-  'Private Const ONE As String = ChrW(1)
 
   Public Property BlockTopLeft As Location
   Public Property BlockBottomRight As Location
@@ -707,7 +658,7 @@ Public Class DocumentPanel
       Dim ch = m_document(r - 1)(c - 1)
       Select Case ch
         Case " "c,
-             ":"c, ";"c, ","c, "("c, ")"c,
+             ":"c, ";"c, ","c, "."c, "("c, ")"c, "["c, "]"c, "^"c,
              "+"c, "-"c, "/"c, "\"c, "*"c,
              ChrW(34), "'"c,
              "="c, ">"c, "<"c,
@@ -785,7 +736,7 @@ Public Class DocumentPanel
       Dim ch = If(c > m_document(r - 1).Length, ChrW(254), m_document(r - 1)(c - 1))
       Select Case ch
         Case " "c,
-             ":"c, ";"c, ","c, "("c, ")"c,
+             ":"c, ";"c, ","c, "."c, "("c, ")"c, "["c, "]"c, "^"c,
              "+"c, "-"c, "/"c, "\"c, "*"c,
              ChrW(34), "'"c,
              "="c, ">"c, "<"c,

@@ -303,7 +303,7 @@ Public Class DocumentPanel
             Case ConsoleKey.T ' Delete the rest of the word the cursor is on (WordStar)
             Case ConsoleKey.V ' Switch between insert and overstrike modes (WordStar)
             Case ConsoleKey.X : CursorDownAction(shift) ' Cursor dn (WordStar)
-            Case ConsoleKey.Y ' Cut current line
+            Case ConsoleKey.Y : CutCurrentLine() ' Cut current line
             Case ConsoleKey.Enter : CursorNextLineAction(shift) ' Cursor to beginning of next line (skipping spaces)
             Case ConsoleKey.Insert ' Copy to Clipboard
             Case ConsoleKey.LeftArrow : WordLeftAction(shift) ' Word Left
@@ -387,6 +387,8 @@ Public Class DocumentPanel
 
   Private Sub HandleSelection(curRow As Integer, curCol As Integer, newRow As Integer, newCol As Integer)
 
+    Dim magicColumn = 32768
+
     If BlockTopLeft IsNot Nothing Then
 
       Dim topRow = BlockTopLeft.Row
@@ -401,7 +403,7 @@ Public Class DocumentPanel
       '  ' No selection change...
       'Else
 
-      If curRow = topRow AndAlso curCol = topCol Then
+      If (curRow = topRow AndAlso curCol = topCol) OrElse curRow < topRow Then
 
         Debug.Write(" UL")
 
@@ -439,7 +441,7 @@ Public Class DocumentPanel
           End If
         End If
 
-      ElseIf curRow = botRow AndAlso curCol - 1 = botCol Then
+      ElseIf (curRow = botRow AndAlso curCol - 1 = botCol) OrElse curRow > botRow Then
 
         ' cursor was at the bottom, right
         Debug.Write(" BR")
@@ -487,7 +489,13 @@ Public Class DocumentPanel
 
       End If
 
-      If topRow = botRow AndAlso topCol = botCol Then
+      If topCol = 0 Then topRow += 1 : topCol = magicColumn
+      If botCol = 0 Then botRow -= 1 : botCol = magicColumn
+
+      If (topRow = botRow AndAlso topCol = botCol) OrElse
+         botRow < topRow OrElse
+         topCol > magicColumn OrElse
+         botCol > magicColumn Then
         Debug.WriteLine($" ()-()")
         BlockTopLeft = Nothing
         BlockBottomRight = Nothing
@@ -503,15 +511,26 @@ Public Class DocumentPanel
 
     Else
 
+      Dim topRow As Integer
+      Dim topCol As Integer
+      Dim botRow As Integer
+      Dim botCol As Integer
+
       If curRow * 80 + curCol < newRow * 80 + newCol Then
-        BlockTopLeft = New Location(curRow, curCol)
-        BlockBottomRight = New Location(newRow, newCol - 1)
+        topRow = curRow : topCol = curCol
+        botRow = newRow : botCol = newCol - 1
       Else
-        BlockTopLeft = New Location(newRow, newCol)
-        BlockBottomRight = New Location(curRow, curCol)
+        topRow = newRow : topCol = newCol
+        botRow = curRow : botCol = curCol - 1
       End If
 
-      Debug.WriteLine($"({BlockTopLeft.Row},{BlockTopLeft.Column})-({BlockBottomRight.Row},{BlockBottomRight.Column})")
+      If topCol = 0 Then topRow += 1 : topCol = magicColumn
+      If botCol = 0 Then botRow -= 1 : botCol = magicColumn
+
+      BlockTopLeft = New Location(topRow, topCol)
+      BlockBottomRight = New Location(botRow, botCol)
+
+      Debug.WriteLine($"({topRow},{topCol})-({botRow},{botCol})")
 
     End If
 
@@ -539,6 +558,8 @@ Public Class DocumentPanel
     End If
     ClearBlock()
   End Sub
+
+#Region "Cursor Movement and Block Selection"
 
   Private Sub CursorHomeAction(shift As Boolean)
     Dim prevLine = CurrentLine, prevColumn = CurrentColumn
@@ -842,6 +863,8 @@ Public Class DocumentPanel
     End If
   End Sub
 
+#End Region
+
   Private Sub DeleteAction(shift As Boolean)
     If shift Then
       Stop
@@ -876,6 +899,10 @@ Public Class DocumentPanel
     End If
     CurrentLine += 1 : CurrentColumn = 1
     Changed = True
+  End Sub
+
+  Private Sub CutCurrentLine()
+
   End Sub
 
   Friend Sub InsertAction(shift As Boolean)

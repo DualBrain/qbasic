@@ -12,6 +12,9 @@ Imports Basic.Environment
 Imports Basic.IO
 Imports Basic.Audio
 Imports Basic.Input
+Imports System.Text
+Imports System.IO
+Imports System.IO.Compression
 
 Friend Module Program
 
@@ -135,6 +138,19 @@ Friend Class QBasic
                   New MenuItem("Using &Help", "Displays information about how to use online help") With {.Hotkey = "Shift+F1"},
                   New MenuItem("-"),
                   New MenuItem("&About...", "Displays product version and copyright information")}.ToList}}.ToList}
+
+    Dim includeFbc = False
+    Dim includeQbjs = True
+
+    If includeQbjs OrElse includeFbc Then
+      Menu.Items(4).Items.Add(New MenuItem("-"))
+    End If
+    If includeFbc Then
+      Menu.Items(4).Items.Add(New MenuItem("Make E&XE File (FBC)...", "Creates executable file on disk"))
+    End If
+    If includeQbjs Then
+      Menu.Items(4).Items.Add(New MenuItem("In &Web browser (QBJS)...", "Launch using QBJS in default web browser"))
+    End If
 
     Menu.CalculateOffsets()
 
@@ -1056,6 +1072,8 @@ Tip: These topics are also available from the Help menu.
       Case "Start" : StartAction()
       Case "Restart" : RestartAction()
       Case "Continue" : ContinueAction()
+      Case "Make EXE File (FBC)..." : MakeExeFileFbcAction()
+      Case "In Web browser (QBJS)..." : LaunchInWebBrowserAction()
       Case "Step" : StepAction()
       Case "Procedure Step" : ProcedureStepAction()
       Case "Trace On" : TraceOnAction()
@@ -1369,6 +1387,61 @@ To get help on a QBasic keyword in the list below:
     Interpreter.Reset()
     Interpreter.Source = Document1.Text
     Interpreter.Run()
+  End Sub
+
+  Private Sub MakeExeFileFbcAction()
+    m_context = New MessageDialog("Not implemented.")
+  End Sub
+
+  Private Sub LaunchInWebBrowserAction()
+
+    Dim compress = False
+
+    If Document1.Text <> "" Then 'Title <> "Untitled" Then
+
+      Dim decoded = Document1.Text
+      decoded = decoded.Replace(vbCrLf, vbLf)
+      Dim bytes = Encoding.UTF8.GetBytes(decoded)
+
+      Dim buffer() As Byte
+      Using ms = New MemoryStream()
+        Using gs = New GZipStream(ms, CompressionMode.Compress, True)
+          gs.Write(bytes, 0, bytes.Length)
+        End Using
+        ms.Position = 0
+        ReDim buffer(CInt(ms.Length - 1))
+        ms.Read(buffer, 0, buffer.Length)
+      End Using
+
+      Dim encoded = Convert.ToBase64String(If(compress, buffer, bytes))
+      Dim url = $"https://qbjs.org/#code={encoded}"
+
+      If False Then ' For testing...
+
+        Dim dBuffer = Convert.FromBase64String(encoded)
+        Using ms = New MemoryStream(dBuffer)
+          Using gs = New GZipStream(ms, CompressionMode.Decompress)
+            Using ds = New MemoryStream()
+              gs.CopyTo(ds)
+              bytes = ds.ToArray
+            End Using
+          End Using
+        End Using
+
+        decoded = Encoding.UTF8.GetString(bytes)
+
+        Document1.Text = $"'decoded
+{decoded}"
+
+      End If
+
+      'Dim p As New Process
+      'p.StartInfo.UseShellExecute = True
+      'p.StartInfo.FileName = url
+      'p.Start()
+      Process.Start("cmd", "/C start" + " " + url)
+    End If
+
   End Sub
 
   Private Sub ChangeAction()

@@ -34,12 +34,13 @@ Public Class DocumentPanel
     Get
       Dim result = ""
       For Each line In m_document
-        result &= line & vbCrLf
+        result &= line & vbLf
       Next
       Return result
     End Get
     Set(value As String)
       m_document.Clear()
+      value = value.Replace(vbCrLf, vbLf)
       Dim lines = value.Split(vbLf)
       For Each line In lines
         m_document.Add(line)

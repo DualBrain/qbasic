@@ -33,8 +33,8 @@ Friend Class QBasic
 
   Private WithEvents Menu As MainMenu
   Private ReadOnly m_help As New HelpPanel
-  Private ReadOnly m_document1 As New DocumentPanel
-  Private ReadOnly m_document2 As New DocumentPanel
+  Private WithEvents Document1 As New DocumentPanel
+  Private WithEvents Document2 As New DocumentPanel
   Private ReadOnly m_immediate As New ImmediatePanel
   Private ReadOnly m_statusPanel As New StatusPanel
 
@@ -138,8 +138,8 @@ Friend Class QBasic
 
     Menu.CalculateOffsets()
 
-    m_document1.Focused = True
-    m_document2.Visible = False
+    Document1.Focused = True
+    Document2.Visible = False
 
     m_context = New WelcomeDialog()
 
@@ -172,8 +172,8 @@ Friend Class QBasic
   Private Sub DrawScreen()
 
     m_help.Render()
-    m_document1.Render()
-    m_document2.Render()
+    Document1.Render()
+    Document2.Render()
     m_immediate.Render()
 
     If Menu.Focused AndAlso Menu.Expanded Then
@@ -190,12 +190,12 @@ Friend Class QBasic
     If m_help.Focused Then
       m_statusPanel.DocumentRow = m_help.DocumentRow
       m_statusPanel.DocumentCol = m_help.DocumentCol
-    ElseIf m_document1.Focused Then
-      m_statusPanel.DocumentRow = m_document1.DocumentRow
-      m_statusPanel.DocumentCol = m_document1.DocumentCol
-    ElseIf m_document2.Focused Then
-      m_statusPanel.DocumentRow = m_document2.DocumentRow
-      m_statusPanel.DocumentCol = m_document2.DocumentCol
+    ElseIf Document1.Focused Then
+      m_statusPanel.DocumentRow = Document1.DocumentRow
+      m_statusPanel.DocumentCol = Document1.DocumentCol
+    ElseIf Document2.Focused Then
+      m_statusPanel.DocumentRow = Document2.DocumentRow
+      m_statusPanel.DocumentCol = Document2.DocumentCol
     ElseIf m_immediate.Focused Then
       m_statusPanel.DocumentRow = m_immediate.DocumentRow
       m_statusPanel.DocumentCol = m_immediate.DocumentCol
@@ -310,9 +310,9 @@ Tip: These topics are also available from the Help menu.
             Case DialogResult.Ok
               m_path = o.Path
               If System.IO.File.Exists(m_path) Then
-                m_document1.Clear()
-                m_document1.Title = System.IO.Path.GetFileName(m_path)
-                m_document1.Text = System.IO.File.ReadAllText(m_path)
+                Document1.Clear()
+                Document1.Title = System.IO.Path.GetFileName(m_path)
+                Document1.Text = System.IO.File.ReadAllText(m_path)
               End If
             Case DialogResult.Cancel
             Case DialogResult.Help
@@ -323,9 +323,9 @@ Tip: These topics are also available from the Help menu.
           Select Case o.DialogResult
             Case DialogResult.Ok
               m_path = o.Path
-              System.IO.File.WriteAllText(m_path, m_document1.Text)
-              m_document1.Title = System.IO.Path.GetFileName(m_path)
-              m_document1.Changed = False
+              System.IO.File.WriteAllText(m_path, Document1.Text)
+              Document1.Title = System.IO.Path.GetFileName(m_path)
+              Document1.Changed = False
             Case DialogResult.Cancel
             Case DialogResult.Help
             Case Else
@@ -413,18 +413,18 @@ Tip: These topics are also available from the Help menu.
                     StartAction()
                     handled = True
                   Case ConsoleKey.F6 ' Make the previous window the active window
-                    If m_document1.Focused Then
+                    If Document1.Focused Then
                       If m_help.Visible Then
                         FocusHelp()
                       ElseIf m_immediate.Visible Then
                         FocusImmediate()
-                      ElseIf m_document2.Visible Then
+                      ElseIf Document2.Visible Then
                         FocusDocument2()
                       Else
                         FocusDocument1()
                       End If
-                    ElseIf m_document2.Visible AndAlso m_document2.Focused Then
-                      If m_document1.Visible Then
+                    ElseIf Document2.Visible AndAlso Document2.Focused Then
+                      If Document1.Visible Then
                         FocusDocument1()
                       ElseIf m_help.Visible Then
                         FocusHelp()
@@ -434,9 +434,9 @@ Tip: These topics are also available from the Help menu.
                         FocusDocument2()
                       End If
                     ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
-                      If m_document2.Visible Then
+                      If Document2.Visible Then
                         FocusDocument2()
-                      ElseIf m_document1.Visible Then
+                      ElseIf Document1.Visible Then
                         FocusDocument1()
                       ElseIf m_help.Visible Then
                         FocusHelp()
@@ -446,9 +446,9 @@ Tip: These topics are also available from the Help menu.
                     ElseIf m_help.Visible AndAlso m_help.Focused Then
                       If m_immediate.Visible Then
                         FocusImmediate()
-                      ElseIf m_document2.Visible Then
+                      ElseIf Document2.Visible Then
                         FocusDocument2()
-                      ElseIf m_document1.Visible Then
+                      ElseIf Document1.Visible Then
                         FocusDocument1()
                       Else
                         FocusHelp()
@@ -489,59 +489,59 @@ Tip: These topics are also available from the Help menu.
                     Dim max = 24
                     Dim visibleCount = 3
                     If Not m_help.Visible Then visibleCount -= 1
-                    If Not m_document2.Visible Then visibleCount -= 1
+                    If Not Document2.Visible Then visibleCount -= 1
                     If Not m_immediate.Visible Then visibleCount -= 1
                     max -= visibleCount
                     If m_help.Visible AndAlso m_help.Focused AndAlso m_help.EditorHeight < max Then
-                      If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then ' Shrink Document1?
-                        m_document1.EditorHeight -= 1 : m_document1.EditorTop += 1
+                      If Document1.Visible AndAlso Document1.EditorHeight > 2 Then ' Shrink Document1?
+                        Document1.EditorHeight -= 1 : Document1.EditorTop += 1
                         m_help.EditorHeight += 1
-                      ElseIf m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then ' Shrink Document2?
-                        m_document2.EditorHeight -= 1 : m_document2.EditorTop += 1
-                        If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
+                      ElseIf Document2.Visible AndAlso Document2.EditorHeight > 2 Then ' Shrink Document2?
+                        Document2.EditorHeight -= 1 : Document2.EditorTop += 1
+                        If Document1.Visible Then Document1.EditorTop += 1 ' If shrink, move Document1 down.
                         m_help.EditorHeight += 1
                       ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then ' Shrink Immediate?
                         m_immediate.EditorTop += 1
                         m_immediate.EditorHeight -= 1
-                        If m_document1.Visible Then m_document1.EditorTop += 1 ' If shrink, move Document1 down.
-                        If m_document2.Visible Then m_document2.EditorTop += 1 ' If shrink, move Document2 down.
+                        If Document1.Visible Then Document1.EditorTop += 1 ' If shrink, move Document1 down.
+                        If Document2.Visible Then Document2.EditorTop += 1 ' If shrink, move Document2 down.
                         m_help.EditorHeight += 1
                       End If
-                    ElseIf m_document1.Visible AndAlso m_document1.Focused AndAlso m_document1.EditorHeight < max Then
-                      If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
-                        m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
-                        m_document1.EditorHeight += 1
+                    ElseIf Document1.Visible AndAlso Document1.Focused AndAlso Document1.EditorHeight < max Then
+                      If Document2.Visible AndAlso Document2.EditorHeight > 2 Then
+                        Document2.EditorTop += 1 : Document2.EditorHeight -= 1
+                        Document1.EditorHeight += 1
                       ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
                         m_help.EditorHeight -= 1
-                        m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
+                        Document1.EditorTop -= 1 : Document1.EditorHeight += 1
                       ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
                         m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                        m_document1.EditorHeight += 1
+                        Document1.EditorHeight += 1
                       End If
-                    ElseIf m_document2.Visible AndAlso m_document2.Focused AndAlso m_document2.EditorHeight < max Then
-                      If m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
-                        m_document1.EditorHeight -= 1
-                        m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                    ElseIf Document2.Visible AndAlso Document2.Focused AndAlso Document2.EditorHeight < max Then
+                      If Document1.Visible AndAlso Document1.EditorHeight > 2 Then
+                        Document1.EditorHeight -= 1
+                        Document2.EditorTop -= 1 : Document2.EditorHeight += 1
                       ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
                         m_help.EditorHeight -= 1
-                        If m_document1.Visible Then m_document1.EditorTop -= 1
-                        m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                        If Document1.Visible Then Document1.EditorTop -= 1
+                        Document2.EditorTop -= 1 : Document2.EditorHeight += 1
                       ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight > 2 Then
                         m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                        m_document2.EditorHeight += 1
+                        Document2.EditorHeight += 1
                       End If
                     ElseIf m_immediate.Visible AndAlso m_immediate.Focused AndAlso m_immediate.EditorHeight < 12 Then
-                      If m_document2.Visible AndAlso m_document2.EditorHeight > 2 Then
-                        m_document2.EditorHeight -= 1
+                      If Document2.Visible AndAlso Document2.EditorHeight > 2 Then
+                        Document2.EditorHeight -= 1
                         m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
-                      ElseIf m_document1.Visible AndAlso m_document1.EditorHeight > 2 Then
-                        m_document1.EditorHeight -= 1
-                        If m_document2.Visible Then m_document2.EditorTop -= 1
+                      ElseIf Document1.Visible AndAlso Document1.EditorHeight > 2 Then
+                        Document1.EditorHeight -= 1
+                        If Document2.Visible Then Document2.EditorTop -= 1
                         m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
                       ElseIf m_help.Visible AndAlso m_help.EditorHeight > 2 Then
                         m_help.EditorHeight -= 1
-                        If m_document1.Visible Then m_document1.EditorTop -= 1
-                        If m_document2.Visible Then m_document2.EditorTop -= 1
+                        If Document1.Visible Then Document1.EditorTop -= 1
+                        If Document2.Visible Then Document2.EditorTop -= 1
                         m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
                       End If
                     End If
@@ -550,32 +550,32 @@ Tip: These topics are also available from the Help menu.
                     Menu.AltPressed = False
                     If m_help.Focused AndAlso m_help.EditorHeight > 2 Then
                       m_help.EditorHeight -= 1
-                      m_document1.EditorTop -= 1 : m_document1.EditorHeight += 1
-                    ElseIf m_document1.Focused AndAlso m_document1.EditorHeight > 2 Then
+                      Document1.EditorTop -= 1 : Document1.EditorHeight += 1
+                    ElseIf Document1.Focused AndAlso Document1.EditorHeight > 2 Then
                       If m_help.Visible Then
                         m_help.EditorHeight += 1
-                        m_document1.EditorTop += 1 : m_document1.EditorHeight -= 1
-                      ElseIf m_document2.Visible Then
-                        m_document1.EditorHeight -= 1
-                        m_document2.EditorTop -= 1 : m_document2.EditorHeight += 1
+                        Document1.EditorTop += 1 : Document1.EditorHeight -= 1
+                      ElseIf Document2.Visible Then
+                        Document1.EditorHeight -= 1
+                        Document2.EditorTop -= 1 : Document2.EditorHeight += 1
                       ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
-                        m_document1.EditorHeight -= 1
+                        Document1.EditorHeight -= 1
                         m_immediate.EditorTop -= 1 : m_immediate.EditorHeight += 1
                       End If
-                    ElseIf m_document2.Focused AndAlso m_document2.EditorHeight > 2 Then
-                      If m_document1.Visible Then
-                        m_document1.EditorHeight += 1
-                        m_document2.EditorTop += 1 : m_document2.EditorHeight -= 1
+                    ElseIf Document2.Focused AndAlso Document2.EditorHeight > 2 Then
+                      If Document1.Visible Then
+                        Document1.EditorHeight += 1
+                        Document2.EditorTop += 1 : Document2.EditorHeight -= 1
                       ElseIf m_immediate.Visible AndAlso m_immediate.EditorHeight < 12 Then
-                        m_document2.EditorHeight -= 1
+                        Document2.EditorHeight -= 1
                         m_immediate.EditorTop += 1 : m_immediate.EditorHeight += 1
                       End If
                     ElseIf m_immediate.Focused AndAlso m_immediate.EditorHeight > 2 Then
-                      If m_document2.Visible Then
-                        m_document2.EditorHeight += 1
+                      If Document2.Visible Then
+                        Document2.EditorHeight += 1
                         m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
-                      ElseIf m_document1.Visible Then
-                        m_document1.EditorHeight += 1
+                      ElseIf Document1.Visible Then
+                        Document1.EditorHeight += 1
                         m_immediate.EditorTop += 1 : m_immediate.EditorHeight -= 1
                       ElseIf m_help.Visible Then
                         m_help.EditorHeight += 1
@@ -615,8 +615,8 @@ Tip: These topics are also available from the Help menu.
                     RestartAction()
                     handled = True
                   Case ConsoleKey.F6 ' Make the next window the active window
-                    If m_document1.Focused Then
-                      If m_document2.Visible Then
+                    If Document1.Focused Then
+                      If Document2.Visible Then
                         FocusDocument2()
                       ElseIf m_immediate.Visible Then
                         FocusImmediate()
@@ -625,12 +625,12 @@ Tip: These topics are also available from the Help menu.
                       Else
                         FocusDocument1()
                       End If
-                    ElseIf m_document2.Visible AndAlso m_document2.Focused Then
+                    ElseIf Document2.Visible AndAlso Document2.Focused Then
                       If m_immediate.Visible Then
                         FocusImmediate()
                       ElseIf m_help.Visible Then
                         FocusHelp()
-                      ElseIf m_document1.Visible Then
+                      ElseIf Document1.Visible Then
                         FocusDocument1()
                       Else
                         FocusDocument2()
@@ -638,17 +638,17 @@ Tip: These topics are also available from the Help menu.
                     ElseIf m_immediate.Visible AndAlso m_immediate.Focused Then
                       If m_help.Visible Then
                         FocusHelp()
-                      ElseIf m_document1.Visible Then
+                      ElseIf Document1.Visible Then
                         FocusDocument1()
-                      ElseIf m_document2.Visible Then
+                      ElseIf Document2.Visible Then
                         FocusDocument2()
                       Else
                         FocusImmediate()
                       End If
                     ElseIf m_help.Visible AndAlso m_help.Focused Then
-                      If m_document1.Visible Then
+                      If Document1.Visible Then
                         FocusDocument1()
-                      ElseIf m_document2.Visible Then
+                      ElseIf Document2.Visible Then
                         FocusDocument2()
                       ElseIf m_immediate.Visible Then
                         FocusImmediate()
@@ -680,10 +680,10 @@ Tip: These topics are also available from the Help menu.
           If cursorVisible Then
             If m_help.Focused Then
               cursorVisible = m_help.EditorHeight > 2
-            ElseIf m_document1.Focused Then
-              cursorVisible = m_document1.EditorHeight > 2
-            ElseIf m_document2.Focused Then
-              cursorVisible = m_document2.EditorHeight > 2
+            ElseIf Document1.Focused Then
+              cursorVisible = Document1.EditorHeight > 2
+            ElseIf Document2.Focused Then
+              cursorVisible = Document2.EditorHeight > 2
             ElseIf m_immediate.Focused Then
               cursorVisible = m_immediate.EditorHeight > 2
             Else
@@ -695,12 +695,12 @@ Tip: These topics are also available from the Help menu.
               If Not m_help.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift) Then
                 HideHelp()
               End If
-            ElseIf m_document1.Focused Then
-              m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
-            ElseIf m_document2.Focused Then
-              m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+            ElseIf Document1.Focused Then
+              Document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+            ElseIf Document2.Focused Then
+              Document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
             ElseIf m_immediate.Focused Then
-              m_document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+              Document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
             Else
             End If
           End If
@@ -778,12 +778,12 @@ Tip: These topics are also available from the Help menu.
           ElseIf m_help.Focused Then
             cc = m_help.CursorCol
             cr = m_help.CursorRow
-          ElseIf m_document1.Focused Then
-            cc = m_document1.CursorCol
-            cr = m_document1.CursorRow
-          ElseIf m_document2.Focused Then
-            cc = m_document2.CursorCol
-            cr = m_document2.CursorRow
+          ElseIf Document1.Focused Then
+            cc = Document1.CursorCol
+            cr = Document1.CursorRow
+          ElseIf Document2.Focused Then
+            cc = Document2.CursorCol
+            cr = Document2.CursorRow
           ElseIf m_immediate.Focused Then
             cc = m_immediate.CursorCol
             cr = m_immediate.CursorRow
@@ -856,27 +856,27 @@ Tip: These topics are also available from the Help menu.
   Private Sub ShowHelp()
     m_help.EditorTop = 2 : m_help.EditorHeight = 21
     Dim row = 22
-    If m_document1.Visible Then
-      m_document1.EditorTop = row
-      If m_document2.Visible Then
+    If Document1.Visible Then
+      Document1.EditorTop = row
+      If Document2.Visible Then
         If m_immediate.Visible Then
-          m_document2.EditorTop = 23
+          Document2.EditorTop = 23
           m_immediate.EditorTop = 24
-          m_document2.EditorHeight = 2
-          m_document1.EditorHeight = 2
+          Document2.EditorHeight = 2
+          Document1.EditorHeight = 2
           m_immediate.EditorHeight = 2
         Else
-          m_document2.EditorTop = 24
-          m_document2.EditorHeight = 2
-          m_document1.EditorHeight = 3
+          Document2.EditorTop = 24
+          Document2.EditorHeight = 2
+          Document1.EditorHeight = 3
         End If
       Else
         If m_immediate.Visible Then
           m_immediate.EditorTop = 24
-          m_document1.EditorHeight = 3
+          Document1.EditorHeight = 3
           m_immediate.EditorHeight = 2
         Else
-          m_document1.EditorHeight = 4
+          Document1.EditorHeight = 4
         End If
       End If
     End If
@@ -885,9 +885,9 @@ Tip: These topics are also available from the Help menu.
 
   Private Sub HideHelp()
     m_help.Visible = False
-    Dim h = (m_document1.EditorTop - 1) + m_document1.EditorHeight
-    m_document1.EditorTop = 2
-    m_document1.EditorHeight = h
+    Dim h = (Document1.EditorTop - 1) + Document1.EditorHeight
+    Document1.EditorTop = 2
+    Document1.EditorHeight = h
     FocusDocument1()
   End Sub
 
@@ -895,31 +895,31 @@ Tip: These topics are also available from the Help menu.
     m_help.Focused = False
     m_help.ScrollBars = False
     m_immediate.Focused = False
-    m_document2.Focused = False
-    m_document2.ScrollBars = False
-    m_document1.Focused = True
-    m_document1.ScrollBars = True
-    m_cursorRow = m_document1.EditorTop + 1
-    m_cursorCol = m_document1.EditorLeft + 1
+    Document2.Focused = False
+    Document2.ScrollBars = False
+    Document1.Focused = True
+    Document1.ScrollBars = True
+    m_cursorRow = Document1.EditorTop + 1
+    m_cursorCol = Document1.EditorLeft + 1
   End Sub
 
   Private Sub FocusDocument2()
     m_help.Focused = False
     m_help.ScrollBars = False
     m_immediate.Focused = False
-    m_document1.Focused = False
-    m_document1.ScrollBars = False
-    m_document2.Focused = True
-    m_document2.ScrollBars = True
-    m_cursorRow = m_document2.EditorTop + 1
-    m_cursorCol = m_document2.EditorLeft + 1
+    Document1.Focused = False
+    Document1.ScrollBars = False
+    Document2.Focused = True
+    Document2.ScrollBars = True
+    m_cursorRow = Document2.EditorTop + 1
+    m_cursorCol = Document2.EditorLeft + 1
   End Sub
 
   Private Sub FocusHelp()
-    m_document1.Focused = False
-    m_document1.ScrollBars = False
-    m_document2.Focused = False
-    m_document2.ScrollBars = False
+    Document1.Focused = False
+    Document1.ScrollBars = False
+    Document2.Focused = False
+    Document2.ScrollBars = False
     m_immediate.Focused = False
     m_help.Focused = True
     m_help.ScrollBars = True
@@ -930,10 +930,10 @@ Tip: These topics are also available from the Help menu.
   Private Sub FocusImmediate()
     m_help.Focused = False
     m_help.ScrollBars = False
-    m_document1.Focused = False
-    m_document1.ScrollBars = False
-    m_document2.Focused = False
-    m_document2.ScrollBars = False
+    Document1.Focused = False
+    Document1.ScrollBars = False
+    Document2.Focused = False
+    Document2.ScrollBars = False
     m_immediate.Focused = True
     m_cursorRow = m_immediate.EditorTop + 1
     m_cursorCol = m_immediate.Col + 1
@@ -1082,7 +1082,7 @@ Tip: These topics are also available from the Help menu.
 #Region "Actions"
 
   Private Async Function NewActionAsync() As Task
-    If m_document1.Changed Then
+    If Document1.Changed Then
       m_selected = 0
       Do
         m_context = New SavePrompt(m_selected)
@@ -1115,8 +1115,8 @@ since it last changed. Either:
         End Select
       Loop
     End If
-    m_document1.Clear()
-    m_document2.Clear()
+    Document1.Clear()
+    Document2.Clear()
     DrawScreen()
   End Function
 
@@ -1125,16 +1125,16 @@ since it last changed. Either:
   End Sub
 
   Private Sub SaveAction()
-    If m_document1.Title = "Untitled" Then
+    If Document1.Title = "Untitled" Then
       SaveAsAction()
     Else
-      System.IO.File.WriteAllText(m_path, m_document1.Text)
-      m_document1.Changed = False
+      System.IO.File.WriteAllText(m_path, Document1.Text)
+      Document1.Changed = False
     End If
   End Sub
 
   Private Sub SaveAsAction()
-    m_context = New SaveAsDialog(m_pathspec, If(m_document1.Title <> "Untitled", m_document1.Title, "*.BAS"))
+    m_context = New SaveAsDialog(m_pathspec, If(Document1.Title <> "Untitled", Document1.Title, "*.BAS"))
   End Sub
 
   Private Sub PrintAction()
@@ -1142,7 +1142,7 @@ since it last changed. Either:
   End Sub
 
   Private Async Function ExitActionAsync() As Task
-    If m_document1.Changed Then
+    If Document1.Changed Then
       m_selected = 0
       Do
         m_context = New SavePrompt(m_selected)
@@ -1179,19 +1179,27 @@ since it last changed. Either:
   End Function
 
   Private Sub CutAction()
-    m_context = New MessageDialog("Not implemented.")
+    If Document1.CanCutSelection Then
+      Document1.CutSelection()
+    End If
   End Sub
 
   Private Sub CopyAction()
-    m_context = New MessageDialog("Not implemented.")
+    If Document1.CanCopySelection Then
+      Document1.CopySelection()
+    End If
   End Sub
 
   Private Sub PasteAction()
-    m_context = New MessageDialog("Not implemented.")
+    If Document1.CanPaste Then
+      Document1.Paste()
+    End If
   End Sub
 
   Private Sub ClearAction()
-    m_context = New MessageDialog("Not implemented.")
+    If Document1.CanDeleteSelection Then
+      Document1.DeleteSelection()
+    End If
   End Sub
 
   Private Sub NewSubAction()
@@ -1347,19 +1355,19 @@ To get help on a QBasic keyword in the list below:
 
   Private Sub ContinueAction()
     Interpreter.Reset()
-    Interpreter.Source = m_document1.Text
+    Interpreter.Source = Document1.Text
     Interpreter.Run()
   End Sub
 
   Private Sub RestartAction()
     Interpreter.Reset()
-    Interpreter.Source = m_document1.Text
+    Interpreter.Source = Document1.Text
     Interpreter.Run()
   End Sub
 
   Private Sub StartAction()
     Interpreter.Reset()
-    Interpreter.Source = m_document1.Text
+    Interpreter.Source = Document1.Text
     Interpreter.Run()
   End Sub
 
@@ -1380,22 +1388,22 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub SplitAction()
-    Dim visible = m_document2.Visible
+    Dim visible = Document2.Visible
     If visible Then
-      m_document2.Visible = False
-      m_document1.EditorHeight += m_document2.EditorHeight - 1 '21
-      If Not m_document1.Focused AndAlso Not m_immediate.Focused Then
+      Document2.Visible = False
+      Document1.EditorHeight += Document2.EditorHeight - 1 '21
+      If Not Document1.Focused AndAlso Not m_immediate.Focused Then
         FocusDocument1()
       End If
     Else
-      Dim h = m_document1.EditorHeight - 1
+      Dim h = Document1.EditorHeight - 1
       Dim h2 = h \ 2
       Dim h1 = h - h2
-      m_document1.EditorHeight = h1 + 1
-      m_document2.EditorTop = 2 + h1
-      m_document2.EditorHeight = h2 + 1
-      m_document2.ScrollBars = False
-      m_document2.Visible = True
+      Document1.EditorHeight = h1 + 1
+      Document2.EditorTop = 2 + h1
+      Document2.EditorHeight = h2 + 1
+      Document2.ScrollBars = False
+      Document2.Visible = True
     End If
   End Sub
 
@@ -1427,12 +1435,12 @@ To get help on a QBasic keyword in the list below:
       m_help.Visible = m_help_visible
       m_help.EditorTop = m_help_top
       m_help.EditorHeight = m_help_height
-      m_document1.Visible = m_document1_visible
-      m_document1.EditorTop = m_document1_top
-      m_document1.EditorHeight = m_document1_height
-      m_document2.Visible = m_document2_visible
-      m_document2.EditorTop = m_document2_top
-      m_document2.EditorHeight = m_document2_height
+      Document1.Visible = m_document1_visible
+      Document1.EditorTop = m_document1_top
+      Document1.EditorHeight = m_document1_height
+      Document2.Visible = m_document2_visible
+      Document2.EditorTop = m_document2_top
+      Document2.EditorHeight = m_document2_height
       m_immediate.Visible = m_immediate_visible
       m_immediate.EditorTop = m_immediate_top
       m_immediate.EditorHeight = m_immediate_height
@@ -1441,34 +1449,34 @@ To get help on a QBasic keyword in the list below:
       m_help_visible = m_help.Visible
       m_help_top = m_help.EditorTop
       m_help_height = m_help.EditorHeight
-      m_document1_visible = m_document1.Visible
-      m_document1_top = m_document1.EditorTop
-      m_document1_height = m_document1.EditorHeight
-      m_document2_visible = m_document2.Visible
-      m_document2_top = m_document2.EditorTop
-      m_document2_height = m_document2.EditorHeight
+      m_document1_visible = Document1.Visible
+      m_document1_top = Document1.EditorTop
+      m_document1_height = Document1.EditorHeight
+      m_document2_visible = Document2.Visible
+      m_document2_top = Document2.EditorTop
+      m_document2_height = Document2.EditorHeight
       m_immediate_visible = m_immediate.Visible
       m_immediate_top = m_immediate.EditorTop
       m_immediate_height = m_immediate.EditorHeight
       If m_help.Focused Then
         m_help.EditorTop = 2
         m_help.EditorHeight = 24
-        m_document1.Visible = False
-        m_document2.Visible = False
+        Document1.Visible = False
+        Document2.Visible = False
         m_immediate.Visible = False
         m_windowFocused = True
-      ElseIf m_document1.Focused Then
+      ElseIf Document1.Focused Then
         m_help.Visible = False
-        m_document1.EditorTop = 2
-        m_document1.EditorHeight = 24
-        m_document2.Visible = False
+        Document1.EditorTop = 2
+        Document1.EditorHeight = 24
+        Document2.Visible = False
         m_immediate.Visible = False
         m_windowFocused = True
-      ElseIf m_document2.Focused Then
+      ElseIf Document2.Focused Then
         m_help.Visible = False
-        m_document1.Visible = False
-        m_document2.EditorTop = 2
-        m_document2.EditorHeight = 24
+        Document1.Visible = False
+        Document2.EditorTop = 2
+        Document2.EditorHeight = 24
         m_immediate.Visible = False
         m_windowFocused = True
       Else
@@ -1480,6 +1488,13 @@ To get help on a QBasic keyword in the list below:
         'm_immediate.EditorHeight = 24
       End If
     End If
+  End Sub
+
+  Private Sub Document1_SelectionChanged() Handles Document1.SelectionChanged
+    Menu.Items(1).Items(0).Enabled = Document1.CanCutSelection ' Cut
+    Menu.Items(1).Items(1).Enabled = Document1.CanCopySelection ' Copy
+    Menu.Items(1).Items(2).Enabled = Document1.CanPaste ' Paste
+    Menu.Items(1).Items(3).Enabled = Document1.CanDeleteSelection ' Clear
   End Sub
 
 #End Region

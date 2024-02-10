@@ -1,12 +1,12 @@
-﻿Imports System.Reflection.Metadata
-Imports System.Threading
-Imports Basic.Input
+﻿Imports Basic.Input
 Imports QB.Video
 Imports VbPixelGameEngine
 
 Public Class DocumentPanel
   Inherits PgeX
   Implements IContext
+
+  Public Event SelectionChanged()
 
   Public Class Location
     Public Sub New()
@@ -66,6 +66,32 @@ Public Class DocumentPanel
   Public Property Changed As Boolean
 
   Private ReadOnly m_document As New List(Of String)
+
+  Private ReadOnly m_copyBuffer As New List(Of String)
+
+  Public ReadOnly Property CanCutSelection As Boolean
+    Get
+      Return BlockTopLeft IsNot Nothing
+    End Get
+  End Property
+
+  Public ReadOnly Property CanCopySelection As Boolean
+    Get
+      Return BlockTopLeft IsNot Nothing
+    End Get
+  End Property
+
+  Public ReadOnly Property CanDeleteSelection As Boolean
+    Get
+      Return BlockTopLeft IsNot Nothing
+    End Get
+  End Property
+
+  Public ReadOnly Property CanPaste As Boolean
+    Get
+      Return m_copyBuffer.Count > 0
+    End Get
+  End Property
 
   Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
     Get
@@ -238,7 +264,7 @@ Public Class DocumentPanel
             Case ConsoleKey.D : CursorRightAction(shift) ' Cursor right (WordStar)
             Case ConsoleKey.E : CursorUpAction(shift) ' Cursor up (WordStar)
             Case ConsoleKey.F : WordRightAction(shift) ' Word Right (WordStar)
-            Case ConsoleKey.G ' Delete selected text / Delete one character at the cursor (WordStar)
+            Case ConsoleKey.G : DeleteAction(False) ' Delete selected text / Delete one character at the cursor (WordStar)
             Case ConsoleKey.H : BackspaceAction() ' Delete one character to the left of the cursor (WordStar)
             Case ConsoleKey.J : CursorNextLineAction(shift) ' Cursor to beginning of next line (WordStar)
             Case ConsoleKey.K '...
@@ -251,12 +277,12 @@ Public Class DocumentPanel
               'm_isQ = True
             Case ConsoleKey.R : CursorPageUpAction(shift) ' Page up (WordStar)
             Case ConsoleKey.S : CursorLeftAction(shift) ' Cursor left (WordStar)
-            Case ConsoleKey.T ' Delete the rest of the word the cursor is on (WordStar)
-            Case ConsoleKey.V ' Switch between insert and overstrike modes (WordStar)
+            Case ConsoleKey.T : DeleteRestOfWordAction() ' Delete the rest of the word the cursor is on (WordStar)
+            Case ConsoleKey.V : InsertAction(False) ' Switch between insert and overstrike modes (WordStar)
             Case ConsoleKey.X : CursorDownAction(shift) ' Cursor dn (WordStar)
-            Case ConsoleKey.Y : CutCurrentLine() ' Cut current line
+            Case ConsoleKey.Y : CutCurrentLineAction() ' Cut current line
             Case ConsoleKey.Enter : CursorNextLineAction(shift) ' Cursor to beginning of next line (skipping spaces)
-            Case ConsoleKey.Insert ' Copy to Clipboard
+            Case ConsoleKey.Insert : CopyAction() ' Copy to Clipboard
             Case ConsoleKey.LeftArrow : WordLeftAction(shift) ' Word Left
             Case ConsoleKey.RightArrow : WordRightAction(shift) ' Word Right
             Case ConsoleKey.UpArrow, ConsoleKey.W : ScrollUpAction(shift) ' Scroll up, Scroll up (WordStar)
@@ -278,6 +304,7 @@ Public Class DocumentPanel
                  ConsoleKey.Oem1, ConsoleKey.Oem2, ConsoleKey.Oem3, ConsoleKey.Oem4, ConsoleKey.Oem5, ConsoleKey.Oem6, ConsoleKey.Oem7,
                  ConsoleKey.OemPlus, ConsoleKey.OemMinus,
                  ConsoleKey.OemComma, ConsoleKey.OemPeriod
+              If BlockTopLeft IsNot Nothing Then RemoveBlock() 'False)
               If Insert Then
                 If CurrentColumn <= m_document(CurrentLine - 1).Length Then
                   Dim leftSide = If(CurrentColumn > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
@@ -328,12 +355,77 @@ Public Class DocumentPanel
     m_document.Add("")
     CurrentLine = 1
     CurrentColumn = 1
-    ClearBlock()
+    ClearSelection()
   End Sub
 
-  Private Sub ClearBlock()
+  Public Sub CopySelection()
+    CopyAction()
+  End Sub
+
+  Public Sub Paste()
+    InsertAction(True)
+  End Sub
+
+  Public Sub CutSelection()
+    DeleteAction(False)
+  End Sub
+
+  Public Sub DeleteSelection()
+    DeleteAction(False)
+  End Sub
+
+  Public Sub ClearSelection()
     BlockTopLeft = Nothing
     BlockBottomRight = Nothing
+    RaiseEvent SelectionChanged()
+  End Sub
+
+  Private Sub CopyBlock()
+    If BlockTopLeft IsNot Nothing Then
+      Dim tr = BlockTopLeft.Row
+      Dim lc = BlockTopLeft.Column
+      Dim br = BlockBottomRight.Row
+      Dim rc = BlockBottomRight.Column
+      m_copyBuffer.Clear()
+      If br - tr = 0 Then
+        If lc = 1 AndAlso rc = 32768 Then
+          m_copyBuffer.Add(m_document(tr - 1) & vbLf)
+        Else
+          Dim middle = m_document(tr - 1).Substring(lc - 1, rc - lc + 1)
+          m_copyBuffer.Add(middle)
+        End If
+      Else
+        For r = tr To br
+          m_copyBuffer.Add(m_document(r - 1) & vbLf)
+        Next
+      End If
+      RaiseEvent SelectionChanged()
+    End If
+  End Sub
+
+  Private Sub RemoveBlock()
+    If BlockTopLeft IsNot Nothing Then
+      Dim tr = BlockTopLeft.Row
+      Dim lc = BlockTopLeft.Column
+      Dim br = BlockBottomRight.Row
+      Dim rc = BlockBottomRight.Column
+      If br - tr = 0 Then
+        If lc = 1 AndAlso rc = 32768 Then
+          m_document.RemoveAt(tr - 1)
+        Else
+          Dim leftSide = If(lc > 0, m_document(tr - 1).Substring(0, lc - 1), "")
+          Dim middle = m_document(tr - 1).Substring(lc - 1, rc - lc + 1)
+          Dim rightSide = If(rc < m_document(tr - 1).Length, m_document(tr - 1).Substring(rc), "")
+          m_document(tr - 1) = leftSide & rightSide
+          CurrentColumn = lc : CursorLeft()
+        End If
+      Else
+        m_document.RemoveRange(tr - 1, br - tr + 1)
+        CurrentLine = tr : CursorUp()
+      End If
+      Changed = True
+      ClearSelection()
+    End If
   End Sub
 
   Private Sub HandleSelection(curRow As Integer, curCol As Integer, newRow As Integer, newCol As Integer)
@@ -485,6 +577,8 @@ Public Class DocumentPanel
 
     End If
 
+    RaiseEvent SelectionChanged()
+
   End Sub
 
 #Region "Actions"
@@ -507,7 +601,7 @@ Public Class DocumentPanel
       End If
       CurrentColumn -= 1
     End If
-    ClearBlock()
+    ClearSelection()
   End Sub
 
 #Region "Cursor Movement and Block Selection"
@@ -529,7 +623,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -550,7 +644,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -567,7 +661,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -583,7 +677,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -598,7 +692,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -608,7 +702,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -618,7 +712,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -628,7 +722,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -638,7 +732,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -704,8 +798,9 @@ Public Class DocumentPanel
           If CurrentColumn < BlockTopLeft.Column Then BlockTopLeft.Column = CurrentColumn
         End If
       End If
+      RaiseEvent SelectionChanged()
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -784,8 +879,9 @@ Public Class DocumentPanel
           If CurrentColumn > BlockBottomRight.Column Then BlockBottomRight.Column = CurrentColumn - 1
         End If
       End If
+      RaiseEvent SelectionChanged()
     Else
-      ClearBlock()
+      ClearSelection()
       CurrentLine = r : CursorDown()
       CurrentColumn = c + 1 : CursorRight()
     End If
@@ -799,7 +895,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -810,32 +906,14 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
 #End Region
 
-  Private Sub DeleteAction(shift As Boolean)
-    If shift Then
-      Stop
-    Else
-      If CurrentColumn > m_document(CurrentLine - 1).Length Then
-        If CurrentLine < m_document.Count Then
-          m_document(CurrentLine - 1) = m_document(CurrentLine - 1) + LTrim(m_document(CurrentLine))
-          m_document.RemoveAt(CurrentLine)
-          Changed = True
-        End If
-      Else
-        m_document(CurrentLine - 1) = Left(m_document(CurrentLine - 1), CurrentColumn - 1) + Mid(m_document(CurrentLine - 1), CurrentColumn + 1)
-        Changed = True
-      End If
-      ClearBlock()
-    End If
-  End Sub
-
   Private Sub EscapeAction()
-    ClearBlock()
+    ClearSelection()
   End Sub
 
   Private Sub EnterAction()
@@ -852,13 +930,95 @@ Public Class DocumentPanel
     Changed = True
   End Sub
 
-  Private Sub CutCurrentLine()
+  Private Sub CutCurrentLineAction()
+    ClearSelection()
+    If CurrentLine < m_document.Count Then
+      'TODO: The original would "mark" the line before doing the following.
+      '      Not sure if I want to recreate this as don't know if this was
+      '      done on purpose or as part of a more generic cut routine...
+      '      thus a visual artifact of the approach.
+      m_copyBuffer.Clear()
+      m_copyBuffer.Add(m_document(CurrentLine - 1) & vbLf)
+      m_document.RemoveAt(CurrentLine - 1)
+      Changed = True
+      RaiseEvent SelectionChanged()
+    End If
+  End Sub
 
+  Private Sub CopyAction()
+    CopyBlock()
+  End Sub
+
+  Private Sub DeleteAction(shift As Boolean)
+    If shift AndAlso BlockTopLeft IsNot Nothing Then
+      CopyBlock()
+      RemoveBlock() 'True)
+    Else
+      If BlockTopLeft IsNot Nothing Then
+        RemoveBlock() 'False)
+      Else
+        If CurrentColumn > m_document(CurrentLine - 1).Length Then
+          If CurrentLine < m_document.Count Then
+            m_document(CurrentLine - 1) = m_document(CurrentLine - 1) + LTrim(m_document(CurrentLine))
+            m_document.RemoveAt(CurrentLine)
+            Changed = True
+          End If
+        Else
+          m_document(CurrentLine - 1) = Left(m_document(CurrentLine - 1), CurrentColumn - 1) + Mid(m_document(CurrentLine - 1), CurrentColumn + 1)
+          Changed = True
+        End If
+        ClearSelection()
+      End If
+    End If
+  End Sub
+
+  Private Sub DeleteRestOfWordAction()
+    If CurrentLine > m_document.Count Then Return
+    If CurrentColumn > m_document(CurrentLine - 1).Length Then
+      If CurrentLine = m_document.Count Then Return
+      m_document(CurrentLine - 1) &= m_document(CurrentLine)
+      m_document.RemoveAt(CurrentLine)
+    Else
+      Dim ch = m_document(CurrentLine - 1)(CurrentColumn - 1)
+      Dim spc = ch = " "c
+      Dim c = CurrentColumn + 1
+      Do
+        If c > m_document(CurrentLine - 1).Length Then c -= 1 : Exit Do
+        If (spc AndAlso m_document(CurrentLine - 1)(c - 1) <> " "c) OrElse
+           (Not spc AndAlso m_document(CurrentLine - 1)(c - 1) = " "c) Then
+          c -= 1 : Exit Do
+        Else
+          c += 1
+        End If
+      Loop
+      Dim leftSide = If(CurrentColumn - 1 > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
+      Dim rightSide = If(c < m_document(CurrentLine - 1).Length, m_document(CurrentLine - 1).Substring(c), "")
+      m_document(CurrentLine - 1) = leftSide & rightSide
+    End If
+    Changed = True
+    ClearSelection()
   End Sub
 
   Friend Sub InsertAction(shift As Boolean)
     If shift Then
-      Stop
+      If m_copyBuffer.Count > 0 Then
+        If BlockTopLeft IsNot Nothing Then RemoveBlock() 'False)
+        Dim r = CurrentLine
+        Dim c = CurrentColumn
+        If m_copyBuffer(0).EndsWith(vbLf) Then
+          ' insert the line(s) above (removing the vbLf from the end)
+          For index = m_copyBuffer.Count - 1 To 0 Step -1
+            m_document.Insert(r - 1, m_copyBuffer(index).Substring(0, m_copyBuffer(index).Length - 1))
+          Next
+          Changed = True
+        Else
+          ' paste copy buffer at cursor location.
+          Dim leftSide = If(c > 0, m_document(r - 1).Substring(0, c - 1), "")
+          Dim rightSide = If(c < m_document(r - 1).Length, m_document(r - 1).Substring(c - 1), "")
+          m_document(r - 1) = leftSide & m_copyBuffer(0) & rightSide
+          Changed = True
+        End If
+      End If
     Else
       ToggleInsertMode()
     End If
@@ -877,19 +1037,19 @@ Public Class DocumentPanel
     '---- Pretty much identical to Enter (in insert mode), but don't move the cursor... 
     'CurLine += 1 : CurCol = 1
     Changed = True
-    ClearBlock()
+    ClearSelection()
   End Sub
 
   Private Sub ScrollDownAction(shift As Boolean)
     If CurrentLine < m_document.Count Then TopTextLine += 1
     If CurrentLine < TopTextLine Then CurrentLine = TopTextLine
-    If Not shift Then ClearBlock()
+    If Not shift Then ClearSelection()
   End Sub
 
   Private Sub ScrollUpAction(shift As Boolean)
     If TopTextLine > 1 Then TopTextLine -= 1
     If CurrentLine > (TopTextLine - 1) + TextRows - 1 Then CurrentLine = (TopTextLine - 1) + TextRows - 1
-    If Not shift Then ClearBlock()
+    If Not shift Then ClearSelection()
   End Sub
 
   Private Sub ScrollWindowLeftAction(shift As Boolean)
@@ -901,7 +1061,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -915,7 +1075,7 @@ Public Class DocumentPanel
     If shift Then
       HandleSelection(prevLine, prevColumn, CurrentLine, CurrentColumn)
     Else
-      ClearBlock()
+      ClearSelection()
     End If
   End Sub
 
@@ -953,6 +1113,7 @@ Public Class DocumentPanel
           End If
         Next
       Else
+        ClearSelection()
         If CurrentColumn <= m_document(CurrentLine - 1).Length Then
           Dim leftSide = If(CurrentColumn > 0, m_document(CurrentLine - 1).Substring(0, CurrentColumn - 1), "")
           Dim rightSide = If(CurrentColumn <= m_document(CurrentLine - 1).Length, m_document(CurrentLine - 1).Substring(CurrentColumn - 1), "")

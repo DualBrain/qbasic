@@ -14,13 +14,13 @@
     End Get
   End Property
 
-  Private WithEvents SubsHorizontalListBox As New HorizontalListBoxControl(Me)
+  Private WithEvents SubsHorizontalListBox As New HorizontalListboxControl(Me, 20)
   Private WithEvents EditInActiveButton As New ButtonControl(Me)
   Private WithEvents DeleteButton As New ButtonControl(Me)
   Private WithEvents CancelButton As New ButtonControl(Me)
   Private WithEvents HelpButton As New ButtonControl(Me)
 
-  Sub New()
+  Sub New(name As String, subs As List(Of String))
     MyBase.New("SUBs", New Location(3, 4), New Size(18, 74))
 
     AcceptAction = DialogResult.Ok
@@ -66,7 +66,11 @@
     HelpButton.TabOrder = 4
     Controls.Add(HelpButton)
 
-    SubsHorizontalListBox.Items.Add("Untitled")
+    SubsHorizontalListBox.Items.Add(name)
+    'SubsHorizontalListBox.Items.AddRange(subs)
+    For Each entry In subs
+      SubsHorizontalListBox.Items.Add($"  {entry}")
+    Next
 
   End Sub
 

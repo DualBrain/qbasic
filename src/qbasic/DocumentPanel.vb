@@ -39,7 +39,7 @@ Public Class DocumentPanel
       Return result
     End Get
     Set(value As String)
-      m_document.Clear()
+      Clear()
       value = value.Replace(vbCrLf, vbLf)
       Dim lines = value.Split(vbLf)
       For Each line In lines
@@ -354,6 +354,8 @@ Public Class DocumentPanel
     Title = "Untitled"
     m_document.Clear()
     m_document.Add("")
+    TopTextLine = 1
+    LeftTextColumn = 1
     CurrentLine = 1
     CurrentColumn = 1
     ClearSelection()

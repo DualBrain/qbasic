@@ -180,12 +180,20 @@
 
   Friend Class IdentifierToken
     Inherits Token
+    Private m_value As String
     Public Property Value As String
+      Get
+        Return m_value.ToUpper
+      End Get
+      Set(value As String)
+        m_value = value
+      End Set
+    End Property
     Public Overrides Function ToString() As String
-      Return Value
+      Return m_value
     End Function
     Public Overrides Function Copy() As Token
-      Return New IdentifierToken With {.Value = Value}
+      Return New IdentifierToken With {.Value = m_value}
     End Function
   End Class
 

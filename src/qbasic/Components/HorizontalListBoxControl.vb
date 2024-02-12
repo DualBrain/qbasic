@@ -4,9 +4,11 @@
   Public Property Items As New List(Of String)
 
   Private m_visibleIndex As Integer = 0
-  Public Property SelectedIndex As Integer = -1
+  Public Property SelectedIndex As Integer = 0
 
   Public Event SelectedIndexChanged As EventHandler(Of EventArgs)
+
+  Private m_itemWidth As Integer = -1
 
   Public ReadOnly Property SelectedItem As String
     Get
@@ -18,9 +20,10 @@
     End Get
   End Property
 
-  Public Sub New(parent As Control)
+  Public Sub New(parent As Control, Optional width As Integer = 0)
     Me.Parent = parent
     CursorVisible = True
+    m_itemWidth = width
     Clear()
   End Sub
 
@@ -105,7 +108,7 @@
     Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(Foreground, Background))
     Dim index = 0
     Dim col = 0
-    Dim cOffset = 0
+    Dim cOffset = m_itemWidth
     For Each item In Items
       If item.Length > cOffset Then cOffset = item.Length
     Next
@@ -113,19 +116,20 @@
     Dim ulCol = left + 2
     Dim lrRow = top + Size.Rows - 1
     Dim lrCol = left + Size.Cols - 1
+    Dim h = lrRow - ulRow
     Do
       If ulCol + (col * (cOffset + 2)) > lrCol Then Exit Do
-      If (col * 8) + index > Items.Count - 1 Then Exit Do
+      If (col * h) + index > Items.Count - 1 Then Exit Do
       Dim item = ""
-      If (col * 8) + index + m_visibleIndex < Items.Count Then
-        item = $" {Items((col * 8) + index + m_visibleIndex).PadRight(cOffset)} "
+      If (col * h) + index + m_visibleIndex < Items.Count Then
+        item = $" {Items((col * h) + index + m_visibleIndex).PadRight(cOffset)} "
       End If
       If ulCol - 1 + (col * (cOffset + 2)) + item.Length > lrCol Then
         ' need to shorten...
         Dim max = lrCol - (ulCol - 1 + (col * (cOffset + 2)))
         item = item.Substring(0, max)
       End If
-      If (col * 8) + index = SelectedIndex - m_visibleIndex Then
+      If (col * h) + index = SelectedIndex - m_visibleIndex Then
         QPrintRC(item, ulRow + index, ulCol + (col * (cOffset + 2)) - 1, OneColor(Background, Foreground))
         m_cursorRow = ulRow + index
         m_cursorCol = ulCol + (col * (cOffset + 2))
@@ -133,7 +137,7 @@
         QPrintRC(item, ulRow + index, ulCol + (col * (cOffset + 2)) - 1, OneColor(Foreground, Background))
       End If
       index += 1
-      If index > 7 Then col += 1 : index = 0
+      If index > h - 1 Then col += 1 : index = 0
     Loop
 
     If SelectedIndex = -1 Then

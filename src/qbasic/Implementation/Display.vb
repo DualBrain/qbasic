@@ -7,7 +7,7 @@ Public Class Display
   'Private m_bitmap As WriteableBitmap
   Private m_invalidated As Boolean = True
 
-  Private m_debug As Boolean = False
+  Private ReadOnly m_debug As Boolean = False
 
   'Private m_cursorColor As Integer = ConvertToARGB32(Colors.Gray)
 
@@ -138,8 +138,8 @@ Public Class Display
 
   End Sub
 
-  Private Function ConvertToARGB32(ByVal color As Color) As Integer
-    Return (CInt(color.A) << 24) Or (CInt(color.R) << 16) Or (CInt(color.G) << 8) Or (CInt(color.B))
-  End Function
+  'Private Shared Function ConvertToARGB32(ByVal color As Color) As Integer
+  '  Return (CInt(color.A) << 24) Or (CInt(color.R) << 16) Or (CInt(color.G) << 8) Or (CInt(color.B))
+  'End Function
 
 End Class

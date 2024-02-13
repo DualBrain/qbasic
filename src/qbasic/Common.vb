@@ -1,6 +1,6 @@
 ﻿Imports Basic.VisualBasic
 Imports System.Runtime.InteropServices.JavaScript.JSType
-Imports QB.Video
+Imports QBLib.Video
 
 Friend Module Common
 
@@ -220,7 +220,7 @@ Friend Module Common
     Dim entries = element + numEls
     If entries >= UBound(array$) Then entries = UBound(array$) - 1
     For entry = element To entries
-      QB.Core.SWAP(array$(entry), array$(entry + 1))
+      QBLib.Core.SWAP(array$(entry), array$(entry + 1))
     Next
   End Sub
 
@@ -264,9 +264,9 @@ Friend Module Common
 
   Friend Sub InsertStr(array$(), startElement As Integer, insertVAlue As String, numEls As Integer)
     For entry = startElement + numEls - 1 To startElement + 1 Step -1
-      QB.Core.SWAP(array(entry), array(entry - 1))
+      QBLib.Core.SWAP(array(entry), array(entry - 1))
     Next
-    QB.Core.SWAP(array(startElement), insertVAlue)
+    QBLib.Core.SWAP(array(startElement), insertVAlue)
   End Sub
 
   Friend Function MaxInt(value1 As Integer, value2 As Integer) As Integer
@@ -313,7 +313,7 @@ Friend Module Common
     If colr = -1 Then
       ' Maintain existing color...
     Else
-      ofg = QB.Video.m_fgColor : obg = QB.Video.m_bgColor
+      ofg = QBLib.Video.m_fgColor : obg = QBLib.Video.m_bgColor
       SplitColor(colr, fg, bg)
       COLOR(fg, bg)
     End If

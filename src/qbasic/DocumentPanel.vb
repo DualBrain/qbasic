@@ -1,5 +1,5 @@
 ﻿Imports Basic.Input
-Imports QB.Video
+Imports QBLib.Video
 Imports VbPixelGameEngine
 
 Public Class DocumentPanel

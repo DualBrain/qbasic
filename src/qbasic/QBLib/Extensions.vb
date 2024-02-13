@@ -1,6 +1,6 @@
 ﻿Imports System.Runtime.CompilerServices
 
-Namespace Global.QB
+Namespace Global.QBLib
 
   Module Extensions
 

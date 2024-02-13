@@ -1,5 +1,5 @@
 ﻿Imports VbPixelGameEngine
-Imports QB.Video
+Imports QBLib.Video
 
 Public Class AboutDialog
   Inherits PgeX

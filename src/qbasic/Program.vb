@@ -1,21 +1,23 @@
-Imports VbPixelGameEngine
-Imports QB.Video
 Imports System.Timers
-Imports System.Runtime.InteropServices.RuntimeInformation
-Imports System.Runtime.InteropServices.OSPlatform
-Imports System.Reflection
 Imports System.Drawing
+Imports System.IO
+Imports System.IO.Compression
+Imports System.Reflection
 Imports System.Runtime.InteropServices
+Imports System.Runtime.InteropServices.OSPlatform
+Imports System.Runtime.InteropServices.RuntimeInformation
+Imports System.Text
+
+Imports VbPixelGameEngine
+
+Imports QBLib.Video
+
 Imports Basic.Parser
 Imports Basic
 Imports Basic.Environment
 Imports Basic.IO
 Imports Basic.Audio
 Imports Basic.Input
-Imports System.Text
-Imports System.IO
-Imports System.IO.Compression
-Imports System.Linq.Expressions
 
 Friend Module Program
 
@@ -231,7 +233,7 @@ Friend Class QBasic
   Private m_isQ As Boolean
   Private m_isCtrlP As Boolean
 
-  Private m_subs As New List(Of String)
+  Private ReadOnly m_subs As New List(Of String)
 
   Protected Overrides Function OnUserUpdate(elapsedTime As Single) As Boolean
 

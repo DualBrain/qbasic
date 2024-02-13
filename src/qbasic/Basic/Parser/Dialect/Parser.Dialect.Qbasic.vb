@@ -8,15 +8,16 @@
     Public ReadOnly Property Keywords As List(Of String) Implements IDialect.Keywords
       Get
         ' "DEF FN", "DEF SEG", "DEF USR" -- handled by the "DEF".
-        Return New List(Of String) From {"BEEP",
-                                         "CALL", "CHAIN", "CIRCLE", "CLOSE", "CLS", "COLOR", "COM", "COMMON",
-                                         "DATA", "DEF", "DEFINT", "DEFSNG", "DEFDBL", "DEFSTR", "DIM", "DRAW",
-                                         "END", "ENVIRON", "ERASE", "ERROR", "ELSE",
+        Return New List(Of String) From {"ABSOLUTE", "ACCESS", "ANY", "APPEND", "AS",
+                                         "BASE", "BEEP", "BINARY", "BLOAD", "BSAVE",
+                                         "CALL", "CASE", "CHAIN", "CHDIR", "CIRCLE", "CLEAR", "CLOSE", "CLS", "COLOR", "COM", "COMMON", "CONST",
+                                         "DATA", "DECLARE", "DEF", "DEFDBL", "DEFINT", "DEFLNG", "DEFSNG", "DEFSTR", "DIM", "DO", "DOUBLE", "DRAW",
+                                         "ELSE", "ELSEIF", "END", "ENDIF", "ENVIRON", "ERASE", "ERROR", "EXIT",
                                          "FIELD", "FOR", "FUNCTION",
                                          "GET", "GOSUB", "GOTO",
-                                         "IF", "INPUT", "INPUT#", "IOCTL",
+                                         "IF", "INPUT", "INPUT#", "IOCTL", "INTEGER", "IS",
                                          "KEY",
-                                         "LET", "LINE", "LINE INPUT", "LINE INPUT#", "LOCATE", "LOCK", "LPRINT", "LPRINT USING", "LSET",
+                                         "LET", "LINE", "LINE INPUT", "LINE INPUT#", "LOCATE", "LONG", "LOCK", "LOOP", "LPRINT", "LPRINT USING", "LSET",
                                          "NEXT",
                                          "ON", "ON COM", "ON KEY", "ON PEN", "ON PLAY", "ON STRIG", "ON TIMER", "ON ERROR GOTO",
                                          "OPEN", "OPEN ""COM", "OPTION", "OUT",
@@ -34,11 +35,12 @@
     Public ReadOnly Property Functions As List(Of String) Implements IDialect.Functions
       Get
         Return New List(Of String) From {"ABS", "ASC", "ATN",
-                                         "CDBL", "CHR$", "CINT", "COS", "CSNG", "CVI", "CVS", "CVD",
-                                         "ENVIRON$", "EOF", "EXP", "EXTERR",
-                                         "FIX", "FRE",
+                                         "CDBL", "CHR$", "CINT", "CLNG", "COS", "CSNG", "CSRLIN", "CVD", "CVDMBF", "CVI", "CVL", "CVS", "CVSMBF",
+                                         "DATE$",
+                                         "ENVIRON$", "EOF", "ERDEV", "ERDEV$", "ERL", "ERR", "EXP", "EXTERR",
+                                         "FILEATTR", "FIX", "FRE", "FREEFILE",
                                          "HEX$",
-                                         "INP", "INPUT$", "INSTR", "INT", "IOCTL$",
+                                         "INKEY$", "INP", "INPUT$", "INSTR", "INT", "IOCTL$",
                                          "LCASE$", "LEFT$", "LEN", "LOC", "LOF", "LOG", "LPOS", "LTRIM$",
                                          "MID$", "MKI$", "MKS$", "MKD$",
                                          "OCT$",
@@ -53,7 +55,7 @@
 
     Public ReadOnly Property Commands As List(Of String) Implements IDialect.Commands
       Get
-        Return New List(Of String) From {"BLOAD", "BSAVE", "CHDIR", "CLEAR", "FILES", "KILL",
+        Return New List(Of String) From {"FILES", "KILL",
                                          "MKDIR", "NAME", "PCOPY", "RESET",
                                          "RMDIR", "RUN", "SYSTEM", "TRON", "TROFF"}
       End Get
@@ -61,9 +63,7 @@
 
     Public ReadOnly Property Variables As List(Of String) Implements IDialect.Variables
       Get
-        Return New List(Of String) From {"CSRLIN",
-                                         "DATE$",
-                                         "ERDEV", "ERDEV$", "ERR", "ERL",
+        Return New List(Of String) From {"ERDEV", "ERDEV$", "ERR", "ERL",
                                          "INKEY$",
                                          "TIME$"}
       End Get

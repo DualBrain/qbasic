@@ -1,4 +1,4 @@
-﻿Imports QB.Video
+﻿Imports QBLib.Video
 Imports VbPixelGameEngine
 
 Public Class HelpDialog
@@ -63,7 +63,7 @@ Public Class HelpDialog
     'QPrintRC(m_text, m_ulRow + 2, m_ulCol + textOffset, OneColor(0, 8))
 
     Dim lines = m_body.Split(vbLf)
-    For index = 0 To lines.Count - 1
+    For index = 0 To lines.Length - 1
       QPrintRC(lines(index), m_ulRow + 2 + index, m_ulCol + 4, OneColor(0, 8))
     Next
 

@@ -2,7 +2,7 @@
 Option Strict On
 Option Infer On
 
-Namespace Global.QB
+Namespace Global.QBLib
 
   Partial Public NotInheritable Class Core
 

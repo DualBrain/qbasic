@@ -53,7 +53,7 @@
                 m_selectionEnd = m_selectionStart - 1
                 m_selectionStart = 0
               End If
-              If m_selectionEnd < m_selectionStart Then QB.Core.SWAP(m_selectionStart, m_selectionEnd)
+              If m_selectionEnd < m_selectionStart Then QBLib.Core.SWAP(m_selectionStart, m_selectionEnd)
             ElseIf m_cursorOffset > 0 Then
               m_selectionStart = 0 : m_selectionEnd = m_cursorOffset - 1 : m_selected = True
             End If
@@ -73,7 +73,7 @@
                 m_selectionStart = m_selectionEnd + 1
                 m_selectionEnd = m_text.Length - 1
               End If
-              If m_selectionEnd < m_selectionStart Then QB.Core.SWAP(m_selectionStart, m_selectionEnd)
+              If m_selectionEnd < m_selectionStart Then QBLib.Core.SWAP(m_selectionStart, m_selectionEnd)
             Else
               m_selectionStart = m_cursorOffset : m_selectionEnd = m_text.Length - 1 : m_selected = True
             End If

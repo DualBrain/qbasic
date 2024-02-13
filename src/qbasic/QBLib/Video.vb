@@ -1,7 +1,7 @@
 ﻿Imports System.ComponentModel
 Imports VbPixelGameEngine
 
-Namespace Global.QB
+Namespace Global.QBLib
 
   Public Enum LineOption
     None

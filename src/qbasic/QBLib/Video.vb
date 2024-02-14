@@ -885,6 +885,13 @@ Namespace Global.QBLib
       '      adjust for TAB(s).
       If text IsNot Nothing Then
         For Each c In text
+          Select Case c
+            Case ChrW(9492) : c = ChrW(192)
+            Case ChrW(9472) : c = ChrW(196)
+            Case ChrW(9474) : c = ChrW(179)
+            Case ChrW(9500) : c = ChrW(195)
+            Case Else
+          End Select
           WriteCharacter(CByte(AscW(c)))
         Next
       End If

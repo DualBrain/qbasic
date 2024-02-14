@@ -1418,7 +1418,9 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub StepAction()
-    m_context = New MessageDialog("Not implemented.")
+    Dim tree = QB.Interpreter.DebugTree(Document1.Text)
+    Document1.Text = tree
+    'm_context = New MessageDialog("Not implemented.")
   End Sub
 
   Private Sub ContinueAction()

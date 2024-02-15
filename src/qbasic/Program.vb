@@ -59,6 +59,12 @@ Friend Class QBasic
   Private m_running As Boolean
   Private m_runner As Threading.Thread
 
+  Private m_scrn0() As UShort
+  Private m_fg As Integer
+  Private m_bg As Integer
+  Private m_cr As Integer
+  Private m_cc As Integer
+
   Friend Sub New()
     AppName = "Community QBasic"
     m_pathspec = System.IO.Path.Combine(System.Environment.CurrentDirectory(), If(IsOSPlatform(Windows), "*.BAS", "*.*"))
@@ -408,18 +414,37 @@ Tip: These topics are also available from the Help menu.
 
       If m_running Then 'Interpreter.IsRunning Then
 
-        If keys IsNot Nothing Then
-          For Each key In keys
-            Select Case key
-              Case ConsoleKey.Escape
-                s_cancelTokenSource.Cancel()
-                m_running = False
-              Case Else
-            End Select
-          Next
-        End If
+        If m_runner.IsAlive Then
+          ' need to feed the keys into the runner
+          m_scrn0 = Nothing
+        Else
+          If m_scrn0 Is Nothing Then
+            'TODO: Take a "snapshot" of the screen
+            '      Capture the current cursor location
+            '      Capture the current foreground and background colors
+            '      Capture the current screen mode? Width?
+            m_scrn0 = CType(Screen0.Clone, UShort())
+            m_fg = QBLib.Video.m_fgColor
+            m_bg = QBLib.Video.m_bgColor
+            m_cr = QBLib.Video.m_cursorRow
+            m_cc = QBLib.Video.m_cursorCol
+            LOCATE(25, 1) : PRINT("Press any key to continue", False)
+          End If
+          If keys IsNot Nothing Then
+              s_cancelTokenSource.Cancel()
+              m_running = False
+              'For Each key In keys
+              '  Select Case key
+              '    Case ConsoleKey.Escape
+              '      s_cancelTokenSource.Cancel()
+              '      m_running = False
+              '    Case Else
+              '  End Select
+              'Next
+            End If
+          End If
 
-      Else
+          Else
 
         If Not m_isAlt Then
           m_isAlt = GetKey(Key.ALT).Pressed
@@ -1478,7 +1503,17 @@ To get help on a QBasic keyword in the list below:
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token
     m_running = True
-    QBLib.Video.CLS()
+    If m_scrn0 IsNot Nothing Then
+      Screen0 = CType(m_scrn0.Clone, UShort())
+      QBLib.Video.m_fgColor = m_fg
+      QBLib.Video.m_bgColor = m_bg
+      QBLib.Video.m_cursorRow = m_cr
+      QBLib.Video.m_cursorCol = m_cc
+      m_scrn0 = Nothing
+    Else
+      QBLib.Video.CLS()
+      QBLib.Video.COLOR(8, 0)
+    End If
     Dim i = New QB.Interpreter()
     i.Run(Document1.Text)
   End Sub

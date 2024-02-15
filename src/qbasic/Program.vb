@@ -11,13 +11,14 @@ Imports System.Text
 Imports VbPixelGameEngine
 
 Imports QBLib.Video
+'Imports System.Threading
 
-Imports Basic.Parser
-Imports Basic
-Imports Basic.Environment
-Imports Basic.IO
-Imports Basic.Audio
-Imports Basic.Input
+'Imports Basic.Parser
+'Imports Basic
+'Imports Basic.Environment
+'Imports Basic.IO
+'Imports Basic.Audio
+'Imports Basic.Input
 
 Friend Module Program
 
@@ -46,14 +47,17 @@ Friend Class QBasic
 
   Private m_t As Single
 
-  Private WithEvents InterpreterTimer As New Timer(1)
+  'Private WithEvents InterpreterTimer As New Timer(1)
   Private WithEvents DisplayTimer As New Timer(1)
 
-  Private WithEvents Interpreter As Interactive
+  'Private WithEvents Interpreter As Interactive
   Private ReadOnly Display As New Display(DisplayTimer)
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
+
+  Private m_running As Boolean
+  Private m_runner As Threading.Thread
 
   Friend Sub New()
     AppName = "Community QBasic"
@@ -164,25 +168,25 @@ Friend Class QBasic
 
     DrawScreen()
 
-    InterpreterTimer.Enabled = True
+    'InterpreterTimer.Enabled = True
 
-    Dim env As IEnvironment = Nothing
-    Dim fs As IVirtualFileSystem = New WindowsFileSystem
-    Dim snd As ISound = Nothing
-    Dim kbd As IKeyboard = Nothing
-    Dim gpio As IGpio = Nothing
+    'Dim env As IEnvironment = Nothing
+    'Dim fs As IVirtualFileSystem = New WindowsFileSystem
+    'Dim snd As ISound = Nothing
+    'Dim kbd As IKeyboard = Nothing
+    'Dim gpio As IGpio = Nothing
 
-    Interpreter = New Interactive(Dialect.QBasic,
-                                  env,
-                                  Display,
-                                  InterpreterTimer,
-                                  fs,
-                                  snd,
-                                  kbd,
-                                  gpio,
-                                  "QBasic",
-                                  1000,
-                                  "en-US")
+    'Interpreter = New Interactive(Dialect.QBasic,
+    '                              env,
+    '                              Display,
+    '                              InterpreterTimer,
+    '                              fs,
+    '                              snd,
+    '                              kbd,
+    '                              gpio,
+    '                              "QBasic",
+    '                              1000,
+    '                              "en-US")
 
     Return True
 
@@ -336,48 +340,48 @@ Tip: These topics are also available from the Help menu.
                 Document1.Text = code
                 Document1.Title = System.IO.Path.GetFileName(m_path)
 
-                'Interpreter.Source = Document1.Text
-                Dim p As Parser
-                Using s As New MemoryStream()
-                  Dim buffer() = code.ToByteArray
-                  s.Write(buffer, 0, buffer.Length)
-                  s.Seek(0, SeekOrigin.Begin)
-                  p = New Parser(s, Dialect.QBasic)
-                End Using
+                ''Interpreter.Source = Document1.Text
+                'Dim p As Parser
+                'Using s As New MemoryStream()
+                '  Dim buffer() = code.ToByteArray
+                '  s.Write(buffer, 0, buffer.Length)
+                '  s.Seek(0, SeekOrigin.Begin)
+                '  p = New Parser(s, Dialect.QBasic)
+                'End Using
 
-                m_subs.Clear()
-                For Each line In p.Lines
-                  For Each statement In line.Statements
-                    Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
-                    If token IsNot Nothing Then
-                      Select Case token.Keyword
-                        Case "BEEP"
-                        Case "CALL", "CIRCLE", "CLS", "COLOR"
-                        Case "DEFINT", "DEF", "DIM"
-                        Case "ELSE", "END"
-                        Case "FOR"
-                        Case "GET", "GOSUB"
-                        Case "IF", "INPUT"
-                        Case "LET", "LINE", "LOCATE"
-                        Case "NEXT"
-                        Case "ON"
-                        Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
-                        Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
-                        Case "SCREEN"
-                        Case "VIEW"
-                        Case "WEND", "WHILE", "WIDTH"
-                        Case "SUB", "FUNCTION"
-                          token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
-                          If TypeOf token Is IdentifierToken Then
-                            m_subs.Add(token.ToString)
-                          End If
-                        Case Else
-                          Debug.WriteLine(token.Keyword)
-                      End Select
-                    End If
-                    Exit For
-                  Next
-                Next
+                'm_subs.Clear()
+                'For Each line In p.Lines
+                '  For Each statement In line.Statements
+                '    Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
+                '    If token IsNot Nothing Then
+                '      Select Case token.Keyword
+                '        Case "BEEP"
+                '        Case "CALL", "CIRCLE", "CLS", "COLOR"
+                '        Case "DEFINT", "DEF", "DIM"
+                '        Case "ELSE", "END"
+                '        Case "FOR"
+                '        Case "GET", "GOSUB"
+                '        Case "IF", "INPUT"
+                '        Case "LET", "LINE", "LOCATE"
+                '        Case "NEXT"
+                '        Case "ON"
+                '        Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
+                '        Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
+                '        Case "SCREEN"
+                '        Case "VIEW"
+                '        Case "WEND", "WHILE", "WIDTH"
+                '        Case "SUB", "FUNCTION"
+                '          token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+                '          If TypeOf token Is IdentifierToken Then
+                '            m_subs.Add(token.ToString)
+                '          End If
+                '        Case Else
+                '          Debug.WriteLine(token.Keyword)
+                '      End Select
+                '    End If
+                '    Exit For
+                '  Next
+                'Next
 
               End If
             Case DialogResult.Cancel
@@ -402,13 +406,14 @@ Tip: These topics are also available from the Help menu.
 
     Else
 
-      If Interpreter.IsRunning Then
+      If m_running Then 'Interpreter.IsRunning Then
 
         If keys IsNot Nothing Then
           For Each key In keys
             Select Case key
               Case ConsoleKey.Escape
-                Interpreter.Reset()
+                s_cancelTokenSource.Cancel()
+                m_running = False
               Case Else
             End Select
           Next
@@ -781,22 +786,53 @@ Tip: These topics are also available from the Help menu.
 
     End If
 
-    If Interpreter.IsRunning Then
+    If m_running Then 'Interpreter.IsRunning Then
 
-      Dim p = Interpreter.Display.Pixels(Interpreter.Display.VisualPage)
-      Dim w = Interpreter.Display.ScreenWidth
-      Dim h = Interpreter.Display.ScreenHeight
-      Dim pxl As Pixel
-      For y = 0 To h - 1
-        For x = 0 To w - 1
-          Dim c = p(y * w + x)
-          pxl.I = c
-          If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
-            Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
-          End If
-          Draw(x, y, pxl)
+      For r = 0 To 24
+        For c = 0 To 79
+
+          Dim index = (r * 80) + c
+          Dim ch = CByte(Screen0(index) And &HFF)
+          Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
+          Dim map = CharMap(m_textH, ch)
+
+          Dim x = c * m_textW
+          Dim y = r * m_textH
+
+          Dim fg, bg As Integer
+          SplitColor(clr, fg, bg)
+
+          Dim fgc = m_palette(fg)
+          Dim bgc = m_palette(bg)
+
+          For dy = 0 To m_textH - 1
+            Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
+            Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
+            Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
+            Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
+            Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
+            Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
+            Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
+            Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
+          Next
+
         Next
       Next
+
+      'Dim p = Interpreter.Display.Pixels(Interpreter.Display.VisualPage)
+      'Dim w = Interpreter.Display.ScreenWidth
+      'Dim h = Interpreter.Display.ScreenHeight
+      'Dim pxl As Pixel
+      'For y = 0 To h - 1
+      '  For x = 0 To w - 1
+      '    Dim c = p(y * w + x)
+      '    pxl.I = c
+      '    If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
+      '      Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
+      '    End If
+      '    Draw(x, y, pxl)
+      '  Next
+      'Next
 
     Else
       DrawScreen()
@@ -1424,21 +1460,27 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub ContinueAction()
-    Interpreter.Reset()
-    Interpreter.Source = Document1.Text
-    Interpreter.Run()
+    m_runner = New Threading.Thread(AddressOf Runner)
+    m_runner.Start()
   End Sub
 
   Private Sub RestartAction()
-    Interpreter.Reset()
-    Interpreter.Source = Document1.Text
-    Interpreter.Run()
+    m_runner = New Threading.Thread(AddressOf Runner)
+    m_runner.Start()
   End Sub
 
   Private Sub StartAction()
-    Interpreter.Reset()
-    Interpreter.Source = Document1.Text
-    Interpreter.Run()
+    m_runner = New Threading.Thread(AddressOf Runner)
+    m_runner.Start()
+  End Sub
+
+  Private Sub Runner()
+    s_cancelTokenSource = New System.Threading.CancellationTokenSource()
+    s_cancelToken = s_cancelTokenSource.Token
+    m_running = True
+    QBLib.Video.CLS()
+    Dim i = New QB.Interpreter()
+    i.Run(Document1.Text)
   End Sub
 
   Private Sub MakeExeFileFbcAction()

@@ -63,6 +63,11 @@ Namespace Global.QB.CodeAnalysis
 
       Dim index = 0
       While index < body.Statements.Length
+
+        If QBasic.Common.s_cancelToken.IsCancellationRequested Then
+          Exit While
+        End If
+
         Dim s = body.Statements(index)
         Select Case s.Kind
           Case BoundNodeKind.ChDirStatement
@@ -77,17 +82,17 @@ Namespace Global.QB.CodeAnalysis
             Dim value = If(cs.Expression Is Nothing, 0, CInt(EvaluateExpression(cs.Expression)))
             If value < 0 OrElse value > 2 Then
               ' error condition
-              Console.WriteLine("CLS parameter out-of-range.")
+              QBLib.Video.PRINT("CLS parameter out-of-range.")
             Else
               Select Case value
                 Case 0 ' Clears the screen of all text and graphics
-                  Console.Clear()
+                  QBLib.Video.PRINT()
                 Case 1 ' Clears only the graphics viewport
                   'TODO: Revisit after SCREEN, WIDTH, VIEW.
-                  Console.Clear()
+                  QBLib.Video.PRINT()
                 Case 2 ' Clears only the text window
                   'TODO: Revisit after SCREEN, WIDTH, VIEW.
-                  Console.Clear()
+                  QBLib.Video.PRINT()
               End Select
             End If
             index += 1
@@ -105,9 +110,10 @@ Namespace Global.QB.CodeAnalysis
 
           Case BoundNodeKind.GosubStatement
             Dim gs = CType(s, BoundGosubStatement)
-            If labelToIndex.ContainsKey(gs.Label) Then
+            Dim value As Integer = Nothing
+            If labelToIndex.TryGetValue(gs.Label, value) Then
               m_gosubStack.Push(index + 1)
-              index = labelToIndex(gs.Label)
+              index = value
             Else
               For Each entry In labelToIndex.Keys
                 If entry.Name = gs.Label.Name Then
@@ -120,9 +126,9 @@ Namespace Global.QB.CodeAnalysis
 
           Case BoundNodeKind.GotoStatement
             Dim gs = CType(s, BoundGotoStatement)
-
-            If labelToIndex.ContainsKey(gs.Label) Then
-              index = labelToIndex(gs.Label)
+            Dim value As Integer = Nothing
+            If labelToIndex.TryGetValue(gs.Label, value) Then
+              index = value
             Else
               For Each entry In labelToIndex.Keys
                 If entry.Name = gs.Label.Name Then
@@ -151,12 +157,12 @@ Namespace Global.QB.CodeAnalysis
             End If
             Do
               If Not String.IsNullOrEmpty(prompt) Then
-                Console.Write(prompt)
+                QBLib.Video.PRINT(prompt, True)
               End If
               If Not suppressQuestionMark Then
-                Console.Write("? ")
+                QBLib.Video.PRINT("? ", True)
               End If
-              Dim potential = Console.ReadLine()
+              Dim potential = QBLib.Video.InputAsync("").GetAwaiter.GetResult
               Dim potentials = Split(potential, ",")
               If potentials.Length = input.Variables.Length Then
                 For i = 0 To input.Variables.Length - 1
@@ -177,14 +183,14 @@ Namespace Global.QB.CodeAnalysis
                            input.Variables(i).Type Is TypeSymbol.Double Then
                           Assign(input.Variables(i), value)
                         Else
-                          Console.WriteLine() : Continue Do
+                          QBLib.Video.PRINT() : Continue Do
                         End If
                       Else
                         'TODO: Check in-range for values/types.
                         Assign(input.Variables(i), value)
                       End If
                     Else
-                      Console.WriteLine() : Continue Do
+                      QBLib.Video.PRINT() : Continue Do
                     End If
                   Else
                     Assign(input.Variables(i), value)
@@ -194,7 +200,7 @@ Namespace Global.QB.CodeAnalysis
                 'TODO: If suppressCr is True, need to move the cursor back????
                 Exit Do
               Else
-                Console.WriteLine()
+                QBLib.Video.PRINT()
               End If
             Loop
 
@@ -252,12 +258,13 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.ReturnGosubStatement
             Dim rg = CType(s, BoundReturnGosubStatement)
 
+            Dim value As Integer = Nothing
             If rg.Label Is Nothing Then
               If m_gosubStack.Count > 0 Then
                 index = m_gosubStack.Pop
               End If
-            ElseIf labelToIndex.ContainsKey(rg.Label) Then
-              index = labelToIndex(rg.Label)
+            ElseIf labelToIndex.TryGetValue(rg.Label, value) Then
+              index = value
             Else
               For Each entry In labelToIndex.Keys
                 If entry.Name = rg.Label.Name Then
@@ -324,15 +331,15 @@ Namespace Global.QB.CodeAnalysis
       End If
       'Dim screenWidth = 80
       Dim zoneWidth = 14
-      Dim pos = Console.CursorLeft + 1
+      Dim pos = QBLib.Video.POS(0) 'Console.CursorLeft + 1
       Dim cur = pos Mod zoneWidth
-      Console.Write(Microsoft.VisualBasic.Strings.Space(cur))
+      QBLib.Video.PRINT(Microsoft.VisualBasic.Strings.Space(cur), True)
     End Sub
 
     Private Shared Sub EvaluateHandlePrintLineStatement(node As BoundHandlePrintLineStatement)
       If node IsNot Nothing Then
       End If
-      Console.WriteLine()
+      QBLib.Video.PRINT()
     End Sub
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)
@@ -343,7 +350,7 @@ Namespace Global.QB.CodeAnalysis
       Else
         str = CStr(value)
       End If
-      Console.Write(str) : Console.Write(" "c)
+      QBLib.Video.PRINT(str, True) : QBLib.Video.PRINT(" "c, True)
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)
@@ -357,7 +364,7 @@ Namespace Global.QB.CodeAnalysis
         value = value Mod screenWidth
       End If
       Dim str = Microsoft.VisualBasic.Strings.Space(value)
-      Console.Write(str)
+      QBLib.Video.PRINT(str, True)
     End Sub
 
     Private Sub EvaluateHandleTabStatement(node As BoundHandleTabStatement)
@@ -368,17 +375,17 @@ Namespace Global.QB.CodeAnalysis
       If value < 0 OrElse value > 255 Then
         ' error
       End If
-      Dim pos = Console.CursorLeft + 1
+      Dim pos = QBLib.Video.POS(0)  'Console.CursorLeft + 1
       Dim diff = 0
       If pos < value Then
         diff = value - pos
       ElseIf pos > value Then
         diff = screenWidth - pos
-        Console.WriteLine(Microsoft.VisualBasic.Strings.Space(diff))
+        QBLib.Video.PRINT(Microsoft.VisualBasic.Strings.Space(diff))
         diff = value
       End If
       Dim str = Microsoft.VisualBasic.Strings.Space(diff)
-      Console.Write(str)
+      QBLib.Video.PRINT(str, True)
     End Sub
 
     Private Sub EvaluateVariableDeclaration(node As BoundVariableDeclaration)

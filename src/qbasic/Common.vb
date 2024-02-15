@@ -1,10 +1,14 @@
 ﻿Imports Basic.VisualBasic
 Imports System.Runtime.InteropServices.JavaScript.JSType
 Imports QBLib.Video
+Imports System.Threading
 
 Friend Module Common
 
   Friend Property Insert As Boolean
+
+  Friend s_cancelTokenSource As New CancellationTokenSource()
+  Friend s_cancelToken As CancellationToken
 
   Friend Sub ToggleInsertMode()
     Insert = Not Insert

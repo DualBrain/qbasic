@@ -979,6 +979,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' (a)
       ' (1)
       ' int(value)
+      For Each entry In Peek(-1).TrailingTrivia
+        If entry.Kind = SyntaxKind.LineBreakTrivia Then Return False
+      Next
       Return Current.Kind = SyntaxKind.NumberToken OrElse
              Current.Kind = SyntaxKind.IdentifierToken OrElse
              Current.Kind = SyntaxKind.OpenParenToken OrElse

@@ -462,6 +462,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ChDirStatement : Return BindChDirStatement(CType(syntax, ChDirStatementSyntax))
         Case SyntaxKind.ClearStatement : Return BindClearStatement(CType(syntax, ClearStatementSyntax))
         Case SyntaxKind.ClsStatement : Return BindClsStatement(CType(syntax, ClsStatementSyntax))
+        Case SyntaxKind.ColorStatement : Return BindColorStatement(CType(syntax, ColorStatementSyntax))
         Case SyntaxKind.ContinueStatement : Return BindContinueStatement(CType(syntax, ContinueStatementSyntax))
         Case SyntaxKind.DoUntilStatement : Return BindDoUntilStatement(CType(syntax, DoUntilStatementSyntax))
         Case SyntaxKind.DoWhileStatement : Return BindDoWhileStatement(CType(syntax, DoWhileStatementSyntax))
@@ -654,6 +655,13 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindClsStatement(syntax As ClsStatementSyntax) As BoundStatement
       Dim expression = If(syntax.Expression IsNot Nothing, BindExpression(syntax.Expression), Nothing)
       Return New BoundClsStatement(expression)
+    End Function
+
+    Private Function BindColorStatement(syntax As ColorStatementSyntax) As BoundStatement
+      Dim argumentExpression1 = If(syntax.ArgumentExpression1 IsNot Nothing, BindExpression(syntax.ArgumentExpression1), Nothing)
+      Dim argumentExpression2 = If(syntax.ArgumentExpression2 IsNot Nothing, BindExpression(syntax.ArgumentExpression2), Nothing)
+      Dim argumentExpression3 = If(syntax.ArgumentExpression3 IsNot Nothing, BindExpression(syntax.ArgumentExpression3), Nothing)
+      Return New BoundColorStatement(argumentExpression1, argumentExpression2, argumentExpression3)
     End Function
 
     Private Function BindContinueStatement(syntax As ContinueStatementSyntax) As BoundStatement

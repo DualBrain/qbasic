@@ -161,6 +161,7 @@
     ChDirStatement
     ClearStatement
     ClsStatement
+    ColorStatement
     ContinueStatement
     DataStatement
     DoUntilStatement

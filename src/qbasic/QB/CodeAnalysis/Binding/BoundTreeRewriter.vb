@@ -10,6 +10,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case BoundNodeKind.ChDirStatement : Return RewriteChDirStatement(DirectCast(node, BoundChDirStatement))
         Case BoundNodeKind.ClearStatement : Return RewriteClearStatement(DirectCast(node, BoundClearStatement))
         Case BoundNodeKind.ClsStatement : Return RewriteClsStatement(DirectCast(node, BoundClsStatement))
+        Case BoundNodeKind.ColorStatement : Return RewriteColorStatement(DirectCast(node, BoundColorStatement))
         Case BoundNodeKind.ConditionalGotoStatement : Return RewriteConditionalGotoStatement(DirectCast(node, BoundConditionalGotoStatement))
         Case BoundNodeKind.DoUntilStatement : Return RewriteDoUntilStatement(DirectCast(node, BoundDoUntilStatement))
         Case BoundNodeKind.DoWhileStatement : Return RewriteDoWhileStatement(DirectCast(node, BoundDoWhileStatement))
@@ -112,6 +113,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Protected Overridable Function RewriteClsStatement(node As BoundClsStatement) As BoundStatement
+      Return node
+    End Function
+
+    Protected Overridable Function RewriteColorStatement(node As BoundColorStatement) As BoundStatement
       Return node
     End Function
 

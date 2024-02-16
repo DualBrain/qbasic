@@ -78,6 +78,7 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.ClearStatement
             index += 1
           Case BoundNodeKind.ClsStatement
+            Debug.WriteLine("CLS")
             Dim cs = CType(s, BoundClsStatement)
             Dim value = If(cs.Expression Is Nothing, 0, CInt(EvaluateExpression(cs.Expression)))
             If value < 0 OrElse value > 2 Then
@@ -95,6 +96,31 @@ Namespace Global.QB.CodeAnalysis
                   QBLib.Video.CLS()
               End Select
             End If
+            index += 1
+          Case BoundNodeKind.ColorStatement
+            Dim cs = CType(s, BoundColorStatement)
+            Dim expression1 = If(cs.Expression1 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression1)))
+            Dim expression2 = If(cs.Expression2 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression2)))
+            Dim expression3 = If(cs.Expression3 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression3)))
+            Select Case QBLib.Video.m_mode
+              Case 0
+                'COLOR [foreground%] [,[background%] [,border%]]	Screen mode 0 (text only)
+                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
+                If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
+                If expression3 > -1 AndAlso expression3 < 16 Then QBLib.Video.m_borderColor = expression3
+              Case 1
+                'COLOR [background%] [,palette%]	Screen mode 1
+                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_bgColor = expression1
+                If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_paletteIndex = expression2
+              Case 4, 12, 13
+                'COLOR [foreground%]	Screen modes 4, 12, 13
+                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
+              Case 7, 8, 9, 10
+                'COLOR [foreground%] [,background&]	Screen modes 7-10
+                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
+                If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
+              Case Else
+            End Select
             index += 1
           Case BoundNodeKind.ConditionalGotoStatement
             Dim cgs = CType(s, BoundConditionalGotoStatement)
@@ -168,19 +194,19 @@ Namespace Global.QB.CodeAnalysis
                 For i = 0 To input.Variables.Length - 1
                   Dim value = potentials(i)
                   If input.Variables(i).Type Is TypeSymbol.Double OrElse
-                     input.Variables(i).Type Is TypeSymbol.Single OrElse
-                     input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
-                     input.Variables(i).Type Is TypeSymbol.Long64 OrElse
-                     input.Variables(i).Type Is TypeSymbol.ULong OrElse
-                     input.Variables(i).Type Is TypeSymbol.Long OrElse
-                     input.Variables(i).Type Is TypeSymbol.UInteger OrElse
-                     input.Variables(i).Type Is TypeSymbol.Integer OrElse
-                     input.Variables(i).Type Is TypeSymbol.SByte OrElse
-                     input.Variables(i).Type Is TypeSymbol.Byte Then
+                 input.Variables(i).Type Is TypeSymbol.Single OrElse
+                 input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
+                 input.Variables(i).Type Is TypeSymbol.Long64 OrElse
+                 input.Variables(i).Type Is TypeSymbol.ULong OrElse
+                 input.Variables(i).Type Is TypeSymbol.Long OrElse
+                 input.Variables(i).Type Is TypeSymbol.UInteger OrElse
+                 input.Variables(i).Type Is TypeSymbol.Integer OrElse
+                 input.Variables(i).Type Is TypeSymbol.SByte OrElse
+                 input.Variables(i).Type Is TypeSymbol.Byte Then
                     If IsNumeric(value) Then
                       If value.Contains("."c) Then
                         If input.Variables(i).Type Is TypeSymbol.Single OrElse
-                           input.Variables(i).Type Is TypeSymbol.Double Then
+                       input.Variables(i).Type Is TypeSymbol.Double Then
                           Assign(input.Variables(i), value)
                         Else
                           QBLib.Video.PRINT() : Continue Do

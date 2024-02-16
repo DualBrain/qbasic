@@ -120,11 +120,10 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Private Function ParseStatement(isTopLevel As Boolean) As StatementSyntax
 
       Select Case Current.Kind
-        'Case SyntaxKind.ChDirKeyword
         Case SyntaxKind.ChDirKeyword : Return ParseChDirStatement()
         Case SyntaxKind.ClearKeyword : Return ParseClearStatement()
         Case SyntaxKind.ClsKeyword : Return ParseClsStatement()
-        'Case SyntaxKind.ColorKeyword
+        Case SyntaxKind.ColorKeyword : Return ParseColorStatement()
         Case SyntaxKind.ConstKeyword : Return ParseVariableDeclaration()
         Case SyntaxKind.ContinueKeyword : Return ParseContinueStatement()
         Case SyntaxKind.DataKeyword : Return ParseDataStatement()
@@ -218,6 +217,36 @@ Namespace Global.QB.CodeAnalysis.Syntax
         expression = ParseExpression()
       End If
       Return New ClsStatementSyntax(m_syntaxTree, clsKeyword, expression)
+
+    End Function
+
+    Private Function ParseColorStatement() As ColorStatementSyntax
+
+      'COLOR [expression1] [,[expression2] [,expression3]]	  Screen mode 0 (text only)
+      'COLOR [expression1] [,expression2]	                    Screen mode 1
+      'COLOR [expression1]	                                  Screen modes 4, 12, 13
+      'COLOR [expression1] [,expression2]	                    Screen modes 7-10
+
+      Dim colorKeyword = MatchToken(SyntaxKind.ColorKeyword)
+      Dim argument1Expression As ExpressionSyntax = Nothing
+      Dim commaToken1 As SyntaxToken = Nothing
+      Dim argument2Expression As ExpressionSyntax = Nothing
+      Dim commaToken2 As SyntaxToken = Nothing
+      Dim argument3Expression As ExpressionSyntax = Nothing
+      If IsPossibleExpression() Then
+        argument1Expression = ParseExpression()
+      End If
+      If Current.Kind = SyntaxKind.CommaToken Then
+        commaToken1 = MatchToken(SyntaxKind.CommaToken)
+        If IsPossibleExpression() Then
+          argument2Expression = ParseExpression()
+        End If
+        If Current.Kind = SyntaxKind.CommaToken Then
+          commaToken2 = MatchToken(SyntaxKind.CommaToken)
+          argument3Expression = ParseExpression()
+        End If
+      End If
+      Return New ColorStatementSyntax(m_syntaxTree, colorKeyword, argument1Expression, commaToken1, argument2Expression, commaToken2, argument3Expression)
 
     End Function
 

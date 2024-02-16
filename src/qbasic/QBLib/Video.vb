@@ -1283,6 +1283,8 @@ Namespace Global.QBLib
 
     Friend Shared m_bgColor As Integer = 0
     Friend Shared m_fgColor As Integer = 7
+    Friend Shared m_borderColor As Integer = 0
+    Friend Shared m_paletteIndex As Integer = 0
 
     Public Shared Sub COLOR(fg%)
       m_fgColor = fg
@@ -1363,7 +1365,7 @@ Namespace Global.QBLib
 
 #Region "SCREEN (Statement)"
 
-    Private Shared m_mode As Integer = 0
+    Friend Shared m_mode As Integer = 0
 
     Public Shared Sub SCREEN(mode%, colr%, active%, visible%)
       If mode <> 0 OrElse colr <> 0 OrElse active <> 0 OrElse visible <> 0 Then

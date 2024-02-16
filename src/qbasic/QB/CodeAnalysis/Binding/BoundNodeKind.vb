@@ -13,6 +13,7 @@
     ChDirStatement
     ClearStatement
     ClsStatement
+    ColorStatement
     ConditionalGotoStatement
     DoUntilStatement
     DoWhileStatement

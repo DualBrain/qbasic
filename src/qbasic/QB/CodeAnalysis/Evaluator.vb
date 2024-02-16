@@ -86,13 +86,13 @@ Namespace Global.QB.CodeAnalysis
             Else
               Select Case value
                 Case 0 ' Clears the screen of all text and graphics
-                  QBLib.Video.PRINT()
+                  QBLib.Video.CLS()
                 Case 1 ' Clears only the graphics viewport
                   'TODO: Revisit after SCREEN, WIDTH, VIEW.
-                  QBLib.Video.PRINT()
+                  QBLib.Video.CLS()
                 Case 2 ' Clears only the text window
                   'TODO: Revisit after SCREEN, WIDTH, VIEW.
-                  QBLib.Video.PRINT()
+                  QBLib.Video.CLS()
               End Select
             End If
             index += 1

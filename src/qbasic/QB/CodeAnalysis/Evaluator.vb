@@ -103,20 +103,16 @@ Namespace Global.QB.CodeAnalysis
             Dim expression2 = If(cs.Expression2 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression2)))
             Dim expression3 = If(cs.Expression3 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression3)))
             Select Case QBLib.Video.m_mode
-              Case 0
-                'COLOR [foreground%] [,[background%] [,border%]]	Screen mode 0 (text only)
+              Case 0 'COLOR [foreground%] [,[background%] [,border%]]	Screen mode 0 (text only)
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
                 If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
                 If expression3 > -1 AndAlso expression3 < 16 Then QBLib.Video.m_borderColor = expression3
-              Case 1
-                'COLOR [background%] [,palette%]	Screen mode 1
+              Case 1 'COLOR [background%] [,palette%]	Screen mode 1
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_bgColor = expression1
                 If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_paletteIndex = expression2
-              Case 4, 12, 13
-                'COLOR [foreground%]	Screen modes 4, 12, 13
+              Case 4, 12, 13 'COLOR [foreground%]	Screen modes 4, 12, 13
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
-              Case 7, 8, 9, 10
-                'COLOR [foreground%] [,background&]	Screen modes 7-10
+              Case 7, 8, 9, 10 'COLOR [foreground%] [,background&]	Screen modes 7-10
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
                 If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
               Case Else

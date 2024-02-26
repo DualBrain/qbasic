@@ -11,8 +11,8 @@ Public Class Display
 
   'Private m_cursorColor As Integer = ConvertToARGB32(Colors.Gray)
 
-  Public Sub New(timer As System.Timers.Timer)
-    MyBase.New(timer)
+  Public Sub New() 'timer As System.Timers.Timer)
+    MyBase.New() 'Timer)
   End Sub
 
   'Public ReadOnly Property Bitmap As WriteableBitmap

@@ -6,8 +6,8 @@ Namespace Global.Basic
 
 #Region "State Machine"
 
-    Public Property HelpKeyword As String
-    Public Property FacebookTokens As List(Of Basic.Parser.Token)
+    'Public Property HelpKeyword As String
+    'Public Property FacebookTokens As List(Of Basic.Parser.Token)
 
     Public ReadOnly Property IsRunning As Boolean
       Get
@@ -15,23 +15,23 @@ Namespace Global.Basic
       End Get
     End Property
 
-    Public Property IsTrial As Boolean
-      Get
-        Return m_isTrial
-      End Get
-      Set(value As Boolean)
-        m_isTrial = value
-      End Set
-    End Property
+    'Public Property IsTrial As Boolean
+    '  Get
+    '    Return m_isTrial
+    '  End Get
+    '  Set(value As Boolean)
+    '    m_isTrial = value
+    '  End Set
+    'End Property
 
-    Public Property Speed As Short
-      Get
-        Return m_speed
-      End Get
-      Set(value As Short)
-        m_speed = value
-      End Set
-    End Property
+    'Public Property Speed As Short
+    '  Get
+    '    Return m_speed
+    '  End Get
+    '  Set(value As Short)
+    '    m_speed = value
+    '  End Set
+    'End Property
 
     Public Property CurrentPath As String
       Get
@@ -226,11 +226,11 @@ Namespace Global.Basic
       m_autoIncrement = 10
       m_autoModeActive = False
 
-      m_editLine = -1
+      'm_editLine = -1
 
-      m_listStartLine = -1
-      m_listEndLine = -1
-      m_listLineIndex = -1
+      'm_listStartLine = -1
+      'm_listEndLine = -1
+      'm_listLineIndex = -1
 
       m_display.Cls(-1)
       ResetDraw()
@@ -247,7 +247,7 @@ Namespace Global.Basic
 
     Private ReadOnly m_environ As New Dictionary(Of String, String)
 
-    Private ReadOnly m_dialect As Parser.Dialect = Parser.Dialect.Hybrid
+    'Private ReadOnly m_dialect As Parser.Dialect = Parser.Dialect.Hybrid
     Private ReadOnly m_reservedWords As New List(Of String)
 
     Private m_isTrial As Boolean = False
@@ -261,9 +261,9 @@ Namespace Global.Basic
     Private m_suppressOk As Boolean = False
 
     ' How many statements are executed per "game loop".
-    Private m_speed As Short '= 6
+    'Private m_speed As Short '= 6
 
-    Private ReadOnly m_productName As String = "hybrid basic"
+    'Private ReadOnly m_productName As String = "hybrid basic"
 
     Private m_debugSetVariables As Boolean = False
     Private m_debugGosub As Boolean = False
@@ -281,7 +281,7 @@ Namespace Global.Basic
                                                         New Printer.Printer("LPT2:"),
                                                         New Printer.Printer("LPT3:")}
 
-    Private ReadOnly m_gpio As IO.IGpio
+    'Private ReadOnly m_gpio As IO.IGpio
     Private ReadOnly m_environment As Environment.IEnvironment
     Private ReadOnly m_display As Display.Display ' Holds a reference to the display layer.
     Public ReadOnly Property Display As Display.Display
@@ -454,20 +454,20 @@ Namespace Global.Basic
     Private m_autoIncrement As Integer = 10
     Private m_autoModeActive As Boolean = False
 
-    Private m_editLine As Integer = -1
+    'Private m_editLine As Integer = -1
 
-    Private m_listStartLine As Integer = -1
-    Private m_listEndLine As Integer = -1
-    Private m_listLineIndex As Integer = -1
+    'Private m_listStartLine As Integer = -1
+    'Private m_listEndLine As Integer = -1
+    'Private m_listLineIndex As Integer = -1
 
 #End Region
 
-    Private WithEvents InternalTimer As System.Timers.Timer 'Timers.ITimer
+    'Private WithEvents InternalTimer As System.Timers.Timer 'Timers.ITimer
 
-    Public Event HelpHook As EventHandler
-    Public Event FacebookHook As EventHandler
+    'Public Event HelpHook As EventHandler
+    'Public Event FacebookHook As EventHandler
 
-    Public Event ListHook As EventHandler
+    'Public Event ListHook As EventHandler
 
     Public Event EndHook As EventHandler
     Public Event ErrorHook As EventHandler
@@ -476,11 +476,11 @@ Namespace Global.Basic
     Public Event TronHook As EventHandler
     Public Event TroffHook As EventHandler
 
-    Public Event NewHook As EventHandler
-    Public Event LoadHook As EventHandler
-    Public Event SaveHook As EventHandler
-    Public Event MergeHook As EventHandler
-    Public Event DeleteHook As EventHandler
+    'Public Event NewHook As EventHandler
+    'Public Event LoadHook As EventHandler
+    'Public Event SaveHook As EventHandler
+    'Public Event MergeHook As EventHandler
+    'Public Event DeleteHook As EventHandler
 
     Public Event SystemHook As EventHandler
 
@@ -522,6 +522,7 @@ Namespace Global.Basic
 
     Private Enum NumericType
       [Integer]
+      [Long]
       [Single]
       [Double]
     End Enum
@@ -582,17 +583,6 @@ Namespace Global.Basic
       Public Property Line As Integer
     End Class
 
-    '<Flags()>
-    'Private Enum HexCode
-    '  LeftShift = &H1
-    '  RightShift = &H2
-    '  Ctrl = &H4
-    '  Alt = &H8
-    '  NumLock = &H20
-    '  CapsLock = &H40
-    '  Extended = &H80
-    'End Enum
-
     Private Enum OnState
       [Off]
       [On]
@@ -608,54 +598,45 @@ Namespace Global.Basic
       End Sub
     End Class
 
-    Public Sub New(dialect As Parser.Dialect,
-                   environment As Environment.IEnvironment,
+    Public Sub New(environment As Environment.IEnvironment,
                    display As Display.Display,
-                   timer As System.Timers.Timer, 'Timers.ITimer,
                    virtualFileSystem As IO.IVirtualFileSystem,
                    sound As Audio.ISound,
                    keyboard As Input.IKeyboard,
-                   gpio As IO.IGpio,
-                   productName As String,
-                   speed As Short,
                    region As String)
 
-      m_dialect = dialect
+      'm_dialect = dialect
 
-      Dim d As Parser.IDialect = Nothing
-      Select Case dialect
-        Case Parser.Dialect.Hybrid
-          d = New Parser.Dialects.Hybrid
-        Case Parser.Dialect.GWBasic
-          d = New Parser.Dialects.GwBasic
-        Case Parser.Dialect.QBasic
-          d = New Parser.Dialects.Qbasic
-        Case Parser.Dialect.AmigaBasic
-          d = New Parser.Dialects.AmigaBasic
-        Case Parser.Dialect.TinyBasic
-          d = New Parser.Dialects.TinyBasic
-        Case Else
-          Throw New NotImplementedException(dialect.ToString)
-      End Select
+      'Dim d As Parser.IDialect = Nothing
+      'Select Case dialect
+      '  Case Parser.Dialect.Hybrid
+      '    d = New Parser.Dialects.Hybrid
+      '  Case Parser.Dialect.GWBasic
+      '    d = New Parser.Dialects.GwBasic
+      '  Case Parser.Dialect.QBasic
+      Dim d = New Parser.Dialects.Qbasic
+      '  Case Parser.Dialect.AmigaBasic
+      '    d = New Parser.Dialects.AmigaBasic
+      '  Case Parser.Dialect.TinyBasic
+      '    d = New Parser.Dialects.TinyBasic
+      '  Case Else
+      '    Throw New NotImplementedException(dialect.ToString)
+      'End Select
 
-      If d IsNot Nothing Then
-        For Each word In d.ReservedWords
-          m_reservedWords.Add(word)
-        Next
-      End If
+      'If d IsNot Nothing Then
+      For Each word In d.ReservedWords
+        m_reservedWords.Add(word)
+      Next
+      'End If
 
       m_environment = environment
       m_display = display
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-    m_virtualFileSystemAsync = Nothing
-#Else
       m_virtualFileSystem = virtualFileSystem
-#End If
       m_sound = sound
       m_keyboard = keyboard
-      m_gpio = gpio
-      m_productName = productName
-      m_speed = speed
+      'm_gpio = gpio
+      'm_productName = productName
+      'm_speed = Speed
 
       If m_virtualFileSystem IsNot Nothing Then
         m_currentPath = m_virtualFileSystem.InitialPath
@@ -670,12 +651,12 @@ Namespace Global.Basic
       'm_displayTimer.Interval = TimeSpan.Zero
 
       'If m_useDispatchTimer Then
-      InternalTimer = timer 'New Windows.Threading.DispatcherTimer()
-      Try
-        InternalTimer.Interval = 1 '1000
-      Catch ex As ArgumentOutOfRangeException ' Windows Timer
-        InternalTimer.Interval = 1
-      End Try
+      'InternalTimer = timer 'New Windows.Threading.DispatcherTimer()
+      'Try
+      '  InternalTimer.Interval = 1 '1000
+      'Catch ex As ArgumentOutOfRangeException ' Windows Timer
+      '  InternalTimer.Interval = 1
+      'End Try
       'Else
       'm_storyboardTimer = New Storyboard
       'm_storyboardTimer.Duration = TimeSpan.FromMilliseconds(0)
@@ -686,111 +667,79 @@ Namespace Global.Basic
       End If
 
       m_peek.Clear() ' = New Dictionary(Of Integer, Byte)
-      m_peek.Add(0, CByte(m_speed \ 4))
+      'm_peek.Add(0, CByte(m_speed \ 4))
 
       If m_region IsNot Nothing Then
       End If
 
     End Sub
 
-    Public Sub New(dialect As Parser.Dialect,
-                   environment As Environment.IEnvironment,
-                   display As Display.Display,
-                   virtualFileSystem As IO.IVirtualFileSystem,
-                   sound As Audio.ISound,
-                   keyboard As Input.IKeyboard,
-                   gpio As IO.IGpio,
-                   productName As String,
-                   speed As Short,
-                   region As String)
+    '    Public Sub New(dialect As Parser.Dialect,
+    '                   environment As Environment.IEnvironment,
+    '                   display As Display.Display,
+    '                   virtualFileSystem As IO.IVirtualFileSystem,
+    '                   sound As Audio.ISound,
+    '                   keyboard As Input.IKeyboard,
+    '                   gpio As IO.IGpio,
+    '                   productName As String,
+    '                   speed As Short,
+    '                   region As String)
 
-      m_dialect = dialect
+    '      m_dialect = dialect
 
-      Dim d As Parser.IDialect = Nothing
-      Select Case dialect
-        Case Parser.Dialect.Hybrid
-          d = New Parser.Dialects.Hybrid
-        Case Parser.Dialect.GWBasic
-          d = New Parser.Dialects.GwBasic
-        Case Parser.Dialect.QBasic
-          d = New Parser.Dialects.Qbasic
-        Case Parser.Dialect.AmigaBasic
-          d = New Parser.Dialects.AmigaBasic
-        Case Parser.Dialect.TinyBasic
-          d = New Parser.Dialects.TinyBasic
-        Case Else
-          Throw New NotImplementedException(dialect.ToString)
-      End Select
+    '      Dim d As Parser.IDialect = Nothing
+    '      Select Case dialect
+    '        Case Parser.Dialect.Hybrid
+    '          d = New Parser.Dialects.Hybrid
+    '        Case Parser.Dialect.GWBasic
+    '          d = New Parser.Dialects.GwBasic
+    '        Case Parser.Dialect.QBasic
+    '          d = New Parser.Dialects.Qbasic
+    '        Case Parser.Dialect.AmigaBasic
+    '          d = New Parser.Dialects.AmigaBasic
+    '        Case Parser.Dialect.TinyBasic
+    '          d = New Parser.Dialects.TinyBasic
+    '        Case Else
+    '          Throw New NotImplementedException(dialect.ToString)
+    '      End Select
 
-      If d IsNot Nothing Then
-        For Each word In d.ReservedWords
-          m_reservedWords.Add(word)
-        Next
-      End If
+    '      If d IsNot Nothing Then
+    '        For Each word In d.ReservedWords
+    '          m_reservedWords.Add(word)
+    '        Next
+    '      End If
 
-      m_environment = environment
-      m_display = display
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-    m_virtualFileSystemAsync = Nothing
-#Else
-      m_virtualFileSystem = virtualFileSystem
-#End If
-      m_sound = sound
-      m_keyboard = keyboard
-      m_gpio = gpio
-      m_productName = productName
-      m_speed = speed
+    '      m_environment = environment
+    '      m_display = display
+    '      m_virtualFileSystem = virtualFileSystem
+    '      m_sound = sound
+    '      m_keyboard = keyboard
+    '      m_gpio = gpio
+    '      m_productName = productName
+    '      m_speed = speed
 
-      If m_virtualFileSystem IsNot Nothing Then
-        m_currentPath = m_virtualFileSystem.InitialPath
-      End If
+    '      If m_virtualFileSystem IsNot Nothing Then
+    '        m_currentPath = m_virtualFileSystem.InitialPath
+    '      End If
 
-      'InternalTimer = Timer 'New Windows.Threading.DispatcherTimer()
-      'Try
-      '  InternalTimer.Interval = 0 '1000
-      'Catch ex As ArgumentOutOfRangeException ' Windows Timer
-      '  InternalTimer.Interval = 1
-      'End Try
+    '      'InternalTimer = Timer 'New Windows.Threading.DispatcherTimer()
+    '      'Try
+    '      '  InternalTimer.Interval = 0 '1000
+    '      'Catch ex As ArgumentOutOfRangeException ' Windows Timer
+    '      '  InternalTimer.Interval = 1
+    '      'End Try
 
-      If region IsNot Nothing Then
-        m_region = region
-      End If
+    '      If region IsNot Nothing Then
+    '        m_region = region
+    '      End If
 
-      m_peek.Clear() ' = New Dictionary(Of Integer, Byte)
-      m_peek.Add(0, CByte(m_speed \ 4))
+    '      m_peek.Clear() ' = New Dictionary(Of Integer, Byte)
+    '      m_peek.Add(0, CByte(m_speed \ 4))
 
-      If m_region IsNot Nothing Then
-      End If
+    '      If m_region IsNot Nothing Then
+    '      End If
 
-    End Sub
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Public Sub New(ByVal display As Display, ByVal timer As ITimer, ByVal virtualFileSystem As IVirtualFileSystemAsync, ByVal sound As ISound, ByVal productName As String)
-
-    m_display = display
-    m_virtualFileSystemAsync = virtualFileSystem
-    m_virtualFileSystem = Nothing
-    m_sound = sound
-    m_productName = productName
-
-    'm_display.ShowVisualQueues = True
-
-    'm_keyTimer = New Windows.Threading.DispatcherTimer()
-    'm_keyTimer.Interval = TimeSpan.Zero
-
-    'm_displayTimer = New Windows.Threading.DispatcherTimer()
-    'm_displayTimer.Interval = TimeSpan.Zero
-
-    'If m_useDispatchTimer Then
-    m_timer = timer 'New Windows.Threading.DispatcherTimer()
-    m_timer.Interval = 0 '1000
-    'Else
-    'm_storyboardTimer = New Storyboard
-    'm_storyboardTimer.Duration = TimeSpan.FromMilliseconds(0)
-    'End If
-
-  End Sub
-#End If
+    '    End Sub
 
     Public ReadOnly Property Printers(index As Integer) As Printer.Printer
       Get
@@ -830,9 +779,9 @@ Namespace Global.Basic
 
       For Each textRow In textLines
 
-        If Me.m_dialect = Parser.Dialect.GWBasic Then
-          textRow = textRow.Trim ' Trim since we don't want any white space before the line number.
-        End If
+        'If Me.m_dialect = Parser.Dialect.GWBasic Then
+        '  textRow = textRow.Trim ' Trim since we don't want any white space before the line number.
+        'End If
 
         'If Not String.IsNullOrEmpty(textRow) Then
 
@@ -841,7 +790,7 @@ Namespace Global.Basic
           s.Write(buffer, 0, buffer.Length)
           s.Seek(0, System.IO.SeekOrigin.Begin)
           ' Parse command.
-          Dim parse As New Parser.Parser(s, m_dialect)
+          Dim parse As New Parser.Parser(s)
           m_lines.Add(parse.Lines(0))
         End Using
 
@@ -851,22 +800,22 @@ Namespace Global.Basic
 
     End Sub
 
-    Private m_tickBusy As Boolean
+    'Private m_tickBusy As Boolean
 
-    Private Sub InternalTimer_Tick(sender As Object, e As System.EventArgs) Handles InternalTimer.Elapsed
+    'Private Sub InternalTimer_Tick(sender As Object, e As System.EventArgs) Handles InternalTimer.Elapsed
 
-      If m_tickBusy Then
-        Return
-      End If
+    '  If m_tickBusy Then
+    '    Return
+    '  End If
 
-      Try
-        m_tickBusy = True
-        ProcessInterpreter()
-      Finally
-        m_tickBusy = False
-      End Try
+    '  Try
+    '    m_tickBusy = True
+    '    ProcessInterpreter()
+    '  Finally
+    '    m_tickBusy = False
+    '  End Try
 
-    End Sub
+    'End Sub
 
     'Private Sub m_storyboardTimer_Tick(sender As Object, e As System.EventArgs) Handles m_storyboardTimer.Completed
     '  For index As Short = 1 To 100
@@ -937,24 +886,24 @@ Namespace Global.Basic
           If m_display.Pos(0) > 1 Then
             m_display.Print()
           End If
-          If Me.m_dialect = Parser.Dialect.GWBasic Then
-            If m_interpreter(m_interpreterIndex).LineNumber IsNot Nothing Then
-              m_display.Print(String.Format("Break in {0}", m_interpreter(m_interpreterIndex).LineNumber), True)
-              m_contIndex = m_interpreterIndex
-            Else
-              m_contIndex = -1
-              m_display.Print("Break", True)
-            End If
-          Else
-            m_contIndex = -1
-            m_display.Print("Break", True)
-          End If
+          'If Me.m_dialect = Parser.Dialect.GWBasic Then
+          '  If m_interpreter(m_interpreterIndex).LineNumber IsNot Nothing Then
+          '    m_display.Print(String.Format("Break in {0}", m_interpreter(m_interpreterIndex).LineNumber), True)
+          '    m_contIndex = m_interpreterIndex
+          '  Else
+          '    m_contIndex = -1
+          '    m_display.Print("Break", True)
+          '  End If
+          'Else
+          m_contIndex = -1
+          m_display.Print("Break", True)
+          'End If
           'End If
 
-          If Me.m_dialect = Parser.Dialect.GWBasic Then
-          Else
-            RaiseEvent EndHook(Me, EventArgs.Empty)
-          End If
+          'If Me.m_dialect = Parser.Dialect.GWBasic Then
+          'Else
+          RaiseEvent EndHook(Me, EventArgs.Empty)
+          'End If
 
         ElseIf m_waiting Then
           m_keyBuffer.Add(New KeyAction(e, pressing))
@@ -1462,259 +1411,259 @@ Namespace Global.Basic
 
     Public Sub ProcessInterpreter()
 
-      For iteration As Short = 1 To m_speed
+      'For iteration As Short = 1 To m_speed
 
-        ' Will be executing each line in the source file until either:
-        '  a) reach an END statement.
-        '  b) reach an inferred END statement (last line of code).
-        '  c) reach a STOP statement.
-        '  d) CTRL+C executed.
+      ' Will be executing each line in the source file until either:
+      '  a) reach an END statement.
+      '  b) reach an inferred END statement (last line of code).
+      '  c) reach a STOP statement.
+      '  d) CTRL+C executed.
 
-        ' Checks to see if there is a pending shutdown before executing each statement.
-        If m_shutDown Then
-          InternalShutdown()
-        End If
+      ' Checks to see if there is a pending shutdown before executing each statement.
+      If m_shutDown Then
+        InternalShutdown()
+      End If
 
-        If m_running AndAlso Not m_waiting Then
+      If m_running AndAlso Not m_waiting Then
 
-          ' Are we in the process of "listing" to the screen. (GW-BASIC)
-          If m_listLineIndex > -1 Then
+        ' Are we in the process of "listing" to the screen. (GW-BASIC)
+        If False Then 'm_listLineIndex > -1 Then
 
-            m_running = ContinueList()
+          'm_running = ContinueList()
 
-            If Not m_running Then
-              InternalPrompt()
+          'If Not m_running Then
+          '  InternalPrompt()
+          'End If
+
+          'Exit For
+
+        Else
+
+          ' Do we have a PEN (ON PEN GOSUB n) active?
+          If Me.m_onPenState = OnState.On AndAlso
+           m_onPenActivated AndAlso
+           m_interpreter.Count > 1 Then
+
+            m_onPenActivated = False
+
+            If m_onPenLineOrLabel IsNot Nothing Then
+              m_sleepUntil = New Date?
+              ' Setup gosub...
+              SetReturnPosition()
+              GotoLabelOrLineNumber(m_onPenLineOrLabel)
+              SetSubEntryPosition()
             End If
 
-            Exit For
+          End If
+
+          ' Do we have a TIMER (ON TIMER GOSUB n) active?
+          If Me.m_onTimerState = OnState.On AndAlso
+           m_interpreter.Count > 1 Then 'm_interpreter(0).LineNumber IsNot Nothing Then
+
+            If Date.Now > m_onTimerTime Then
+
+              m_sleepUntil = New Date?
+
+              ' Prepare for next event...
+              m_onTimerTime = Date.Now.AddSeconds(m_onTimerInterval)
+
+              ' Setup gosub...
+              SetReturnPosition()
+              GotoLabelOrLineNumber(m_onTimerLine.ToString)
+              SetSubEntryPosition()
+
+            End If
+
+          End If
+
+          If m_interpreter.Count > 0 AndAlso m_interpreter.Count > 1 Then 'm_interpreter(0).LineNumber IsNot Nothing Then
+
+            For index As Integer = 0 To 19
+
+              If Me.m_onKey(index).State = OnState.On AndAlso
+               m_onKey(index).Line > 0 AndAlso
+               m_hexCodeScanCodeBuffer.Count > 1 AndAlso
+               m_onKey(index).HexCodeScanCode IsNot Nothing Then
+
+                If m_onKey(index).HexCodeScanCode(0) = m_hexCodeScanCodeBuffer(0) AndAlso
+                 m_onKey(index).HexCodeScanCode(1) = m_hexCodeScanCodeBuffer(1) Then
+
+                  m_sleepUntil = New Date?
+
+                  ' Remove key...
+                  m_hexCodeScanCodeBuffer.RemoveAt(0)
+                  m_hexCodeScanCodeBuffer.RemoveAt(0)
+
+                  ' Prepare GOSUB.
+                  SetReturnPosition()
+                  GotoLabelOrLineNumber(m_onKey(index).Line.ToString)
+                  SetSubEntryPosition()
+
+                End If
+
+              End If
+
+            Next
+
+            If m_hexCodeScanCodeBuffer.Count > 1 Then
+              ' Key was not consumed... throw away.
+              m_hexCodeScanCodeBuffer.RemoveAt(0)
+              m_hexCodeScanCodeBuffer.RemoveAt(0)
+            End If
+
+          End If
+
+          If m_sleepUntil IsNot Nothing Then
+
+            'If m_sleepUntil = DateTime.MaxValue Then
+            '  ' Keep sleeping...
+            'Else
+            If Date.Now > m_sleepUntil Then
+              m_sleepUntil = New Date?
+              'Else
+              '  Exit For
+            End If
+
+            If m_keyBuffer.Count > 0 OrElse
+             m_characterBuffer.Count > 0 OrElse
+             m_hexCodeScanCodeBuffer.Count > 0 Then
+              m_sleepUntil = New Date?
+            Else
+              Return 'Exit For
+            End If
+
+          End If
+
+          If PeekToken() Is Nothing AndAlso
+           Not m_waiting AndAlso
+           Not m_continueInputDollar AndAlso
+           Not m_continueInput AndAlso
+           Not m_continueInputRandomize AndAlso
+           Not m_continueLineInput Then
+            PopStatement()
+          Else
+            ' Haven't finished the current statement...
+          End If
+
+          If m_interpreterIndex > m_interpreter.Count - 1 Then
+
+            ' End of program.
+
+            m_running = False
+            m_contIndex = -1
+            m_continueInputDollar = False
+            m_continueInput = False
+            m_continueInputRandomize = False
+            m_continueLineInput = False
+
+            If Not m_autoModeActive Then
+              'If Me.m_dialect = Parser.Dialect.GWBasic Then
+              '  InternalPrompt()
+              'Else
+              RaiseEvent EndHook(Me, EventArgs.Empty)
+              'End If
+            End If
 
           Else
 
-            ' Do we have a PEN (ON PEN GOSUB n) active?
-            If Me.m_onPenState = OnState.On AndAlso
-             m_onPenActivated AndAlso
-             m_interpreter.Count > 1 Then
+            If m_continueInputDollar Then
 
-              m_onPenActivated = False
-
-              If m_onPenLineOrLabel IsNot Nothing Then
-                m_sleepUntil = New Date?
-                ' Setup gosub...
-                SetReturnPosition()
-                GotoLabelOrLineNumber(m_onPenLineOrLabel)
-                SetSubEntryPosition()
-              End If
-
-            End If
-
-            ' Do we have a TIMER (ON TIMER GOSUB n) active?
-            If Me.m_onTimerState = OnState.On AndAlso
-             m_interpreter.Count > 1 Then 'm_interpreter(0).LineNumber IsNot Nothing Then
-
-              If Date.Now > m_onTimerTime Then
-
-                m_sleepUntil = New Date?
-
-                ' Prepare for next event...
-                m_onTimerTime = Date.Now.AddSeconds(m_onTimerInterval)
-
-                ' Setup gosub...
-                SetReturnPosition()
-                GotoLabelOrLineNumber(m_onTimerLine.ToString)
-                SetSubEntryPosition()
-
-              End If
-
-            End If
-
-            If m_interpreter.Count > 0 AndAlso m_interpreter.Count > 1 Then 'm_interpreter(0).LineNumber IsNot Nothing Then
-
-              For index As Integer = 0 To 19
-
-                If Me.m_onKey(index).State = OnState.On AndAlso
-                 m_onKey(index).Line > 0 AndAlso
-                 m_hexCodeScanCodeBuffer.Count > 1 AndAlso
-                 m_onKey(index).HexCodeScanCode IsNot Nothing Then
-
-                  If m_onKey(index).HexCodeScanCode(0) = m_hexCodeScanCodeBuffer(0) AndAlso
-                   m_onKey(index).HexCodeScanCode(1) = m_hexCodeScanCodeBuffer(1) Then
-
-                    m_sleepUntil = New Date?
-
-                    ' Remove key...
-                    m_hexCodeScanCodeBuffer.RemoveAt(0)
-                    m_hexCodeScanCodeBuffer.RemoveAt(0)
-
-                    ' Prepare GOSUB.
-                    SetReturnPosition()
-                    GotoLabelOrLineNumber(m_onKey(index).Line.ToString)
-                    SetSubEntryPosition()
-
-                  End If
-
-                End If
-
-              Next
-
-              If m_hexCodeScanCodeBuffer.Count > 1 Then
-                ' Key was not consumed... throw away.
-                m_hexCodeScanCodeBuffer.RemoveAt(0)
-                m_hexCodeScanCodeBuffer.RemoveAt(0)
-              End If
-
-            End If
-
-            If m_sleepUntil IsNot Nothing Then
-
-              'If m_sleepUntil = DateTime.MaxValue Then
-              '  ' Keep sleeping...
-              'Else
-              If Date.Now > m_sleepUntil Then
-                m_sleepUntil = New Date?
-                'Else
-                '  Exit For
-              End If
-
-              If m_keyBuffer.Count > 0 OrElse
-               m_characterBuffer.Count > 0 OrElse
-               m_hexCodeScanCodeBuffer.Count > 0 Then
-                m_sleepUntil = New Date?
-              Else
-                Exit For
-              End If
-
-            End If
-
-            If PeekToken() Is Nothing AndAlso
-             Not m_waiting AndAlso
-             Not m_continueInputDollar AndAlso
-             Not m_continueInput AndAlso
-             Not m_continueInputRandomize AndAlso
-             Not m_continueLineInput Then
-              PopStatement()
-            Else
-              ' Haven't finished the current statement...
-            End If
-
-            If m_interpreterIndex > m_interpreter.Count - 1 Then
-
-              ' End of program.
-
-              m_running = False
-              m_contIndex = -1
+              ' Need to pick up where we left off.
               m_continueInputDollar = False
-              m_continueInput = False
-              m_continueInputRandomize = False
-              m_continueLineInput = False
+              m_running = ContinueExecuteInputDollar()
 
-              If Not m_autoModeActive Then
-                If Me.m_dialect = Parser.Dialect.GWBasic Then
-                  InternalPrompt()
-                Else
-                  RaiseEvent EndHook(Me, EventArgs.Empty)
-                End If
-              End If
+            ElseIf m_continueInput Then
+
+              ' Need to pick up where we left off.
+              m_continueInput = False
+              m_running = ContinueExecuteInput()
+
+            ElseIf m_continueLineInput Then
+
+              ' Need to pick up where we left off.
+              m_continueLineInput = False
+              m_running = ContinueExecuteLineInput()
+
+            ElseIf m_continueInputRandomize Then
+
+              ' Need to pick up where we left off.
+              m_continueInputRandomize = False
+              m_running = ContinueExecuteInputRandomize()
 
             Else
 
-              If m_continueInputDollar Then
+              Trace()
 
-                ' Need to pick up where we left off.
-                m_continueInputDollar = False
-                m_running = ContinueExecuteInputDollar()
+              m_running = ExecuteStatement()
 
-              ElseIf m_continueInput Then
+            End If
 
-                ' Need to pick up where we left off.
-                m_continueInput = False
-                m_running = ContinueExecuteInput()
+            If m_running Then
 
-              ElseIf m_continueLineInput Then
+              ' Used to have event stuff here... moved up...
 
-                ' Need to pick up where we left off.
-                m_continueLineInput = False
-                m_running = ContinueExecuteLineInput()
+            Else
 
-              ElseIf m_continueInputRandomize Then
-
-                ' Need to pick up where we left off.
-                m_continueInputRandomize = False
-                m_running = ContinueExecuteInputRandomize()
-
+              If m_suppressOk Then
+                m_suppressOk = False
               Else
-
-                Trace()
-
-                m_running = ExecuteStatement()
-
-              End If
-
-              If m_running Then
-
-                ' Used to have event stuff here... moved up...
-
-              Else
-
-                If m_suppressOk Then
-                  m_suppressOk = False
-                Else
-                  If Not m_autoModeActive Then
-                    If Me.m_dialect = Parser.Dialect.GWBasic Then
-                      InternalPrompt()
-                    Else
-                      RaiseEvent EndHook(Me, EventArgs.Empty)
-                    End If
-                  End If
+                If Not m_autoModeActive Then
+                  'If Me.m_dialect = Parser.Dialect.GWBasic Then
+                  '  InternalPrompt()
+                  'Else
+                  RaiseEvent EndHook(Me, EventArgs.Empty)
+                  'End If
                 End If
-
               End If
 
             End If
 
           End If
 
-        Else
-
-          m_continueInputDollar = False
-          m_continueInput = False
-          m_continueInputRandomize = False
-          m_continueLineInput = False
-
         End If
 
-        If 1 = 1 Then
+      Else
 
-          m_display.CursorVisible = Not m_running OrElse
-                                  m_continueInputDollar OrElse
-                                  m_continueInput OrElse
-                                  m_continueInputRandomize OrElse
-                                  m_continueLineInput
+        m_continueInputDollar = False
+        m_continueInput = False
+        m_continueInputRandomize = False
+        m_continueLineInput = False
 
-        End If
+      End If
 
-        If Not m_running Then Exit For
+      If 1 = 1 Then
 
-        If m_forcedInvalidate AndAlso
-         m_running AndAlso
-         m_display.IsInvalidated Then
-          Exit For
-        End If
+        m_display.CursorVisible = Not m_running OrElse
+                                m_continueInputDollar OrElse
+                                m_continueInput OrElse
+                                m_continueInputRandomize OrElse
+                                m_continueLineInput
 
-      Next
+      End If
+
+      '  If Not m_running Then Exit For
+
+      '  If m_forcedInvalidate AndAlso
+      '   m_running AndAlso
+      '   m_display.IsInvalidated Then
+      '    Exit For
+      '  End If
+
+      'Next
 
     End Sub
 
     Private Sub Trace()
 
-      If Me.m_dialect = Parser.Dialect.GWBasic Then
-        If m_tron AndAlso
-         m_interpreter(m_interpreterIndex).LineNumber IsNot Nothing AndAlso
-         m_statementIndex = 0 AndAlso m_tokenIndex = 0 Then
-          m_display.Print(String.Format("[{0}]", m_interpreter(m_interpreterIndex).LineNumber), False)
-        End If
-      Else
-        'TODO: Implement TRACE eventing for Amiga or QBasic.
-      End If
+      'If Me.m_dialect = Parser.Dialect.GWBasic Then
+      '  If m_tron AndAlso
+      '   m_interpreter(m_interpreterIndex).LineNumber IsNot Nothing AndAlso
+      '   m_statementIndex = 0 AndAlso m_tokenIndex = 0 Then
+      '    m_display.Print(String.Format("[{0}]", m_interpreter(m_interpreterIndex).LineNumber), False)
+      '  End If
+      'Else
+      '  'TODO: Implement TRACE eventing for Amiga or QBasic.
+      'End If
 
     End Sub
 
@@ -1767,106 +1716,106 @@ Namespace Global.Basic
         s.Seek(0, System.IO.SeekOrigin.Begin)
 
         ' Parse command.
-        Dim parse As New Parser.Parser(s, m_dialect)
+        Dim parse As New Parser.Parser(s)
 
         'Dim printOK As Boolean = True
 
         If parse.Lines.Count > 0 Then
 
-          If Me.m_dialect = Parser.Dialect.GWBasic Then
+          'If Me.m_dialect = Parser.Dialect.GWBasic Then
 
-            ' GW-BASIC's interactive mode and "editor" are combined.
+          '  ' GW-BASIC's interactive mode and "editor" are combined.
 
-            If parse.Lines(0).LineNumber Is Nothing Then
+          '  If parse.Lines(0).LineNumber Is Nothing Then
 
-              'Dim tp As New TokenProcessor(parse.Lines(0).Statements(0).Tokens)
+          '    'Dim tp As New TokenProcessor(parse.Lines(0).Statements(0).Tokens)
 
-              m_interpreter.Clear()
-              m_interpreter.Add(parse.Lines(0).Copy)
-              m_interpreterIndex = 0
-              m_statementIndex = 0
-              m_tokenIndex = 0
-              m_running = True
-              'ExecuteLine() 'tp)
+          '    m_interpreter.Clear()
+          '    m_interpreter.Add(parse.Lines(0).Copy)
+          '    m_interpreterIndex = 0
+          '    m_statementIndex = 0
+          '    m_tokenIndex = 0
+          '    m_running = True
+          '    'ExecuteLine() 'tp)
 
-            Else
-              ' Has a line number, will update the program list accordingly.
-              ' Because it is an line entry, do not print the OK prompt.
+          '  Else
+          '    ' Has a line number, will update the program list accordingly.
+          '    ' Because it is an line entry, do not print the OK prompt.
 
-              If m_pendingNew Then
-                m_lines.Clear()
-                m_pendingNew = False
-              End If
+          '    If m_pendingNew Then
+          '      m_lines.Clear()
+          '      m_pendingNew = False
+          '    End If
 
-              If Not CInt(parse.Lines(0).LineNumber).Between(0, 65529) Then
-                m_display.Print("Syntax error", True)
-                InternalPrompt()
-              Else
+          '    If Not CInt(parse.Lines(0).LineNumber).Between(0, 65529) Then
+          '      m_display.Print("Syntax error", True)
+          '      InternalPrompt()
+          '    Else
 
-                ' see if the current line exists.
-                '   if so, update or delete it.
-                '   else add it.
+          '      ' see if the current line exists.
+          '      '   if so, update or delete it.
+          '      '   else add it.
 
-                m_contIndex = -1
+          '      m_contIndex = -1
 
-                InsertUpdateSourceLine(parse.Lines(0))
+          '      InsertUpdateSourceLine(parse.Lines(0))
 
-                'Dim existingIndex As Integer = -1
+          '      'Dim existingIndex As Integer = -1
 
-                'For index As Integer = 0 To m_lines.Count - 1
-                '  If m_lines(index).LineNumber = parse.Lines(0).LineNumber Then
-                '    existingIndex = index
-                '    Exit For
-                '  End If
-                'Next
+          '      'For index As Integer = 0 To m_lines.Count - 1
+          '      '  If m_lines(index).LineNumber = parse.Lines(0).LineNumber Then
+          '      '    existingIndex = index
+          '      '    Exit For
+          '      '  End If
+          '      'Next
 
-                'If existingIndex > -1 Then
+          '      'If existingIndex > -1 Then
 
-                '  If parse.Lines(0).Statements.Count = 0 Then
-                '    m_lines.RemoveAt(existingIndex)
-                '  Else
-                '    m_lines(existingIndex) = parse.Lines(0)
-                '  End If
+          '      '  If parse.Lines(0).Statements.Count = 0 Then
+          '      '    m_lines.RemoveAt(existingIndex)
+          '      '  Else
+          '      '    m_lines(existingIndex) = parse.Lines(0)
+          '      '  End If
 
-                'Else
-                '  ' Need to find where to insert it at in order to keep the list sorted.
-                '  Dim inserted As Boolean = False
-                '  For index As Integer = 0 To m_lines.Count - 1
-                '    If m_lines(index).LineNumber > parse.Lines(0).LineNumber Then
-                '      m_lines.Insert(If(index = 0, 0, index - 1), parse.Lines(0))
-                '      inserted = True
-                '      Exit For
-                '    End If
-                '  Next
-                '  If Not inserted Then
-                '    ' Add
-                '    m_lines.Add(parse.Lines(0))
-                '  End If
-                'End If
+          '      'Else
+          '      '  ' Need to find where to insert it at in order to keep the list sorted.
+          '      '  Dim inserted As Boolean = False
+          '      '  For index As Integer = 0 To m_lines.Count - 1
+          '      '    If m_lines(index).LineNumber > parse.Lines(0).LineNumber Then
+          '      '      m_lines.Insert(If(index = 0, 0, index - 1), parse.Lines(0))
+          '      '      inserted = True
+          '      '      Exit For
+          '      '    End If
+          '      '  Next
+          '      '  If Not inserted Then
+          '      '    ' Add
+          '      '    m_lines.Add(parse.Lines(0))
+          '      '  End If
+          '      'End If
 
-                m_autoStart = CInt(parse.Lines(0).LineNumber)
+          '      m_autoStart = CInt(parse.Lines(0).LineNumber)
 
-                'printOK = False
+          '      'printOK = False
 
-              End If
-            End If
+          '    End If
+          '  End If
 
+          'Else
+
+          ' One line "interactive" mode (only) (Amiga, QBasic)
+
+          If parse.Lines(0).LineNumber Is Nothing Then
+            m_interpreter.Clear()
+            m_interpreter.Add(parse.Lines(0).Copy)
+            m_interpreterIndex = 0
+            m_statementIndex = 0
+            m_tokenIndex = 0
+            m_running = True
           Else
-
-            ' One line "interactive" mode (only) (Amiga, QBasic)
-
-            If parse.Lines(0).LineNumber Is Nothing Then
-              m_interpreter.Clear()
-              m_interpreter.Add(parse.Lines(0).Copy)
-              m_interpreterIndex = 0
-              m_statementIndex = 0
-              m_tokenIndex = 0
-              m_running = True
-            Else
-              m_running = ThrowBasicError(BasicError.SyntaxError)
-            End If
-
+            m_running = ThrowBasicError(BasicError.SyntaxError)
           End If
+
+          'End If
 
         Else
           m_display.Print("Nothing?", True)
@@ -2069,9 +2018,9 @@ Namespace Global.Basic
 
       If lineNumber > 0 Then
         m_erl = lineNumber
-      ElseIf Me.m_dialect = Parser.Dialect.GWBasic AndAlso
-           m_interpreter(interpreterIndex).LineNumber Is Nothing Then
-        m_erl = 65535 ' Direct mode.
+        'ElseIf Me.m_dialect = Parser.Dialect.GWBasic AndAlso
+        '       m_interpreter(interpreterIndex).LineNumber Is Nothing Then
+        '  m_erl = 65535 ' Direct mode.
       Else
 
         'ElseIf m_dialect = Parser.Dialect.AmigaBasic Then
@@ -2126,11 +2075,11 @@ Namespace Global.Basic
           'End If
 
           If m_erl = 0 Then
-            If Me.m_dialect = Parser.Dialect.QBasic Then
-              m_erl = 65529
-            ElseIf Me.m_dialect = Parser.Dialect.AmigaBasic Then
-              m_erl = 65535
-            End If
+            'If Me.m_dialect = Parser.Dialect.QBasic Then
+            '  m_erl = 65529 
+            'ElseIf Me.m_dialect = Parser.Dialect.AmigaBasic Then
+            '  m_erl = 65535
+            'End If
           End If
 
           m_onErrorResumeInterpreterIndex = interpreterIndex
@@ -2163,11 +2112,11 @@ Namespace Global.Basic
         End If
 
       Else
-        If Me.m_dialect = Parser.Dialect.GWBasic Then
-          m_display.Print(message, True)
-        Else
-          m_display.Print(String.Format("{0} line {1}", message, m_interpreterIndex + 1), True)
-        End If
+        'If Me.m_dialect = Parser.Dialect.GWBasic Then
+        '  m_display.Print(message, True)
+        'Else
+        m_display.Print(String.Format("{0} line {1}", message, m_interpreterIndex + 1), True)
+        'End If
       End If
 
       Return False
@@ -2186,8 +2135,9 @@ Namespace Global.Basic
 
     Public Sub InternalShutdown()
       'If m_useDispatchTimer Then
-      InternalTimer.Stop()
-      InternalTimer = Nothing
+      's_cancelTokenSource.Cancel()
+      'InternalTimer.Stop()
+      'InternalTimer = Nothing
       'Else
       '  m_storyboardTimer.Stop()
       '  m_storyboardTimer = Nothing
@@ -3320,23 +3270,23 @@ Namespace Global.Basic
 
         Select Case KeywordToKeywordLookup(keyword)
 
-          Case KeywordLookup.DIGITALREAD
+          'Case KeywordLookup.DIGITALREAD
 
-            PopToken()
-            If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
-            Dim pin As Short
-            If Not ExecuteExpression(pin) Then Return False
-            If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
+          '  PopToken()
+          '  If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
+          '  Dim pin As Short
+          '  If Not ExecuteExpression(pin) Then Return False
+          '  If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
 
-            If m_gpio Is Nothing Then
-              Return ThrowBasicError(BasicError.AdvancedFeature)
-            ElseIf Not m_gpio.IsAvailable Then
-              Return ThrowBasicError(BasicError.AdvancedFeature)
-            End If
+          '  If m_gpio Is Nothing Then
+          '    Return ThrowBasicError(BasicError.AdvancedFeature)
+          '  ElseIf Not m_gpio.IsAvailable Then
+          '    Return ThrowBasicError(BasicError.AdvancedFeature)
+          '  End If
 
-            Dim value = m_gpio.DigitalRead(pin)
+          '  Dim value = m_gpio.DigitalRead(pin)
 
-            result = value
+          '  result = value
 
           Case KeywordLookup.PEN
             PopToken()
@@ -3585,21 +3535,21 @@ Namespace Global.Basic
         '  result = 0.0
         'End Try
 
-          Case KeywordLookup.SGN
+          'Case KeywordLookup.SGN
 
-            PopToken()
-            If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
-            Dim num1 As Double
-            If Not ExecuteExpression(num1) Then Return False
-            If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
+          '  PopToken()
+          '  If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
+          '  Dim num1 As Double
+          '  If Not ExecuteExpression(num1) Then Return False
+          '  If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
 
-            If num1 > 0.0 Then
-              result = 1.0
-            ElseIf num1 = 0.0 Then
-              result = 0.0
-            Else
-              result = -1.0
-            End If
+          '  If num1 > 0.0 Then
+          '    result = 1.0
+          '  ElseIf num1 = 0.0 Then
+          '    result = 0.0
+          '  Else
+          '    result = -1.0
+          '  End If
 
           Case KeywordLookup.SIN
 
@@ -3641,20 +3591,20 @@ Namespace Global.Basic
 
             result = Math.Atan(num1).ToBasicSng
 
-          Case KeywordLookup.EXTERR
+          'Case KeywordLookup.EXTERR
 
-            PopToken()
-            If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
-            Dim num1 As Short
-            If Not ExecuteExpression(num1) Then Return False
-            If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
+          '  PopToken()
+          '  If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
+          '  Dim num1 As Short
+          '  If Not ExecuteExpression(num1) Then Return False
+          '  If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
 
-            If num1.Between(0, 3) Then
-              'NOTE: For now, return 0.
-              result = 0
-            Else
-              Return ThrowBasicError(BasicError.IllegalFunctionCall)
-            End If
+          '  If num1.Between(0, 3) Then
+          '    'NOTE: For now, return 0.
+          '    result = 0
+          '  Else
+          '    Return ThrowBasicError(BasicError.IllegalFunctionCall)
+          '  End If
 
           Case KeywordLookup.EXP
 
@@ -4755,7 +4705,7 @@ dimension As Short,
 
     Private Enum KeywordLookup
 
-      AUTO
+      'AUTO
       BEEP
       BLOAD
       BSAVE
@@ -4776,26 +4726,26 @@ dimension As Short,
       DEFINT
       DEFSNG
       DEFSTR
-      DELAY
-      DELETE
-      DIGITALREAD
-      DIGITALWRITE
+      'DELAY
+      'DELETE
+      'DIGITALREAD
+      'DIGITALWRITE
       [DIM]
       DRAW
-      EDIT
+      'EDIT
       [ELSE]
       [END]
       [ERASE]
       ENVIRON
       [ERROR]
-      FACEBOOK
+      'FACEBOOK
       FIELD
       FILES
       [FOR]
       [GET]
       [GOSUB]
       [GOTO]
-      HELP
+      'HELP
       [IF]
       INPUT
       IOCTL
@@ -4803,17 +4753,17 @@ dimension As Short,
       KILL
       [LET]
       LINE
-      LIST
-      LLIST
-      LOAD
+      'LIST
+      'LLIST
+      'LOAD
       LOCATE
       LOCK
       LSET
-      MERGE
+      'MERGE
       MIDS
       MKDIR
       NAME
-      [NEW]
+      '[NEW]
       [NEXT]
       [ON]
       OPEN
@@ -4823,7 +4773,7 @@ dimension As Short,
       PALETTE
       PCOPY
       PEN
-      PINMODE
+      'PINMODE
       PLAY
       POINT
       POKE
@@ -4835,7 +4785,7 @@ dimension As Short,
       RANDOMIZE
       READ
       [REM]
-      RENUM
+      'RENUM
       RESET
       RESTORE
       [RESUME]
@@ -4843,7 +4793,7 @@ dimension As Short,
       RMDIR
       RSET
       RUN
-      SAVE
+      'SAVE
       SCREEN
       SHELL
       SLEEP
@@ -4864,10 +4814,10 @@ dimension As Short,
       WINDOW
       WRITE
 
-      OLD
-      PARSER
-      VER
-      KEYWORDS
+      'OLD
+      'PARSER
+      'VER
+      'KEYWORDS
 
       'String Functions...
 
@@ -4908,13 +4858,13 @@ dimension As Short,
       SQR
       FIX
       VAL
-      SGN
+      'SGN
       SIN
       COS
       TAN
       ATN
-      EXTERR
-      EXP
+      'EXTERR
+      'EXP
       LOG
       EOF
       LOC
@@ -4940,6 +4890,50 @@ dimension As Short,
       ERL
       ERDEV
 
+      ' Recently added... TODO:
+
+      BASE
+      [CASE]
+      COM
+      [DECLARE]
+      DEFLNG
+      [DO]
+      [EXIT]
+      [FUNCTION]
+      [LOOP]
+      OFF
+      [REDIM]
+      SEG
+      SEEK
+      [SELECT]
+      [SHARED]
+      [STATIC]
+      STRIG
+      [SUB]
+      [THEN]
+      TYPE
+      UEVENT
+      [USING]
+
+      COMMANDS
+      CVDMBF
+      CVL
+      CVSMBF
+      EXP
+      FILEATTR
+      FREEFILE
+      INP
+      MKDMBFS
+      MKLS
+      MKSMBFS
+      SADD
+      SETMEM
+      SPC
+      STICK
+      TAB
+      VARPTRS
+      VARSEG
+
       ' Extensions
       'System_IO_File_ConvertToPackage
       'System_IO_Folder_ConvertToPackage
@@ -4948,182 +4942,196 @@ dimension As Short,
 
     End Enum
 
-    Private ReadOnly m_keywordLookupList As New Dictionary(Of String, KeywordLookup) From {{"AUTO", KeywordLookup.AUTO},
-                                                                                {"BEEP", KeywordLookup.BEEP},
-                                                                                {"BLOAD", KeywordLookup.BLOAD},
-                                                                                {"BSAVE", KeywordLookup.BSAVE},
-                                                                                {"CHDIR", KeywordLookup.CHDIR},
-                                                                                {"CALL", KeywordLookup.CALL},
-                                                                                {"CHAIN", KeywordLookup.CHAIN},
-                                                                                {"CIRCLE", KeywordLookup.CIRCLE},
-                                                                                {"CLOSE", KeywordLookup.CLOSE},
-                                                                                {"CLS", KeywordLookup.CLS},
-                                                                                {"CLEAR", KeywordLookup.CLEAR},
-                                                                                {"COLOR", KeywordLookup.COLOR},
-                                                                                {"COMMON", KeywordLookup.COMMON},
-                                                                                {"CONT", KeywordLookup.CONT},
-                                                                                {"DATA", KeywordLookup.DATA},
-                                                                                {"DATE$", KeywordLookup.DATES},
-                                                                                {"DEF", KeywordLookup.DEF},
-                                                                                {"DEFDBL", KeywordLookup.DEFDBL},
-                                                                                {"DEFINT", KeywordLookup.DEFINT},
-                                                                                {"DEFSNG", KeywordLookup.DEFSNG},
-                                                                                {"DEFSTR", KeywordLookup.DEFSTR},
-                                                                                {"DELAY", KeywordLookup.DELAY},
-                                                                                {"DELETE", KeywordLookup.DELETE},
-                                                                                {"DIGITALREAD", KeywordLookup.DIGITALREAD},
-                                                                                {"DIGITALWRITE", KeywordLookup.DIGITALWRITE},
-                                                                                {"DIM", KeywordLookup.DIM},
-                                                                                {"DRAW", KeywordLookup.DRAW},
-                                                                                {"EDIT", KeywordLookup.EDIT},
-                                                                                {"ELSE", KeywordLookup.ELSE},
-                                                                                {"END", KeywordLookup.END},
-                                                                                {"ERASE", KeywordLookup.ERASE},
-                                                                                {"ENVIRON", KeywordLookup.ENVIRON},
-                                                                                {"ERROR", KeywordLookup.ERROR},
-                                                                                {"FACEBOOK", KeywordLookup.FACEBOOK},
-                                                                                {"FIELD", KeywordLookup.FIELD},
-                                                                                {"FILES", KeywordLookup.FILES},
-                                                                                {"FOR", KeywordLookup.FOR},
-                                                                                {"GET", KeywordLookup.GET},
-                                                                                {"GOSUB", KeywordLookup.GOSUB},
-                                                                                {"GOTO", KeywordLookup.GOTO},
-                                                                                {"HELP", KeywordLookup.HELP},
-                                                                                {"IF", KeywordLookup.IF},
-                                                                                {"INPUT", KeywordLookup.INPUT},
-                                                                                {"IOCTL", KeywordLookup.IOCTL},
-                                                                                {"KEY", KeywordLookup.KEY},
-                                                                                {"KILL", KeywordLookup.KILL},
-                                                                                {"LET", KeywordLookup.LET},
-                                                                                {"LINE", KeywordLookup.LINE},
-                                                                                {"LIST", KeywordLookup.LIST},
-                                                                                {"LLIST", KeywordLookup.LLIST},
-                                                                                {"LOAD", KeywordLookup.LOAD},
-                                                                                {"LOCATE", KeywordLookup.LOCATE},
-                                                                                {"LOCK", KeywordLookup.LOCK},
-                                                                                {"LSET", KeywordLookup.LSET},
-                                                                                {"MERGE", KeywordLookup.MERGE},
-                                                                                {"MID$", KeywordLookup.MIDS},
-                                                                                {"MKDIR", KeywordLookup.MKDIR},
-                                                                                {"NAME", KeywordLookup.NAME},
-                                                                                {"NEW", KeywordLookup.NEW},
-                                                                                {"NEXT", KeywordLookup.NEXT},
-                                                                                {"ON", KeywordLookup.ON},
-                                                                                {"OPEN", KeywordLookup.OPEN},
-                                                                                {"OPTION", KeywordLookup.OPTION},
-                                                                                {"OUT", KeywordLookup.OUT},
-                                                                                {"PAINT", KeywordLookup.PAINT},
-                                                                                {"PALETTE", KeywordLookup.PALETTE},
-                                                                                {"PCOPY", KeywordLookup.PCOPY},
-                                                                                {"PEN", KeywordLookup.PEN},
-                                                                                {"PINMODE", KeywordLookup.PINMODE},
-                                                                                {"PLAY", KeywordLookup.PLAY},
-                                                                                {"POINT", KeywordLookup.POINT},
-                                                                                {"POKE", KeywordLookup.POKE},
-                                                                                {"PRESET", KeywordLookup.PRESET},
-                                                                                {"PRINT", KeywordLookup.PRINT},
-                                                                                {"LPRINT", KeywordLookup.LPRINT},
-                                                                                {"PSET", KeywordLookup.PSET},
-                                                                                {"PUT", KeywordLookup.PUT},
-                                                                                {"RANDOMIZE", KeywordLookup.RANDOMIZE},
-                                                                                {"READ", KeywordLookup.READ},
-                                                                                {"REM", KeywordLookup.[REM]},
-                                                                                {"'", KeywordLookup.[REM]},
-                                                                                {"RENUM", KeywordLookup.RENUM},
-                                                                                {"RESET", KeywordLookup.RESET},
-                                                                                {"RESTORE", KeywordLookup.RESTORE},
-                                                                                {"RESUME", KeywordLookup.RESUME},
-                                                                                {"RETURN", KeywordLookup.RETURN},
-                                                                                {"RMDIR", KeywordLookup.RMDIR},
-                                                                                {"RSET", KeywordLookup.RSET},
-                                                                                {"RUN", KeywordLookup.RUN},
-                                                                                {"SAVE", KeywordLookup.SAVE},
-                                                                                {"SCREEN", KeywordLookup.SCREEN},
-                                                                                {"SHELL", KeywordLookup.SHELL},
-                                                                                {"SLEEP", KeywordLookup.SLEEP},
-                                                                                {"SOUND", KeywordLookup.SOUND},
-                                                                                {"STOP", KeywordLookup.STOP},
-                                                                                {"SWAP", KeywordLookup.SWAP},
-                                                                                {"SYSTEM", KeywordLookup.SYSTEM},
-                                                                                {"TIME$", KeywordLookup.TIMES},
-                                                                                {"TIMER", KeywordLookup.TIMER},
-                                                                                {"TRON", KeywordLookup.TRON},
-                                                                                {"TROFF", KeywordLookup.TROFF},
-                                                                                {"UNLOCK", KeywordLookup.UNLOCK},
-                                                                                {"VIEW", KeywordLookup.VIEW},
-                                                                                {"WAIT", KeywordLookup.WAIT},
-                                                                                {"WEND", KeywordLookup.WEND},
-                                                                                {"WHILE", KeywordLookup.WHILE},
-                                                                                {"WIDTH", KeywordLookup.WIDTH},
-                                                                                {"WINDOW", KeywordLookup.WINDOW},
-                                                                                {"WRITE", KeywordLookup.WRITE},
-                                                                                {"OLD", KeywordLookup.OLD},
-                                                                                {"PARSER", KeywordLookup.PARSER},
-                                                                                {"VER", KeywordLookup.VER},
-                                                                                {"KEYWORDS", KeywordLookup.KEYWORDS},
-                                                                                {"LEFT$", KeywordLookup.LEFTS},
-                                                                                {"RIGHT$", KeywordLookup.RIGHTS},
-                                                                                {"STRING$", KeywordLookup.STRINGS},
-                                                                                {"SPACE$", KeywordLookup.SPACES},
-                                                                                {"CHR$", KeywordLookup.CHRS},
-                                                                                {"STR$", KeywordLookup.STRS},
-                                                                                {"LCASE$", KeywordLookup.LCASES},
-                                                                                {"UCASE$", KeywordLookup.UCASES},
-                                                                                {"ENVIRON$", KeywordLookup.ENVIRONS},
-                                                                                {"LTRIM$", KeywordLookup.LTRIMS},
-                                                                                {"RTRIM$", KeywordLookup.RTRIMS},
-                                                                                {"INKEY$", KeywordLookup.INKEYS},
-                                                                                {"INPUT$", KeywordLookup.INPUTS},
-                                                                                {"IOCTL$", KeywordLookup.IOCTLS},
-                                                                                {"HEX$", KeywordLookup.HEXS},
-                                                                                {"OCT$", KeywordLookup.OCTS},
-                                                                                {"ERDEV$", KeywordLookup.ERDEVS},
-                                                                                {"MKI$", KeywordLookup.MKIS},
-                                                                                {"MKS$", KeywordLookup.MKSS},
-                                                                                {"MKD$", KeywordLookup.MKDS},
-                                                                                {"FRE", KeywordLookup.FRE},
-                                                                                {"INT", KeywordLookup.INT},
-                                                                                {"ABS", KeywordLookup.ABS},
-                                                                                {"LPOS", KeywordLookup.LPOS},
-                                                                                {"LEN", KeywordLookup.LEN},
-                                                                                {"ASC", KeywordLookup.ASC},
-                                                                                {"INSTR", KeywordLookup.INSTR},
-                                                                                {"RND", KeywordLookup.RND},
-                                                                                {"SQR", KeywordLookup.SQR},
-                                                                                {"FIX", KeywordLookup.FIX},
-                                                                                {"VAL", KeywordLookup.VAL},
-                                                                                {"SGN", KeywordLookup.SGN},
-                                                                                {"SIN", KeywordLookup.SIN},
-                                                                                {"COS", KeywordLookup.COS},
-                                                                                {"TAN", KeywordLookup.TAN},
-                                                                                {"ATN", KeywordLookup.ATN},
-                                                                                {"EXTERR", KeywordLookup.EXTERR},
-                                                                                {"EXP", KeywordLookup.EXP},
-                                                                                {"LOG", KeywordLookup.LOG},
-                                                                                {"EOF", KeywordLookup.EOF},
-                                                                                {"LOC", KeywordLookup.LOC},
-                                                                                {"LOF", KeywordLookup.LOF},
-                                                                                {"PMAP", KeywordLookup.PMAP},
-                                                                                {"POS", KeywordLookup.POS},
-                                                                                {"CSRLIN", KeywordLookup.CSRLIN},
-                                                                                {"CDBL", KeywordLookup.CDBL},
-                                                                                {"CSNG", KeywordLookup.CSNG},
-                                                                                {"CLNG", KeywordLookup.CLNG},
-                                                                                {"CINT", KeywordLookup.CINT},
-                                                                                {"PEEK", KeywordLookup.PEEK},
-                                                                                {"CVI", KeywordLookup.CVI},
-                                                                                {"CVS", KeywordLookup.CVS},
-                                                                                {"CVD", KeywordLookup.CVD},
-                                                                                {"LBOUND", KeywordLookup.LBOUND},
-                                                                                {"UBOUND", KeywordLookup.UBOUND},
-                                                                                {"VARPTR", KeywordLookup.VARPTR},
-                                                                                {"ERR", KeywordLookup.ERR},
-                                                                                {"ERL", KeywordLookup.ERL},
-                                                                                {"ERDEV", KeywordLookup.ERDEV}} ',
-    '{"SYSTEM.IO.FILE.CONVERTTOPACKAGE", KeywordLookup.System_IO_File_ConvertToPackage},
-    '{"SYSTEM.IO.FOLDER.CONVERTTOPACKAGE", KeywordLookup.System_IO_Folder_ConvertToPackage},
-    '{"SYSTEM.IO.PACKAGE.CONVERTTOFOLDER", KeywordLookup.System_IO_Package_ConvertToFolder},
-    '{"SYSTEM.IO.PACKAGE.SETSTARTUP", KeywordLookup.System_IO_Package_SetStartup}}
+    Private ReadOnly m_keywordLookupList As New Dictionary(Of String, KeywordLookup) _
+      From {{"BASE", KeywordLookup.BASE},
+            {"BEEP", KeywordLookup.BEEP},
+            {"BLOAD", KeywordLookup.BLOAD},
+            {"BSAVE", KeywordLookup.BSAVE},
+            {"CALL", KeywordLookup.CALL},
+            {"CASE", KeywordLookup.CASE},
+            {"CHAIN", KeywordLookup.CHAIN},
+            {"CHDIR", KeywordLookup.CHDIR},
+            {"CIRCLE", KeywordLookup.CIRCLE},
+            {"CLEAR", KeywordLookup.CLEAR},
+            {"CLOSE", KeywordLookup.CLOSE},
+            {"CLS", KeywordLookup.CLS},
+            {"COLOR", KeywordLookup.COLOR},
+            {"COM", KeywordLookup.COM},
+            {"COMMON", KeywordLookup.COMMON},
+            {"CONT", KeywordLookup.CONT},
+            {"DATA", KeywordLookup.DATA},
+            {"DATE$", KeywordLookup.DATES},
+            {"DECLARE", KeywordLookup.DECLARE},
+            {"DEF", KeywordLookup.DEF},
+            {"DEFDBL", KeywordLookup.DEFDBL},
+            {"DEFINT", KeywordLookup.DEFINT},
+            {"DEFLNG", KeywordLookup.DEFLNG},
+            {"DEFSNG", KeywordLookup.DEFSNG},
+            {"DEFSTR", KeywordLookup.DEFSTR},
+            {"DIM", KeywordLookup.DIM},
+            {"DO", KeywordLookup.DO},
+            {"DRAW", KeywordLookup.DRAW},
+            {"ELSE", KeywordLookup.ELSE},
+            {"END", KeywordLookup.END},
+            {"ENVIRON", KeywordLookup.ENVIRON},
+            {"ERASE", KeywordLookup.ERASE},
+            {"ERROR", KeywordLookup.ERROR},
+            {"EXIT", KeywordLookup.EXIT},
+            {"FIELD", KeywordLookup.FIELD},
+            {"FILES", KeywordLookup.FILES},
+            {"FOR", KeywordLookup.FOR},
+            {"FUNCTION", KeywordLookup.FUNCTION},
+            {"GET", KeywordLookup.GET},
+            {"GOSUB", KeywordLookup.GOSUB},
+            {"GOTO", KeywordLookup.GOTO},
+            {"IF", KeywordLookup.IF},
+            {"INPUT", KeywordLookup.INPUT},
+            {"IOCTL", KeywordLookup.IOCTL},
+            {"KEY", KeywordLookup.KEY},
+            {"KILL", KeywordLookup.KILL},
+            {"LET", KeywordLookup.LET},
+            {"LINE", KeywordLookup.LINE},
+            {"LOCATE", KeywordLookup.LOCATE},
+            {"LOCK", KeywordLookup.LOCK},
+            {"LOOP", KeywordLookup.LOOP},
+            {"LPRINT", KeywordLookup.LPRINT},
+            {"LSET", KeywordLookup.LSET},
+            {"MID$", KeywordLookup.MIDS},
+            {"MKDIR", KeywordLookup.MKDIR},
+            {"NAME", KeywordLookup.NAME},
+            {"NEXT", KeywordLookup.NEXT},
+            {"OFF", KeywordLookup.OFF},
+            {"ON", KeywordLookup.ON},
+            {"OPEN", KeywordLookup.OPEN},
+            {"OPTION", KeywordLookup.OPTION},
+            {"OUT", KeywordLookup.OUT},
+            {"PAINT", KeywordLookup.PAINT},
+            {"PALETTE", KeywordLookup.PALETTE},
+            {"PCOPY", KeywordLookup.PCOPY},
+            {"PEN", KeywordLookup.PEN},
+            {"PLAY", KeywordLookup.PLAY},
+            {"POKE", KeywordLookup.POKE},
+            {"PRESET", KeywordLookup.PRESET},
+            {"PRINT", KeywordLookup.PRINT},
+            {"PSET", KeywordLookup.PSET},
+            {"PUT", KeywordLookup.PUT},
+            {"RANDOMIZE", KeywordLookup.RANDOMIZE},
+            {"READ", KeywordLookup.READ},
+            {"REDIM", KeywordLookup.REDIM},
+            {"REM", KeywordLookup.[REM]},
+            {"'", KeywordLookup.[REM]},
+            {"RESET", KeywordLookup.RESET},
+            {"RESTORE", KeywordLookup.RESTORE},
+            {"RESUME", KeywordLookup.RESUME},
+            {"RETURN", KeywordLookup.RETURN},
+            {"RMDIR", KeywordLookup.RMDIR},
+            {"RSET", KeywordLookup.RSET},
+            {"RUN", KeywordLookup.RUN},
+            {"SCREEN", KeywordLookup.SCREEN},
+            {"SEG", KeywordLookup.SEG},
+            {"SEEK", KeywordLookup.SEEK},
+            {"SELECT", KeywordLookup.SELECT},
+            {"SHARED", KeywordLookup.SHARED},
+            {"SHELL", KeywordLookup.SHELL},
+            {"SLEEP", KeywordLookup.SLEEP},
+            {"SOUND", KeywordLookup.SOUND},
+            {"STATIC", KeywordLookup.STATIC},
+            {"STOP", KeywordLookup.STOP},
+            {"STRIG", KeywordLookup.STRIG},
+            {"SUB", KeywordLookup.SUB},
+            {"SWAP", KeywordLookup.SWAP},
+            {"SYSTEM", KeywordLookup.SYSTEM},
+            {"THEN", KeywordLookup.THEN},
+            {"TIME$", KeywordLookup.TIMES},
+            {"TIMER", KeywordLookup.TIMER},
+            {"TRON", KeywordLookup.TRON},
+            {"TROFF", KeywordLookup.TROFF},
+            {"TYPE", KeywordLookup.TYPE},
+            {"UEVENT", KeywordLookup.UEVENT},
+            {"UNLOCK", KeywordLookup.UNLOCK},
+            {"USING", KeywordLookup.USING},
+            {"VIEW", KeywordLookup.VIEW},
+            {"WAIT", KeywordLookup.WAIT},
+            {"WEND", KeywordLookup.WEND},
+            {"WHILE", KeywordLookup.WHILE},
+            {"WIDTH", KeywordLookup.WIDTH},
+            {"WINDOW", KeywordLookup.WINDOW},
+            {"WRITE", KeywordLookup.WRITE},
+            {"ABS", KeywordLookup.ABS},
+            {"ASC", KeywordLookup.ASC},
+            {"ATN", KeywordLookup.ATN},
+            {"CDBL", KeywordLookup.CDBL},
+            {"CHR$", KeywordLookup.CHRS},
+            {"CINT", KeywordLookup.CINT},
+            {"CLNG", KeywordLookup.CLNG},
+            {"COMMAND$", KeywordLookup.COMMANDS},
+            {"COS", KeywordLookup.COS},
+            {"CSNG", KeywordLookup.CSNG},
+            {"CSRLIN", KeywordLookup.CSRLIN},
+            {"CVD", KeywordLookup.CVD},
+            {"CVDMBF", KeywordLookup.CVDMBF},
+            {"CVI", KeywordLookup.CVI},
+            {"CVL", KeywordLookup.CVL},
+            {"CVS", KeywordLookup.CVS},
+            {"CVSMBF", KeywordLookup.CVSMBF}, '{"DATE$", KeywordLookup.DATES},
+            {"ENVIRON$", KeywordLookup.ENVIRONS},
+            {"EOF", KeywordLookup.EOF},
+            {"ERDEV", KeywordLookup.ERDEV},
+            {"ERDEV$", KeywordLookup.ERDEVS},
+            {"ERL", KeywordLookup.ERL},
+            {"ERR", KeywordLookup.ERR},
+            {"EXP", KeywordLookup.EXP},
+            {"FILEATTR", KeywordLookup.FILEATTR},
+            {"FIX", KeywordLookup.FIX},
+            {"FRE", KeywordLookup.FRE},
+            {"FREEFILE", KeywordLookup.FREEFILE},
+            {"HEX$", KeywordLookup.HEXS},
+            {"INKEY$", KeywordLookup.INKEYS},
+            {"INP", KeywordLookup.INP},
+            {"INPUT$", KeywordLookup.INPUTS},
+            {"INSTR", KeywordLookup.INSTR},
+            {"INT", KeywordLookup.INT},
+            {"IOCTL$", KeywordLookup.IOCTLS},
+            {"LBOUND", KeywordLookup.LBOUND},
+            {"LCASE$", KeywordLookup.LCASES},
+            {"LEFT$", KeywordLookup.LEFTS},
+            {"LEN", KeywordLookup.LEN},
+            {"LOC", KeywordLookup.LOC},
+            {"LOF", KeywordLookup.LOF},
+            {"LOG", KeywordLookup.LOG},
+            {"LPOS", KeywordLookup.LPOS},
+            {"LTRIM$", KeywordLookup.LTRIMS}, '{"MID$", KeywordLookup.MIDS},
+            {"MKD$", KeywordLookup.MKDS},
+            {"MKDMBF$", KeywordLookup.MKDMBFS},
+            {"MKI$", KeywordLookup.MKIS},
+            {"MKL$", KeywordLookup.MKLS},
+            {"MKS$", KeywordLookup.MKSS},
+            {"MKSMBF$", KeywordLookup.MKSMBFS},
+            {"OCT$", KeywordLookup.OCTS},
+            {"PEEK", KeywordLookup.PEEK}, '{"PEN", KeywordLookup.PEN}, {"PLAY", KeywordLookup.PLAY},
+            {"PMAP", KeywordLookup.PMAP},
+            {"POINT", KeywordLookup.POINT},
+            {"POS", KeywordLookup.POS},
+            {"RIGHT$", KeywordLookup.RIGHTS},
+            {"RND", KeywordLookup.RND},
+            {"RTRIM$", KeywordLookup.RTRIMS},
+            {"SADD", KeywordLookup.SADD}, '{"SCREEN", KeywordLookup.SCREEN}, {"SEEK", KeywordLookup.SEEK},
+            {"SETMEM", KeywordLookup.SETMEM},
+            {"SIN", KeywordLookup.SIN},
+            {"SPACE$", KeywordLookup.SPACES},
+            {"SPC", KeywordLookup.SPC},
+            {"SQR", KeywordLookup.SQR},
+            {"STICK", KeywordLookup.STICK},
+            {"STR$", KeywordLookup.STRS}, '{"STRIG", KeywordLookup.STRIG},
+            {"STRING$", KeywordLookup.STRINGS},
+            {"TAB", KeywordLookup.TAB},
+            {"TAN", KeywordLookup.TAN}, '{"TIME$", KeywordLookup.TIMES}, {"TIMER", KeywordLookup.TIMER},
+            {"UBOUND", KeywordLookup.UBOUND},
+            {"UCASE$", KeywordLookup.UCASES},
+            {"VAL", KeywordLookup.VAL},
+            {"VARPTR", KeywordLookup.VARPTR},
+            {"VARPTR$", KeywordLookup.VARPTRS},
+            {"VARSEG", KeywordLookup.VARSEG}}
 
     Private Function KeywordToKeywordLookup(keyword As String) As KeywordLookup
       Dim value As KeywordLookup = Nothing
@@ -5182,10 +5190,9 @@ dimension As Short,
       Try
 
         Select Case KeywordToKeywordLookup(keyword)
-          Case KeywordLookup.AUTO : Return ExecuteAuto()
+          'Case KeywordLookup.AUTO : Return ExecuteAuto()
           Case KeywordLookup.BEEP : Return ExecuteBeep()
           Case KeywordLookup.BLOAD : Return ExecuteBload()
-          Case KeywordLookup.AUTO : Return ExecuteAuto()
           Case KeywordLookup.BEEP : Return ExecuteBeep()
           Case KeywordLookup.BLOAD : Return ExecuteBload()
           Case KeywordLookup.BSAVE : Return ExecuteBsave()
@@ -5206,12 +5213,12 @@ dimension As Short,
           Case KeywordLookup.DEFINT : Return ExecuteDefInt()
           Case KeywordLookup.DEFSNG : Return ExecuteDefSng()
           Case KeywordLookup.DEFSTR : Return ExecuteDefStr()
-          Case KeywordLookup.DELAY : Return ExecuteDelay()
-          Case KeywordLookup.DELETE : Return ExecuteDelete()
-          Case KeywordLookup.DIGITALWRITE : Return ExecuteGpioDigitalWrite()
+          'Case KeywordLookup.DELAY : Return ExecuteDelay()
+          'Case KeywordLookup.DELETE : Return ExecuteDelete()
+          'Case KeywordLookup.DIGITALWRITE : Return ExecuteGpioDigitalWrite()
           Case KeywordLookup.DIM : Return ExecuteDim()
           Case KeywordLookup.DRAW : Return ExecuteDraw()
-          Case KeywordLookup.EDIT : Return ExecuteEdit()
+          'Case KeywordLookup.EDIT : Return ExecuteEdit()
           Case KeywordLookup.ELSE
             ' Seek to end of line if encountered through normal execution...
             m_statementIndex = m_interpreter(m_interpreterIndex).Statements.Count - 1
@@ -5222,14 +5229,14 @@ dimension As Short,
           Case KeywordLookup.ERASE : Return ExecuteErase()
           Case KeywordLookup.ENVIRON : Return ExecuteEnviron()
           Case KeywordLookup.ERROR : Return ExecuteError()
-          Case KeywordLookup.FACEBOOK : Return ExecuteFacebook()
+          'Case KeywordLookup.FACEBOOK : Return ExecuteFacebook()
           Case KeywordLookup.FIELD : Return ExecuteField()
           Case KeywordLookup.FILES : Return ExecuteFiles()
           Case KeywordLookup.FOR : Return ExecuteFor()
           Case KeywordLookup.GET : Return ExecuteGet()
           Case KeywordLookup.GOSUB : Return ExecuteGosub()
           Case KeywordLookup.GOTO : Return ExecuteGoto()
-          Case KeywordLookup.HELP : Return ExecuteHelp()
+          'Case KeywordLookup.HELP : Return ExecuteHelp()
           Case KeywordLookup.IF : Return ExecuteIf()
           Case KeywordLookup.INPUT : Return ExecuteInput()
           Case KeywordLookup.IOCTL : Return ExecuteIoCtl()
@@ -5237,17 +5244,17 @@ dimension As Short,
           Case KeywordLookup.KILL : Return ExecuteKill()
           Case KeywordLookup.LET : Return ExecuteLet()
           Case KeywordLookup.LINE : Return ExecuteLine()
-          Case KeywordLookup.LIST : Return ExecuteList(False)
-          Case KeywordLookup.LLIST : Return ExecuteList(True)
-          Case KeywordLookup.LOAD : Return ExecuteLoad()
+          'Case KeywordLookup.LIST : Return ExecuteList(False)
+          'Case KeywordLookup.LLIST : Return ExecuteList(True)
+          'Case KeywordLookup.LOAD : Return ExecuteLoad()
           Case KeywordLookup.LOCATE : Return ExecuteLocate()
           Case KeywordLookup.LOCK : Return ExecuteLock()
           Case KeywordLookup.LSET : Return ExecuteLset()
-          Case KeywordLookup.MERGE : Return ExecuteMerge()
+          'Case KeywordLookup.MERGE : Return ExecuteMerge()
           Case KeywordLookup.MIDS : Return ExecuteMid()
           Case KeywordLookup.MKDIR : Return ExecuteMkDir()
           Case KeywordLookup.NAME : Return ExecuteName()
-          Case KeywordLookup.NEW : Return ExecuteNew()
+          'Case KeywordLookup.NEW : Return ExecuteNew()
           Case KeywordLookup.NEXT : Return ExecuteNext()
           Case KeywordLookup.ON : Return ExecuteOn()
           Case KeywordLookup.OPEN : Return ExecuteOpen()
@@ -5257,7 +5264,7 @@ dimension As Short,
           Case KeywordLookup.PALETTE : Return ExecutePalette()
           Case KeywordLookup.PCOPY : Return ExecutePcopy()
           Case KeywordLookup.PEN : Return ExecutePen()
-          Case KeywordLookup.PINMODE : Return ExecuteGpioPinMode()
+          'Case KeywordLookup.PINMODE : Return ExecuteGpioPinMode()
           Case KeywordLookup.PLAY : Return ExecutePlay()
           Case KeywordLookup.POINT : Return ExecutePoint()
           Case KeywordLookup.POKE : Return ExecutePoke()
@@ -5269,7 +5276,7 @@ dimension As Short,
           Case KeywordLookup.RANDOMIZE : Return ExecuteRandomize()
           Case KeywordLookup.READ : Return ExecuteRead()
           Case KeywordLookup.[REM] : Return ExecuteRem()
-          Case KeywordLookup.RENUM : Return ExecuteRenum()
+          'Case KeywordLookup.RENUM : Return ExecuteRenum()
           Case KeywordLookup.RESET : Return ExecuteReset()
           Case KeywordLookup.RESTORE : Return ExecuteRestore()
           Case KeywordLookup.RESUME : Return ExecuteResume()
@@ -5277,7 +5284,7 @@ dimension As Short,
           Case KeywordLookup.RMDIR : Return ExecuteRmDir()
           Case KeywordLookup.RSET : Return ExecuteRset()
           Case KeywordLookup.RUN : Return ExecuteRun()
-          Case KeywordLookup.SAVE : Return ExecuteSave()
+          'Case KeywordLookup.SAVE : Return ExecuteSave()
           Case KeywordLookup.SCREEN : Return ExecuteScreen()
           Case KeywordLookup.SHELL : Return ExecuteShell()
           Case KeywordLookup.SLEEP : Return ExecuteSleep()
@@ -5297,10 +5304,10 @@ dimension As Short,
           Case KeywordLookup.WIDTH : Return ExecuteWidth()
           Case KeywordLookup.WINDOW : Return ExecuteWindow()
           Case KeywordLookup.WRITE : Return ExecuteWrite()
-          Case KeywordLookup.OLD : Return ExecuteOld()
-          Case KeywordLookup.PARSER : Return ExecuteParserList()
-          Case KeywordLookup.VER : Return ExecuteVer()
-          Case KeywordLookup.KEYWORDS : Return ExecuteKeywords()
+            'Case KeywordLookup.OLD : Return ExecuteOld()
+            'Case KeywordLookup.PARSER : Return ExecuteParserList()
+            'Case KeywordLookup.VER : Return ExecuteVer()
+            'Case KeywordLookup.KEYWORDS : Return ExecuteKeywords()
 
             'Case KeywordLookup.System_IO_File_ConvertToPackage : Return ExecuteSystemIoFileConvertToPackage
             'Case KeywordLookup.System_IO_Folder_ConvertToPackage : Return ExecuteSystemIoFolderConvertToPackage
@@ -5463,13 +5470,6 @@ dimension As Short,
     '          path &= "\"
     '        End If
 
-    '#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-    '        Stop
-    '        'm_virtualFileSystemAsync.ChDirAsync(Guid.Empty, path, path)
-    '        'm_waiting = True
-    '        'Return True
-    '#Else
-
     '        Dim result = m_virtualFileSystem.ConvertFileToPackage(path)
 
     '        If result.StartsWith("Error: ") Then
@@ -5482,8 +5482,6 @@ dimension As Short,
     '        m_waiting = False
 
     '        Return True
-
-    '#End If
 
     '      End If
 
@@ -5509,13 +5507,6 @@ dimension As Short,
     '          path &= "\"
     '        End If
 
-    '#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-    '        Stop
-    '        'm_virtualFileSystemAsync.ChDirAsync(Guid.Empty, path, path)
-    '        'm_waiting = True
-    '        'Return True
-    '#Else
-
     '        Dim result = m_virtualFileSystem.ConvertFolderToPackage(path)
 
     '        If result.StartsWith("Error: ") Then
@@ -5528,8 +5519,6 @@ dimension As Short,
     '        m_waiting = False
 
     '        Return True
-
-    '#End If
 
     '      End If
 
@@ -5555,13 +5544,6 @@ dimension As Short,
     '          path &= "\"
     '        End If
 
-    '#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-    '        Stop
-    '        'm_virtualFileSystemAsync.ChDirAsync(Guid.Empty, path, path)
-    '        'm_waiting = True
-    '        'Return True
-    '#Else
-
     '        Dim result = m_virtualFileSystem.ConvertPackageToFolder(path)
 
     '        If result.StartsWith("Error: ") Then
@@ -5574,8 +5556,6 @@ dimension As Short,
     '        m_waiting = False
 
     '        Return True
-
-    '#End If
 
     '      End If
 
@@ -5591,38 +5571,38 @@ dimension As Short,
 
     '  End Function
 
-    Private Function ExecuteAuto() As Boolean
+    'Private Function ExecuteAuto() As Boolean
 
-      Dim start As Integer = If(m_autoStart = -1, 10, m_autoStart)
-      Dim increment As Integer = 10
+    '  Dim start As Integer = If(m_autoStart = -1, 10, m_autoStart)
+    '  Dim increment As Integer = 10
 
-      If PeekToken() Is Nothing Then
-        start = 10
-      ElseIf PeekToken.IsPeriodToken Then
-        PopToken()
-        If start = -1 Then m_autoStart = 10
-      ElseIf PeekToken.IsNumericLiteralToken Then
-        start = CShort(PopToken.Literal)
-      End If
+    '  If PeekToken() Is Nothing Then
+    '    start = 10
+    '  ElseIf PeekToken.IsPeriodToken Then
+    '    PopToken()
+    '    If start = -1 Then m_autoStart = 10
+    '  ElseIf PeekToken.IsNumericLiteralToken Then
+    '    start = CShort(PopToken.Literal)
+    '  End If
 
-      If PeekToken.IsCommaToken Then
-        PopToken()
-        If PeekToken.IsNumericLiteralToken Then
-          increment = CShort(PopToken.Literal)
-        Else
-          Return ThrowBasicError(BasicError.SyntaxError)
-        End If
-      ElseIf PeekToken() IsNot Nothing Then
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
+    '  If PeekToken.IsCommaToken Then
+    '    PopToken()
+    '    If PeekToken.IsNumericLiteralToken Then
+    '      increment = CShort(PopToken.Literal)
+    '    Else
+    '      Return ThrowBasicError(BasicError.SyntaxError)
+    '    End If
+    '  ElseIf PeekToken() IsNot Nothing Then
+    '    Return ThrowBasicError(BasicError.SyntaxError)
+    '  End If
 
-      m_autoStart = start
-      m_autoIncrement = increment
-      m_autoModeActive = True
+    '  m_autoStart = start
+    '  m_autoIncrement = increment
+    '  m_autoModeActive = True
 
-      Return InternalNextAutoLine(False)
+    '  Return InternalNextAutoLine(False)
 
-    End Function
+    'End Function
 
     Private Function ExecuteBeep() As Boolean
 
@@ -5681,11 +5661,6 @@ dimension As Short,
             path &= "\"
           End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-        m_virtualFileSystemAsync.ChDirAsync(Guid.Empty, path, path)
-        m_waiting = True
-        Return True
-#Else
           Dim result = m_virtualFileSystem.ChDir(path)
 
           If result.StartsWith("Error: ") Then
@@ -5703,34 +5678,12 @@ dimension As Short,
           'ProcessKeyBuffer()
 
           Return True
-#End If
 
         End If
 
       End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteChDirCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.ChDirCompleted
-
-    Dim result As String = e.Result
-
-    If result.StartsWith("Error: ") Then
-      m_display.Print(result.Substring(7), True)
-      m_running = False
-    Else
-      m_currentPath = result
-    End If
-
-    m_running = False
-    m_waiting = False
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
 
     Private Function ExecuteClose() As Boolean
 
@@ -5784,23 +5737,6 @@ dimension As Short,
 
     End Function
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteCloseCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.CloseCompleted
-
-    Dim result As String = e.Result
-
-    If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
-      m_display.Print(result.Substring(7), True)
-      m_waiting = False
-      m_running = False
-    Else
-      m_waiting = False
-      m_running = True
-    End If
-
-  End Sub
-#End If
-
     Private Sub InternalClose()
 
       ' Close all files
@@ -5842,11 +5778,6 @@ dimension As Short,
           End If
         Next
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-        m_virtualFileSystemAsync.CloseAsync(Guid.Empty, fileNames, fileNumberList)
-        m_waiting = True
-        Return True
-#Else
         Dim result As String = m_virtualFileSystem.Close(fileNames)
 
         If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
@@ -5878,8 +5809,6 @@ dimension As Short,
 
         Return True
 
-#End If
-
       Else
 
         Return True
@@ -5887,40 +5816,6 @@ dimension As Short,
       End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub InternalCloseCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.CloseCompleted
-
-    Dim result As String = e.Result
-    Dim fileNumberList As List(Of Short) = CType(e.UserState, List(Of Short))
-
-    If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
-      Dim number = result.Substring(7)
-      If IsNumeric(number) Then
-        m_running = ThrowBasicError(CShort(number))
-        m_waiting = False
-      Else
-        m_display.Print(result.Substring(7), True)
-        m_running = False
-        m_waiting = False
-      End If
-    Else
-
-      For Each fileNumber In fileNumberList
-        m_fileList.Remove(fileNumber)
-      Next
-
-      m_running = True
-      m_waiting = False
-
-    End If
-
-    If Not m_running Then
-      InternalPrompt()
-    End If
-
-  End Sub
-#End If
 
     Private Function ExecuteChain() As Boolean
 
@@ -6037,15 +5932,9 @@ dimension As Short,
                                    .DeleteMax = CInt(deleteMax)}
 
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-        m_virtualFileSystemAsync.LoadAsync(Guid.Empty, filename, chain)
-        m_waiting = True
-        Return True
-#Else
         Dim result = m_virtualFileSystem.Load(filename)
         InternalLoadCompleted(result, chain)
         Return True
-#End If
 
       Else
         Return ThrowBasicError(BasicError.SyntaxError)
@@ -6053,86 +5942,67 @@ dimension As Short,
 
     End Function
 
-    Private Function ExecuteLoad() As Boolean
+    '    Private Function ExecuteLoad() As Boolean
 
-      Dim run As Boolean = False
+    '      Dim run As Boolean = False
 
-      If PeekToken() Is Nothing Then
-        Return ThrowBasicError(BasicError.MissingOperand)
-      ElseIf Not PeekToken.IsStringLiteralToken Then
-        Return ThrowBasicError(BasicError.TypeMismatch)
-      ElseIf PeekToken.IsStringLiteralToken Then
+    '      If PeekToken() Is Nothing Then
+    '        Return ThrowBasicError(BasicError.MissingOperand)
+    '      ElseIf Not PeekToken.IsStringLiteralToken Then
+    '        Return ThrowBasicError(BasicError.TypeMismatch)
+    '      ElseIf PeekToken.IsStringLiteralToken Then
 
-        Dim filename = RealPath(PopToken.ToString)
+    '        Dim filename = RealPath(PopToken.ToString)
 
-        If filename.Length > 4 AndAlso
-         filename.LastIndexOf("."c) > filename.Length - 4 Then
-          ' Do nothing, we have some sort of an extension already.
-        Else
-          ' no extension?
-          filename &= ".BAS"
-        End If
+    '        If filename.Length > 4 AndAlso
+    '         filename.LastIndexOf("."c) > filename.Length - 4 Then
+    '          ' Do nothing, we have some sort of an extension already.
+    '        Else
+    '          ' no extension?
+    '          filename &= ".BAS"
+    '        End If
 
-        ''Dim ext = IO.Path.GetExtension(filename)
-        'Dim period As Integer = filename.LastIndexOf(".")
-        'Dim ext As String = Nothing
-        'If period > -1 Then
-        '  ext = filename.Substring(period)
-        'End If
-        'If String.IsNullOrEmpty(ext) Then
-        '  filename &= ".BAS"
-        'End If
+    '        ''Dim ext = IO.Path.GetExtension(filename)
+    '        'Dim period As Integer = filename.LastIndexOf(".")
+    '        'Dim ext As String = Nothing
+    '        'If period > -1 Then
+    '        '  ext = filename.Substring(period)
+    '        'End If
+    '        'If String.IsNullOrEmpty(ext) Then
+    '        '  filename &= ".BAS"
+    '        'End If
 
-        If PeekToken.IsCommaToken Then
-          PopToken()
-          If PeekToken.IsWord("R") Then
-            PopToken()
-            run = True
-            If PeekToken() IsNot Nothing Then
-              Return ThrowBasicError(BasicError.SyntaxError)
-            End If
-          Else
-            Return ThrowBasicError(BasicError.SyntaxError)
-          End If
-        End If
+    '        If PeekToken.IsCommaToken Then
+    '          PopToken()
+    '          If PeekToken.IsWord("R") Then
+    '            PopToken()
+    '            run = True
+    '            If PeekToken() IsNot Nothing Then
+    '              Return ThrowBasicError(BasicError.SyntaxError)
+    '            End If
+    '          Else
+    '            Return ThrowBasicError(BasicError.SyntaxError)
+    '          End If
+    '        End If
 
-        m_pendingNew = False
+    '        m_pendingNew = False
 
-        If Not run Then InternalClose()
+    '        If Not run Then InternalClose()
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-        m_virtualFileSystemAsync.LoadAsync(Guid.Empty, filename, filename & "|" & If(run, "1", "0"))
-        m_waiting = True
-        Return True
-#Else
+    '        Dim result = m_virtualFileSystem.Load(filename)
 
-        Dim result = m_virtualFileSystem.Load(filename)
+    '        InternalLoadCompleted(result, filename & "|" & If(run, "1", "0"))
 
-        InternalLoadCompleted(result, filename & "|" & If(run, "1", "0"))
+    '        'InternalPrompt()
+    '        'ProcessKeyBuffer()
 
-        'InternalPrompt()
-        'ProcessKeyBuffer()
+    '        Return True
 
-        Return True
+    '      Else
+    '        Return ThrowBasicError(BasicError.SyntaxError)
+    '      End If
 
-#End If
-
-      Else
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
-
-    End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteLoadCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.LoadCompleted
-
-    InternalLoadCompleted(e.Result, e.UserState)
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
+    '    End Function
 
     Private Function InternalLoadCompleted(result As String, o As Object) As Boolean
 
@@ -6201,7 +6071,7 @@ dimension As Short,
                 s.Seek(0, System.IO.SeekOrigin.Begin)
 
                 ' Parse command.
-                Dim parse As New Parser.Parser(s, m_dialect)
+                Dim parse As New Parser.Parser(s)
 
                 InsertUpdateSourceLine(parse.Lines(0))
 
@@ -6321,7 +6191,7 @@ dimension As Short,
                 s.Seek(0, System.IO.SeekOrigin.Begin)
 
                 ' Parse command.
-                Dim parse As New Parser.Parser(s, m_dialect)
+                Dim parse As New Parser.Parser(s)
 
                 InsertUpdateSourceLine(parse.Lines(0))
 
@@ -7373,70 +7243,70 @@ dimension As Short,
 
     End Function
 
-    Private Function ExecuteDelete() As Boolean
+    'Private Function ExecuteDelete() As Boolean
 
-      Dim startLine As Integer = -1
-      Dim endLine As Integer = -1
+    '  Dim startLine As Integer = -1
+    '  Dim endLine As Integer = -1
 
-      If PeekToken() Is Nothing Then
-        Return ThrowBasicError(BasicError.IllegalFunctionCall)
-      Else
+    '  If PeekToken() Is Nothing Then
+    '    Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '  Else
 
-        ' Process start number.
+    '    ' Process start number.
 
-        If PeekToken.IsPeriodToken Then
-          PopToken()
-          startLine = m_autoStart
-        ElseIf PeekToken.IsNumericLiteralToken Then
-          startLine = CShort(PopToken.Literal)
-        End If
+    '    If PeekToken.IsPeriodToken Then
+    '      PopToken()
+    '      startLine = m_autoStart
+    '    ElseIf PeekToken.IsNumericLiteralToken Then
+    '      startLine = CShort(PopToken.Literal)
+    '    End If
 
-        ' Process end number.
+    '    ' Process end number.
 
-        If PeekToken.IsDash Then
-          PopToken()
-          If PeekToken() Is Nothing Then
-            If startLine > -1 Then endLine = 65529
-          ElseIf PeekToken.IsPeriodToken Then
-            PopToken()
-            endLine = m_autoStart
-          ElseIf PeekToken.IsNumericLiteralToken Then
-            endLine = CShort(PopToken.Literal)
-          End If
-          If startLine = -1 Then startLine = 0
-        ElseIf startLine > -1 Then
-          endLine = startLine
-        End If
+    '    If PeekToken.IsDash Then
+    '      PopToken()
+    '      If PeekToken() Is Nothing Then
+    '        If startLine > -1 Then endLine = 65529
+    '      ElseIf PeekToken.IsPeriodToken Then
+    '        PopToken()
+    '        endLine = m_autoStart
+    '      ElseIf PeekToken.IsNumericLiteralToken Then
+    '        endLine = CShort(PopToken.Literal)
+    '      End If
+    '      If startLine = -1 Then startLine = 0
+    '    ElseIf startLine > -1 Then
+    '      endLine = startLine
+    '    End If
 
-        If PeekToken() Is Nothing AndAlso
-         startLine.Between(0, 65529) AndAlso
-         endLine.Between(0, 65529) AndAlso
-         startLine <= endLine Then
+    '    If PeekToken() Is Nothing AndAlso
+    '     startLine.Between(0, 65529) AndAlso
+    '     endLine.Between(0, 65529) AndAlso
+    '     startLine <= endLine Then
 
-          Dim deleted As Boolean
+    '      Dim deleted As Boolean
 
-          For index As Integer = m_lines.Count - 1 To 0 Step -1
-            If CInt(m_lines(index).LineNumber).Between(startLine, endLine) Then
-              m_lines.RemoveAt(index)
-              deleted = True
-            End If
-          Next
+    '      For index As Integer = m_lines.Count - 1 To 0 Step -1
+    '        If CInt(m_lines(index).LineNumber).Between(startLine, endLine) Then
+    '          m_lines.RemoveAt(index)
+    '          deleted = True
+    '        End If
+    '      Next
 
-          If deleted Then
-            'Return True
-          Else
-            Return ThrowBasicError(BasicError.IllegalFunctionCall)
-          End If
+    '      If deleted Then
+    '        'Return True
+    '      Else
+    '        Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '      End If
 
-        Else
-          Return ThrowBasicError(BasicError.IllegalFunctionCall)
-        End If
+    '    Else
+    '      Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '    End If
 
-      End If
+    '  End If
 
-      Return False
+    '  Return False
 
-    End Function
+    'End Function
 
     Private Function ExecuteDim() As Boolean
 
@@ -7595,51 +7465,51 @@ dimension As Short,
 
     End Function
 
-    Private Function ExecuteEdit() As Boolean
+    'Private Function ExecuteEdit() As Boolean
 
-      Dim lineNumber As Integer = -1
+    '  Dim lineNumber As Integer = -1
 
-      If PeekToken() IsNot Nothing Then
-        If PeekToken.IsNumericLiteralToken Then
-          lineNumber = CShort(PopToken.Literal)
-        ElseIf PeekToken.IsPeriodToken Then
-          PopToken()
-          If m_editLine > -1 Then
-            lineNumber = m_editLine
-          Else
-            Return ThrowBasicError(BasicError.UndefinedLineNumber)
-          End If
-          'lineNumber = m_autoStart
-        Else
-          Return ThrowBasicError(BasicError.SyntaxError)
-        End If
-      Else
-        m_editLine = -1
-        Return ThrowBasicError(BasicError.UndefinedLineNumber)
-      End If
+    '  If PeekToken() IsNot Nothing Then
+    '    If PeekToken.IsNumericLiteralToken Then
+    '      lineNumber = CShort(PopToken.Literal)
+    '    ElseIf PeekToken.IsPeriodToken Then
+    '      PopToken()
+    '      If m_editLine > -1 Then
+    '        lineNumber = m_editLine
+    '      Else
+    '        Return ThrowBasicError(BasicError.UndefinedLineNumber)
+    '      End If
+    '      'lineNumber = m_autoStart
+    '    Else
+    '      Return ThrowBasicError(BasicError.SyntaxError)
+    '    End If
+    '  Else
+    '    m_editLine = -1
+    '    Return ThrowBasicError(BasicError.UndefinedLineNumber)
+    '  End If
 
-      If PeekToken() Is Nothing Then
+    '  If PeekToken() Is Nothing Then
 
-        Dim lines = From p In m_lines
-                    Where p.LineNumber = lineNumber
+    '    Dim lines = From p In m_lines
+    '                Where p.LineNumber = lineNumber
 
-        If lines.Any AndAlso Not m_pendingNew Then
-          m_display.Print(lines(0).ToString(), False)
-          m_display.Locate(m_display.CsrLin, 1)
-          m_editLine = lineNumber
-          m_suppressOk = True
-          'm_autoModeActive = True
-        Else
-          Return ThrowBasicError(BasicError.UndefinedLineNumber)
-        End If
+    '    If lines.Any AndAlso Not m_pendingNew Then
+    '      m_display.Print(lines(0).ToString(), False)
+    '      m_display.Locate(m_display.CsrLin, 1)
+    '      m_editLine = lineNumber
+    '      m_suppressOk = True
+    '      'm_autoModeActive = True
+    '    Else
+    '      Return ThrowBasicError(BasicError.UndefinedLineNumber)
+    '    End If
 
-      Else
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
+    '  Else
+    '    Return ThrowBasicError(BasicError.SyntaxError)
+    '  End If
 
-      Return False
+    '  Return False
 
-    End Function
+    'End Function
 
     Private Function ExecuteEnd() As Boolean
 
@@ -7834,15 +7704,9 @@ dimension As Short,
         Return ThrowBasicError(BasicError.SyntaxError)
       End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.FilesAsync(Guid.Empty, path, path & "|" & pattern)
-      m_waiting = True
-      Return True
-#Else
       Dim result As String = m_virtualFileSystem.Files(path)
       ExecuteFilesParseResult(result, path & "|" & pattern)
       Return True
-#End If
 
     End Function
 
@@ -7965,130 +7829,6 @@ dimension As Short,
       'ProcessKeyBuffer()
 
     End Sub
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteFilesCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.FilesCompleted
-
-    Dim result As String = e.Result
-
-    Dim pattern As String = CStr(e.UserState).Split("|"c)(1).ToUpper
-    If pattern = "*.*" Then pattern = "*"
-
-    'Dim lines() = Split(result, vbLf)
-    Dim lines As String() = result.Split(CChar(vbLf))
-
-    m_display.Print(lines(0), True)
-
-    Dim folders As New List(Of String)
-    Dim files As New List(Of String)
-
-    For index = 1 To lines.Count - 2
-      'Dim entryParts = Split(lines(index), "|")
-      Dim entryParts As String() = lines(index).Split("|"c)
-      If entryParts(1) = "1" Then
-        folders.Add(entryParts(0))
-      Else
-        files.Add(entryParts(0))
-      End If
-    Next
-
-    Dim filtered As Boolean = False
-
-    For index As Integer = folders.Count - 1 To 0 Step -1
-      'If Not (folders(index) Like pattern) Then
-      If Not folders(index).Like(pattern) Then
-        folders.RemoveAt(index)
-        filtered = True
-      End If
-    Next
-
-    For index As Integer = files.Count - 1 To 0 Step -1
-      'If Not files(index) Like pattern Then
-      If Not files(index).Like(pattern) Then
-        files.RemoveAt(index)
-        filtered = True
-      End If
-    Next
-
-    Dim found As Boolean = False
-    Dim output As String = ""
-    Dim column As Integer = -1
-
-    If filtered Then
-      output = ""
-      column = 0
-    Else
-      output = "        .   <DIR>         ..  <DIR> "
-      column = 2
-    End If
-
-    For Each folder In folders
-
-      If column = If(m_display.ColumnCount = 80, 4, 2) Then
-        m_display.Print(output, True)
-        found = True
-        output = ""
-        column = 0
-      End If
-
-      'Dim pathParts = Split(folder, ".")
-      Dim pathParts = folder.Split("."c)
-
-      If pathParts.Count = 2 Then
-        output &= pathParts(0).PadRight(8) & "." & pathParts(1).PadRight(3)
-      Else
-        output &= pathParts(0).PadRight(12)
-      End If
-
-      output &= "<DIR> "
-
-      column += 1
-
-    Next
-
-    For Each file In files
-
-      If column = If(m_display.ColumnCount = 80, 4, 2) Then
-        m_display.Print(output, True)
-        found = True
-        output = ""
-        column = 0
-      End If
-
-      'Dim pathParts = Split(file, ".")
-      Dim pathParts = file.Split("."c)
-
-      If pathParts.Count = 2 Then
-        output &= pathParts(0).PadRight(8) & "." & pathParts(1).PadRight(3)
-      Else
-        output &= pathParts(0).PadRight(12)
-      End If
-
-      output &= "      "
-
-      column += 1
-
-    Next
-
-    If output <> "" Then
-      found = True
-      m_display.Print(output, True)
-    End If
-
-    If Not found Then
-      m_display.Print("File not found", True)
-    End If
-
-    m_display.Print(lines(lines.Count - 1), True)
-
-    m_waiting = False
-    m_running = False
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
 
     Private Function ExecuteFor() As Boolean
 
@@ -9764,65 +9504,65 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteFacebook() As Boolean
+    'Private Function ExecuteFacebook() As Boolean
 
-      If PeekToken() Is Nothing Then
-        ' IF no additional tokens, treat as FACEBOOK FILES.
-        FacebookTokens = Nothing
-        m_running = False
-        RaiseEvent FacebookHook(Me, EventArgs.Empty)
-        Return False
-      Else
+    '  If PeekToken() Is Nothing Then
+    '    ' IF no additional tokens, treat as FACEBOOK FILES.
+    '    FacebookTokens = Nothing
+    '    m_running = False
+    '    RaiseEvent FacebookHook(Me, EventArgs.Empty)
+    '    Return False
+    '  Else
 
-        FacebookTokens = New List(Of Parser.Token)
-        Do Until PeekToken() Is Nothing
-          FacebookTokens.Add(PopToken)
-        Loop
-        m_running = False
-        RaiseEvent FacebookHook(Me, EventArgs.Empty)
-        If m_running = True Then
-          ' RUN?
-          m_interpreterIndex = 0
-          m_statementIndex = 0
-          m_tokenIndex = 0
-          Return True
-        Else
-          Return False
-        End If
+    '    FacebookTokens = New List(Of Parser.Token)
+    '    Do Until PeekToken() Is Nothing
+    '      FacebookTokens.Add(PopToken)
+    '    Loop
+    '    m_running = False
+    '    RaiseEvent FacebookHook(Me, EventArgs.Empty)
+    '    If m_running = True Then
+    '      ' RUN?
+    '      m_interpreterIndex = 0
+    '      m_statementIndex = 0
+    '      m_tokenIndex = 0
+    '      Return True
+    '    Else
+    '      Return False
+    '    End If
 
-      End If
+    '  End If
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
-    Private Function ExecuteHelp() As Boolean
+    'Private Function ExecuteHelp() As Boolean
 
-      If PeekToken() Is Nothing Then
-        HelpKeyword = Nothing
-        m_running = False
-        RaiseEvent HelpHook(Me, EventArgs.Empty)
-        Return False
-      Else
+    '  If PeekToken() Is Nothing Then
+    '    HelpKeyword = Nothing
+    '    m_running = False
+    '    RaiseEvent HelpHook(Me, EventArgs.Empty)
+    '    Return False
+    '  Else
 
-        Dim keyword As String = PopToken.ToString
+    '    Dim keyword As String = PopToken.ToString
 
-        If PeekToken() Is Nothing Then
+    '    If PeekToken() Is Nothing Then
 
-          HelpKeyword = keyword
-          m_running = False
-          RaiseEvent HelpHook(Me, EventArgs.Empty)
-          Return False
+    '      HelpKeyword = keyword
+    '      m_running = False
+    '      RaiseEvent HelpHook(Me, EventArgs.Empty)
+    '      Return False
 
-        Else
-          Return ThrowBasicError(BasicError.SyntaxError)
-        End If
+    '    Else
+    '      Return ThrowBasicError(BasicError.SyntaxError)
+    '    End If
 
-      End If
+    '  End If
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
     Private Function ExecuteIf() As Boolean
 
@@ -10036,119 +9776,119 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteGpioPinMode() As Boolean
+    'Private Function ExecuteGpioPinMode() As Boolean
 
-      ' GPIO pin, ON|OFF|1|0
+    '  ' GPIO pin, ON|OFF|1|0
 
-      If m_gpio IsNot Nothing Then
-        If m_gpio.IsAvailable Then
+    '  If m_gpio IsNot Nothing Then
+    '    If m_gpio.IsAvailable Then
 
-          Dim pin As Short
+    '      Dim pin As Short
 
-          If PeekToken() Is Nothing Then
-            Return ThrowBasicError(BasicError.SyntaxError) ' missing further instructions...
-          ElseIf PeekToken()?.IsCommaToken Then
-            Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
-          Else
-            If Not ExecuteExpression(pin) Then
-              Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
-            End If
-          End If
+    '      If PeekToken() Is Nothing Then
+    '        Return ThrowBasicError(BasicError.SyntaxError) ' missing further instructions...
+    '      ElseIf PeekToken()?.IsCommaToken Then
+    '        Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
+    '      Else
+    '        If Not ExecuteExpression(pin) Then
+    '          Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
+    '        End If
+    '      End If
 
-          If Not PeekToken()?.IsCommaToken Then
-            Return ThrowBasicError(BasicError.SyntaxError) ' expected a comma.
-          Else
-            PopToken() ' remove the comma...
-          End If
+    '      If Not PeekToken()?.IsCommaToken Then
+    '        Return ThrowBasicError(BasicError.SyntaxError) ' expected a comma.
+    '      Else
+    '        PopToken() ' remove the comma...
+    '      End If
 
-          Dim mode As Short
+    '      Dim mode As Short
 
-          Select Case PeekToken()?.ToString
-            Case "OUTPUT"
-              PopToken()
-              mode = 0
-            Case "INPUT"
-              PopToken()
-              mode = 1
-            Case Else
-              If Not ExecuteExpression(mode) Then
-                Return ThrowBasicError(BasicError.SyntaxError)
-              End If
-          End Select
+    '      Select Case PeekToken()?.ToString
+    '        Case "OUTPUT"
+    '          PopToken()
+    '          mode = 0
+    '        Case "INPUT"
+    '          PopToken()
+    '          mode = 1
+    '        Case Else
+    '          If Not ExecuteExpression(mode) Then
+    '            Return ThrowBasicError(BasicError.SyntaxError)
+    '          End If
+    '      End Select
 
-          If PeekToken() Is Nothing Then
-            Return m_gpio.PinMode(pin, mode)
-          Else
-            Return ThrowBasicError(BasicError.SyntaxError)
-          End If
+    '      If PeekToken() Is Nothing Then
+    '        Return m_gpio.PinMode(pin, mode)
+    '      Else
+    '        Return ThrowBasicError(BasicError.SyntaxError)
+    '      End If
 
-        Else
-          Return ThrowBasicError(BasicError.AdvancedFeature)
-        End If
-      Else
-        Return ThrowBasicError(BasicError.AdvancedFeature)
-      End If
+    '    Else
+    '      Return ThrowBasicError(BasicError.AdvancedFeature)
+    '    End If
+    '  Else
+    '    Return ThrowBasicError(BasicError.AdvancedFeature)
+    '  End If
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
-    Private Function ExecuteGpioDigitalWrite() As Boolean
+    'Private Function ExecuteGpioDigitalWrite() As Boolean
 
-      ' GPIO pin, ON|OFF|1|0
+    '  ' GPIO pin, ON|OFF|1|0
 
-      If m_gpio IsNot Nothing Then
-        If m_gpio.IsAvailable Then
+    '  If m_gpio IsNot Nothing Then
+    '    If m_gpio.IsAvailable Then
 
-          Dim pin As Short
+    '      Dim pin As Short
 
-          If PeekToken() Is Nothing Then
-            Return ThrowBasicError(BasicError.SyntaxError) ' missing further instructions...
-          ElseIf PeekToken()?.IsCommaToken Then
-            Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
-          Else
-            If Not ExecuteExpression(pin) Then
-              Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
-            End If
-          End If
+    '      If PeekToken() Is Nothing Then
+    '        Return ThrowBasicError(BasicError.SyntaxError) ' missing further instructions...
+    '      ElseIf PeekToken()?.IsCommaToken Then
+    '        Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
+    '      Else
+    '        If Not ExecuteExpression(pin) Then
+    '          Return ThrowBasicError(BasicError.SyntaxError) ' pin is required...
+    '        End If
+    '      End If
 
-          If Not PeekToken()?.IsCommaToken Then
-            Return ThrowBasicError(BasicError.SyntaxError) ' expected a comma.
-          Else
-            PopToken() ' remove the comma...
-          End If
+    '      If Not PeekToken()?.IsCommaToken Then
+    '        Return ThrowBasicError(BasicError.SyntaxError) ' expected a comma.
+    '      Else
+    '        PopToken() ' remove the comma...
+    '      End If
 
-          Dim state As Short
+    '      Dim state As Short
 
-          Select Case PeekToken()?.ToString
-            Case "ON", "HIGH"
-              PopToken()
-              state = 0
-            Case "OFF", "LOW"
-              PopToken()
-              state = 1
-            Case Else
-              If Not ExecuteExpression(state) Then
-                Return ThrowBasicError(BasicError.SyntaxError)
-              End If
-          End Select
+    '      Select Case PeekToken()?.ToString
+    '        Case "ON", "HIGH"
+    '          PopToken()
+    '          state = 0
+    '        Case "OFF", "LOW"
+    '          PopToken()
+    '          state = 1
+    '        Case Else
+    '          If Not ExecuteExpression(state) Then
+    '            Return ThrowBasicError(BasicError.SyntaxError)
+    '          End If
+    '      End Select
 
-          If PeekToken() Is Nothing Then
-            Return m_gpio.DigitalWrite(pin, state)
-          Else
-            Return ThrowBasicError(BasicError.SyntaxError)
-          End If
+    '      If PeekToken() Is Nothing Then
+    '        Return m_gpio.DigitalWrite(pin, state)
+    '      Else
+    '        Return ThrowBasicError(BasicError.SyntaxError)
+    '      End If
 
-        Else
-          Return ThrowBasicError(BasicError.AdvancedFeature)
-        End If
-      Else
-        Return ThrowBasicError(BasicError.AdvancedFeature)
-      End If
+    '    Else
+    '      Return ThrowBasicError(BasicError.AdvancedFeature)
+    '    End If
+    '  Else
+    '    Return ThrowBasicError(BasicError.AdvancedFeature)
+    '  End If
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
     Private Function ExecuteInput() As Boolean
 
@@ -10485,12 +10225,6 @@ nameList As List(Of String)) As Boolean
           Return ThrowBasicError(BasicError.SyntaxError)
         Else
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-          m_virtualFileSystemAsync.KillAsync(Guid.Empty, path, path)
-          m_waiting = True
-          Return True
-#Else
-
           Dim result = m_virtualFileSystem.Kill(path)
 
           If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
@@ -10518,45 +10252,11 @@ nameList As List(Of String)) As Boolean
 
           Return True
 
-#End If
-
         End If
 
       End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteKillCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.KillCompleted
-
-    Dim result As String = e.Result
-    'Dim file As File = CType(e.UserState, File)
-
-    If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
-      Dim errorText As String = result.Substring(7)
-      If IsNumeric(errorText) Then
-        m_running = ThrowBasicError(CShort(errorText))
-        m_waiting = False
-      Else
-        m_display.Print(errorText, True)
-        m_running = False
-        m_waiting = False
-      End If
-    Else
-
-      ' Nothing else to do...
-
-      m_running = True
-      m_waiting = False
-
-    End If
-
-    If Not m_running Then
-      InternalPrompt()
-    End If
-
-  End Sub
-#End If
 
     Private Function ExecuteLet() As Boolean
 
@@ -10790,7 +10490,7 @@ nameList As List(Of String)) As Boolean
           'style = -1
           Return ThrowBasicError(BasicError.SyntaxError)
         End If
-          If Not m_display.Line(CInt(x1), CInt(y1), CInt(x2), CInt(y2), c, box, fill, style) Then
+        If Not m_display.Line(CInt(x1), CInt(y1), CInt(x2), CInt(y2), c, box, fill, style) Then
           Return ThrowBasicError(BasicError.IllegalFunctionCall)
         End If
         m_drawPosition.X = CInt(x2)
@@ -11079,188 +10779,188 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteList(lpt As Boolean) As Boolean
+    'Private Function ExecuteList(lpt As Boolean) As Boolean
 
-      If Me.m_dialect = Parser.Dialect.GWBasic Then
+    '  If Me.m_dialect = Parser.Dialect.GWBasic Then
 
-        Dim startLine As Integer = 0
-        Dim endLine As Integer = 65529
+    '    Dim startLine As Integer = 0
+    '    Dim endLine As Integer = 65529
 
-        ' Process start number.
+    '    ' Process start number.
 
-        If PeekToken.IsPeriodToken Then
-          PopToken()
-          startLine = m_autoStart
-        ElseIf PeekToken.IsNumericLiteralToken Then
-          startLine = CUShort(PopToken.Literal)
-        End If
+    '    If PeekToken.IsPeriodToken Then
+    '      PopToken()
+    '      startLine = m_autoStart
+    '    ElseIf PeekToken.IsNumericLiteralToken Then
+    '      startLine = CUShort(PopToken.Literal)
+    '    End If
 
-        ' Process end number.
+    '    ' Process end number.
 
-        If PeekToken.IsDash Then
-          PopToken()
-          If PeekToken() Is Nothing Then
-          ElseIf PeekToken.IsCommaToken Then
-          ElseIf PeekToken.IsPeriodToken Then
-            PopToken()
-            endLine = m_autoStart
-          ElseIf PeekToken.IsNumericLiteralToken Then
-            endLine = CUShort(PopToken.Literal)
-          End If
-        End If
+    '    If PeekToken.IsDash Then
+    '      PopToken()
+    '      If PeekToken() Is Nothing Then
+    '      ElseIf PeekToken.IsCommaToken Then
+    '      ElseIf PeekToken.IsPeriodToken Then
+    '        PopToken()
+    '        endLine = m_autoStart
+    '      ElseIf PeekToken.IsNumericLiteralToken Then
+    '        endLine = CUShort(PopToken.Literal)
+    '      End If
+    '    End If
 
-        ' Process filename.
+    '    ' Process filename.
 
-        If PeekToken.IsCommaToken Then
-          PopToken()
-          If PeekToken.IsStringLiteralToken Then
-            Dim filename = PopToken.Literal
-          End If
-        End If
+    '    If PeekToken.IsCommaToken Then
+    '      PopToken()
+    '      If PeekToken.IsStringLiteralToken Then
+    '        Dim filename = PopToken.Literal
+    '      End If
+    '    End If
 
-        If PeekToken() Is Nothing AndAlso
-         startLine.Between(0, 65529) AndAlso
-         endLine.Between(0, 65529) AndAlso
-         startLine <= endLine Then
-          If m_pendingNew Then
-            ' Do nothing...
-          Else
+    '    If PeekToken() Is Nothing AndAlso
+    '     startLine.Between(0, 65529) AndAlso
+    '     endLine.Between(0, 65529) AndAlso
+    '     startLine <= endLine Then
+    '      If m_pendingNew Then
+    '        ' Do nothing...
+    '      Else
 
-            If lpt Then
+    '        If lpt Then
 
-              For Each line In m_lines
-                If line.LineNumber Is Nothing OrElse CInt(line.LineNumber).Between(m_listStartLine, m_listEndLine) Then
-                  'If lpt Then
-                  m_lpt(0).Print(line.Text, True)
-                  'Else
-                  '  m_display.Print(line.Text, True)
-                  'End If
-                End If
-              Next
+    '          For Each line In m_lines
+    '            If line.LineNumber Is Nothing OrElse CInt(line.LineNumber).Between(m_listStartLine, m_listEndLine) Then
+    '              'If lpt Then
+    '              m_lpt(0).Print(line.Text, True)
+    '              'Else
+    '              '  m_display.Print(line.Text, True)
+    '              'End If
+    '            End If
+    '          Next
 
-            Else
+    '        Else
 
-              m_listStartLine = startLine
-              m_listEndLine = endLine
-              m_listLineIndex = 0
-              Return ContinueList()
+    '          m_listStartLine = startLine
+    '          m_listEndLine = endLine
+    '          m_listLineIndex = 0
+    '          Return ContinueList()
 
-            End If
+    '        End If
 
-          End If
-        Else
-          Return ThrowBasicError(BasicError.IllegalFunctionCall)
-        End If
+    '      End If
+    '    Else
+    '      Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '    End If
 
-      Else
+    '  Else
 
-        If PeekToken() Is Nothing Then
-          m_running = False
-          RaiseEvent ListHook(Me, EventArgs.Empty)
-          Return m_running
-        Else
-          Return ThrowBasicError(BasicError.SyntaxError)
-        End If
+    '    If PeekToken() Is Nothing Then
+    '      m_running = False
+    '      RaiseEvent ListHook(Me, EventArgs.Empty)
+    '      Return m_running
+    '    Else
+    '      Return ThrowBasicError(BasicError.SyntaxError)
+    '    End If
 
-      End If
+    '  End If
 
-      Return False
+    '  Return False
 
-    End Function
+    'End Function
 
-    Private Function ContinueList() As Boolean
+    'Private Function ContinueList() As Boolean
 
-      Dim counter As Integer = 0
+    '  Dim counter As Integer = 0
 
-      Do
+    '  Do
 
-        If m_listLineIndex > m_lines.Count - 1 Then
-          m_listStartLine = -1
-          m_listEndLine = -1
-          m_listLineIndex = -1
-          Return False
-        End If
+    '    If m_listLineIndex > m_lines.Count - 1 Then
+    '      m_listStartLine = -1
+    '      m_listEndLine = -1
+    '      m_listLineIndex = -1
+    '      Return False
+    '    End If
 
-        If counter > 0 Then
-          Exit Do
-        End If
+    '    If counter > 0 Then
+    '      Exit Do
+    '    End If
 
-        Dim line = m_lines(m_listLineIndex)
+    '    Dim line = m_lines(m_listLineIndex)
 
-        If line.LineNumber Is Nothing OrElse CInt(line.LineNumber).Between(m_listStartLine, m_listEndLine) Then
-          m_display.Print(line.Text, True)
-          If line.LineNumber IsNot Nothing Then
-            m_editLine = CInt(line.LineNumber)
-          End If
-        End If
+    '    If line.LineNumber Is Nothing OrElse CInt(line.LineNumber).Between(m_listStartLine, m_listEndLine) Then
+    '      m_display.Print(line.Text, True)
+    '      If line.LineNumber IsNot Nothing Then
+    '        m_editLine = CInt(line.LineNumber)
+    '      End If
+    '    End If
 
-        m_listLineIndex += 1
-        counter += 1
+    '    m_listLineIndex += 1
+    '    counter += 1
 
-      Loop
+    '  Loop
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
-    Private Function ExecuteParserList() As Boolean
+    'Private Function ExecuteParserList() As Boolean
 
-      Dim startLine As Integer = 0
-      Dim endLine As Integer = 65529
+    '  Dim startLine As Integer = 0
+    '  Dim endLine As Integer = 65529
 
-      ' Process start number.
+    '  ' Process start number.
 
-      If PeekToken.IsPeriodToken Then
-        PopToken()
-        startLine = m_autoStart
-      ElseIf PeekToken.IsNumericLiteralToken Then
-        startLine = CShort(PopToken.Literal)
-      End If
+    '  If PeekToken.IsPeriodToken Then
+    '    PopToken()
+    '    startLine = m_autoStart
+    '  ElseIf PeekToken.IsNumericLiteralToken Then
+    '    startLine = CShort(PopToken.Literal)
+    '  End If
 
-      ' Process end number.
+    '  ' Process end number.
 
-      If PeekToken.IsDash Then
-        PopToken()
-        If PeekToken() Is Nothing Then
-        ElseIf PeekToken.IsCommaToken Then
-        ElseIf PeekToken.IsPeriodToken Then
-          PopToken()
-          endLine = m_autoStart
-        ElseIf PeekToken.IsNumericLiteralToken Then
-          endLine = CShort(PopToken.Literal)
-        End If
-      End If
+    '  If PeekToken.IsDash Then
+    '    PopToken()
+    '    If PeekToken() Is Nothing Then
+    '    ElseIf PeekToken.IsCommaToken Then
+    '    ElseIf PeekToken.IsPeriodToken Then
+    '      PopToken()
+    '      endLine = m_autoStart
+    '    ElseIf PeekToken.IsNumericLiteralToken Then
+    '      endLine = CShort(PopToken.Literal)
+    '    End If
+    '  End If
 
-      ' Process filename.
+    '  ' Process filename.
 
-      If PeekToken.IsCommaToken Then
-        PopToken()
-        If PeekToken.IsStringLiteralToken Then
-          Dim filename = PopToken.Literal
-        End If
-      End If
+    '  If PeekToken.IsCommaToken Then
+    '    PopToken()
+    '    If PeekToken.IsStringLiteralToken Then
+    '      Dim filename = PopToken.Literal
+    '    End If
+    '  End If
 
-      If PeekToken() Is Nothing AndAlso
-       startLine.Between(0, 65529) AndAlso
-       endLine.Between(0, 65529) AndAlso
-       startLine <= endLine Then
-        If m_pendingNew Then
-          ' Do nothing...
-        Else
+    '  If PeekToken() Is Nothing AndAlso
+    '   startLine.Between(0, 65529) AndAlso
+    '   endLine.Between(0, 65529) AndAlso
+    '   startLine <= endLine Then
+    '    If m_pendingNew Then
+    '      ' Do nothing...
+    '    Else
 
-          For Each line In m_lines
-            If line.LineNumber Is Nothing OrElse CInt(line.LineNumber).Between(startLine, endLine) Then
-              m_display.Print(line.ToString(), True)
-            End If
-          Next
-        End If
-      Else
-        Return ThrowBasicError(BasicError.IllegalFunctionCall)
-      End If
+    '      For Each line In m_lines
+    '        If line.LineNumber Is Nothing OrElse CInt(line.LineNumber).Between(startLine, endLine) Then
+    '          m_display.Print(line.ToString(), True)
+    '        End If
+    '      Next
+    '    End If
+    '  Else
+    '    Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '  End If
 
-      Return False
+    '  Return False
 
-    End Function
+    'End Function
 
     Private Function ExecuteLset() As Boolean
 
@@ -11306,51 +11006,45 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteMerge() As Boolean
+    '    Private Function ExecuteMerge() As Boolean
 
-      If m_isTrial Then
-        Return ThrowBasicError(BasicError.AdvancedFeature)
-      End If
+    '      If m_isTrial Then
+    '        Return ThrowBasicError(BasicError.AdvancedFeature)
+    '      End If
 
-      If PeekToken() Is Nothing Then
-        Return ThrowBasicError(BasicError.MissingOperand)
-      ElseIf Not PeekToken.IsStringLiteralToken Then
-        Return ThrowBasicError(BasicError.TypeMismatch)
-      ElseIf PeekToken() IsNot Nothing Then
+    '      If PeekToken() Is Nothing Then
+    '        Return ThrowBasicError(BasicError.MissingOperand)
+    '      ElseIf Not PeekToken.IsStringLiteralToken Then
+    '        Return ThrowBasicError(BasicError.TypeMismatch)
+    '      ElseIf PeekToken() IsNot Nothing Then
 
-        Dim value As String = ""
-        If Not ExecuteStringExpression(value, Nothing) Then Return ThrowBasicError(BasicError.SyntaxError)
+    '        Dim value As String = ""
+    '        If Not ExecuteStringExpression(value, Nothing) Then Return ThrowBasicError(BasicError.SyntaxError)
 
-        Dim filename = RealPath(value) 'PopToken.ToString)
+    '        Dim filename = RealPath(value) 'PopToken.ToString)
 
-        Dim period As Integer = filename.LastIndexOf("."c)
-        Dim ext As String = Nothing
-        If period > -1 Then
-          ext = filename.Substring(period)
-        End If
-        If String.IsNullOrEmpty(ext) Then
-          filename &= ".BAS"
-        End If
+    '        Dim period As Integer = filename.LastIndexOf("."c)
+    '        Dim ext As String = Nothing
+    '        If period > -1 Then
+    '          ext = filename.Substring(period)
+    '        End If
+    '        If String.IsNullOrEmpty(ext) Then
+    '          filename &= ".BAS"
+    '        End If
 
-        If PeekToken() Is Nothing Then
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-          m_virtualFileSystemAsync.LoadAsync(Guid.Empty, filename, filename & "|MERGE")
-          m_waiting = True
-          Return True
-#Else
-          Dim result = m_virtualFileSystem.Load(filename)
-          InternalLoadCompleted(result, filename & "|MERGE")
-          Return True
-#End If
-        Else
-          Return ThrowBasicError(BasicError.SyntaxError)
-        End If
+    '        If PeekToken() Is Nothing Then
+    '          Dim result = m_virtualFileSystem.Load(filename)
+    '          InternalLoadCompleted(result, filename & "|MERGE")
+    '          Return True
+    '        Else
+    '          Return ThrowBasicError(BasicError.SyntaxError)
+    '        End If
 
-      Else
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
+    '      Else
+    '        Return ThrowBasicError(BasicError.SyntaxError)
+    '      End If
 
-    End Function
+    '    End Function
 
     Private Function ExecuteMid() As Boolean
 
@@ -11480,12 +11174,6 @@ nameList As List(Of String)) As Boolean
             path &= "\"
           End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-          m_virtualFileSystemAsync.MkDirAsync(Guid.Empty, path, path)
-          m_waiting = True
-          Return True
-#Else
-
           Dim result = m_virtualFileSystem.MkDir(path)
 
           If result.StartsWith("Error: ") Then
@@ -11498,32 +11186,11 @@ nameList As List(Of String)) As Boolean
 
           Return True
 
-#End If
-
         End If
 
       End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteMkDirCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.MkDirCompleted
-
-    Dim result As String = e.Result
-
-    If result.StartsWith("Error: ") Then
-      m_display.Print(result.Substring(7), True)
-      m_running = False
-    End If
-
-    m_waiting = False
-    m_running = False
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
 
     Private Function ExecuteName() As Boolean
 
@@ -11561,12 +11228,6 @@ nameList As List(Of String)) As Boolean
         Return ThrowBasicError(BasicError.SyntaxError)
       End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.NameAsync(Guid.Empty, oldPath, newPath, oldPath)
-      m_waiting = True
-      Return False
-#Else
-
       Dim result = m_virtualFileSystem.Name(oldPath, newPath)
 
       If result.StartsWith("Error: ") Then
@@ -11583,28 +11244,7 @@ nameList As List(Of String)) As Boolean
 
       Return True
 
-#End If
-
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteNameCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.NameCompleted
-
-    Dim result As String = e.Result
-
-    If result.StartsWith("Error: ") Then
-      m_display.Print(result.Substring(7), True)
-      m_running = False
-    End If
-
-    m_running = False
-    m_waiting = False
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
 
     Private Function ExecuteNew() As Boolean
 
@@ -11618,27 +11258,27 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteOld() As Boolean
+    'Private Function ExecuteOld() As Boolean
 
-      If m_isTrial Then
-        Return ThrowBasicError(BasicError.AdvancedFeature)
-      End If
+    '  If m_isTrial Then
+    '    Return ThrowBasicError(BasicError.AdvancedFeature)
+    '  End If
 
-      If PeekToken() Is Nothing Then
+    '  If PeekToken() Is Nothing Then
 
-        If m_pendingNew Then
-          m_pendingNew = False
-        Else
-          Return ThrowBasicError(BasicError.IllegalFunctionCall)
-        End If
+    '    If m_pendingNew Then
+    '      m_pendingNew = False
+    '    Else
+    '      Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '    End If
 
-      Else
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
+    '  Else
+    '    Return ThrowBasicError(BasicError.SyntaxError)
+    '  End If
 
-      Return False
+    '  Return False
 
-    End Function
+    'End Function
 
     Private Function ExecuteOn() As Boolean
 
@@ -12499,6 +12139,12 @@ nameList As List(Of String)) As Boolean
 
     Private Function ExecutePoint() As Boolean
 
+      'TODO:
+      ' POINT(0) ' physical x-coordinate of the last point
+      ' POINT(1) ' physical y-coordinate of the last point
+      ' POINT(2) ' view x-coordinate of the last point
+      ' POINT(3) ' view y-coordinate of the last point
+
       Return ThrowBasicError(BasicError.AdvancedFeature)
 
     End Function
@@ -12532,7 +12178,7 @@ nameList As List(Of String)) As Boolean
               'If param2 = 255 Then
               'm_speed = 10000
               'Else
-              m_speed = CShort(1 + (CByte(param2) * 4)) ' Provides a range of 1 to 1021
+              'm_speed = CShort(1 + (CByte(param2) * 4)) ' Provides a range of 1 to 1021
               'End If
             Case Else
           End Select
@@ -14720,134 +14366,134 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteRenum() As Boolean
+    'Private Function ExecuteRenum() As Boolean
 
-      Dim newNumber As Integer = -1
-      Dim oldNumber As Integer = -1
-      Dim increment As Integer = 10
+    '  Dim newNumber As Integer = -1
+    '  Dim oldNumber As Integer = -1
+    '  Dim increment As Integer = 10
 
-      If m_lines.Count > 0 AndAlso Not m_pendingNew Then
-        oldNumber = CShort(Aggregate a In m_lines
-                         Into Min(a.LineNumber))
-      Else
-        Return ThrowBasicError(BasicError.IllegalFunctionCall)
-      End If
+    '  If m_lines.Count > 0 AndAlso Not m_pendingNew Then
+    '    oldNumber = CShort(Aggregate a In m_lines
+    '                     Into Min(a.LineNumber))
+    '  Else
+    '    Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '  End If
 
-      ' Process new number.
+    '  ' Process new number.
 
-      If PeekToken() Is Nothing Then
-        newNumber = 10
-      ElseIf PeekToken.IsCommaToken Then
-        newNumber = 10
-      ElseIf PeekToken.IsNumericLiteralToken Then
-        newNumber = CShort(PopToken.Literal)
-      End If
+    '  If PeekToken() Is Nothing Then
+    '    newNumber = 10
+    '  ElseIf PeekToken.IsCommaToken Then
+    '    newNumber = 10
+    '  ElseIf PeekToken.IsNumericLiteralToken Then
+    '    newNumber = CShort(PopToken.Literal)
+    '  End If
 
-      ' Process end number.
+    '  ' Process end number.
 
-      If PeekToken.IsCommaToken Then
-        PopToken()
-        If PeekToken() Is Nothing Then
-          ' ??????
-          Stop
-        ElseIf PeekToken.IsCommaToken Then
-          ' Process increment.
-        ElseIf PeekToken.IsNumericLiteralToken Then
-          oldNumber = CShort(PopToken.Literal)
-        End If
-      End If
+    '  If PeekToken.IsCommaToken Then
+    '    PopToken()
+    '    If PeekToken() Is Nothing Then
+    '      ' ??????
+    '      Stop
+    '    ElseIf PeekToken.IsCommaToken Then
+    '      ' Process increment.
+    '    ElseIf PeekToken.IsNumericLiteralToken Then
+    '      oldNumber = CShort(PopToken.Literal)
+    '    End If
+    '  End If
 
-      ' Process increment.
+    '  ' Process increment.
 
-      If PeekToken.IsCommaToken Then
-        PopToken()
-        If PeekToken.IsNumericLiteralToken Then
-          increment = CShort(PopToken.Literal)
-        End If
-      End If
+    '  If PeekToken.IsCommaToken Then
+    '    PopToken()
+    '    If PeekToken.IsNumericLiteralToken Then
+    '      increment = CShort(PopToken.Literal)
+    '    End If
+    '  End If
 
-      If PeekToken() Is Nothing AndAlso
-       newNumber.Between(0, 65529) AndAlso
-       oldNumber.Between(0, 65529) AndAlso
-       increment.Between(1, 655329) AndAlso
-       ((Aggregate a In m_lines Where a.LineNumber = oldNumber Into Count()) > 0) Then
+    '  If PeekToken() Is Nothing AndAlso
+    '   newNumber.Between(0, 65529) AndAlso
+    '   oldNumber.Between(0, 65529) AndAlso
+    '   increment.Between(1, 655329) AndAlso
+    '   ((Aggregate a In m_lines Where a.LineNumber = oldNumber Into Count()) > 0) Then
 
-        'TODO: Need to verify that line numbers exist -> old number.
-        'TODO: Need to verify that new line number (in concideration of old line number) does not cause a crossover situation.
-        'TODO: Need to parse each line for ELSE, GOTO, GOSUB, THEN, ON...GOTO, ON...GOSUB, RESTORE, RESUME and ERL statements and renumber accordingly.
-        'TODO: Need to report error on any reference to a nonexistent line number when processing statements. ("Undefined line {0} in {1}.")
+    '    'TODO: Need to verify that line numbers exist -> old number.
+    '    'TODO: Need to verify that new line number (in concideration of old line number) does not cause a crossover situation.
+    '    'TODO: Need to parse each line for ELSE, GOTO, GOSUB, THEN, ON...GOTO, ON...GOSUB, RESTORE, RESUME and ERL statements and renumber accordingly.
+    '    'TODO: Need to report error on any reference to a nonexistent line number when processing statements. ("Undefined line {0} in {1}.")
 
-        ' Copy entire source list to a temporary list.
-        Dim result As New List(Of Parser.Line)
-        For index As Integer = 0 To m_lines.Count - 1
-          result.Add(m_lines(index).Copy)
-        Next
+    '    ' Copy entire source list to a temporary list.
+    '    Dim result As New List(Of Parser.Line)
+    '    For index As Integer = 0 To m_lines.Count - 1
+    '      result.Add(m_lines(index).Copy)
+    '    Next
 
-        ' Manipulate the temporary list.
-        For index As Integer = 0 To result.Count - 1
-          If result(index).LineNumber >= oldNumber Then
+    '    ' Manipulate the temporary list.
+    '    For index As Integer = 0 To result.Count - 1
+    '      If result(index).LineNumber >= oldNumber Then
 
-            Dim currentNumber As Short = CShort(result(index).LineNumber)
+    '        Dim currentNumber As Short = CShort(result(index).LineNumber)
 
-            ' Check for ELSE, GOTO, GOSUB, THEN, ON...GOTO, ON...GOSUB, RESTORE, and ERL statements, 
-            ' modify the matching line number accordingly.
-            For parseIndex As Integer = 0 To m_lines.Count - 1
-              For statementIndex = 0 To m_lines(parseIndex).Statements.Count - 1
-                For tokenIndex = 0 To m_lines(parseIndex).Statements(statementIndex).Tokens.Count - 1
-                  If TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex) Is Parser.KeywordToken Then
-                    Select Case m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex).ToString
-                      Case "ELSE", "GOTO", "GOSUB", "THEN", "RESTORE"
-                        If tokenIndex + 1 < m_lines(parseIndex).Statements(statementIndex).Tokens.Count AndAlso
-                         TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1) Is Parser.NumericLiteralToken AndAlso
-                         CShort(DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value) = currentNumber Then
-                          DirectCast(result(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value = CStr(newNumber)
-                          result(parseIndex).Text = result(parseIndex).ToString
-                        End If
-                      Case "ON" ' GOTO, GOSUB
-                        If tokenIndex + 2 < m_lines(parseIndex).Statements(statementIndex).Tokens.Count AndAlso
-                         TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2) Is Parser.KeywordToken AndAlso
-                         (DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.KeywordToken).Value = "GOTO" OrElse
-                          DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.KeywordToken).Value = "GOSUB") AndAlso
-                         TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1) Is Parser.NumericLiteralToken AndAlso
-                         CShort(DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value) = currentNumber Then
-                          DirectCast(result(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value = CStr(newNumber)
-                          result(parseIndex).Text = result(parseIndex).ToString
-                        End If
-                      Case "ERL"
-                        If tokenIndex + 2 < m_lines(parseIndex).Statements(statementIndex).Tokens.Count AndAlso
-                         TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1) Is Parser.RelationalOperatorToken AndAlso
-                         DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.RelationalOperatorToken).Value = "=" AndAlso
-                         TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2) Is Parser.NumericLiteralToken AndAlso
-                         CShort(DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.NumericLiteralToken).Value) = currentNumber Then
-                          DirectCast(result(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.NumericLiteralToken).Value = CStr(newNumber)
-                          result(parseIndex).Text = result(parseIndex).ToString
-                        End If
-                    End Select
-                  End If
-                Next
-              Next
-            Next
+    '        ' Check for ELSE, GOTO, GOSUB, THEN, ON...GOTO, ON...GOSUB, RESTORE, and ERL statements, 
+    '        ' modify the matching line number accordingly.
+    '        For parseIndex As Integer = 0 To m_lines.Count - 1
+    '          For statementIndex = 0 To m_lines(parseIndex).Statements.Count - 1
+    '            For tokenIndex = 0 To m_lines(parseIndex).Statements(statementIndex).Tokens.Count - 1
+    '              If TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex) Is Parser.KeywordToken Then
+    '                Select Case m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex).ToString
+    '                  Case "ELSE", "GOTO", "GOSUB", "THEN", "RESTORE"
+    '                    If tokenIndex + 1 < m_lines(parseIndex).Statements(statementIndex).Tokens.Count AndAlso
+    '                     TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1) Is Parser.NumericLiteralToken AndAlso
+    '                     CShort(DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value) = currentNumber Then
+    '                      DirectCast(result(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value = CStr(newNumber)
+    '                      result(parseIndex).Text = result(parseIndex).ToString
+    '                    End If
+    '                  Case "ON" ' GOTO, GOSUB
+    '                    If tokenIndex + 2 < m_lines(parseIndex).Statements(statementIndex).Tokens.Count AndAlso
+    '                     TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2) Is Parser.KeywordToken AndAlso
+    '                     (DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.KeywordToken).Value = "GOTO" OrElse
+    '                      DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.KeywordToken).Value = "GOSUB") AndAlso
+    '                     TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1) Is Parser.NumericLiteralToken AndAlso
+    '                     CShort(DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value) = currentNumber Then
+    '                      DirectCast(result(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.NumericLiteralToken).Value = CStr(newNumber)
+    '                      result(parseIndex).Text = result(parseIndex).ToString
+    '                    End If
+    '                  Case "ERL"
+    '                    If tokenIndex + 2 < m_lines(parseIndex).Statements(statementIndex).Tokens.Count AndAlso
+    '                     TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1) Is Parser.RelationalOperatorToken AndAlso
+    '                     DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 1), Parser.RelationalOperatorToken).Value = "=" AndAlso
+    '                     TypeOf m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2) Is Parser.NumericLiteralToken AndAlso
+    '                     CShort(DirectCast(m_lines(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.NumericLiteralToken).Value) = currentNumber Then
+    '                      DirectCast(result(parseIndex).Statements(statementIndex).Tokens(tokenIndex + 2), Parser.NumericLiteralToken).Value = CStr(newNumber)
+    '                      result(parseIndex).Text = result(parseIndex).ToString
+    '                    End If
+    '                End Select
+    '              End If
+    '            Next
+    '          Next
+    '        Next
 
-            result(index).LineNumber = newNumber
-            result(index).Text = result(index).ToString
+    '        result(index).LineNumber = newNumber
+    '        result(index).Text = result(index).ToString
 
-            newNumber += increment
-          End If
-        Next
+    '        newNumber += increment
+    '      End If
+    '    Next
 
-        ' If no errors, update source list using temporary list.
-        m_lines.Clear() ' = New List(Of Parser.Line)
-        For index As Integer = 0 To result.Count - 1
-          m_lines.Add(result(index).Copy)
-        Next
+    '    ' If no errors, update source list using temporary list.
+    '    m_lines.Clear() ' = New List(Of Parser.Line)
+    '    For index As Integer = 0 To result.Count - 1
+    '      m_lines.Add(result(index).Copy)
+    '    Next
 
-      Else
-        Return ThrowBasicError(BasicError.IllegalFunctionCall)
-      End If
+    '  Else
+    '    Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '  End If
 
-      Return False
+    '  Return False
 
-    End Function
+    'End Function
 
     Private Function ExecuteReset() As Boolean
 
@@ -14997,12 +14643,6 @@ nameList As List(Of String)) As Boolean
             path &= "\"
           End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-          m_virtualFileSystemAsync.RmDirAsync(Guid.Empty, path, path)
-          m_waiting = True
-          Return True
-#Else
-
           Dim result = m_virtualFileSystem.RmDir(path)
 
           If result.StartsWith("Error: ") Then
@@ -15018,32 +14658,11 @@ nameList As List(Of String)) As Boolean
 
           Return True
 
-#End If
-
         End If
 
       End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteRmDirCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.RmDirCompleted
-
-    Dim result As String = e.Result
-
-    If result.StartsWith("Error: ") Then
-      m_display.Print(result.Substring(7), True)
-      m_running = False
-    End If
-
-    m_running = False
-    m_waiting = False
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
 
     Private Function ExecuteRset() As Boolean
 
@@ -15211,6 +14830,13 @@ nameList As List(Of String)) As Boolean
 
       ResetDraw()
 
+      ' -------
+
+      Do
+        ProcessInterpreter()
+        If Not m_running Then Exit Do
+      Loop
+
       Return True
 
     End Function
@@ -15278,110 +14904,83 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteSave() As Boolean
+    '    Private Function ExecuteSave() As Boolean
 
-      If m_isTrial Then
-        Return ThrowBasicError(BasicError.AdvancedFeature)
-      End If
+    '      If m_isTrial Then
+    '        Return ThrowBasicError(BasicError.AdvancedFeature)
+    '      End If
 
-      If PeekToken() Is Nothing Then
-        Return ThrowBasicError(BasicError.MissingOperand)
-      ElseIf Not PeekToken.IsStringLiteralToken Then
-        Return ThrowBasicError(BasicError.TypeMismatch)
-      ElseIf PeekToken.IsStringLiteralToken Then
+    '      If PeekToken() Is Nothing Then
+    '        Return ThrowBasicError(BasicError.MissingOperand)
+    '      ElseIf Not PeekToken.IsStringLiteralToken Then
+    '        Return ThrowBasicError(BasicError.TypeMismatch)
+    '      ElseIf PeekToken.IsStringLiteralToken Then
 
-        Dim filename = RealPath(PopToken.ToString)
+    '        Dim filename = RealPath(PopToken.ToString)
 
-        If filename.Length > 4 AndAlso
-         filename.LastIndexOf("."c) > filename.Length - 4 Then
-          ' Do nothing, we have some sort of an extension already.
-        Else
-          ' no extension?
-          filename &= ".BAS"
-        End If
+    '        If filename.Length > 4 AndAlso
+    '         filename.LastIndexOf("."c) > filename.Length - 4 Then
+    '          ' Do nothing, we have some sort of an extension already.
+    '        Else
+    '          ' no extension?
+    '          filename &= ".BAS"
+    '        End If
 
-        ''Dim ext = IO.Path.GetExtension(filename)
-        'Dim period As Integer = filename.LastIndexOf(".")
-        'Dim ext As String = Nothing
-        'If period > -1 Then
-        '  ext = filename.Substring(period)
-        'End If
-        'If String.IsNullOrEmpty(ext) Then
-        '  filename &= ".BAS"
-        'End If
+    '        ''Dim ext = IO.Path.GetExtension(filename)
+    '        'Dim period As Integer = filename.LastIndexOf(".")
+    '        'Dim ext As String = Nothing
+    '        'If period > -1 Then
+    '        '  ext = filename.Substring(period)
+    '        'End If
+    '        'If String.IsNullOrEmpty(ext) Then
+    '        '  filename &= ".BAS"
+    '        'End If
 
-        If PeekToken.IsCommaToken Then
-          PopToken()
-          If PeekToken.IsWord("A|P") Then
-            PopToken()
-            If PeekToken() IsNot Nothing Then
-              Return ThrowBasicError(BasicError.SyntaxError)
-            End If
-          Else
-            Return ThrowBasicError(BasicError.SyntaxError)
-          End If
-        End If
+    '        If PeekToken.IsCommaToken Then
+    '          PopToken()
+    '          If PeekToken.IsWord("A|P") Then
+    '            PopToken()
+    '            If PeekToken() IsNot Nothing Then
+    '              Return ThrowBasicError(BasicError.SyntaxError)
+    '            End If
+    '          Else
+    '            Return ThrowBasicError(BasicError.SyntaxError)
+    '          End If
+    '        End If
 
-        Dim content As String = ""
+    '        Dim content As String = ""
 
-        If m_lines.Count = 0 OrElse m_pendingNew Then
-          Return ThrowBasicError(BasicError.IllegalFunctionCall)
-        End If
+    '        If m_lines.Count = 0 OrElse m_pendingNew Then
+    '          Return ThrowBasicError(BasicError.IllegalFunctionCall)
+    '        End If
 
-        For Each line In m_lines
-          If content <> "" Then
-            content &= vbCrLf
-          End If
-          content &= line.Text 'ToString
-        Next
+    '        For Each line In m_lines
+    '          If content <> "" Then
+    '            content &= vbCrLf
+    '          End If
+    '          content &= line.Text 'ToString
+    '        Next
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-        m_virtualFileSystemAsync.SaveAsync(Guid.Empty, filename, content, filename)
-        m_waiting = True
-        Return True
-#Else
+    '        Dim result = m_virtualFileSystem.Save(filename, content)
 
-        Dim result = m_virtualFileSystem.Save(filename, content)
+    '        If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
+    '          m_display.Print(result.Substring(7), True)
+    '          m_running = False
+    '        End If
 
-        If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
-          m_display.Print(result.Substring(7), True)
-          m_running = False
-        End If
+    '        m_waiting = False
+    '        m_running = False
 
-        m_waiting = False
-        m_running = False
+    '        'InternalPrompt()
+    '        'ProcessKeyBuffer()
 
-        'InternalPrompt()
-        'ProcessKeyBuffer()
+    '        Return True
 
-        Return True
+    '      Else
+    '        Return ThrowBasicError(BasicError.SyntaxError)
+    '      End If
 
-#End If
-
-      Else
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
-
-    End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub ExecuteSaveCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.SaveCompleted
-
-    Dim result As String = e.Result
-
-    If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
-      m_display.Print(result.Substring(7), True)
-      m_running = False
-    End If
-
-    m_waiting = False
-    m_running = False
-
-    InternalPrompt()
-    ProcessKeyBuffer()
-
-  End Sub
-#End If
+    '    End Function
 
     Private Function ExecuteScreen() As Boolean
 
@@ -16175,17 +15774,17 @@ nameList As List(Of String)) As Boolean
 
     End Function
 
-    Private Function ExecuteVer() As Boolean
+    'Private Function ExecuteVer() As Boolean
 
-      If PeekToken() Is Nothing Then
-        m_display.Print(m_productName, True) 'm_version, True)
-      Else
-        Return ThrowBasicError(BasicError.SyntaxError)
-      End If
+    '  If PeekToken() Is Nothing Then
+    '    m_display.Print(m_productName, True) 'm_version, True)
+    '  Else
+    '    Return ThrowBasicError(BasicError.SyntaxError)
+    '  End If
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
     Private Function ExecuteView() As Boolean
 
@@ -17171,12 +16770,6 @@ recordLength As Short) As Boolean
                                .Position = position,
                                .RecordLength = recordLength}
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.OpenAsync(Guid.Empty, filename, CInt(mode), CInt(lock), file)
-      m_waiting = True
-      Return True
-#Else
-
       Dim result = m_virtualFileSystem.Open(filename, CInt(mode), CInt(lock))
 
       If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
@@ -17214,48 +16807,7 @@ recordLength As Short) As Boolean
 
       Return True
 
-#End If
-
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub InternalOpenCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.OpenCompleted
-
-    Dim result As String = e.Result
-    Dim file As File = CType(e.UserState, File)
-
-    If result IsNot Nothing AndAlso result.StartsWith("Error: ") Then
-      Dim number = result.Substring(7)
-      If IsNumeric(number) Then
-        m_running = ThrowBasicError(CShort(number))
-        m_waiting = False
-      Else
-        m_display.Print(result.Substring(7), True)
-        m_running = False
-        m_waiting = False
-      End If
-    Else
-
-      Dim length As Integer = CInt(result)
-      file.Length = length
-
-      If file.Mode = FileMode.Append Then
-        file.Position = length
-      End If
-
-      m_fileList.Add(file.Number, file)
-
-      m_running = True
-      m_waiting = False
-
-    End If
-
-    If Not m_running Then
-      InternalPrompt()
-    End If
-
-  End Sub
-#End If
 
     'Private Sub InternalWrite(ByVal fileNumber As Short, ByVal text As String)
 
@@ -17281,14 +16833,6 @@ value.Mode = FileMode.RandomAccessWrite Then
       Else
 
         text &= vbCrLf
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-        m_virtualFileSystemAsync.WriteAsync(Guid.Empty, m_fileList(fileNumber).Path, text, m_fileList(fileNumber).Position, fileNumber)
-        m_fileList(fileNumber).Position += text.Length
-        m_fileList(fileNumber).Length += text.Length
-        m_waiting = True
-        Return True
-#Else
 
         Dim result = m_virtualFileSystem.Write(value.Path, text, value.Position, False)
         value.Position += text.Length
@@ -17319,17 +16863,9 @@ value.Mode = FileMode.RandomAccessWrite Then
 
         Return True
 
-#End If
-
       End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub InternalWriteCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.WriteCompleted
-    InternalWriteCompletedProcess(e.Result)
-  End Sub
-#End If
 
     'Private Sub InternalWriteCompletedProcess(result As String)
 
@@ -17381,14 +16917,8 @@ value.Mode = FileMode.RandomAccessWrite Then
 
       Dim state = New InputUserState() With {.FileNumber = fileNumber,
                                            .VariableList = variableList}
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.InputAsync(Guid.Empty, m_fileList(fileNumber).Path, m_fileList(fileNumber).Position, variableList.Count, state)
-      m_waiting = True
-      Return True
-#Else
       Dim result = m_virtualFileSystem.Input(value.Path, value.Position, variableList.Count, False)
       Return InternalInputCompletedProcess(result, state)
-#End If
 
     End Function
 
@@ -17413,23 +16943,11 @@ value.Mode = FileMode.RandomAccessWrite Then
       Dim state = New InputUserState() With {.FileNumber = fileNumber,
                                            .VariableList = variableList,
                                            .LineInput = True}
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.InputAsync(Guid.Empty, m_fileList(fileNumber).Path, m_fileList(fileNumber).Position, variableList.Count, state)
-      m_waiting = True
-      Return True
-#Else
       Dim result = m_virtualFileSystem.Input(value.Path, value.Position, variableList.Count, True)
       InternalInputCompletedProcess(result, state)
       Return True
-#End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub InternalInputCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.InputCompleted
-    InternalInputCompletedProcess(e.Result, e.UserState)
-  End Sub
-#End If
 
     Private Function InternalInputCompletedProcess(result As String, o As Object) As Boolean
 
@@ -17802,23 +17320,11 @@ value.Mode = FileMode.RandomAccessWrite Then
         position = (recordNumber - 1) * m_fileList(fileNumber).RecordLength
       End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.ReadAsync(Guid.Empty, m_fileList(fileNumber).Path, position, m_fileList(fileNumber).RecordLength, fileNumber)
-      m_waiting = True
-      Return True
-#Else
       Dim result = m_virtualFileSystem.Read(m_fileList(fileNumber).Path, position, m_fileList(fileNumber).RecordLength)
       InternalReadCompletedProcess(result, fileNumber)
       Return True
-#End If
 
     End Function
-
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-  Private Sub InternalReadCompleted(sender As Object, e As VirtualFileSystemEventArgsAsync) Handles m_virtualFileSystemAsync.ReadCompleted
-    InternalReadCompletedProcess(e.Result, e.UserState)
-  End Sub
-#End If
 
     Private Sub InternalReadCompletedProcess(result As String, o As Object)
 
@@ -17931,16 +17437,6 @@ value.Mode = FileMode.RandomAccessRead Then
         position = (recordNumber - 1) * value.RecordLength
       End If
 
-#If WEB_SERVICE_FILE_SYSTEM = 1 Then
-      m_virtualFileSystemAsync.WriteAsync(Guid.Empty, m_fileList(fileNumber).Path, text, position, fileNumber)
-      m_fileList(fileNumber).Position = position + text.Length
-      If m_fileList(fileNumber).Position > m_fileList(fileNumber).Position Then
-        m_fileList(fileNumber).Length = m_fileList(fileNumber).Position
-      End If
-      m_waiting = True
-      Return True
-#Else
-
       m_virtualFileSystem.Write(value.Path, text, position, True)
       value.Position = position + text.Length
       If value.Position > value.Position Then
@@ -17950,8 +17446,6 @@ value.Mode = FileMode.RandomAccessRead Then
       'm_waiting = True
 
       Return True
-
-#End If
 
     End Function
 
@@ -18998,104 +18492,104 @@ value.Mode = FileMode.RandomAccessRead Then
 
 #End Region
 
-    Public Sub Start(width As Short)
-      InternalStart(width)
-    End Sub
+    'Public Sub Start(width As Short)
+    '  InternalStart(width)
+    'End Sub
 
-    Private Sub InternalStart(width As Short)
+    'Private Sub InternalStart(width As Short)
 
-      ' Reset internal state(s).
-      m_shutDown = False
+    '  ' Reset internal state(s).
+    '  m_shutDown = False
 
-      If Me.m_dialect = Parser.Dialect.QBasic Then
-      Else
+    '  If Me.m_dialect = Parser.Dialect.QBasic Then
+    '  Else
 
-        ' Show copyright / startup info.
+    '    ' Show copyright / startup info.
 
-        If width = 40 OrElse width = 80 Then
-          m_display.ColumnCount = width
-          'If m_pen IsNot Nothing Then
-          '  m_pen.ColumnCount = width
-          'End If
-        End If
-        m_display.Locate(1, 1)
-        m_display.Print(m_productName, True) ' & If(m_environment IsNot Nothing AndAlso m_environment.IsDebugBuild, " (DEBUG BUILD)", ""), True)
-        If Me.m_display.ColumnCount = 80 Then
-          m_display.Print("(C) Copyright Cory Smith 2011-2023", True)
-        Else
-          m_display.Print("(C) Cory Smith 2011-2023", True)
-        End If
+    '    If width = 40 OrElse width = 80 Then
+    '      m_display.ColumnCount = width
+    '      'If m_pen IsNot Nothing Then
+    '      '  m_pen.ColumnCount = width
+    '      'End If
+    '    End If
+    '    m_display.Locate(1, 1)
+    '    m_display.Print(m_productName, True) ' & If(m_environment IsNot Nothing AndAlso m_environment.IsDebugBuild, " (DEBUG BUILD)", ""), True)
+    '    If Me.m_display.ColumnCount = 80 Then
+    '      m_display.Print("(C) Copyright Cory Smith 2011-2023", True)
+    '    Else
+    '      m_display.Print("(C) Cory Smith 2011-2023", True)
+    '    End If
 
-        'If m_region <> "en-US" Then
-        '  m_display.Print(String.Format("Locale: {0}", m_region), True)
-        'End If
-        If m_environment IsNot Nothing Then
-          Dim mem As Long = m_environment.FreeMemory
-          If mem > 0 Then
-            m_display.Print(String.Format("{0} Bytes free", mem), True)
-          Else
-            m_display.Print("? Bytes free", True)
-          End If
-        Else
-          m_display.Print("? Bytes free", True)
-        End If
-        'm_display.Print()
-        m_display.Print("Ok", True)
+    '    'If m_region <> "en-US" Then
+    '    '  m_display.Print(String.Format("Locale: {0}", m_region), True)
+    '    'End If
+    '    If m_environment IsNot Nothing Then
+    '      Dim mem As Long = m_environment.FreeMemory
+    '      If mem > 0 Then
+    '        m_display.Print(String.Format("{0} Bytes free", mem), True)
+    '      Else
+    '        m_display.Print("? Bytes free", True)
+    '      End If
+    '    Else
+    '      m_display.Print("? Bytes free", True)
+    '    End If
+    '    'm_display.Print()
+    '    m_display.Print("Ok", True)
 
-      End If
+    '  End If
 
-      ' Kick off "loop".
-      If InternalTimer IsNot Nothing Then InternalTimer.Start()
+    '  ' Kick off "loop".
+    '  If InternalTimer IsNot Nothing Then InternalTimer.Start()
 
-    End Sub
+    'End Sub
 
-    Private Function ExecuteKeywords() As Boolean
+    'Private Function ExecuteKeywords() As Boolean
 
-      Dim c As Integer = 0
+    '  Dim c As Integer = 0
 
-      'm_display.Print(String.Format("The following {0} keywords are implemented to one degree or another:", m_reservedWords.Count), True)
-      'Dim line As Integer = 1
-      'm_display.Print(line.ToString.PadRight(2) & " - ", False) : line += 1 : c += 5
-      'For Each entry In m_reservedWords
-      '  If c = m_display.ColumnCount Then
-      '    c = 0
-      '    m_display.Print(line.ToString.PadRight(2) & " - ", False) : line += 1 : c += 5
-      '  ElseIf c + entry.Length > m_display.ColumnCount Then
-      '    m_display.Print()
-      '    c = 0
-      '    m_display.Print(line.ToString.PadRight(2) & " - ", False) : line += 1 : c += 5
-      '  End If
-      '  m_display.Print(entry, False)
-      '  c += entry.Length
-      '  If c < m_display.ColumnCount Then
-      '    m_display.Print(" ", False)
-      '    c += 1
-      '  End If
-      'Next
-      'm_display.Print()
+    '  'm_display.Print(String.Format("The following {0} keywords are implemented to one degree or another:", m_reservedWords.Count), True)
+    '  'Dim line As Integer = 1
+    '  'm_display.Print(line.ToString.PadRight(2) & " - ", False) : line += 1 : c += 5
+    '  'For Each entry In m_reservedWords
+    '  '  If c = m_display.ColumnCount Then
+    '  '    c = 0
+    '  '    m_display.Print(line.ToString.PadRight(2) & " - ", False) : line += 1 : c += 5
+    '  '  ElseIf c + entry.Length > m_display.ColumnCount Then
+    '  '    m_display.Print()
+    '  '    c = 0
+    '  '    m_display.Print(line.ToString.PadRight(2) & " - ", False) : line += 1 : c += 5
+    '  '  End If
+    '  '  m_display.Print(entry, False)
+    '  '  c += entry.Length
+    '  '  If c < m_display.ColumnCount Then
+    '  '    m_display.Print(" ", False)
+    '  '    c += 1
+    '  '  End If
+    '  'Next
+    '  'm_display.Print()
 
-      m_display.Print(String.Format("The following {0} keywords are implemented to one degree or another:", m_reservedWords.Count), True)
-      Dim max As Integer = m_display.ColumnCount - 3
-      For Each entry In m_reservedWords
-        If c = max Then
-          m_display.Print()
-          c = 0
-        ElseIf c + entry.Length > max Then
-          m_display.Print()
-          c = 0
-        End If
-        m_display.Print(entry, False)
-        c += entry.Length
-        If c < max Then
-          m_display.Print(" ", False)
-          c += 1
-        End If
-      Next
-      m_display.Print()
+    '  m_display.Print(String.Format("The following {0} keywords are implemented to one degree or another:", m_reservedWords.Count), True)
+    '  Dim max As Integer = m_display.ColumnCount - 3
+    '  For Each entry In m_reservedWords
+    '    If c = max Then
+    '      m_display.Print()
+    '      c = 0
+    '    ElseIf c + entry.Length > max Then
+    '      m_display.Print()
+    '      c = 0
+    '    End If
+    '    m_display.Print(entry, False)
+    '    c += entry.Length
+    '    If c < max Then
+    '      m_display.Print(" ", False)
+    '      c += 1
+    '    End If
+    '  Next
+    '  m_display.Print()
 
-      Return True
+    '  Return True
 
-    End Function
+    'End Function
 
     Private m_paste As Boolean
 

@@ -14,7 +14,7 @@ Namespace Global.Basic.Display
 
     Private ReadOnly m_syncContext As Threading.SynchronizationContext
 
-    Private WithEvents InternalTimer As System.Timers.Timer 'Timers.ITimer
+    'Private WithEvents InternalTimer As System.Timers.Timer 'Timers.ITimer
 
     'Private m_canvas As Canvas
 
@@ -28,7 +28,7 @@ Namespace Global.Basic.Display
     Private m_characterWidth As Integer = 8
     Private m_characterHeight As Integer = 16
 
-    Private ReadOnly m_defaultForegroundColor As Short = 10 '7  Bright Green on black; originally was light white on black.
+    Private ReadOnly m_defaultForegroundColor As Short = 7
     Private ReadOnly m_defaultBackgroundColor As Short = 0
 
     Private ReadOnly m_columnCount As New List(Of Short) From {80,
@@ -3211,7 +3211,7 @@ allplotted:
 
     'End Class
 
-    Public Sub New(timer As System.Timers.Timer) 'Timers.ITimer)
+    Public Sub New() 'timer As System.Timers.Timer) 'Timers.ITimer)
 
       m_idirect = TryCast(Me, IDirect)
 
@@ -3229,14 +3229,14 @@ allplotted:
       Screen(0, False, 0, 0)
       'Me.KeyOn()
 
-      InternalTimer = timer
-      Try
-        InternalTimer.Interval = 1 '200 'was 100 'New TimeSpan(0, 0, 0, 0, 100)
-      Catch ex As System.ArgumentOutOfRangeException ' Windows Timer
-        InternalTimer.Interval = 1
-      End Try
-      'AddHandler m_timer.Tick, AddressOf Me.PaintTimer
-      InternalTimer.Start()
+      'InternalTimer = Timer
+      'Try
+      '  InternalTimer.Interval = 1 '200 'was 100 'New TimeSpan(0, 0, 0, 0, 100)
+      'Catch ex As System.ArgumentOutOfRangeException ' Windows Timer
+      '  InternalTimer.Interval = 1
+      'End Try
+      ''AddHandler m_timer.Tick, AddressOf Me.PaintTimer
+      'InternalTimer.Start()
 
     End Sub
 
@@ -3267,14 +3267,14 @@ allplotted:
         KeyOn()
       End If
 
-      InternalTimer = timer
-      Try
-        InternalTimer.Interval = 0 '200 'was 100 'New TimeSpan(0, 0, 0, 0, 100)
-      Catch ex As System.ArgumentOutOfRangeException ' Windows Timer
-        InternalTimer.Interval = 1
-      End Try
-      'AddHandler m_timer.Tick, AddressOf Me.PaintTimer
-      InternalTimer.Start()
+      'InternalTimer = timer
+      'Try
+      '  InternalTimer.Interval = 0 '200 'was 100 'New TimeSpan(0, 0, 0, 0, 100)
+      'Catch ex As System.ArgumentOutOfRangeException ' Windows Timer
+      '  InternalTimer.Interval = 1
+      'End Try
+      ''AddHandler m_timer.Tick, AddressOf Me.PaintTimer
+      'InternalTimer.Start()
 
     End Sub
 
@@ -4816,7 +4816,7 @@ allplotted:
 
     'End Sub
 
-    Private Sub InternalTimer_Tick() Handles InternalTimer.Elapsed
+    Private Sub InternalTimer_Tick() 'Handles InternalTimer.Elapsed
       'If m_canvas.Visibility = Visibility.Collapsed Then
       '  m_timer.Stop()
       '  m_timer = Nothing

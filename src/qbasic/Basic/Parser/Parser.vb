@@ -68,9 +68,9 @@ Namespace Global.Basic.Parser
     ' Holds a reference to the passed in memory stream.
     Private ReadOnly m_memoryStream As System.IO.MemoryStream
 
-    Public Sub New(input As System.IO.MemoryStream, dialect As Dialect)
+    Public Sub New(input As System.IO.MemoryStream) ', dialect As Dialect)
       m_memoryStream = input
-      PrepareDialect(dialect)
+      PrepareDialect(Dialect.QBasic) 'dialect)
       ScanParse()
     End Sub
 

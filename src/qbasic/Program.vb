@@ -48,10 +48,10 @@ Friend Class QBasic
   Private m_t As Single
 
   'Private WithEvents InterpreterTimer As New Timer(1)
-  Private WithEvents DisplayTimer As New Timer(1)
+  'Private WithEvents DisplayTimer As New Timer(1)
 
   'Private WithEvents Interpreter As Interactive
-  Private ReadOnly Display As New Display(DisplayTimer)
+  'Private ReadOnly Display As New Display(DisplayTimer)
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
@@ -59,6 +59,7 @@ Friend Class QBasic
   Private m_running As Boolean
   Private m_runner As Threading.Thread
 
+  Private m_scrn() As Integer
   Private m_scrn0() As UShort
   Private m_fg As Integer
   Private m_bg As Integer
@@ -417,6 +418,7 @@ Tip: These topics are also available from the Help menu.
         If m_runner.IsAlive Then
           ' need to feed the keys into the runner
           m_scrn0 = Nothing
+          m_scrn = Nothing
         Else
           If m_scrn0 Is Nothing Then
             'TODO: Take a "snapshot" of the screen
@@ -431,20 +433,20 @@ Tip: These topics are also available from the Help menu.
             LOCATE(25, 1) : PRINT("Press any key to continue", False)
           End If
           If keys IsNot Nothing Then
-              s_cancelTokenSource.Cancel()
-              m_running = False
-              'For Each key In keys
-              '  Select Case key
-              '    Case ConsoleKey.Escape
-              '      s_cancelTokenSource.Cancel()
-              '      m_running = False
-              '    Case Else
-              '  End Select
-              'Next
-            End If
+            s_cancelTokenSource.Cancel()
+            m_running = False
+            'For Each key In keys
+            '  Select Case key
+            '    Case ConsoleKey.Escape
+            '      s_cancelTokenSource.Cancel()
+            '      m_running = False
+            '    Case Else
+            '  End Select
+            'Next
           End If
+        End If
 
-          Else
+      Else
 
         If Not m_isAlt Then
           m_isAlt = GetKey(Key.ALT).Pressed
@@ -813,51 +815,61 @@ Tip: These topics are also available from the Help menu.
 
     If m_running Then 'Interpreter.IsRunning Then
 
-      For r = 0 To 24
-        For c = 0 To 79
+      If True Then
 
-          Dim index = (r * 80) + c
-          Dim ch = CByte(Screen0(index) And &HFF)
-          Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
-          Dim map = CharMap(m_textH, ch)
+        If m_display IsNot Nothing Then
 
-          Dim x = c * m_textW
-          Dim y = r * m_textH
-
-          Dim fg, bg As Integer
-          SplitColor(clr, fg, bg)
-
-          Dim fgc = m_palette(fg)
-          Dim bgc = m_palette(bg)
-
-          For dy = 0 To m_textH - 1
-            Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
-            Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
-            Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
-            Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
-            Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
-            Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
-            Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
-            Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
+          Dim p = m_display.Pixels(m_display.VisualPage)
+          Dim w = m_display.ScreenWidth
+          Dim h = m_display.ScreenHeight
+          Dim pxl As Pixel
+          For y = 0 To h - 1
+            For x = 0 To w - 1
+              Dim c = p(y * w + x)
+              pxl.I = c
+              If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
+                Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
+              End If
+              Draw(x, y, pxl)
+            Next
           Next
 
-        Next
-      Next
+        End If
 
-      'Dim p = Interpreter.Display.Pixels(Interpreter.Display.VisualPage)
-      'Dim w = Interpreter.Display.ScreenWidth
-      'Dim h = Interpreter.Display.ScreenHeight
-      'Dim pxl As Pixel
-      'For y = 0 To h - 1
-      '  For x = 0 To w - 1
-      '    Dim c = p(y * w + x)
-      '    pxl.I = c
-      '    If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
-      '      Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
-      '    End If
-      '    Draw(x, y, pxl)
-      '  Next
-      'Next
+      Else
+
+        For r = 0 To 24
+          For c = 0 To 79
+
+            Dim index = (r * 80) + c
+            Dim ch = CByte(Screen0(index) And &HFF)
+            Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
+            Dim map = CharMap(m_textH, ch)
+
+            Dim x = c * m_textW
+            Dim y = r * m_textH
+
+            Dim fg, bg As Integer
+            SplitColor(clr, fg, bg)
+
+            Dim fgc = m_palette(fg)
+            Dim bgc = m_palette(bg)
+
+            For dy = 0 To m_textH - 1
+              Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
+              Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
+              Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
+              Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
+              Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
+              Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
+              Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
+              Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
+            Next
+
+          Next
+        Next
+
+      End If
 
     Else
       DrawScreen()
@@ -1485,21 +1497,62 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub ContinueAction()
-    m_runner = New Threading.Thread(AddressOf Runner)
+    m_runner = New Threading.Thread(AddressOf RunnerBs)
     m_runner.Start()
   End Sub
 
   Private Sub RestartAction()
-    m_runner = New Threading.Thread(AddressOf Runner)
+    m_runner = New Threading.Thread(AddressOf RunnerGw)
     m_runner.Start()
   End Sub
 
   Private Sub StartAction()
-    m_runner = New Threading.Thread(AddressOf Runner)
+    m_runner = New Threading.Thread(AddressOf RunnerBs)
     m_runner.Start()
   End Sub
 
-  Private Sub Runner()
+  Private m_display As New Display
+
+  Private Sub RunnerGw()
+
+    s_cancelTokenSource = New System.Threading.CancellationTokenSource()
+    s_cancelToken = s_cancelTokenSource.Token
+    m_running = True
+
+    'InterpreterTimer.Enabled = True
+
+    Dim env As Basic.Environment.IEnvironment = Nothing
+    Dim fs As Basic.IO.IVirtualFileSystem = New WindowsFileSystem
+    Dim snd As Basic.Audio.ISound = Nothing
+    Dim kbd As Basic.Input.IKeyboard = Nothing
+    Dim gpio As Basic.IO.IGpio = Nothing
+    'm_display = New Display()
+
+    If m_scrn0 IsNot Nothing Then
+      Screen0 = CType(m_scrn0.Clone, UShort())
+      QBLib.Video.m_fgColor = m_fg
+      QBLib.Video.m_bgColor = m_bg
+      QBLib.Video.m_cursorRow = m_cr
+      QBLib.Video.m_cursorCol = m_cc
+      m_scrn0 = Nothing
+    Else
+      QBLib.Video.CLS()
+      QBLib.Video.COLOR(8, 0)
+    End If
+
+    Dim interpreter = New Basic.Interactive(env,
+                                            m_display,
+                                            Nothing,
+                                            snd,
+                                            kbd,
+                                            "en-US") With {.Source = Document1.Text}
+    interpreter.Run()
+
+    'm_display = Nothing
+
+  End Sub
+
+  Private Sub RunnerBs()
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token
     m_running = True

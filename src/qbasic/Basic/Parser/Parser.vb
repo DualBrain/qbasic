@@ -25,21 +25,23 @@ Namespace Global.Basic.Parser
 
     Private Sub PrepareDialect(dialect As Dialect)
 
-      Dim d As IDialect '= Nothing
-      Select Case dialect
-        Case Dialect.Hybrid
-          d = New Dialects.Hybrid
-        Case Dialect.GWBasic
-          d = New Dialects.GwBasic
-        Case Dialect.QBasic
-          d = New Dialects.Qbasic
-        Case Dialect.AmigaBasic
-          d = New Dialects.AmigaBasic
-        Case Dialect.TinyBasic
-          d = New Dialects.TinyBasic
-        Case Else
-          Throw New NotImplementedException(dialect.ToString)
-      End Select
+      'Dim d As IDialect '= Nothing
+      'Select Case dialect
+      '  Case Dialect.Hybrid
+      '    d = New Dialects.Hybrid
+      '  Case Dialect.GWBasic
+      '    d = New Dialects.GwBasic
+      '  Case Dialect.QBasic
+      '    d = New Dialects.Qbasic
+      '  Case Dialect.AmigaBasic
+      '    d = New Dialects.AmigaBasic
+      '  Case Dialect.TinyBasic
+      '    d = New Dialects.TinyBasic
+      '  Case Else
+      '    Throw New NotImplementedException(dialect.ToString)
+      'End Select
+
+      Dim d = New Dialects.Qbasic
 
       If d IsNot Nothing Then
         m_keywords = d.Keywords

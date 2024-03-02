@@ -16023,8 +16023,8 @@ nameList As List(Of String)) As Boolean
         Dim result As Boolean = FoundMatchingWend()
         If result Then
           m_whileLoop.Insert(0, New WhileLoop() With {.ConditionInterpreterIndex = interpreterIndex,
-                                                    .ConditionStatementIndex = statementIndex,
-                                                    .ConditionTokenIndex = tokenIndex})
+                                                                 .ConditionStatementIndex = statementIndex,
+                                                                 .ConditionTokenIndex = tokenIndex})
         End If
         Return result
 

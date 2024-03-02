@@ -39,7 +39,7 @@ Public Class DocumentPanel
       Return result
     End Get
     Set(value As String)
-      Clear()
+      Clear() : m_document.Clear()
       value = value.Replace(vbCrLf, vbLf)
       Dim lines = value.Split(vbLf)
       For Each line In lines
@@ -415,6 +415,7 @@ Public Class DocumentPanel
       If br - tr = 0 Then
         If lc = 1 AndAlso rc = 32768 Then
           m_document.RemoveAt(tr - 1)
+          CurrentLine = tr
         Else
           Dim leftSide = If(lc > 0, m_document(tr - 1).Substring(0, lc - 1), "")
           Dim middle = m_document(tr - 1).Substring(lc - 1, rc - lc + 1)
@@ -635,13 +636,7 @@ Public Class DocumentPanel
     Dim l = 1
     ' Determine how many spaces at the beginning of the line...
     If m_document(CurrentLine - 1).Length > 0 Then
-      For index = m_document(CurrentLine - 1).Length - 1 To 0 Step -1
-        Select Case m_document(CurrentLine - 1)(index)
-          Case " "c
-          Case Else
-            l = index + 1 : Exit For
-        End Select
-      Next
+      l = m_document(CurrentLine - 1).Length + 1
     End If
     CurrentColumn = l
     If shift Then

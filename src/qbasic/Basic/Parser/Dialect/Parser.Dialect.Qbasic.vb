@@ -12,7 +12,7 @@
                                          "BASE", "BEEP", "BINARY", "BLOAD", "BSAVE",
                                          "CALL", "CASE", "CHAIN", "CHDIR", "CIRCLE", "CLEAR", "CLOSE", "CLS", "COLOR", "COM", "COMMON", "CONST",
                                          "DATA", "DECLARE", "DEF", "DEFDBL", "DEFINT", "DEFLNG", "DEFSNG", "DEFSTR", "DIM", "DO", "DOUBLE", "DRAW",
-                                         "ELSE", "ELSEIF", "END", "ENDIF", "ENVIRON", "ERASE", "ERROR", "EXIT",
+                                         "ELSE", "ELSEIF", "END", "END", "ENVIRON", "ERASE", "ERROR", "EXIT",
                                          "FIELD", "FOR", "FUNCTION",
                                          "GET", "GOSUB", "GOTO",
                                          "IF", "INPUT", "INPUT#", "IOCTL", "INTEGER", "IS",

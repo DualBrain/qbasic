@@ -11,6 +11,9 @@ Imports System.Text
 Imports VbPixelGameEngine
 
 Imports QBLib.Video
+Imports Basic.Parser
+Imports Basic.Parser.ParserExtensions
+Imports Basic
 'Imports System.Threading
 
 'Imports Basic.Parser
@@ -348,47 +351,55 @@ Tip: These topics are also available from the Help menu.
                 Document1.Title = System.IO.Path.GetFileName(m_path)
 
                 ''Interpreter.Source = Document1.Text
-                'Dim p As Parser
-                'Using s As New MemoryStream()
-                '  Dim buffer() = code.ToByteArray
-                '  s.Write(buffer, 0, buffer.Length)
-                '  s.Seek(0, SeekOrigin.Begin)
-                '  p = New Parser(s, Dialect.QBasic)
-                'End Using
+                Dim p As Basic.Parser.Parser
+                Using s As New MemoryStream()
+                  Dim buffer() = code.ToByteArray
+                  s.Write(buffer, 0, buffer.Length)
+                  s.Seek(0, SeekOrigin.Begin)
+                  p = New Parser(s)
+                End Using
 
                 'm_subs.Clear()
-                'For Each line In p.Lines
-                '  For Each statement In line.Statements
-                '    Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
-                '    If token IsNot Nothing Then
-                '      Select Case token.Keyword
-                '        Case "BEEP"
-                '        Case "CALL", "CIRCLE", "CLS", "COLOR"
-                '        Case "DEFINT", "DEF", "DIM"
-                '        Case "ELSE", "END"
-                '        Case "FOR"
-                '        Case "GET", "GOSUB"
-                '        Case "IF", "INPUT"
-                '        Case "LET", "LINE", "LOCATE"
-                '        Case "NEXT"
-                '        Case "ON"
-                '        Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
-                '        Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
-                '        Case "SCREEN"
-                '        Case "VIEW"
-                '        Case "WEND", "WHILE", "WIDTH"
-                '        Case "SUB", "FUNCTION"
-                '          token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
-                '          If TypeOf token Is IdentifierToken Then
-                '            m_subs.Add(token.ToString)
-                '          End If
-                '        Case Else
-                '          Debug.WriteLine(token.Keyword)
-                '      End Select
-                '    End If
-                '    Exit For
-                '  Next
-                'Next
+                For Each line In p.Lines
+                  For Each statement In line.Statements
+                    Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
+                    If token IsNot Nothing Then
+                      Select Case token.Keyword
+                        Case "END"
+                          Dim nextToken = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+                          If nextToken Is Nothing Then
+                          ElseIf nextToken?.Keyword = "IF" Then
+                          ElseIf nextToken?.Keyword = "TYPE" Then
+                          Else
+                            Stop
+                          End If
+                        Case "BEEP"
+                        Case "CALL", "CIRCLE", "CLS", "COLOR"
+                        Case "DEFINT", "DEF", "DIM"
+                        Case "ELSE", "END"
+                        Case "FOR"
+                        Case "GET", "GOSUB"
+                        Case "IF", "INPUT"
+                        Case "LET", "LINE", "LOCATE"
+                        Case "NEXT"
+                        Case "ON"
+                        Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
+                        Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
+                        Case "SCREEN"
+                        Case "VIEW"
+                        Case "WEND", "WHILE", "WIDTH"
+                        Case "SUB", "FUNCTION"
+                          token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+                          If TypeOf token Is IdentifierToken Then
+                            m_subs.Add(token.ToString)
+                          End If
+                        Case Else
+                          Debug.WriteLine(token.Keyword)
+                      End Select
+                    End If
+                    Exit For
+                  Next
+                Next
 
               End If
             Case DialogResult.Cancel

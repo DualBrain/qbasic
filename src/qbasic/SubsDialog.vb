@@ -2,6 +2,8 @@
   Inherits Form
   Implements IContext
 
+  Private m_name As String
+
   Public Shadows ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
     Get
       Return MyBase.CursorRow
@@ -22,6 +24,8 @@
 
   Sub New(name As String, subs As List(Of String))
     MyBase.New("SUBs", New Location(3, 4), New Size(18, 74))
+
+    m_name = name
 
     AcceptAction = DialogResult.Ok
     CancelAction = DialogResult.Cancel
@@ -66,7 +70,7 @@
     HelpButton.TabOrder = 4
     Controls.Add(HelpButton)
 
-    SubsHorizontalListBox.Items.Add(name)
+    SubsHorizontalListBox.Items.Add(m_name)
     'SubsHorizontalListBox.Items.AddRange(subs)
     For Each entry In subs
       SubsHorizontalListBox.Items.Add($"  {entry}")
@@ -78,10 +82,8 @@
 
     OnDraw()
 
-    Dim filename = "Untitled"
-
     QPrintRC("Choose program item to edit", Location.Row + 2, Location.Col + 2, OneColor(Foreground, Background))
-    QPrintRC($"{filename} is the Main Module", Location.Row + 14, Location.Col + 2, OneColor(Foreground, Background))
+    QPrintRC($"{m_name} is the Main Module", Location.Row + 14, Location.Col + 2, OneColor(Foreground, Background))
     HLine(Location.Row + Size.Rows - 3, Location.Col, Location.Col + Size.Cols - 1, 1, OneColor(Foreground, Background))
 
   End Sub

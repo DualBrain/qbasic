@@ -59,6 +59,9 @@
     CommonKeyword
     ConstKeyword
     ContinueKeyword
+    ContinueDoKeyword
+    ContinueForKeyword
+    ContinueWhileKeyword
     DataKeyword
     DefKeyword
     DefDblKeyword
@@ -81,6 +84,12 @@
     EraseKeyword
     ErrorKeyword
     ExitKeyword
+    ExitDefKeyword
+    ExitFunctionKeyword
+    ExitSubKeyword
+    ExitDoKeyword
+    ExitForKeyword
+    ExitWhileKeyword
     FalseKeyword
     ForKeyword
     FunctionKeyword
@@ -92,7 +101,8 @@
     InputKeyword
     KillKeyword
     LetKeyword
-    'LineInputKeyword
+    LineKeyword
+    LineInputKeyword
     LocateKeyword
     LockKeyword
     LoopKeyword
@@ -207,6 +217,68 @@
     NameExpression
     ParenExpression
     UnaryExpression
+
+    ' Newly added 3/15...
+    AbsoluteKeyword
+    AccessKeyword
+    BeepKeyword
+    BloadKeyword
+    BsaveKeyword
+    CallKeyword
+    CaseKeyword
+    ChainKeyword
+    CircleKeyword
+    CloseKeyword
+    ComKeyword
+    DateKeyword
+    DeclareKeyword
+    DoubleKeyword
+    DrawKeyword
+    EndSelectKeyword
+    EnvironKeyword
+    FieldKeyword
+    FilesKeyword
+    GetKeyword
+    IntegerKeyword
+    IoCtlKeyword
+    KeyKeyword
+    ListKeyword
+    LongKeyword
+    LPrintKeyword
+    LSetKeyword
+    OffKeyword
+    OnKeyword
+    OpenKeyword
+    OutKeyword
+    PaintKeyword
+    PaletteKeyword
+    PCopyKeyword
+    PeekKeyword
+    PenKeyword
+    PlayKeyword
+    PokeKeyword
+    PresetKeyword
+    PSetKeyword
+    PutKeyword
+    ResumeKeyword
+    RSetKeyword
+    RunKeyword
+    ScreenKeyword
+    SegKeyword
+    SeekKeyword
+    SelectKeyword
+    ShellKeyword
+    SingleKeyword
+    SoundKeyword
+    StrigKeyword
+    StringKeyword
+    TimeKeyword
+    TimerKeyword
+    TroffKeyword
+    TronKeyword
+    UsingKeyword
+    ViewKeyword
+    WaitKeyword
 
   End Enum
 

@@ -368,7 +368,10 @@ Tip: These topics are also available from the Help menu.
                         Case "END"
                           Dim nextToken = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
                           If nextToken Is Nothing Then
+                          ElseIf nextToken?.Keyword = "FUNCTION" Then
                           ElseIf nextToken?.Keyword = "IF" Then
+                          ElseIf nextToken?.Keyword = "SELECT" Then
+                          ElseIf nextToken?.Keyword = "SUB" Then
                           ElseIf nextToken?.Keyword = "TYPE" Then
                           Else
                             Stop

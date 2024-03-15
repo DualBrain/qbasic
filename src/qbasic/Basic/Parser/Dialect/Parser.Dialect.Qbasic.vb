@@ -24,8 +24,8 @@
                                          "PAINT", "PALETTE", "PALETTE USING", "PEN", "PLAY", "POKE", "PRESET", "PSET",
                                          "PRINT", "PRINT USING", "PRINT#", "PRINT# USING", "PUT",
                                          "RSET", "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN",
-                                         "SCREEN", "SHELL", "SOUND", "STOP", "STRIG", "SWAP", "STEP", "SUB",
-                                         "TO", "THEN",
+                                         "SCREEN", "SELECT", "SHELL", "SOUND", "STOP", "STRIG", "STEP", "SUB", "SWAP",
+                                         "TO", "THEN", "TYPE",
                                          "UNLOCK",
                                          "VIEW", "VIEW PRINT",
                                          "WAIT", "WHILE", "WEND", "WIDTH", "WINDOW", "WRITE"}

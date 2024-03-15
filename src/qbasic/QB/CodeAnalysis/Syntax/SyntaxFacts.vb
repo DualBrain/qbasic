@@ -79,27 +79,45 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Select Case text.ToLower
 
+        Case "absolute" : Return SyntaxKind.AbsoluteKeyword
+        Case "access" : Return SyntaxKind.AccessKeyword
         Case "and" : Return SyntaxKind.AndKeyword
         Case "andalso" : Return SyntaxKind.AndAlsoKeyword
-        Case "as" : Return SyntaxKind.AsKeyword
         Case "any" : Return SyntaxKind.AnyKeyword
+        Case "as" : Return SyntaxKind.AsKeyword
         Case "base" : Return SyntaxKind.BaseKeyword
+        Case "beep" : Return SyntaxKind.BeepKeyword
+        Case "bload" : Return SyntaxKind.BloadKeyword
+        Case "bsave" : Return SyntaxKind.BsaveKeyword
+        Case "call" : Return SyntaxKind.CallKeyword
+        Case "case" : Return SyntaxKind.CaseKeyword
+        Case "chain" : Return SyntaxKind.ChainKeyword
         Case "chdir" : Return SyntaxKind.ChDirKeyword
+        Case "circle" : Return SyntaxKind.CircleKeyword
         Case "clear" : Return SyntaxKind.ClearKeyword
+        Case "close" : Return SyntaxKind.CloseKeyword
         Case "cls" : Return SyntaxKind.ClsKeyword
         Case "color" : Return SyntaxKind.ColorKeyword
+        Case "com" : Return SyntaxKind.ComKeyword
         Case "common" : Return SyntaxKind.CommonKeyword
         Case "const" : Return SyntaxKind.ConstKeyword
         Case "continue" : Return SyntaxKind.ContinueKeyword
+        Case "continue do" : Return SyntaxKind.ContinueDoKeyword
+        Case "continue for" : Return SyntaxKind.ContinueForKeyword
+        Case "continue while" : Return SyntaxKind.ContinueWhileKeyword
         Case "data" : Return SyntaxKind.DataKeyword
+        Case "date$" : Return SyntaxKind.DateKeyword
+        Case "declare" : Return SyntaxKind.DeclareKeyword
         Case "def" : Return SyntaxKind.DefKeyword
         Case "defdbl" : Return SyntaxKind.DefDblKeyword
-        Case "defsng" : Return SyntaxKind.DefSngKeyword
-        Case "deflng" : Return SyntaxKind.DefLngKeyword
         Case "defint" : Return SyntaxKind.DefIntKeyword
+        Case "deflng" : Return SyntaxKind.DefLngKeyword
+        Case "defsng" : Return SyntaxKind.DefSngKeyword
         Case "defstr" : Return SyntaxKind.DefStrKeyword
         Case "dim" : Return SyntaxKind.DimKeyword
         Case "do" : Return SyntaxKind.DoKeyword
+        Case "double" : Return SyntaxKind.DoubleKeyword
+        Case "draw" : Return SyntaxKind.DrawKeyword
         Case "each" : Return SyntaxKind.EachKeyword
         Case "else" : Return SyntaxKind.ElseKeyword
         Case "elseif" : Return SyntaxKind.ElseIfKeyword
@@ -107,41 +125,71 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "end def" : Return SyntaxKind.EndDefKeyword
         Case "end function" : Return SyntaxKind.EndFunctionKeyword
         Case "end if" : Return SyntaxKind.EndIfKeyword
+        Case "end select" : Return SyntaxKind.EndSelectKeyword
         Case "end sub" : Return SyntaxKind.EndSubKeyword
         Case "end type" : Return SyntaxKind.EndTypeKeyword
+        Case "environ" : Return SyntaxKind.EnvironKeyword
         Case "eqv" : Return SyntaxKind.EqvKeyword
         Case "erase" : Return SyntaxKind.EraseKeyword
         Case "error" : Return SyntaxKind.ErrorKeyword
         Case "exit" : Return SyntaxKind.ExitKeyword
-        'Case "exit def" : Return SyntaxKind.ExitDefKeyword
-        'Case "exit function" : Return SyntaxKind.ExitFunctionKeyword
-        'Case "exit sub" : Return SyntaxKind.ExitSubKeyword
+        Case "exit def" : Return SyntaxKind.ExitDefKeyword
+        Case "exit function" : Return SyntaxKind.ExitFunctionKeyword
+        Case "exit sub" : Return SyntaxKind.ExitSubKeyword
+        Case "exit do" : Return SyntaxKind.ExitDoKeyword
+        Case "exit for" : Return SyntaxKind.ExitForKeyword
+        Case "exit while" : Return SyntaxKind.ExitWhileKeyword
         Case "false" : Return SyntaxKind.FalseKeyword
+        Case "field" : Return SyntaxKind.FieldKeyword
+        Case "files" : Return SyntaxKind.FilesKeyword
         Case "for" : Return SyntaxKind.ForKeyword
+        Case "for each" : Return SyntaxKind.ForKeyword
         Case "function" : Return SyntaxKind.FunctionKeyword
+        Case "get" : Return SyntaxKind.GetKeyword
         Case "goto" : Return SyntaxKind.GotoKeyword
         Case "gosub" : Return SyntaxKind.GosubKeyword
         Case "if" : Return SyntaxKind.IfKeyword
         Case "imp" : Return SyntaxKind.ImpKeyword
         Case "in" : Return SyntaxKind.InKeyword
         Case "input" : Return SyntaxKind.InputKeyword
+        Case "integer" : Return SyntaxKind.IntegerKeyword
+        Case "ioctl" : Return SyntaxKind.IoCtlKeyword
+        Case "key" : Return SyntaxKind.KeyKeyword
         Case "kill" : Return SyntaxKind.KillKeyword
-        'Case "lbound" : Return SyntaxKind.LBoundKeyword
         Case "let" : Return SyntaxKind.LetKeyword
-        'Case "line input" : Return SyntaxKind.LineInputKeyword
+        Case "line" : Return SyntaxKind.LineKeyword
+        Case "line input" : Return SyntaxKind.LineInputKeyword
+        Case "list" : Return SyntaxKind.ListKeyword
         Case "locate" : Return SyntaxKind.LocateKeyword
         Case "lock" : Return SyntaxKind.LockKeyword
+        Case "long" : Return SyntaxKind.LongKeyword
         Case "loop" : Return SyntaxKind.LoopKeyword
+        Case "lprint" : Return SyntaxKind.LprintKeyword
+        Case "lset" : Return SyntaxKind.LsetKeyword
         Case "mid$" : Return SyntaxKind.MidKeyword
         Case "mkdir" : Return SyntaxKind.MkDirKeyword
         Case "mod" : Return SyntaxKind.ModKeyword
         Case "name" : Return SyntaxKind.NameKeyword
         Case "next" : Return SyntaxKind.NextKeyword
         Case "not" : Return SyntaxKind.NotKeyword
+        Case "off" : Return SyntaxKind.OffKeyword
+        Case "on" : Return SyntaxKind.OnKeyword
+        Case "open" : Return SyntaxKind.OpenKeyword
         Case "option" : Return SyntaxKind.OptionKeyword
         Case "or" : Return SyntaxKind.OrKeyword
         Case "orelse" : Return SyntaxKind.OrElseKeyword
+        Case "out" : Return SyntaxKind.OutKeyword
+        Case "paint" : Return SyntaxKind.PaintKeyword
+        Case "palette" : Return SyntaxKind.PaletteKeyword
+        Case "pcopy" : Return SyntaxKind.PcopyKeyword
+        Case "peek" : Return SyntaxKind.PeekKeyword
+        Case "pen" : Return SyntaxKind.PenKeyword
+        Case "play" : Return SyntaxKind.PlayKeyword
+        Case "poke" : Return SyntaxKind.PokeKeyword
+        Case "preset" : Return SyntaxKind.PresetKeyword
         Case "print" : Return SyntaxKind.PrintKeyword
+        Case "pset" : Return SyntaxKind.PsetKeyword
+        Case "put" : Return SyntaxKind.PutKeyword
         Case "random" : Return SyntaxKind.RandomKeyword
         Case "randomize" : Return SyntaxKind.RandomizeKeyword
         Case "read" : Return SyntaxKind.ReadKeyword
@@ -149,25 +197,43 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "rem" : Return SyntaxKind.RemKeyword
         Case "reset" : Return SyntaxKind.ResetKeyword
         Case "restore" : Return SyntaxKind.RestoreKeyword
+        Case "resume" : Return SyntaxKind.ResumeKeyword
         Case "return" : Return SyntaxKind.ReturnKeyword
         Case "rmdir" : Return SyntaxKind.RmDirKeyword
+        Case "rset" : Return SyntaxKind.RsetKeyword
+        Case "run" : Return SyntaxKind.RunKeyword
+        Case "screen" : Return SyntaxKind.ScreenKeyword
+        Case "seg" : Return SyntaxKind.SegKeyword
+        Case "seek" : Return SyntaxKind.SeekKeyword
+        Case "select" : Return SyntaxKind.SelectKeyword
         Case "shared" : Return SyntaxKind.SharedKeyword
+        Case "shell" : Return SyntaxKind.ShellKeyword
+        Case "single" : Return SyntaxKind.SingleKeyword
         Case "sleep" : Return SyntaxKind.SleepKeyword
+        Case "sound" : Return SyntaxKind.SoundKeyword
         Case "spc" : Return SyntaxKind.SpcKeyword
         Case "static" : Return SyntaxKind.StaticKeyword
         Case "step" : Return SyntaxKind.StepKeyword
         Case "stop" : Return SyntaxKind.StopKeyword
+        Case "strig" : Return SyntaxKind.StrigKeyword
+        Case "string" : Return SyntaxKind.StringKeyword
         Case "sub" : Return SyntaxKind.SubKeyword
         Case "swap" : Return SyntaxKind.SwapKeyword
         Case "system" : Return SyntaxKind.SystemKeyword
         Case "tab" : Return SyntaxKind.TabKeyword
         Case "then" : Return SyntaxKind.ThenKeyword
+        Case "time$" : Return SyntaxKind.TimeKeyword
+        Case "timer" : Return SyntaxKind.TimerKeyword
         Case "to" : Return SyntaxKind.ToKeyword
+        Case "troff" : Return SyntaxKind.TroffKeyword
+        Case "tron" : Return SyntaxKind.TronKeyword
         Case "true" : Return SyntaxKind.TrueKeyword
         Case "type" : Return SyntaxKind.TypeKeyword
-        'Case "ubound" : Return SyntaxKind.UBoundKeyword
         Case "unlock" : Return SyntaxKind.UnlockKeyword
         Case "until" : Return SyntaxKind.UntilKeyword
+        Case "using" : Return SyntaxKind.UsingKeyword
+        Case "view" : Return SyntaxKind.ViewKeyword
+        Case "wait" : Return SyntaxKind.WaitKeyword
         Case "wend" : Return SyntaxKind.WendKeyword
         Case "while" : Return SyntaxKind.WhileKeyword
         Case "width" : Return SyntaxKind.WidthKeyword
@@ -185,19 +251,32 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Select Case kind
 
+        Case SyntaxKind.AbsoluteKeyword : Return "Absolute"
+        Case SyntaxKind.AccessKeyword : Return "Access"
         Case SyntaxKind.AndKeyword : Return "And"
         Case SyntaxKind.AndAlsoKeyword : Return "AndAlso"
         Case SyntaxKind.AnyKeyword : Return "Any"
         Case SyntaxKind.AsKeyword : Return "As"
         Case SyntaxKind.BaseKeyword : Return "Base"
+        Case SyntaxKind.BeepKeyword : Return "Beep"
+        Case SyntaxKind.BloadKeyword : Return "BLoad"
+        Case SyntaxKind.BsaveKeyword : Return "BSave"
+        Case SyntaxKind.CallKeyword : Return "Call"
+        Case SyntaxKind.CaseKeyword : Return "Case"
+        Case SyntaxKind.ChainKeyword : Return "Chain"
         Case SyntaxKind.ChDirKeyword : Return "ChDir"
+        Case SyntaxKind.CircleKeyword : Return "Circle"
         Case SyntaxKind.ClearKeyword : Return "Clear"
+        Case SyntaxKind.CloseKeyword : Return "Close"
         Case SyntaxKind.ClsKeyword : Return "Cls"
         Case SyntaxKind.ColorKeyword : Return "Color"
+        Case SyntaxKind.ComKeyword : Return "COM"
         Case SyntaxKind.CommonKeyword : Return "Common"
         Case SyntaxKind.ConstKeyword : Return "Const"
         Case SyntaxKind.ContinueKeyword : Return "Continue"
         Case SyntaxKind.DataKeyword : Return "Data"
+        Case SyntaxKind.DateKeyword : Return "Date$"
+        Case SyntaxKind.DeclareKeyword : Return "Declare"
         Case SyntaxKind.DefKeyword : Return "Def"
         Case SyntaxKind.DefDblKeyword : Return "DefDbl"
         Case SyntaxKind.DefSngKeyword : Return "DefSng"
@@ -206,6 +285,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.DefStrKeyword : Return "DefStr"
         Case SyntaxKind.DimKeyword : Return "Dim"
         Case SyntaxKind.DoKeyword : Return "Do"
+        Case SyntaxKind.DoubleKeyword : Return "Double"
+        Case SyntaxKind.DrawKeyword : Return "Draw"
         Case SyntaxKind.EachKeyword : Return "Each"
         Case SyntaxKind.ElseKeyword : Return "Else"
         Case SyntaxKind.ElseIfKeyword : Return "ElseIf"
@@ -213,39 +294,70 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.EndDefKeyword : Return "End Def"
         Case SyntaxKind.EndFunctionKeyword : Return "End Function"
         Case SyntaxKind.EndIfKeyword : Return "End If"
+        Case SyntaxKind.EndSelectKeyword : Return "End Select"
         Case SyntaxKind.EndSubKeyword : Return "End Sub"
         Case SyntaxKind.EndTypeKeyword : Return "End Type"
+        Case SyntaxKind.EnvironKeyword : Return "Environ"
+        Case SyntaxKind.EqvKeyword : Return "Eqv"
         Case SyntaxKind.EraseKeyword : Return "Erase"
         Case SyntaxKind.ErrorKeyword : Return "Error"
-        Case SyntaxKind.EqvKeyword : Return "Eqv"
         Case SyntaxKind.ExitKeyword : Return "Exit"
-        'Case SyntaxKind.ExitDefKeyword : Return "Exit Def"
+        Case SyntaxKind.ExitDefKeyword : Return "Exit Def"
+        Case SyntaxKind.ExitFunctionKeyword : Return "Exit Function"
+        Case SyntaxKind.ExitSubKeyword : Return "Exit Sub"
+        Case SyntaxKind.ExitDoKeyword : Return "Exit Do"
+        Case SyntaxKind.ExitForKeyword : Return "Exit For"
+        Case SyntaxKind.ExitWhileKeyword : Return "Exit While"
         Case SyntaxKind.FalseKeyword : Return "False"
+        Case SyntaxKind.FieldKeyword : Return "Field"
+        Case SyntaxKind.FilesKeyword : Return "Files"
         Case SyntaxKind.ForKeyword : Return "For"
         Case SyntaxKind.FunctionKeyword : Return "Function"
+        Case SyntaxKind.GetKeyword : Return "Get"
         Case SyntaxKind.GotoKeyword : Return "Goto"
         Case SyntaxKind.GosubKeyword : Return "Gosub"
         Case SyntaxKind.IfKeyword : Return "If"
         Case SyntaxKind.ImpKeyword : Return "Imp"
-        Case SyntaxKind.InputKeyword : Return "Input"
         Case SyntaxKind.InKeyword : Return "In"
+        Case SyntaxKind.InputKeyword : Return "Input"
+        Case SyntaxKind.IntegerKeyword : Return "Integer"
+        Case SyntaxKind.IoCtlKeyword : Return "IoCtl"
+        Case SyntaxKind.KeyKeyword : Return "Key"
         Case SyntaxKind.KillKeyword : Return "Kill"
-        'Case SyntaxKind.LBound : Return "LBound"
         Case SyntaxKind.LetKeyword : Return "Let"
-        'Case SyntaxKind.LineInputKeyword : Return "Line Input"
+        Case SyntaxKind.LineKeyword : Return "Line"
+        Case SyntaxKind.LineInputKeyword : Return "Line Input"
+        Case SyntaxKind.ListKeyword : Return "List"
         Case SyntaxKind.LocateKeyword : Return "Locate"
         Case SyntaxKind.LockKeyword : Return "Lock"
+        Case SyntaxKind.LongKeyword : Return "Long"
         Case SyntaxKind.LoopKeyword : Return "Loop"
+        Case SyntaxKind.LPrintKeyword : Return "LPrint"
+        Case SyntaxKind.LSetKeyword : Return "LSet"
         Case SyntaxKind.MidKeyword : Return "Mid$"
         Case SyntaxKind.MkDirKeyword : Return "MkDir"
         Case SyntaxKind.ModKeyword : Return "Mod"
         Case SyntaxKind.NameKeyword : Return "Name"
         Case SyntaxKind.NextKeyword : Return "Next"
         Case SyntaxKind.NotKeyword : Return "Not"
+        Case SyntaxKind.OffKeyword : Return "Off"
+        Case SyntaxKind.OnKeyword : Return "On"
+        Case SyntaxKind.OpenKeyword : Return "Open"
         Case SyntaxKind.OptionKeyword : Return "Option"
         Case SyntaxKind.OrKeyword : Return "Or"
         Case SyntaxKind.OrElseKeyword : Return "OrElse"
+        Case SyntaxKind.OutKeyword : Return "Out"
+        Case SyntaxKind.PaintKeyword : Return "Paint"
+        Case SyntaxKind.PaletteKeyword : Return "Palette"
+        Case SyntaxKind.PCopyKeyword : Return "PCopy"
+        Case SyntaxKind.PeekKeyword : Return "Peek"
+        Case SyntaxKind.PenKeyword : Return "Pen"
+        Case SyntaxKind.PlayKeyword : Return "Play"
+        Case SyntaxKind.PokeKeyword : Return "Poke"
+        Case SyntaxKind.PresetKeyword : Return "Preset"
         Case SyntaxKind.PrintKeyword : Return "Print"
+        Case SyntaxKind.PSetKeyword : Return "PSet"
+        Case SyntaxKind.PutKeyword : Return "Put"
         Case SyntaxKind.RandomKeyword : Return "Random"
         Case SyntaxKind.RandomizeKeyword : Return "Randomize"
         Case SyntaxKind.ReadKeyword : Return "Read"
@@ -253,25 +365,43 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.RemKeyword : Return "Rem"
         Case SyntaxKind.ResetKeyword : Return "Reset"
         Case SyntaxKind.RestoreKeyword : Return "Restore"
+        Case SyntaxKind.ResumeKeyword : Return "Resume"
         Case SyntaxKind.ReturnKeyword : Return "Return"
         Case SyntaxKind.RmDirKeyword : Return "RmDir"
+        Case SyntaxKind.RSetKeyword : Return "RSet"
+        Case SyntaxKind.RunKeyword : Return "Run"
+        Case SyntaxKind.ScreenKeyword : Return "Screen"
+        Case SyntaxKind.SegKeyword : Return "Seg"
+        Case SyntaxKind.SeekKeyword : Return "Seek"
+        Case SyntaxKind.SelectKeyword : Return "Select"
         Case SyntaxKind.SharedKeyword : Return "Shared"
+        Case SyntaxKind.ShellKeyword : Return "Shell"
         Case SyntaxKind.SleepKeyword : Return "Sleep"
+        Case SyntaxKind.SingleKeyword : Return "Single"
+        Case SyntaxKind.SoundKeyword : Return "Sound"
         Case SyntaxKind.SpcKeyword : Return "Spc"
         Case SyntaxKind.StaticKeyword : Return "Static"
         Case SyntaxKind.StepKeyword : Return "Step"
         Case SyntaxKind.StopKeyword : Return "Stop"
+        Case SyntaxKind.StrigKeyword : Return "Strig"
+        Case SyntaxKind.StringKeyword : Return "String"
         Case SyntaxKind.SubKeyword : Return "Sub"
         Case SyntaxKind.SwapKeyword : Return "Swap"
         Case SyntaxKind.SystemKeyword : Return "System"
         Case SyntaxKind.TabKeyword : Return "Tab"
         Case SyntaxKind.ThenKeyword : Return "Then"
+        Case SyntaxKind.TimeKeyword : Return "Time$"
+        Case SyntaxKind.TimerKeyword : Return "Timer"
         Case SyntaxKind.ToKeyword : Return "To"
+        Case SyntaxKind.TroffKeyword : Return "Troff"
+        Case SyntaxKind.TronKeyword : Return "Tron"
         Case SyntaxKind.TrueKeyword : Return "True"
         Case SyntaxKind.TypeKeyword : Return "Type"
-        'Case SyntaxKind.UBoundKeyword : Return "UBound"
         Case SyntaxKind.UnlockKeyword : Return "Unlock"
         Case SyntaxKind.UntilKeyword : Return "Until"
+        Case SyntaxKind.UsingKeyword : Return "Using"
+        Case SyntaxKind.ViewKeyword : Return "View"
+        Case SyntaxKind.WaitKeyword : Return "Wait"
         Case SyntaxKind.WendKeyword : Return "Wend"
         Case SyntaxKind.WhileKeyword : Return "While"
         Case SyntaxKind.WidthKeyword : Return "width"

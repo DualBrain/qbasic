@@ -355,31 +355,175 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim length = m_position - m_start
       Dim text = m_text.ToString(m_start, length)
 
-      If text.ToLower = "end" AndAlso Current = " "c Then
+      If False Then
 
-        Dim currentPosition = m_position
+        If text.Equals("select", StringComparison.CurrentCultureIgnoreCase) AndAlso Current = " "c Then
 
-        ' skip spaces...
-        While Current = " "c
-          m_position += 1
-        End While
+          Dim currentPosition = m_position
 
-        Dim st = m_position
+          ' skip spaces...
+          While Current = " "c
+            m_position += 1
+          End While
 
-        While Char.IsLetter(Current)
-          m_position += 1
-        End While
+          Dim st = m_position
 
-        Dim l = m_position - st
-        Dim possible = m_text.ToString(st, l)
+          While Char.IsLetter(Current)
+            m_position += 1
+          End While
 
-        Select Case possible?.ToLower
-          Case "function", "if", "sub", "def", "type"
-            length = m_position - m_start
-            text = m_text.ToString(m_start, length)
-          Case Else
-            m_position = currentPosition
-        End Select
+          Dim l = m_position - st
+          Dim possible = m_text.ToString(st, l)
+
+          Select Case possible?.ToLower
+            Case "case"
+              length = m_position - m_start
+              text = m_text.ToString(m_start, length)
+            Case Else
+              m_position = currentPosition
+          End Select
+
+        End If
+
+        If text.Equals("case", StringComparison.CurrentCultureIgnoreCase) AndAlso Current = " "c Then
+
+          Dim currentPosition = m_position
+
+          ' skip spaces...
+          While Current = " "c
+            m_position += 1
+          End While
+
+          Dim st = m_position
+
+          While Char.IsLetter(Current)
+            m_position += 1
+          End While
+
+          Dim l = m_position - st
+          Dim possible = m_text.ToString(st, l)
+
+          Select Case possible?.ToLower
+            Case "else"
+              length = m_position - m_start
+              text = m_text.ToString(m_start, length)
+            Case Else
+              m_position = currentPosition
+          End Select
+
+        End If
+
+        If text.Equals("line", StringComparison.CurrentCultureIgnoreCase) AndAlso Current = " "c Then
+
+          Dim currentPosition = m_position
+
+          ' skip spaces...
+          While Current = " "c
+            m_position += 1
+          End While
+
+          Dim st = m_position
+
+          While Char.IsLetter(Current)
+            m_position += 1
+          End While
+
+          Dim l = m_position - st
+          Dim possible = m_text.ToString(st, l)
+
+          Select Case possible?.ToLower
+            Case "input"
+              length = m_position - m_start
+              text = m_text.ToString(m_start, length)
+            Case Else
+              m_position = currentPosition
+          End Select
+
+        End If
+
+        If text.Equals("end", StringComparison.CurrentCultureIgnoreCase) AndAlso Current = " "c Then
+
+          Dim currentPosition = m_position
+
+          ' skip spaces...
+          While Current = " "c
+            m_position += 1
+          End While
+
+          Dim st = m_position
+
+          While Char.IsLetter(Current)
+            m_position += 1
+          End While
+
+          Dim l = m_position - st
+          Dim possible = m_text.ToString(st, l)
+
+          Select Case possible?.ToLower
+            Case "function", "if", "sub", "def", "type", "select"
+              length = m_position - m_start
+              text = m_text.ToString(m_start, length)
+            Case Else
+              m_position = currentPosition
+          End Select
+
+        End If
+
+        If text.Equals("exit", StringComparison.CurrentCultureIgnoreCase) AndAlso Current = " "c Then
+
+          Dim currentPosition = m_position
+
+          ' skip spaces...
+          While Current = " "c
+            m_position += 1
+          End While
+
+          Dim st = m_position
+
+          While Char.IsLetter(Current)
+            m_position += 1
+          End While
+
+          Dim l = m_position - st
+          Dim possible = m_text.ToString(st, l)
+
+          Select Case possible?.ToLower
+            Case "function", "sub", "do", "for", "while"
+              length = m_position - m_start
+              text = m_text.ToString(m_start, length)
+            Case Else
+              m_position = currentPosition
+          End Select
+
+        End If
+
+        If text.Equals("continue", StringComparison.CurrentCultureIgnoreCase) AndAlso Current = " "c Then
+
+          Dim currentPosition = m_position
+
+          ' skip spaces...
+          While Current = " "c
+            m_position += 1
+          End While
+
+          Dim st = m_position
+
+          While Char.IsLetter(Current)
+            m_position += 1
+          End While
+
+          Dim l = m_position - st
+          Dim possible = m_text.ToString(st, l)
+
+          Select Case possible?.ToLower
+            Case "do", "for", "while"
+              length = m_position - m_start
+              text = m_text.ToString(m_start, length)
+            Case Else
+              m_position = currentPosition
+          End Select
+
+        End If
 
       End If
 

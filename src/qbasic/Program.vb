@@ -12,16 +12,7 @@ Imports VbPixelGameEngine
 
 Imports QBLib.Video
 Imports Basic.Parser
-Imports Basic.Parser.ParserExtensions
 Imports Basic
-'Imports System.Threading
-
-'Imports Basic.Parser
-'Imports Basic
-'Imports Basic.Environment
-'Imports Basic.IO
-'Imports Basic.Audio
-'Imports Basic.Input
 
 Friend Module Program
 
@@ -345,12 +336,20 @@ Tip: These topics are also available from the Help menu.
             Case DialogResult.Ok
               m_path = o.Path
               If System.IO.File.Exists(m_path) Then
-                'Document1.Clear()
+
+                Document1.Clear()
+                Document2.Clear()
+
                 Dim code = System.IO.File.ReadAllText(m_path)
                 Document1.Text = code
                 Document1.Title = System.IO.Path.GetFileName(m_path)
 
-                ''Interpreter.Source = Document1.Text
+                ' B#
+                Dim tree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(code)
+                Document2.Text = tree.Root.ToString
+                Document2.Title = "Tree"
+
+                ' GW
                 Dim p As Basic.Parser.Parser
                 Using s As New MemoryStream()
                   Dim buffer() = code.ToByteArray
@@ -810,7 +809,7 @@ Tip: These topics are also available from the Help menu.
             ElseIf Document1.Focused Then
               Document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
             ElseIf Document2.Focused Then
-              Document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
+              Document2.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
             ElseIf m_immediate.Focused Then
               Document1.ProcessKeys(keys, CapsLock, isControl, isAlt, isShift)
             Else

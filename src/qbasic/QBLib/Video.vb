@@ -795,14 +795,17 @@ Namespace Global.QBLib
 #End Region
 
     Public Shared Property Screen0 As UShort()
-    Public Shared Property Buffer As Integer()
+    Public Shared Property Buffer As Pixel()
 
     Private Sub New()
     End Sub
 
     Public Shared Sub Init()
       ReDim Screen0(1999)
-      ReDim Buffer(0)
+      ReDim Buffer(640 * 400 - 1)
+      For index = 0 To Buffer.Length - 1
+        Buffer(index) = Presets.Black
+      Next
     End Sub
 
     Private Shared Sub Me_KeyDown(sender As Object, e As EventArgs) 'System.Windows.Forms.KeyEventArgs)
@@ -849,8 +852,32 @@ Namespace Global.QBLib
         Return m_cursorStop
       End Get
     End Property
-    Friend Shared m_cursorRow As Integer = 3
-    Friend Shared m_cursorCol As Integer = 2
+    Private Shared m_cursorRow As Integer = 3
+    Private Shared m_cursorCol As Integer = 2
+    Public Shared Property CursorRow As Integer
+      Get
+        Return m_cursorRow
+      End Get
+      Set(value As Integer)
+        If value > 0 AndAlso value < 26 Then
+          m_cursorRow = value
+        Else
+          Stop
+        End If
+      End Set
+    End Property
+    Public Shared Property CursorCol As Integer
+      Get
+        Return m_cursorCol
+      End Get
+      Set(value As Integer)
+        If value > 0 AndAlso value < 81 Then
+          m_cursorCol = value
+        Else
+          Stop
+        End If
+      End Set
+    End Property
     Friend Shared m_textH As Integer = 16
     Friend Shared m_textW As Integer = 8
     Friend Shared ReadOnly m_palette() As Pixel = {Presets.Black,
@@ -870,12 +897,32 @@ Namespace Global.QBLib
                                                    Presets.Yellow,
                                                    Presets.White}
 
-    Public Shared Sub PRINT()
-      m_cursorRow += 1
-      m_cursorCol = 1
+    Private Shared Sub ShiftViewUp()
+
+      ' Shift view up by one row.
+
+      Dim si = 80
+      Dim c = 2000 - si
+      Array.Copy(Screen0, si, Screen0, 0, c)
+      For index = c To 1999
+        Screen0(index) = 0
+      Next
+      si = 80 * (m_textW * m_textH)
+      c = (640 * 400) - si
+      Array.Copy(Buffer, si, Buffer, 0, c)
+      For index = c To ((640 * 400) - 1)
+        Buffer(index) = m_palette(0)
+      Next
+      m_invalidated = True
+
     End Sub
 
-    Public Shared Sub PRINT(text As String, Optional noCr As Boolean = False)
+    Public Shared Sub PRINT()
+      m_cursorCol = 1
+      If m_cursorRow + 1 > 25 Then ShiftViewUp() Else m_cursorRow += 1
+    End Sub
+
+    Public Shared Sub PRINT(text As String, Optional noCr As Boolean = False, Optional noScroll As Boolean = False)
       'TODO: (Possibly) Need to take into account the usage of TAB
       '      Tab should return a token that can then be used
       '      within the PRINT statement in order to do 
@@ -884,6 +931,8 @@ Namespace Global.QBLib
       '      place.  So should determine the total output and then
       '      adjust for TAB(s).
       If text IsNot Nothing Then
+        Dim prevCursorCol = m_cursorCol
+        Dim prevCursorRow = m_cursorRow
         For Each c In text
           Select Case c
             Case ChrW(9492) : c = ChrW(192)
@@ -892,14 +941,18 @@ Namespace Global.QBLib
             Case ChrW(9500) : c = ChrW(195)
             Case Else
           End Select
-          WriteCharacter(CByte(AscW(c)))
+          WriteCharacter(CByte(AscW(c)), noScroll)
         Next
+        If noScroll Then
+          m_cursorCol = prevCursorCol
+          m_cursorRow = prevCursorCol
+        End If
       End If
-      If noCr Then
+      If noScroll OrElse noCr Then
         'm_cursorCol += If(text?.Length, 0)
       Else
         m_cursorCol = 1
-        m_cursorRow += 1
+        If m_cursorRow + 1 > 25 Then ShiftViewUp() Else m_cursorRow += 1
       End If
       Invalidate()
     End Sub
@@ -1295,9 +1348,19 @@ Namespace Global.QBLib
       m_bgColor = bg
     End Sub
 
+    Public Shared Sub COLOR(fg As Integer, bg As Integer, border As Integer)
+      m_fgColor = fg
+      m_bgColor = bg
+      If border <> 0 Then
+      End If
+    End Sub
+
     Public Shared Sub CLS()
       For index = 0 To Screen0.Length - 1
         Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
+      Next
+      For index = 0 To Buffer.Length - 1
+        Buffer(index) = m_palette(m_bgColor)
       Next
       m_cursorCol = 1
       m_cursorRow = 1
@@ -1636,20 +1699,47 @@ Namespace Global.QBLib
       Return Nothing
     End Function
 
-    Private Shared Sub WriteCharacter(ascii As Byte)
+    Private Shared Sub WriteCharacter(ascii As Byte, Optional noScroll As Boolean = False)
 
-      Dim index = (((m_cursorRow - 1) * 80) + m_cursorCol) - 1
+      Dim cr = m_cursorRow - 1
+      Dim cc = m_cursorCol - 1
+
+      Dim index = ((cr * 80) + m_cursorCol) - 1
       Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + ascii)
 
+      '----------------
+      If QBasic.Common.m_running Then ' not really sure why I'm having to do this...
+
+        Dim map = CharMap(m_textH, ascii)
+
+        Dim x = cc * m_textW
+        Dim y = cr * m_textH
+
+        Dim fgc = m_palette(m_fgColor)
+        Dim bgc = m_palette(m_bgColor)
+
+        For dy = 0 To m_textH - 1
+          Buffer((x + 0) + ((dy + y) * 640)) = If((map(dy) And 1) > 0, fgc, bgc)
+          Buffer((x + 1) + ((dy + y) * 640)) = If((map(dy) And 2) > 0, fgc, bgc)
+          Buffer((x + 2) + ((dy + y) * 640)) = If((map(dy) And 4) > 0, fgc, bgc)
+          Buffer((x + 3) + ((dy + y) * 640)) = If((map(dy) And 8) > 0, fgc, bgc)
+          Buffer((x + 4) + ((dy + y) * 640)) = If((map(dy) And 16) > 0, fgc, bgc)
+          Buffer((x + 5) + ((dy + y) * 640)) = If((map(dy) And 32) > 0, fgc, bgc)
+          Buffer((x + 6) + ((dy + y) * 640)) = If((map(dy) And 64) > 0, fgc, bgc)
+          Buffer((x + 7) + ((dy + y) * 640)) = If((map(dy) And 128) > 0, fgc, bgc)
+        Next
+
+      End If
+      '----------------
+
       m_cursorCol += 1
-
       If m_cursorCol > 80 Then
-
-        m_cursorRow += 1 : m_cursorCol = 1
-
-        'TODO: Scroll screen up?
-        If m_cursorRow > 25 Then m_cursorRow = 1
-
+        If m_cursorRow + 1 > 25 Then
+          If Not noScroll Then ShiftViewUp()
+        Else
+          m_cursorRow += 1
+        End If
+        m_cursorCol = 1
       End If
 
     End Sub

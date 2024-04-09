@@ -5,6 +5,10 @@ Imports System.Threading
 
 Friend Module Common
 
+  Friend m_running As Boolean
+
+  Friend g_display As Display
+
   Friend Property Insert As Boolean
 
   Friend s_cancelTokenSource As New CancellationTokenSource()
@@ -409,19 +413,21 @@ Friend Module Common
   End Function
 
   Friend Sub QPrintRC(text As String, row As Integer, col As Integer, colr As Integer)
-    Dim rr = m_cursorRow, rc = m_cursorCol
+    Dim rr = QBLib.Video.CursorRow, rc = QBLib.Video.CursorCol
     Dim rfg = m_fgColor, rbg = m_bgColor
-    m_cursorRow = row : m_cursorCol = col
+    QBLib.Video.CursorRow = row : QBLib.Video.CursorCol = col
     Dim fg, bg As Integer
     SplitColor(colr, fg, bg)
     If fg <> m_fgColor OrElse bg <> m_bgColor Then
       m_fgColor = fg : m_bgColor = bg
     End If
-    PRINT(text, True)
+    PRINT(text, True, True)
     If m_fgColor <> rfg OrElse m_bgColor <> rbg Then
       m_fgColor = rfg : m_bgColor = rbg
     End If
-    m_cursorRow = rr : m_cursorCol = rc
+    If QBLib.Video.CursorRow <> rr OrElse QBLib.Video.CursorCol <> rc Then
+      QBLib.Video.CursorRow = rr : QBLib.Video.CursorCol = rc
+    End If
   End Sub
 
   Friend Sub ScrnRest(ulRow As Integer, ulCol As Integer, lrRow As Integer, lrCol As Integer, elements() As UShort, page As Integer)

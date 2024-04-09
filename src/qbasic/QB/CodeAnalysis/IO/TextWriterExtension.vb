@@ -3,8 +3,8 @@ Imports System.IO
 Imports System.Runtime.CompilerServices
 Imports QB.CodeAnalysis.Syntax
 Imports QB.CodeAnalysis
-Imports System.Console
-Imports System.ConsoleColor
+'Imports System.Console
+'Imports System.ConsoleColor
 Imports QB.CodeAnalysis.Text
 
 Namespace Global.QB.IO
@@ -108,10 +108,14 @@ Namespace Global.QB.IO
       Dim sepLine = False
 
       For Each diagnostic In diagnostics.Where(Function(diag) diag.Location.Text Is Nothing)
-        Dim messageColor = If(diagnostic.IsWarning, DarkYellow, DarkRed)
-        writer.SetForeground(messageColor)
-        writer.WriteLine(diagnostic.Message)
-        writer.ResetColor()
+        Dim messageColor = If(diagnostic.IsWarning, 6, 4) 'DarkYellow, DarkRed)
+        Dim cf = QBLib.Video.m_fgColor
+        'writer.SetForeground(messageColor)
+        'writer.WriteLine(diagnostic.Message)
+        QBLib.Video.COLOR(messageColor)
+        QBLib.Video.PRINT(diagnostic.Message)
+        'writer.ResetColor()
+        QBLib.Video.m_fgColor = cf
         sepLine = True
       Next
 
@@ -135,13 +139,20 @@ Namespace Global.QB.IO
         Dim character = span.Start - line.Start + 1
 
         ' An extra line before for clarity...
-        writer.WriteLine()
+        'writer.WriteLine()
+        QBLib.Video.PRINT()
 
-        Dim messageColor = If(diagnostic.IsWarning, DarkYellow, DarkRed)
-        writer.SetForeground(messageColor)
-        writer.Write($"{filename}({startLine},{startCharacter},{endLine},{endCharacter}): ")
-        writer.WriteLine(diagnostic)
+        'Dim messageColor = If(diagnostic.IsWarning, DarkYellow, DarkRed)
+        Dim cf = QBLib.Video.m_fgColor
+        Dim messageColor = If(diagnostic.IsWarning, 6, 4) 'DarkYellow, DarkRed)
+        'writer.SetForeground(messageColor)
+        QBLib.Video.COLOR(messageColor)
+        'writer.Write($"{filename}({startLine},{startCharacter},{endLine},{endCharacter}): ")
+        QBLib.Video.PRINT($"{filename}({startLine},{startCharacter},{endLine},{endCharacter}): ", True)
+        'writer.WriteLine(diagnostic)
+        QBLib.Video.PRINT(diagnostic.ToString)
         writer.ResetColor()
+        QBLib.Video.m_fgColor = cf
 
         Dim prefixSpan = TextSpan.FromBounds(line.Start, span.Start)
         Dim suffixSpan = TextSpan.FromBounds(span.End, line.End)
@@ -150,12 +161,19 @@ Namespace Global.QB.IO
         Dim er = text.ToString(span)
         Dim suffix = text.ToString(suffixSpan)
 
-        ' Write the prefix in "normal" text...
-        writer.Write($"    {prefix}")
-        ' Write the error portion in red...
-        writer.SetForeground(DarkRed)
-        writer.Write(er)
-        writer.ResetColor()
+        '' Write the prefix in "normal" text...
+        'writer.Write($"    {prefix}")
+        '' Write the error portion in red...
+        'writer.SetForeground(DarkRed)
+        'writer.Write(er)
+        'writer.ResetColor()
+
+        cf = QBLib.Video.m_fgColor
+        QBLib.Video.PRINT($"    {prefix}", True)
+        QBLib.Video.COLOR(4)
+        QBLib.Video.PRINT(er, True)
+        QBLib.Video.m_fgColor = cf
+
         ' Write the rest of the line.
 
         sepLine = True
@@ -164,7 +182,8 @@ Namespace Global.QB.IO
 
       If sepLine Then
         ' An extra line at the end for clarity.
-        writer.WriteLine()
+        'writer.WriteLine()
+        QBLib.Video.PRINT()
       End If
 
     End Sub

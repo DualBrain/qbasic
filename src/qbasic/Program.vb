@@ -19,7 +19,7 @@ Friend Module Program
   Sub Main()
     Dim demo As New QBasic
     If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
-      demo.ShowEngineName = False : demo.ShowFPS = False
+      demo.ShowEngineName = False : demo.ShowIPS = False
       demo.Start()
     End If
   End Sub
@@ -50,11 +50,11 @@ Friend Class QBasic
   Private ReadOnly m_pathspec As String
   Private m_path As String
 
-  Private m_running As Boolean
   Private m_runner As Threading.Thread
 
   Private m_scrn() As Integer
   Private m_scrn0() As UShort
+  Private m_buffer() As Pixel
   Private m_fg As Integer
   Private m_bg As Integer
   Private m_cr As Integer
@@ -432,18 +432,22 @@ Tip: These topics are also available from the Help menu.
           ' need to feed the keys into the runner
           m_scrn0 = Nothing
           m_scrn = Nothing
+          m_buffer = Nothing
         Else
           If m_scrn0 Is Nothing Then
             'TODO: Take a "snapshot" of the screen
             '      Capture the current cursor location
             '      Capture the current foreground and background colors
             '      Capture the current screen mode? Width?
-            m_scrn0 = CType(Screen0.Clone, UShort())
+            ReDim m_scrn0(Screen0.Length - 1)
+            Array.Copy(Screen0, 0, m_scrn0, 0, Screen0.Length)
+            ReDim m_buffer(Buffer.Length - 1)
+            Array.Copy(Buffer, 0, m_buffer, 0, Buffer.Length)
             m_fg = QBLib.Video.m_fgColor
             m_bg = QBLib.Video.m_bgColor
-            m_cr = QBLib.Video.m_cursorRow
-            m_cc = QBLib.Video.m_cursorCol
-            LOCATE(25, 1) : PRINT("Press any key to continue", False)
+            m_cr = QBLib.Video.CursorRow
+            m_cc = QBLib.Video.CursorCol
+            LOCATE(25, 1) : PRINT("Press any key to continue", True)
           End If
           If keys IsNot Nothing Then
             s_cancelTokenSource.Cancel()
@@ -828,59 +832,64 @@ Tip: These topics are also available from the Help menu.
 
     If m_running Then 'Interpreter.IsRunning Then
 
-      If True Then
+      If g_display IsNot Nothing Then
 
-        If m_display IsNot Nothing Then
-
-          Dim p = m_display.Pixels(m_display.VisualPage)
-          Dim w = m_display.ScreenWidth
-          Dim h = m_display.ScreenHeight
-          Dim pxl As Pixel
-          For y = 0 To h - 1
-            For x = 0 To w - 1
-              Dim c = p(y * w + x)
-              pxl.I = c
-              If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
-                Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
-              End If
-              Draw(x, y, pxl)
-            Next
+        Dim p = g_display.Pixels(g_display.VisualPage)
+        Dim w = g_display.ScreenWidth
+        Dim h = g_display.ScreenHeight
+        Dim pxl As Pixel
+        For y = 0 To h - 1
+          For x = 0 To w - 1
+            Dim c = p(y * w + x)
+            pxl.I = c
+            If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
+              Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
+            End If
+            Draw(x, y, pxl)
           Next
-
-        End If
+        Next
 
       Else
 
-        For r = 0 To 24
-          For c = 0 To 79
-
-            Dim index = (r * 80) + c
-            Dim ch = CByte(Screen0(index) And &HFF)
-            Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
-            Dim map = CharMap(m_textH, ch)
-
-            Dim x = c * m_textW
-            Dim y = r * m_textH
-
-            Dim fg, bg As Integer
-            SplitColor(clr, fg, bg)
-
-            Dim fgc = m_palette(fg)
-            Dim bgc = m_palette(bg)
-
-            For dy = 0 To m_textH - 1
-              Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
-              Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
-              Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
-              Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
-              Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
-              Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
-              Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
-              Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
-            Next
-
+        Dim w = 640
+        Dim h = 400
+        For y = 0 To h - 1
+          For x = 0 To w - 1
+            Dim c = Buffer(y * w + x)
+            Draw(x, y, c)
           Next
         Next
+
+        'For r = 0 To 24
+        '  For c = 0 To 79
+
+        '    Dim index = (r * 80) + c
+        '    Dim ch = CByte(Screen0(index) And &HFF)
+        '    Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
+        '    Dim map = CharMap(m_textH, ch)
+
+        '    Dim x = c * m_textW
+        '    Dim y = r * m_textH
+
+        '    Dim fg, bg As Integer
+        '    SplitColor(clr, fg, bg)
+
+        '    Dim fgc = m_palette(fg)
+        '    Dim bgc = m_palette(bg)
+
+        '    For dy = 0 To m_textH - 1
+        '      Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
+        '      Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
+        '      Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
+        '      Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
+        '      Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
+        '      Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
+        '      Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
+        '      Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
+        '    Next
+
+        '  Next
+        'Next
 
       End If
 
@@ -922,8 +931,8 @@ Tip: These topics are also available from the Help menu.
       If cursorVisible AndAlso m_cursorVisible Then
         If CInt(Fix(m_t * 8)) Mod 2 = 0 Then
 
-          Dim cc = m_cursorCol
-          Dim cr = m_cursorRow
+          Dim cc = QBLib.Video.CursorCol
+          Dim cr = QBLib.Video.CursorRow
           If m_context IsNot Nothing Then
             cc = m_context.CursorCol
             cr = m_context.CursorRow
@@ -1051,8 +1060,7 @@ Tip: These topics are also available from the Help menu.
     Document2.ScrollBars = False
     Document1.Focused = True
     Document1.ScrollBars = True
-    m_cursorRow = Document1.EditorTop + 1
-    m_cursorCol = Document1.EditorLeft + 1
+    QBLib.Video.LOCATE(Document1.EditorTop + 1, Document1.EditorLeft + 1)
   End Sub
 
   Private Sub FocusDocument2()
@@ -1063,8 +1071,7 @@ Tip: These topics are also available from the Help menu.
     Document1.ScrollBars = False
     Document2.Focused = True
     Document2.ScrollBars = True
-    m_cursorRow = Document2.EditorTop + 1
-    m_cursorCol = Document2.EditorLeft + 1
+    QBLib.Video.LOCATE(Document2.EditorTop + 1, Document2.EditorLeft + 1)
   End Sub
 
   Private Sub FocusHelp()
@@ -1075,8 +1082,7 @@ Tip: These topics are also available from the Help menu.
     m_immediate.Focused = False
     m_help.Focused = True
     m_help.ScrollBars = True
-    m_cursorRow = m_help.EditorTop + 1
-    m_cursorCol = m_help.EditorLeft + 1
+    QBLib.Video.LOCATE(m_help.EditorTop + 1, m_help.EditorLeft + 1)
   End Sub
 
   Private Sub FocusImmediate()
@@ -1087,8 +1093,7 @@ Tip: These topics are also available from the Help menu.
     Document2.Focused = False
     Document2.ScrollBars = False
     m_immediate.Focused = True
-    m_cursorRow = m_immediate.EditorTop + 1
-    m_cursorCol = m_immediate.Col + 1
+    QBLib.Video.LOCATE(m_immediate.EditorTop + 1, m_immediate.EditorLeft + 1)
   End Sub
 
   Private Function GetPressed() As List(Of ConsoleKey)
@@ -1510,7 +1515,7 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub ContinueAction()
-    m_runner = New Threading.Thread(AddressOf RunnerBs)
+    m_runner = New Threading.Thread(AddressOf RunnerGw)
     m_runner.Start()
   End Sub
 
@@ -1523,8 +1528,6 @@ To get help on a QBasic keyword in the list below:
     m_runner = New Threading.Thread(AddressOf RunnerBs)
     m_runner.Start()
   End Sub
-
-  Private m_display As New Display
 
   Private Sub RunnerGw()
 
@@ -1542,19 +1545,24 @@ To get help on a QBasic keyword in the list below:
     'm_display = New Display()
 
     If m_scrn0 IsNot Nothing Then
-      Screen0 = CType(m_scrn0.Clone, UShort())
-      QBLib.Video.m_fgColor = m_fg
-      QBLib.Video.m_bgColor = m_bg
-      QBLib.Video.m_cursorRow = m_cr
-      QBLib.Video.m_cursorCol = m_cc
+      Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
+      Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+      'QBLib.Video.m_fgColor = m_fg
+      'QBLib.Video.m_bgColor = m_bg
+      'QBLib.Video.m_cursorRow = m_cr
+      'QBLib.Video.m_cursorCol = m_cc
+      QBLib.Video.COLOR(m_fg, m_bg)
+      QBLib.Video.LOCATE(m_cr, m_cc)
       m_scrn0 = Nothing
+      m_buffer = Nothing
     Else
       QBLib.Video.CLS()
       QBLib.Video.COLOR(8, 0)
     End If
 
+    g_display = New Display
     Dim interpreter = New Basic.Interactive(env,
-                                            m_display,
+                                            g_display,
                                             Nothing,
                                             snd,
                                             kbd,
@@ -1566,19 +1574,23 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub RunnerBs()
+    g_display = Nothing : m_running = True
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token
-    m_running = True
     If m_scrn0 IsNot Nothing Then
-      Screen0 = CType(m_scrn0.Clone, UShort())
-      QBLib.Video.m_fgColor = m_fg
-      QBLib.Video.m_bgColor = m_bg
-      QBLib.Video.m_cursorRow = m_cr
-      QBLib.Video.m_cursorCol = m_cc
+      Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
+      Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+      'QBLib.Video.m_fgColor = m_fg
+      'QBLib.Video.m_bgColor = m_bg
+      'QBLib.Video.m_cursorRow = m_cr
+      'QBLib.Video.m_cursorCol = m_cc
+      QBLib.Video.COLOR(m_fg, m_bg)
+      QBLib.Video.LOCATE(m_cr, m_cc)
       m_scrn0 = Nothing
+      m_buffer = Nothing
     Else
-      QBLib.Video.CLS()
       QBLib.Video.COLOR(8, 0)
+      QBLib.Video.CLS()
     End If
     Dim i = New QB.Interpreter()
     i.Run(Document1.Text)

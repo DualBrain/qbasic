@@ -142,9 +142,16 @@ Namespace Global.QB.CodeAnalysis.Syntax
       End If
       writer.Write($"{node.Kind}")
 
-      If token IsNot Nothing AndAlso token.Value IsNot Nothing Then
-        writer.Write(" ")
-        writer.Write(token.Value)
+      If token IsNot Nothing Then
+        If node.Kind = SyntaxKind.IdentifierToken Then
+          writer.Write(" '")
+          writer.Write(token.Text)
+          writer.Write("'")
+        ElseIf token.Value IsNot Nothing Then
+          writer.Write(" '")
+          writer.Write(token.Value)
+          writer.Write("'")
+        End If
       End If
 
       If isToConsole Then

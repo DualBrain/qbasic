@@ -111,7 +111,7 @@ Namespace Global.QB.CodeAnalysis
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_bgColor = expression1
                 If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_paletteIndex = expression2
               Case 4, 12, 13 'COLOR [foreground%]	Screen modes 4, 12, 13
-                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
+                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.COLOR(expression1)
               Case 7, 8, 9, 10 'COLOR [foreground%] [,background&]	Screen modes 7-10
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
                 If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
@@ -372,7 +372,7 @@ Namespace Global.QB.CodeAnalysis
       Else
         str = CStr(value)
       End If
-      QBLib.Video.PRINT(str, True) : QBLib.Video.PRINT(" "c, True)
+      QBLib.Video.PRINT(str, True) ': QBLib.Video.PRINT(" "c, True)
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)

@@ -713,8 +713,17 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim exitLabel As BoundLabel = Nothing
       Dim continueLabel As BoundLabel = Nothing
       Dim statements = BindLoopBody(syntax.Statements, exitLabel, continueLabel)
-      Dim expression = BindExpression(syntax.WhileClause.Expression, TypeSymbol.Boolean)
-      Dim atBeginning = syntax.WhileClause.AtBeginning
+      Dim expression As BoundExpression '= Nothing
+      If syntax.WhileClause Is Nothing Then
+        ' If missing, infer "True".
+        Dim isTrue = True
+        Dim keywordToken = New SyntaxToken(syntax.SyntaxTree, SyntaxKind.TrueKeyword, syntax.Statements.Span.Start, Nothing, Nothing, ImmutableArray(Of SyntaxTrivia).Empty, ImmutableArray(Of SyntaxTrivia).Empty)
+        Dim le = New LiteralExpressionSyntax(syntax.SyntaxTree, keywordToken, isTrue)
+        expression = BindExpression(le, TypeSymbol.Boolean)
+      Else
+        expression = BindExpression(syntax.WhileClause.Expression, TypeSymbol.Boolean)
+      End If
+      Dim atBeginning = syntax.WhileClause Is Nothing OrElse syntax.WhileClause.AtBeginning
       Return New BoundDoWhileStatement(statements, expression, atBeginning, exitLabel, continueLabel)
     End Function
 

@@ -1515,12 +1515,12 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub ContinueAction()
-    m_runner = New Threading.Thread(AddressOf RunnerGw)
+    m_runner = New Threading.Thread(AddressOf RunnerBs)
     m_runner.Start()
   End Sub
 
   Private Sub RestartAction()
-    m_runner = New Threading.Thread(AddressOf RunnerGw)
+    m_runner = New Threading.Thread(AddressOf RunnerBs)
     m_runner.Start()
   End Sub
 

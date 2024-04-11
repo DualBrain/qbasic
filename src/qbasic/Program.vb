@@ -252,6 +252,7 @@ Friend Class QBasic
     Dim isShift = GetKey(Key.SHIFT).Held OrElse GetKey(Key.SHIFT).Pressed
     Dim isControl = GetKey(Key.CTRL).Held OrElse GetKey(Key.CTRL).Pressed
 
+    ' These keys are "always active".
     If keys IsNot Nothing Then
       For index = keys.Count - 1 To 0 Step -1
         If Not isControl AndAlso Not isAlt AndAlso Not isShift Then
@@ -283,7 +284,18 @@ Friend Class QBasic
             Case ConsoleKey.V ' Insert and Overstrike
               ToggleInsertMode()
               keys.RemoveAt(index)
+            Case ConsoleKey.C
+              If m_running Then
+                s_cancelTokenSource.Cancel()
+                m_running = False
+              End If
+            Case ConsoleKey.Attention
+              If m_running Then
+                s_cancelTokenSource.Cancel()
+                m_running = False
+              End If
             Case Else
+              Stop
           End Select
         ElseIf isControl AndAlso isAlt AndAlso isShift Then
           Select Case keys(index)
@@ -1132,6 +1144,9 @@ Tip: These topics are also available from the Help menu.
     If GetKey(Key.OEM_7).Pressed Then result.Add(ConsoleKey.Oem7) ' '"
 
     If GetKey(Key.ESCAPE).Pressed Then result.Add(ConsoleKey.Escape)
+
+    If GetKey(Key.SCROLL).Pressed Then result.Add(ConsoleKey.Attention)
+    If GetKey(Key.PAUSE).Pressed Then result.Add(ConsoleKey.Attention)
 
     If GetKey(Key.F1).Pressed Then result.Add(ConsoleKey.F1)
     If GetKey(Key.F2).Pressed Then result.Add(ConsoleKey.F2)

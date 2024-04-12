@@ -13,6 +13,7 @@ Imports VbPixelGameEngine
 Imports QBLib.Video
 Imports Basic.Parser
 Imports Basic
+Imports System.Runtime.ConstrainedExecution
 
 Friend Module Program
 
@@ -247,6 +248,13 @@ Friend Class QBasic
     Dim cursorVisible = True
 
     Dim keys = GetPressed()
+
+    Dim mButton1 = GetMouse(0)
+    Dim mButton2 = GetMouse(1)
+    Dim mButton3 = GetMouse(2)
+    Dim mButton4 = GetMouse(3)
+    Dim mMouseX = GetMouseX()
+    Dim mMouseY = GetMouseY()
 
     Dim isAlt = GetKey(Key.ALT).Held OrElse GetKey(Key.ALT).Pressed
     Dim isShift = GetKey(Key.SHIFT).Held OrElse GetKey(Key.SHIFT).Pressed
@@ -906,7 +914,22 @@ Tip: These topics are also available from the Help menu.
       End If
 
     Else
+
       DrawScreen()
+
+      Dim mr = mMouseY \ m_textH
+      Dim mc = mMouseX \ m_textW
+
+      Dim charIndex = LBound(Screen0) + ((mr * 80) + mc)
+      Dim charValue = Screen0(charIndex) And &HFF ' split color
+      Dim charColor = ((Screen0(charIndex) And &HFF00) \ 256) And &HFF ' split character
+
+      Dim fg, bg As Integer
+      SplitColor(charColor, fg, bg)
+
+      'DrawRect(mc * m_textW, mr * m_textH, m_textW, m_textH, Presets.Black)
+      QPrintRC(ChrW(charValue), mr + 1, mc + 1, OneColor(bg, 7 - If(bg < 8, bg, 7)))
+
       ' Draws pixels to screen...
       For r = 0 To 24
         For c = 0 To 79
@@ -919,7 +942,6 @@ Tip: These topics are also available from the Help menu.
           Dim x = c * m_textW
           Dim y = r * m_textH
 
-          Dim fg, bg As Integer
           SplitColor(clr, fg, bg)
 
           Dim fgc = m_palette(fg)
@@ -1008,7 +1030,7 @@ Tip: These topics are also available from the Help menu.
             Dim x = (cc - 1) * m_textW
             Dim y = (cr - 1) * m_textH
             Dim c = SCREEN(cr, cc, 1)
-            Dim fg, bg As Integer
+            'Dim fg, bg As Integer
             SplitColor(c, fg, bg)
             Dim cclr = Presets.Gray
             If bg = 8 Then cclr = Presets.Black

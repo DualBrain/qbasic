@@ -1,4 +1,3 @@
-Imports System.Timers
 Imports System.Drawing
 Imports System.IO
 Imports System.IO.Compression
@@ -13,7 +12,6 @@ Imports VbPixelGameEngine
 Imports QBLib.Video
 Imports Basic.Parser
 Imports Basic
-Imports System.Runtime.ConstrainedExecution
 
 Friend Module Program
 
@@ -484,6 +482,43 @@ Tip: These topics are also available from the Help menu.
         End If
 
       Else
+
+        Dim mr = (mMouseY \ m_textH) + 1
+        Dim mc = (mMouseX \ m_textW) + 1
+
+        Select Case mr
+          Case 1
+            If mButton1.Pressed Then
+              For menuIndex = 0 To Menu.Items.Count - 1
+                If mc >= Menu.Items(menuIndex).Offset AndAlso mc <= Menu.Items(menuIndex).Offset + Menu.Items(menuIndex).Text.Length + 1 Then
+                  m_isAlt = True
+                  Menu.AltPressed = True
+                  Menu.Focused = True
+                  Menu.Expanded = True
+                  Menu.Selected = menuIndex
+                  Menu.Items(menuIndex).Expanded = True
+                  Exit For
+                End If
+              Next
+            End If
+          Case Else
+            If Menu.Expanded Then
+              ' inside expanded menu
+            Else
+              ' is the mouse in any of the "windows"?
+            End If
+        End Select
+
+        If mButton1.Pressed Then
+          ' is it on a menu?
+          '   is main menu expanded?
+          '     change highlight?
+          '     change main menu visible?
+          ' which "window"?
+          '   change focus?
+          '   set cursor position.
+
+        End If
 
         If Not m_isAlt Then
           m_isAlt = GetKey(Key.ALT).Pressed

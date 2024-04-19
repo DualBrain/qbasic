@@ -1,4 +1,5 @@
 ﻿Imports System.Diagnostics.Tracing
+Imports QB.CodeAnalysis.Syntax
 Imports VbPixelGameEngine
 Imports VbPixelGameEngine.PixelGameEngine
 
@@ -127,6 +128,62 @@ Public Class MainMenu
       Next
 
     End If
+
+  End Sub
+
+  Friend Sub ProcessMouse(buttonPressed As Boolean, row As Integer, col As Integer)
+
+    Select Case row
+      Case 1 ' Main menu column...
+        If buttonPressed Then
+          For menuIndex = 0 To Me.Items.Count - 1
+            If col >= Me.Items(menuIndex).Offset AndAlso col <= Me.Items(menuIndex).Offset + Me.Items(menuIndex).Text.Length + 1 Then
+              Me.AltPressed = True
+              Me.Focused = True
+              Me.Expanded = True
+              Me.Selected = menuIndex
+              Me.Items(menuIndex).Expanded = True
+              Exit For
+            End If
+          Next
+        End If
+      Case Else
+        If buttonPressed Then
+          If Me.Expanded Then
+            Dim subMenu = Items(Selected)
+            Dim adjust = 0
+            Dim width = 15
+            For Each entry In subMenu.Items
+              Dim tw = entry.Text.Length
+              Dim hk = If(entry.Hotkey?.Length + 6, 0)
+              If tw + 1 + hk > width Then
+                width = tw + 1 + hk
+              End If
+            Next
+            If RightAlignLast AndAlso Me.Selected = Items.Count - 1 Then
+              adjust = -(width - 3)
+            End If
+
+            Dim ulRow = 2
+            Dim ulCol = subMenu.Offset - 1 + adjust
+            Dim lrRow = subMenu.Items.Count + 3
+            Dim lrCol = subMenu.Offset + width + 1 + adjust
+
+            Dim s = Selected
+            Reset()
+            If row > ulRow AndAlso row < lrRow AndAlso col >= ulCol AndAlso col <= lrCol Then
+              ' inside submenu
+              Dim item = Items(s).Items(row - 3)
+              If item.Text <> "-" Then
+                RaiseEvent OnClick(Me, New MenuClickEventArgs(item))
+              End If
+            End If
+          Else
+            ' is the mouse in any of the "windows"?
+            Reset()
+          End If
+        End If
+    End Select
 
   End Sub
 

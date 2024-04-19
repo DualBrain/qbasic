@@ -483,7 +483,20 @@ Tip: These topics are also available from the Help menu.
 
       Else
 
-        Menu.ProcessMouse(mButton1.Pressed, (mMouseY \ m_textH) + 1, (mMouseX \ m_textW) + 1)
+        Dim buttonPressed = mButton1.Pressed
+        Dim processed = Menu.ProcessMouse(buttonPressed, (mMouseY \ m_textH) + 1, (mMouseX \ m_textW) + 1)
+        If Not processed AndAlso m_help.Visible Then
+          'processed = m_help.ProcessMouse(buttonPressed, (mMouseY \ m_textH) + 1, (mMouseX \ m_textW) + 1)
+        End If
+        If Not processed AndAlso Document1.Visible Then
+          'processed = Document1.ProcessMouse(buttonPressed, (mMouseY \ m_textH) + 1, (mMouseX \ m_textW) + 1)
+        End If
+        If Not processed AndAlso Document2.Visible Then
+          'processed = Document2.ProcessMouse(buttonPressed, (mMouseY \ m_textH) + 1, (mMouseX \ m_textW) + 1)
+        End If
+        If Not processed AndAlso m_immediate.Visible Then
+          'processed = m_immediate.ProcessMouse(buttonPressed, (mMouseY \ m_textH) + 1, (mMouseX \ m_textW) + 1)
+        End If
 
         If Not m_isAlt Then
           m_isAlt = GetKey(Key.ALT).Pressed

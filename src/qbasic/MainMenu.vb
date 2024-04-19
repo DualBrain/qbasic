@@ -131,7 +131,7 @@ Public Class MainMenu
 
   End Sub
 
-  Friend Sub ProcessMouse(buttonPressed As Boolean, row As Integer, col As Integer)
+  Friend Function ProcessMouse(buttonPressed As Boolean, row As Integer, col As Integer) As Boolean
 
     Select Case row
       Case 1 ' Main menu column...
@@ -143,7 +143,7 @@ Public Class MainMenu
               Me.Expanded = True
               Me.Selected = menuIndex
               Me.Items(menuIndex).Expanded = True
-              Exit For
+              Return True
             End If
           Next
         End If
@@ -176,16 +176,19 @@ Public Class MainMenu
               Dim item = Items(s).Items(row - 3)
               If item.Text <> "-" Then
                 RaiseEvent OnClick(Me, New MenuClickEventArgs(item))
+                Return True
               End If
             End If
           Else
-            ' is the mouse in any of the "windows"?
+            ' the mouse was "clicked" outside of a "menu" area.
             Reset()
           End If
         End If
     End Select
 
-  End Sub
+    Return False
+
+  End Function
 
   Public Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
 

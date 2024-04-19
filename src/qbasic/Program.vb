@@ -146,7 +146,7 @@ Friend Class QBasic
                   New MenuItem("-"),
                   New MenuItem("&About...", "Displays product version and copyright information")}.ToList}}.ToList}
 
-    Dim includeFbc = False
+    Dim includeFbc = True
     Dim includeQbjs = True
 
     If includeQbjs OrElse includeFbc Then
@@ -998,6 +998,8 @@ Tip: These topics are also available from the Help menu.
           Else
           End If
 
+          If cr < 1 OrElse cr > 25 Then cr = 1
+
           Dim strt = CursorStart
           Dim stp = CursorStop
 
@@ -1647,7 +1649,57 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub MakeExeFileFbcAction()
-    m_context = New MessageDialog("Not implemented.")
+
+    Dim compiler = "c:\fb\fbc64.exe"
+
+    If File.Exists(compiler) Then
+
+      If File.Exists(m_path) Then
+
+        Dim target = Path.ChangeExtension(m_path, ".exe")
+
+        If File.Exists(target) Then
+          File.Delete(target)
+        End If
+
+        Dim compile = New ProcessStartInfo() With {.FileName = compiler,
+                                                   .Arguments = $"""{m_path}"" -lang qb -x ""{target}""",
+                                                   .UseShellExecute = False,
+                                                   .CreateNoWindow = True,
+                                                   .RedirectStandardOutput = True}
+        Using p = Process.Start(compile)
+          If Not p.HasExited Then
+            p.WaitForExit()
+          Else
+            m_context = New MessageDialog("Process start failed (1).") : Return
+          End If
+        End Using
+
+        If File.Exists(target) Then
+
+          Dim execute = New ProcessStartInfo() With {.FileName = target,
+                                                     .UseShellExecute = True,
+                                                     .CreateNoWindow = False}
+          Using p = Process.Start(execute)
+            If Not p.HasExited Then
+              p.WaitForExit()
+            Else
+              m_context = New MessageDialog("Process start failed (2).") : Return
+            End If
+          End Using
+
+        Else
+          m_context = New MessageDialog("Failed.")
+        End If
+
+      Else
+        m_context = New MessageDialog("File not found.")
+      End If
+
+    Else
+      m_context = New MessageDialog("Missing FBC64.EXE.")
+    End If
+
   End Sub
 
   Private Sub LaunchInWebBrowserAction()

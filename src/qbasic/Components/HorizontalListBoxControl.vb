@@ -105,7 +105,7 @@
     Dim top = If(Parent?.Location.Row, 1) + Location.Row - 1
     Dim left = If(Parent?.Location.Col, 1) + Location.Col - 1
 
-    Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(Foreground, Background))
+    Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(ForeColor, BackColor))
     Dim index = 0
     Dim col = 0
     Dim cOffset = m_itemWidth
@@ -130,11 +130,11 @@
         item = item.Substring(0, max)
       End If
       If (col * h) + index = SelectedIndex - m_visibleIndex Then
-        QPrintRC(item, ulRow + index, ulCol + (col * (cOffset + 2)) - 1, OneColor(Background, Foreground))
+        QPrintRC(item, ulRow + index, ulCol + (col * (cOffset + 2)) - 1, OneColor(BackColor, ForeColor))
         m_cursorRow = ulRow + index
         m_cursorCol = ulCol + (col * (cOffset + 2))
       Else
-        QPrintRC(item, ulRow + index, ulCol + (col * (cOffset + 2)) - 1, OneColor(Foreground, Background))
+        QPrintRC(item, ulRow + index, ulCol + (col * (cOffset + 2)) - 1, OneColor(ForeColor, BackColor))
       End If
       index += 1
       If index > h - 1 Then col += 1 : index = 0
@@ -145,7 +145,7 @@
       m_cursorCol = ulCol
     End If
 
-    HScrollBar(0, lrRow, ulCol - 1, lrCol - 1, Foreground)
+    HScrollBar(0, lrRow, ulCol - 1, lrCol - 1, ForeColor)
 
   End Sub
 

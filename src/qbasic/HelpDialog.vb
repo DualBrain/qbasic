@@ -1,4 +1,4 @@
-﻿Imports QBLib.Video
+﻿'Imports QBLib.Video
 Imports VbPixelGameEngine
 
 Public Class HelpDialog
@@ -81,7 +81,14 @@ Public Class HelpDialog
 
   End Sub
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
 
     If keys?.Count > 0 Then
       For Each key In keys

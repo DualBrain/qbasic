@@ -190,7 +190,14 @@ Public Class MainMenu
 
   End Function
 
-  Public Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
 
     If Focused Then
       If keys IsNot Nothing Then

@@ -4,7 +4,10 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>QBasic</RootNamespace>
     <TargetFramework>net8.0</TargetFramework>
+    <OptionExplicit>On</OptionExplicit>
     <OptionStrict>On</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
     <AssemblyName>qbasic</AssemblyName>
     <Authors>Cory Smith</Authors>
     <Company>AddressOf.com</Company>

@@ -1,7 +1,13 @@
-﻿Imports Basic.VisualBasic
-Imports System.Runtime.InteropServices.JavaScript.JSType
-Imports QBLib.Video
+﻿Imports QBLib.Video
 Imports System.Threading
+
+Friend Module Forms
+
+  Public Property DefaultBackColor As Drawing.Color = Drawing.Color.Gray ' Integer = 8
+  Public Property DefaultFont As Object
+  Public Property DefaultForeColor As Drawing.Color = Drawing.Color.Black 'Integer = 0
+
+End Module
 
 Friend Module Common
 

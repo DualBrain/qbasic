@@ -203,9 +203,9 @@
       txt = ""
     End If
 
-    QPrintRC(txt?.PadRight(Size.Cols), top, left, OneColor(Foreground, Background))
+    QPrintRC(txt?.PadRight(Size.Cols), top, left, OneColor(ForeColor, BackColor))
     If Focused AndAlso m_selected Then
-      PaintBox0(top, left + m_selectionStart, top, left + m_selectionEnd, OneColor(Background, Foreground))
+      PaintBox0(top, left + m_selectionStart, top, left + m_selectionEnd, OneColor(BackColor, ForeColor))
     End If
 
   End Sub

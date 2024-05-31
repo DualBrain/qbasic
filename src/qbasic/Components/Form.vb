@@ -165,13 +165,13 @@
     Dim lrCol = Location.Col + Size.Cols - 1
 
     PaintBox0(Location.Row + 1, Location.Col + 2, lrRow + 1, lrCol + 2, OneColor(7, 0))
-    ClearScr0(Location.Row, Location.Col, lrRow, lrCol, OneColor(Foreground, Background))
-    Box0(Location.Row, Location.Col, lrRow, lrCol, 1, OneColor(Foreground, Background))
+    ClearScr0(Location.Row, Location.Col, lrRow, lrCol, OneColor(ForeColor, BackColor))
+    Box0(Location.Row, Location.Col, lrRow, lrCol, 1, OneColor(ForeColor, BackColor))
 
     If Not String.IsNullOrEmpty(Text) Then
       Dim text = $" {Me.Text} "
       Dim textOffset = CInt((Size.Cols - text.Length) / 2)
-      QPrintRC(text, Location.Row, Location.Col + textOffset, OneColor(Foreground, Background))
+      QPrintRC(text, Location.Row, Location.Col + textOffset, OneColor(ForeColor, BackColor))
     End If
 
     Dim btnHasFocus = False

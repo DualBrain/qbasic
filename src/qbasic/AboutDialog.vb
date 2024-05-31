@@ -1,68 +1,90 @@
-﻿Imports VbPixelGameEngine
-Imports QBLib.Video
-
-Public Class AboutDialog
-  Inherits PgeX
+﻿Public Class AboutDialog
+  Inherits Form
   Implements IContext
 
-  Private ReadOnly m_ulRow As Integer = 9
-  Private ReadOnly m_ulCol As Integer = 14
-  Private ReadOnly m_lrRow As Integer = 17
-  Private ReadOnly m_lrCol As Integer = 66
+  Private WithEvents Button1 As New ButtonControl(Me)
 
-  Public ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
-  Public ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+  Public Shadows ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
+    Get
+      Return MyBase.CursorRow
+    End Get
+  End Property
+
+  Public Shadows ReadOnly Property CursorCol As Integer Implements IContext.CursorCol
+    Get
+      Return MyBase.CursorCol
+    End Get
+  End Property
 
   Sub New()
+    MyBase.New("", New Location(9, 14), New Size(9, 51))
 
-    Me.CursorRow = m_lrRow - 1
-    Dim w = m_lrCol - m_ulCol
-    Dim btnOffset = (w - 8) \ 2
-    Me.CursorCol = m_ulCol + btnOffset + 3
+    AcceptAction = DialogResult.Ok
+    CancelAction = DialogResult.Cancel
+
+    Button1.Text = "<  OK  >"
+    Button1.Location = New Location(8, 22)
+    Button1.Default = True
+    Button1.Focused = True
+    Button1.TabIndex = 0
+    Controls.Add(Button1)
 
   End Sub
 
   Sub Render() Implements IContext.Render
 
-    Dim w = m_lrCol - m_ulCol
-
-    PaintBox0(m_ulRow + 1, m_ulCol + 2, m_lrRow + 1, m_lrCol + 2, OneColor(7, 0))
-    ClearScr0(m_ulRow, m_ulCol, m_lrRow, m_lrCol, OneColor(0, 8))
-    Box0(m_ulRow, m_ulCol, m_lrRow, m_lrCol, 1, OneColor(0, 8))
+    OnDraw()
 
     Dim title = "Community QBasic"
-    Dim titleOffset = (w - title.Length) \ 2
-    QPrintRC(title, m_ulRow + 2, m_ulCol + titleOffset, OneColor(0, 8))
+    Dim titleOffset = (Size.Cols - title.Length) \ 2
+    QPrintRC(title, Location.Row + 2, Location.Col + titleOffset, OneColor(0, 8))
     Dim version = "Version 1.0"
-    Dim versionOffset = (w - version.Length) \ 2
-    QPrintRC(version, m_ulRow + 3, m_ulCol + versionOffset, OneColor(0, 8))
+    Dim versionOffset = (Size.Cols - version.Length) \ 2
+    QPrintRC(version, Location.Row + 3, Location.Col + versionOffset, OneColor(0, 8))
     Dim copyright = "Copyright (C) Dartmouth Didn't, 1964-2024"
-    Dim copyrightOffset = (w - copyright.Length) \ 2
-    QPrintRC(copyright, m_ulRow + 4, m_ulCol + copyrightOffset, OneColor(0, 8))
-    HLine(m_ulRow + 6, m_ulCol, m_lrCol, 1, OneColor(0, 8))
-    Dim btnOffset = (w - 8) \ 2
-    QPrintRC("<", m_ulRow + 7, m_ulCol + btnOffset, OneColor(15, 8))
-    QPrintRC("OK", m_ulRow + 7, m_ulCol + btnOffset + 3, OneColor(0, 8))
-    QPrintRC(">", m_ulRow + 7, m_ulCol + btnOffset + 7, OneColor(15, 8))
+    Dim copyrightOffset = (Size.Cols - copyright.Length) \ 2
+    QPrintRC(copyright, Location.Row + 4, Location.Col + copyrightOffset, OneColor(0, 8))
 
-    LOCATE(m_ulRow + 7, m_ulCol + btnOffset + 3)
+    HLine(Location.Row + 6, Location.Col, Location.Col + Size.Cols - 1, 1, OneColor(0, 8))
 
   End Sub
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
+
+    If mButton Then
+      For Each control In Controls
+        If control.MouseHit(mRow, mCol) Then
+          If Not control.Focused Then
+            For index = 0 To Controls.Count - 1
+              If Controls(index).Focused Then Controls(index).Focused = False : Exit For
+            Next
+            control.Focused = True
+          End If
+          DialogResult = DialogResult.Ok
+          Return False
+        End If
+      Next
+    End If
 
     If keys?.Count > 0 Then
       For Each key In keys
-        Select Case key
-          Case ConsoleKey.Escape
-            Return False
-          Case ConsoleKey.Enter, ConsoleKey.Spacebar
-            Return False
-          Case ConsoleKey.F1
-          Case ConsoleKey.Tab
-          Case ConsoleKey.LeftArrow, ConsoleKey.RightArrow, ConsoleKey.UpArrow, ConsoleKey.DownArrow
-          Case Else
-        End Select
+        Dim e = New KeyPressEventArgs(key, capsLock, ctrl, alt, shift)
+        OnKeyPress(e)
+        If Not e.Handled Then
+          Select Case e.Key
+            Case ConsoleKey.Enter, ConsoleKey.Spacebar
+              DialogResult = DialogResult.Ok : Return False
+            Case ConsoleKey.Escape : DialogResult = CancelAction : Return False
+            Case Else
+          End Select
+        End If
       Next
     End If
 

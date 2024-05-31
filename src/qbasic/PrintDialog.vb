@@ -29,17 +29,17 @@
     CancelAction = DialogResult.Cancel
 
     SelectedText.Location = New Location(3, 8)
-    SelectedText.TabOrder = 0
+    SelectedText.TabIndex = 0
     SelectedText.Text = "Selected Text Only"
     Controls.Add(SelectedText)
 
     CurrentWindow.Location = New Location(4, 8)
-    CurrentWindow.TabOrder = 0
+    CurrentWindow.TabIndex = 0
     CurrentWindow.Text = "Current Window"
     Controls.Add(CurrentWindow)
 
     EntireProgram.Location = New Location(5, 8)
-    EntireProgram.TabOrder = 0
+    EntireProgram.TabIndex = 0
     EntireProgram.Text = "Entire Program"
     EntireProgram.Checked = True
     EntireProgram.Focused = True
@@ -50,7 +50,7 @@
     OkButton.Location = New Location(8, 4)
     OkButton.Focused = False
     OkButton.TabStop = True
-    OkButton.TabOrder = 1
+    OkButton.TabIndex = 1
     Controls.Add(OkButton)
 
     CancelButton.Text = "< Cancel >"
@@ -58,7 +58,7 @@
     CancelButton.Location = New Location(8, 12)
     CancelButton.Focused = False
     CancelButton.TabStop = True
-    CancelButton.TabOrder = 2
+    CancelButton.TabIndex = 2
     Controls.Add(CancelButton)
 
     HelpButton.Text = "< Help >"
@@ -66,17 +66,40 @@
     HelpButton.Location = New Location(8, 24)
     HelpButton.Focused = False
     HelpButton.TabStop = True
-    HelpButton.TabOrder = 3
+    HelpButton.TabIndex = 3
     Controls.Add(HelpButton)
 
   End Sub
 
   Public Sub Render() Implements IContext.Render
     OnDraw()
-    HLine(Location.Row + 6, Location.Col, Location.Col + Size.Cols - 1, 1, OneColor(Foreground, Background))
+    HLine(Location.Row + 6, Location.Col, Location.Col + Size.Cols - 1, 1, OneColor(ForeColor, BackColor))
   End Sub
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
+
+    If mButton Then
+      For Each control In Controls
+        If control.MouseHit(mRow, mCol) Then
+          If Not control.Focused Then
+            For index = 0 To Controls.Count - 1
+              If Controls(index).Focused Then Controls(index).Focused = False : Exit For
+            Next
+            control.Focused = True
+          End If
+          'DialogResult = DialogResult.Ok
+          'Return False
+          Exit For
+        End If
+      Next
+    End If
 
     If keys?.Count > 0 Then
       For Each key In keys
@@ -85,7 +108,7 @@
         If Not e.Handled Then
           Select Case e.Key
             Case ConsoleKey.Enter
-            Case ConsoleKey.Escape : Return False
+            Case ConsoleKey.Escape : DialogResult = CancelAction : Return False
             Case Else
           End Select
         End If

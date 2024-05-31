@@ -1,7 +1,6 @@
 ﻿Imports System.Runtime.InteropServices.RuntimeInformation
 Imports System.Runtime.InteropServices.OSPlatform
 Imports System.Reflection
-Imports System.IO.Enumeration
 
 Public Class SaveAsDialog
   Inherits Form
@@ -64,22 +63,22 @@ Public Class SaveAsDialog
     FileTextBox.Location = New Location(3, 15)
     FileTextBox.Size = New Size(1, 25)
     FileTextBox.TabStop = True
-    FileTextBox.TabOrder = 0
+    FileTextBox.TabIndex = 0
     FileTextBox.Visible = True
     FileTextBox.Focused = True
-    FileTextBox.Foreground = 0
-    FileTextBox.Background = 8
+    FileTextBox.ForeColor = 0
+    FileTextBox.BackColor = 8
     FileTextBox.SelectAll()
     Controls.Add(FileTextBox)
 
     FolderListBox.Location = New Location(7, 15)
     FolderListBox.Size = New Size(9, 16)
     FolderListBox.TabStop = True
-    FolderListBox.TabOrder = 2
+    FolderListBox.TabIndex = 2
     FolderListBox.Visible = True
     FolderListBox.Focused = False
-    FolderListBox.Foreground = 0
-    FolderListBox.Background = 8
+    FolderListBox.ForeColor = 0
+    FolderListBox.BackColor = 8
     Controls.Add(FolderListBox)
 
     OkButton.Text = "< OK >"
@@ -87,7 +86,7 @@ Public Class SaveAsDialog
     OkButton.Location = New Location(17, 8)
     OkButton.Focused = False
     OkButton.TabStop = True
-    OkButton.TabOrder = 3
+    OkButton.TabIndex = 3
     Controls.Add(OkButton)
 
     CancelButton.Text = "< Cancel >"
@@ -95,7 +94,7 @@ Public Class SaveAsDialog
     CancelButton.Location = New Location(17, 18)
     CancelButton.Focused = False
     CancelButton.TabStop = True
-    CancelButton.TabOrder = 4
+    CancelButton.TabIndex = 4
     Controls.Add(CancelButton)
 
     HelpButton.Text = "< Help >"
@@ -103,7 +102,7 @@ Public Class SaveAsDialog
     HelpButton.Location = New Location(17, 32)
     HelpButton.Focused = False
     HelpButton.TabStop = True
-    HelpButton.TabOrder = 5
+    HelpButton.TabIndex = 5
     Controls.Add(HelpButton)
 
   End Sub
@@ -118,19 +117,41 @@ Public Class SaveAsDialog
     Dim lrCol = Location.Col + Size.Cols - 1
     Dim w = lrCol - ulCol
 
-    QPrintRC("File Name:", ulRow + 2, ulCol + 2, OneColor(Foreground, Background))
-    Box0(ulRow + 1, ulCol + 13, ulRow + 3, lrCol - 2, 1, OneColor(Foreground, Background))
+    QPrintRC("File Name:", ulRow + 2, ulCol + 2, OneColor(ForeColor, BackColor))
+    Box0(ulRow + 1, ulCol + 13, ulRow + 3, lrCol - 2, 1, OneColor(ForeColor, BackColor))
 
-    QPrintRC(m_folder, ulRow + 4, ulCol + 2, OneColor(Foreground, Background))
-    QPrintRC("Dirs/Drives", ulRow + 5, ulCol + 16, OneColor(Foreground, Background))
+    QPrintRC(m_folder, ulRow + 4, ulCol + 2, OneColor(ForeColor, BackColor))
+    QPrintRC("Dirs/Drives", ulRow + 5, ulCol + 16, OneColor(ForeColor, BackColor))
 
-    HLine(lrRow - 2, ulCol, lrCol, 1, OneColor(Foreground, Background))
+    HLine(lrRow - 2, ulCol, lrCol, 1, OneColor(ForeColor, BackColor))
 
   End Sub
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
 
-    'If m_selected = 0 Then
+    If mButton Then
+      For Each control In Controls
+        If control.MouseHit(mRow, mCol) Then
+          If Not control.Focused Then
+            For index = 0 To Controls.Count - 1
+              If Controls(index).Focused Then Controls(index).Focused = False : Exit For
+            Next
+            control.Focused = True
+          End If
+          'DialogResult = DialogResult.Ok
+          'Return False
+          Exit For
+        End If
+      Next
+    End If
+
     If keys?.Count > 0 Then
       For Each key In keys
         Dim e = New KeyPressEventArgs(key, capsLock, ctrl, alt, shift)
@@ -181,7 +202,7 @@ Public Class SaveAsDialog
                 FileTextBox.Text = $"{rightSide}"
                 FileTextBox.Focused = True
               End If
-            Case ConsoleKey.Escape : Return False
+            Case ConsoleKey.Escape : DialogResult = CancelAction : Return False
             Case Else
           End Select
         End If

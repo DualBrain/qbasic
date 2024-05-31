@@ -93,7 +93,7 @@
     Dim top = If(Parent?.Location.Row, 1) + Location.Row - 1
     Dim left = If(Parent?.Location.Col, 1) + Location.Col - 1
 
-    Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(Foreground, Background))
+    Box0(top, left, top + Size.Rows - 1, left + Size.Cols - 1, 1, OneColor(ForeColor, BackColor))
 
     Dim ulRow = top + 1
     Dim ulCol = left + 2
@@ -107,17 +107,17 @@
     Do
       Dim txt = Items(index).Substring(0, MinInt(Items(index).Length, w))
       If index = SelectedIndex Then
-        QPrintRC($" {txt.PadRight(w)} ", ulRow + index - m_visibleIndex, ulCol - 1, OneColor(Background, Foreground))
+        QPrintRC($" {txt.PadRight(w)} ", ulRow + index - m_visibleIndex, ulCol - 1, OneColor(BackColor, ForeColor))
         m_cursorRow = ulRow + index - m_visibleIndex
         m_cursorCol = ulCol
       Else
-        QPrintRC(txt, ulRow + index - m_visibleIndex, ulCol, OneColor(Foreground, Background))
+        QPrintRC(txt, ulRow + index - m_visibleIndex, ulCol, OneColor(ForeColor, BackColor))
       End If
       index += 1
       If index > m_visibleIndex + h - 1 OrElse index > Items.Count - 1 Then Exit Do
     Loop
 
-    VScrollBar(0, ulRow, lrCol, lrRow - 1, Foreground)
+    VScrollBar(0, ulRow, lrCol, lrRow - 1, ForeColor)
 
     If SelectedIndex = -1 Then
       m_cursorRow = ulRow

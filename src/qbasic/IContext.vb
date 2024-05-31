@@ -5,6 +5,6 @@
 
   Sub Render()
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean
+  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean, mButton As Boolean, mRow As Integer, mCol As Integer) As Boolean
 
 End Interface

@@ -35,58 +35,58 @@
     CancelAction = DialogResult.Cancel
 
     NormalText.Location = New Location(5, 5)
-    NormalText.TabOrder = 0
+    NormalText.TabIndex = 0
     NormalText.Text = "1."
     NormalText.Checked = True
     NormalText.Focused = True
     Controls.Add(NormalText)
 
     CurrentStatement.Location = New Location(7, 5)
-    CurrentStatement.TabOrder = 0
+    CurrentStatement.TabIndex = 0
     CurrentStatement.Text = "2."
     Controls.Add(CurrentStatement)
 
     BreakpointLines.Location = New Location(9, 5)
-    BreakpointLines.TabOrder = 0
+    BreakpointLines.TabIndex = 0
     BreakpointLines.Text = "3."
     Controls.Add(BreakpointLines)
 
     ForegroundListbox.Location = New Location(4, 32)
     ForegroundListbox.Size = New Size(10, 11)
-    ForegroundListbox.TabOrder = 1
+    ForegroundListbox.TabIndex = 1
     Controls.Add(ForegroundListbox)
 
     BackgroundListbox.Location = New Location(4, 45)
     BackgroundListbox.Size = New Size(10, 11)
-    BackgroundListbox.TabOrder = 2
+    BackgroundListbox.TabIndex = 2
     Controls.Add(BackgroundListbox)
 
     ScrollBarsCheckbox.Location = New Location(18, 7)
     ScrollBarsCheckbox.Text = "Scroll Bars"
     ScrollBarsCheckbox.Checked = True
-    ScrollBarsCheckbox.TabOrder = 3
+    ScrollBarsCheckbox.TabIndex = 3
     Controls.Add(ScrollBarsCheckbox)
 
     TabStopsTextbox.Location = New Location(18, 51)
     TabStopsTextbox.Size = New Size(1, 2)
     TabStopsTextbox.Text = "2"
-    TabStopsTextbox.TabOrder = 4
+    TabStopsTextbox.TabIndex = 4
     Controls.Add(TabStopsTextbox)
 
     OkButton.Text = "< OK >"
     OkButton.Default = True
     OkButton.Location = New Location(21, 11)
-    OkButton.TabOrder = 5
+    OkButton.TabIndex = 5
     Controls.Add(OkButton)
 
     CancelButton.Text = "< Cancel >"
     CancelButton.Location = New Location(21, 25)
-    CancelButton.TabOrder = 6
+    CancelButton.TabIndex = 6
     Controls.Add(CancelButton)
 
     HelpButton.Text = "< Help >"
     HelpButton.Location = New Location(21, 41)
-    HelpButton.TabOrder = 7
+    HelpButton.TabIndex = 7
     Controls.Add(HelpButton)
 
     ForegroundListbox.Items.Add("Black")
@@ -127,20 +127,43 @@
 
   Public Sub Render() Implements IContext.Render
     OnDraw()
-    Box0(Location.Row + 1, Location.Col + 2, Location.Row + 14, Location.Col + Size.Cols - 3, 1, OneColor(Foreground, Background))
-    QPrintRC(" Colors ", Location.Row + 1, Location.Col + 27, OneColor(Foreground, Background))
+    Box0(Location.Row + 1, Location.Col + 2, Location.Row + 14, Location.Col + Size.Cols - 3, 1, OneColor(ForeColor, BackColor))
+    QPrintRC(" Colors ", Location.Row + 1, Location.Col + 27, OneColor(ForeColor, BackColor))
     QPrintRC(" Normal Text       ", Location.Row + 4, Location.Col + 11, OneColor(8, 1))
     QPrintRC(" Current Statement ", Location.Row + 6, Location.Col + 11, OneColor(15, 1))
     QPrintRC(" Breakpoint Lines  ", Location.Row + 8, Location.Col + 11, OneColor(8, 4))
-    QPrintRC("Foreground", Location.Row + 2, Location.Col + 32, OneColor(Foreground, Background))
-    QPrintRC("Background", Location.Row + 2, Location.Col + 45, OneColor(Foreground, Background))
-    Box0(Location.Row + 16, Location.Col + 2, Location.Row + 18, Location.Col + Size.Cols - 3, 1, OneColor(Foreground, Background))
-    QPrintRC(" Display Options ", Location.Row + 16, Location.Col + 21, OneColor(Foreground, Background))
-    QPrintRC("Tab Stops:", Location.Row + 17, Location.Col + 39, OneColor(Foreground, Background))
-    HLine(Location.Row + 19, Location.Col, Location.Col + Size.Cols - 1, 1, OneColor(Foreground, Background))
+    QPrintRC("Foreground", Location.Row + 2, Location.Col + 32, OneColor(ForeColor, BackColor))
+    QPrintRC("Background", Location.Row + 2, Location.Col + 45, OneColor(ForeColor, BackColor))
+    Box0(Location.Row + 16, Location.Col + 2, Location.Row + 18, Location.Col + Size.Cols - 3, 1, OneColor(ForeColor, BackColor))
+    QPrintRC(" Display Options ", Location.Row + 16, Location.Col + 21, OneColor(ForeColor, BackColor))
+    QPrintRC("Tab Stops:", Location.Row + 17, Location.Col + 39, OneColor(ForeColor, BackColor))
+    HLine(Location.Row + 19, Location.Col, Location.Col + Size.Cols - 1, 1, OneColor(ForeColor, BackColor))
   End Sub
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
+
+    If mButton Then
+      For Each control In Controls
+        If control.MouseHit(mRow, mCol) Then
+          If Not control.Focused Then
+            For index = 0 To Controls.Count - 1
+              If Controls(index).Focused Then Controls(index).Focused = False : Exit For
+            Next
+            control.Focused = True
+          End If
+          'DialogResult = If(Controls(0).Focused, DialogResult.Ok, DialogResult.Cancel)
+          'Return False
+          Exit For
+        End If
+      Next
+    End If
 
     If keys?.Count > 0 Then
       For Each key In keys
@@ -149,7 +172,7 @@
         If Not e.Handled Then
           Select Case e.Key
             Case ConsoleKey.Enter
-            Case ConsoleKey.Escape : Return False
+            Case ConsoleKey.Escape : DialogResult = CancelAction : Return False
             Case Else
           End Select
         End If

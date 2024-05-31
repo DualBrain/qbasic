@@ -1,6 +1,5 @@
 ﻿Imports System.Runtime.InteropServices.RuntimeInformation
-Imports System.Runtime.InteropServices.OSPlatform
-Imports System.Reflection
+Imports System.Runtime.InteropServices
 
 Public Class OpenDialog
   Inherits Form
@@ -45,10 +44,10 @@ Public Class OpenDialog
 
     m_initialPath = path
     If m_initialPath Is Nothing Then
-      If IsOSPlatform(Windows) Then
-        m_initialPath = IO.Path.Combine(IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "*.BAS")
+      If IsOSPlatform(OSPlatform.Windows) Then
+        m_initialPath = IO.Path.Combine(IO.Path.GetDirectoryName(Reflection.Assembly.GetEntryAssembly().Location), "*.BAS")
       Else
-        m_initialPath = IO.Path.Combine(IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), "*.*")
+        m_initialPath = IO.Path.Combine(IO.Path.GetDirectoryName(Reflection.Assembly.GetEntryAssembly().Location), "*.*")
       End If
     End If
 
@@ -69,32 +68,32 @@ Public Class OpenDialog
     FileTextBox.Location = New Location(3, 16)
     FileTextBox.Size = New Size(1, 50)
     FileTextBox.TabStop = True
-    FileTextBox.TabOrder = 0
+    FileTextBox.TabIndex = 0
     FileTextBox.Visible = True
     FileTextBox.Focused = True
-    FileTextBox.Foreground = 0
-    FileTextBox.Background = 8
+    FileTextBox.ForeColor = 0
+    FileTextBox.BackColor = 8
     FileTextBox.SelectAll()
     Controls.Add(FileTextBox)
 
     FileHorizontalListBox.Location = New Location(7, 2)
     FileHorizontalListBox.Size = New Size(10, 45)
     FileHorizontalListBox.TabStop = True
-    FileHorizontalListBox.TabOrder = 1
+    FileHorizontalListBox.TabIndex = 1
     FileHorizontalListBox.Visible = True
     FileHorizontalListBox.Focused = False
-    FileHorizontalListBox.Foreground = 0
-    FileHorizontalListBox.Background = 8
+    FileHorizontalListBox.ForeColor = 0
+    FileHorizontalListBox.BackColor = 8
     Controls.Add(FileHorizontalListBox)
 
     FolderListBox.Location = New Location(7, 49)
     FolderListBox.Size = New Size(10, 16)
     FolderListBox.TabStop = True
-    FolderListBox.TabOrder = 2
+    FolderListBox.TabIndex = 2
     FolderListBox.Visible = True
     FolderListBox.Focused = False
-    FolderListBox.Foreground = 0
-    FolderListBox.Background = 8
+    FolderListBox.ForeColor = 0
+    FolderListBox.BackColor = 8
     Controls.Add(FolderListBox)
 
     OkButton.Text = "< OK >"
@@ -102,7 +101,7 @@ Public Class OpenDialog
     OkButton.Location = New Location(19, 12)
     OkButton.Focused = False
     OkButton.TabStop = True
-    OkButton.TabOrder = 3
+    OkButton.TabIndex = 3
     Controls.Add(OkButton)
 
     CancelButton.Text = "< Cancel >"
@@ -110,7 +109,7 @@ Public Class OpenDialog
     CancelButton.Location = New Location(19, 28)
     CancelButton.Focused = False
     CancelButton.TabStop = True
-    CancelButton.TabOrder = 4
+    CancelButton.TabIndex = 4
     Controls.Add(CancelButton)
 
     HelpButton.Text = "< Help >"
@@ -118,7 +117,7 @@ Public Class OpenDialog
     HelpButton.Location = New Location(19, 48)
     HelpButton.Focused = False
     HelpButton.TabStop = True
-    HelpButton.TabOrder = 5
+    HelpButton.TabIndex = 5
     Controls.Add(HelpButton)
 
   End Sub
@@ -141,7 +140,30 @@ Public Class OpenDialog
 
   End Sub
 
-  Function ProcessKeys(keys As List(Of ConsoleKey), capsLock As Boolean, ctrl As Boolean, alt As Boolean, shift As Boolean) As Boolean Implements IContext.ProcessKeys
+  Public Function ProcessKeys(keys As List(Of ConsoleKey),
+                              capsLock As Boolean,
+                              ctrl As Boolean,
+                              alt As Boolean,
+                              shift As Boolean,
+                              mButton As Boolean,
+                              mRow As Integer,
+                              mCol As Integer) As Boolean Implements IContext.ProcessKeys
+
+    If mButton Then
+      For Each control In Controls
+        If control.MouseHit(mRow, mCol) Then
+          If Not control.Focused Then
+            For index = 0 To Controls.Count - 1
+              If Controls(index).Focused Then Controls(index).Focused = False : Exit For
+            Next
+            control.Focused = True
+          End If
+          'DialogResult = If(Controls(0).Focused, DialogResult.Ok, DialogResult.Cancel)
+          'Return False
+          Exit For
+        End If
+      Next
+    End If
 
     'If m_selected = 0 Then
     If keys?.Count > 0 Then
@@ -219,7 +241,7 @@ Public Class OpenDialog
                 FolderListBox.Focused = False
                 FileTextBox.Focused = True
               End If
-            Case ConsoleKey.Escape : Return False
+            Case ConsoleKey.Escape : DialogResult = CancelAction : Return False
             Case Else
           End Select
         End If

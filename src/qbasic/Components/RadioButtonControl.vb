@@ -50,9 +50,9 @@
 
     If Not Visible Then Return
 
-    QPrintRC($"( ) {Text}", top, left, OneColor(Foreground, Background))
+    QPrintRC($"( ) {Text}", top, left, OneColor(ForeColor, BackColor))
     If Checked Then
-      QPrintRC(ChrW(249), top, left + 1, OneColor(Foreground, Background))
+      QPrintRC(ChrW(249), top, left + 1, OneColor(ForeColor, BackColor))
     End If
 
   End Sub

@@ -751,14 +751,92 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Chr Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Strings.Chr(value)
+      ElseIf node.Function Is BuiltinFunctions.Cdbl Then
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Return value
+      ElseIf node.Function Is BuiltinFunctions.CInt Then
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Return CShort(value)
+      ElseIf node.Function Is BuiltinFunctions.CLng Then
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Return CInt(value)
       ElseIf node.Function Is BuiltinFunctions.Cos Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Cos(value)
+      ElseIf node.Function Is BuiltinFunctions.CSng Then
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Return CSng(value)
+      ElseIf node.Function Is BuiltinFunctions.CsrLin Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Cvd Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.CvdMbf Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Cvi Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Cvl Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Cvs Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.CvsMbf Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Date Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Environ Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Eof Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.ErDev1 Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.ErDev2 Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Erl Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Err Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Exp Then
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        'Dim base = 2.718282
+        'If value = 0 Then Return 0
+        'Return base ^ value
+        Return Math.Exp(value)
+      ElseIf node.Function Is BuiltinFunctions.FileAttr Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Fix Then
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Return Microsoft.VisualBasic.Fix(value)
+      ElseIf node.Function Is BuiltinFunctions.Fre Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.FreeFile Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Hex Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Hex(value)
-        'ElseIf node.[Function] Is BuiltinFunctions.Input Then
-        '  Return Console.ReadLine()
+      ElseIf node.Function Is BuiltinFunctions.Inkey Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Inp Then
+        Stop
+        Return Nothing
+      ElseIf node.[Function] Is BuiltinFunctions.Input Then
+        Return Console.ReadLine()
       ElseIf node.Function Is BuiltinFunctions.Instr1 Then
         Dim string1 = CStr(EvaluateExpression(node.Arguments(0)))
         Dim string2 = CStr(EvaluateExpression(node.Arguments(1)))
@@ -771,6 +849,9 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Int Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Int(value)
+      ElseIf node.Function Is BuiltinFunctions.IoCtl Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.LBound Then
         Stop
         Return Nothing
@@ -784,9 +865,21 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Len Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Len(value)
+      ElseIf node.Function Is BuiltinFunctions.Loc Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Lof Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Log Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Log(value)
+      ElseIf node.Function Is BuiltinFunctions.Lpos Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Ltrim Then
+        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Return Microsoft.VisualBasic.LTrim(value)
       ElseIf node.Function Is BuiltinFunctions.Mid1 Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Dim start = CInt(EvaluateExpression(node.Arguments(1)))
@@ -796,9 +889,42 @@ Namespace Global.QB.CodeAnalysis
         Dim start = CInt(EvaluateExpression(node.Arguments(1)))
         Dim length = CInt(EvaluateExpression(node.Arguments(2)))
         Return Microsoft.VisualBasic.Mid(value, start, length)
+      ElseIf node.Function Is BuiltinFunctions.Mkd Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.MkdMbf Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Mki Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Mkl Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Mks Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.MksMbf Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Oct Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Oct(value)
+      ElseIf node.Function Is BuiltinFunctions.Pen Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Play Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Pmap Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Point Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Pos Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Right Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Dim position = CInt(EvaluateExpression(node.Arguments(1)))
@@ -828,6 +954,15 @@ Namespace Global.QB.CodeAnalysis
           Return g_lastRndResult
         End If
         'Return Microsoft.VisualBasic.Rnd
+      ElseIf node.Function Is BuiltinFunctions.RTrim Then
+        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Return Microsoft.VisualBasic.RTrim(value)
+      ElseIf node.Function Is BuiltinFunctions.Screen Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Seek Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Sgn Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Sign(value)
@@ -840,9 +975,15 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Sqr Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Sqrt(value)
+      ElseIf node.Function Is BuiltinFunctions.Stick Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Str Then
         Dim value = EvaluateExpression(node.Arguments(0))
         Return Microsoft.VisualBasic.Str(value)
+      ElseIf node.Function Is BuiltinFunctions.Strig Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.StringFunction Then
         Dim length = CInt(EvaluateExpression(node.Arguments(0)))
         Dim thing = EvaluateExpression(node.Arguments(1))
@@ -854,6 +995,12 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Tan Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Tan(value)
+      ElseIf node.Function Is BuiltinFunctions.Time Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.Timer Then
+        Stop
+        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.UBound Then
         Stop
         Return Nothing
@@ -863,6 +1010,15 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Val Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Val(value)
+      ElseIf node.Function Is BuiltinFunctions.VarPtr1 Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.VarPtr2 Then
+        Stop
+        Return Nothing
+      ElseIf node.Function Is BuiltinFunctions.VarSeg Then
+        Stop
+        Return Nothing
       Else
         Dim locals = New Dictionary(Of VariableSymbol, Object)
         For i = 0 To node.Arguments.Length - 1

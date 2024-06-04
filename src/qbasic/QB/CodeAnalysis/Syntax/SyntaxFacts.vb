@@ -84,9 +84,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "and" : Return SyntaxKind.AndKeyword
         Case "andalso" : Return SyntaxKind.AndAlsoKeyword
         Case "any" : Return SyntaxKind.AnyKeyword
+        Case "append" : Return SyntaxKind.AppendKeyword
         Case "as" : Return SyntaxKind.AsKeyword
         Case "base" : Return SyntaxKind.BaseKeyword
         Case "beep" : Return SyntaxKind.BeepKeyword
+        Case "binary" : Return SyntaxKind.BinaryKeyword
         Case "bload" : Return SyntaxKind.BloadKeyword
         Case "bsave" : Return SyntaxKind.BsaveKeyword
         Case "call" : Return SyntaxKind.CallKeyword
@@ -146,14 +148,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "for each" : Return SyntaxKind.ForKeyword
         Case "function" : Return SyntaxKind.FunctionKeyword
         Case "get" : Return SyntaxKind.GetKeyword
-        Case "goto" : Return SyntaxKind.GotoKeyword
         Case "gosub" : Return SyntaxKind.GosubKeyword
+        Case "goto" : Return SyntaxKind.GotoKeyword
         Case "if" : Return SyntaxKind.IfKeyword
         Case "imp" : Return SyntaxKind.ImpKeyword
         Case "in" : Return SyntaxKind.InKeyword
         Case "input" : Return SyntaxKind.InputKeyword
         Case "integer" : Return SyntaxKind.IntegerKeyword
         Case "ioctl" : Return SyntaxKind.IoCtlKeyword
+        Case "is" : Return SyntaxKind.IsKeyword
         Case "key" : Return SyntaxKind.KeyKeyword
         Case "kill" : Return SyntaxKind.KillKeyword
         Case "let" : Return SyntaxKind.LetKeyword
@@ -179,6 +182,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "or" : Return SyntaxKind.OrKeyword
         Case "orelse" : Return SyntaxKind.OrElseKeyword
         Case "out" : Return SyntaxKind.OutKeyword
+        Case "output" : Return SyntaxKind.OutputKeyword
         Case "paint" : Return SyntaxKind.PaintKeyword
         Case "palette" : Return SyntaxKind.PaletteKeyword
         Case "pcopy" : Return SyntaxKind.PcopyKeyword
@@ -214,6 +218,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "spc" : Return SyntaxKind.SpcKeyword
         Case "static" : Return SyntaxKind.StaticKeyword
         Case "step" : Return SyntaxKind.StepKeyword
+        Case "stick" : Return SyntaxKind.StickKeyword
         Case "stop" : Return SyntaxKind.StopKeyword
         Case "strig" : Return SyntaxKind.StrigKeyword
         Case "string" : Return SyntaxKind.StringKeyword

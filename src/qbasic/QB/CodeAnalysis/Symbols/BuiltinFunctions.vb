@@ -35,7 +35,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly FreeFile As New FunctionSymbol("freefile", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
     Public ReadOnly Int As New FunctionSymbol("int", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
     Public ReadOnly Inp As New FunctionSymbol("inp", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
-    Public ReadOnly LBound As New FunctionSymbol("ubound", ImmutableArray.Create(New ParameterSymbol("lbound", TypeSymbol.Any)), TypeSymbol.Long)
+    Public ReadOnly LBound As New FunctionSymbol("lbound", ImmutableArray.Create(New ParameterSymbol("lbound", TypeSymbol.Any)), TypeSymbol.Long)
     Public ReadOnly Len As New FunctionSymbol("len", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Long)
     Public ReadOnly Loc As New FunctionSymbol("loc", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Lof As New FunctionSymbol("lof", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))

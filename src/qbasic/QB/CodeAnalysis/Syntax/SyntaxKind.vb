@@ -279,7 +279,11 @@
     UsingKeyword
     ViewKeyword
     WaitKeyword
-
+    AppendKeyword
+    BinaryKeyword
+    IsKeyword
+    OutputKeyword
+    StickKeyword
   End Enum
 
 End Namespace

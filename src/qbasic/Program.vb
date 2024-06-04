@@ -304,7 +304,7 @@ Friend Class QBasic
                 m_running = False
               End If
             Case Else
-              Stop
+              Debug.WriteLine($"Unhandled key: {keys(index)}")
           End Select
         ElseIf isControl AndAlso isAlt AndAlso isShift Then
           Select Case keys(index)

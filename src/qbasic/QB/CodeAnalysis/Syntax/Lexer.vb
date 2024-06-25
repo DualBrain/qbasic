@@ -73,10 +73,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Dim trailingTrivia = m_triviaBuilder.ToImmutable
 
-      Dim tokenText = SyntaxFacts.GetText(tokenKind)
-      If tokenText Is Nothing Then
-        tokenText = m_text.ToString(tokenStart, tokenLength)
-      End If
+      Dim tokenText = If(SyntaxFacts.GetText(tokenKind), m_text.ToString(tokenStart, tokenLength))
 
       Return New SyntaxToken(m_syntaxTree, tokenKind, tokenStart, tokenText, tokenValue, leadingTrivia, trailingTrivia)
 

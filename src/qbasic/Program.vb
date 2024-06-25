@@ -147,11 +147,37 @@ Friend Class QBasic
                   New MenuItem("-"),
                   New MenuItem("&About...", "Displays product version and copyright information")}.ToList}}.ToList}
 
-    Dim includeFbc = True
+    Dim basePath = Path.GetDirectoryName(Assembly.GetEntryAssembly.Location)
+
+    Dim includeTrs80gp = File.Exists(System.IO.Path.Combine(basePath, "extras\trs80gp.exe"))
     Dim includeQbjs = True
 
-    If includeQbjs OrElse includeFbc Then
+    Dim fbcPath As String = Nothing
+
+    If File.Exists(System.IO.Path.Combine(basePath, "extras\fbc64.exe")) Then
+      fbcPath = basePath
+    End If
+    If fbcPath Is Nothing Then
+      Dim paths = System.Environment.GetEnvironmentVariable("PATH")
+      Dim pathList = paths.Split(";"c)
+      For Each path In pathList
+        If fbcPath Is Nothing Then
+          Dim testPath = System.IO.Path.Combine(path, "fbc64.exe")
+          If System.IO.File.Exists(testPath) Then
+            fbcPath = testPath
+          End If
+        End If
+      Next
+    End If
+
+    Dim includeFbc = fbcPath IsNot Nothing
+
+    If includeQbjs OrElse includeFbc OrElse includeTrs80gp Then
       Menu.Items(4).Items.Add(New MenuItem("-"))
+    End If
+    If includeTrs80gp Then
+      Menu.Items(4).Items.Add(New MenuItem("Launch w/ trs80gp (&Model IV)...", "Launches in trs80gp in M4 mode."))
+      Menu.Items(4).Items.Add(New MenuItem("Launch w/ trs80gp (&Coco)...", "Launches in trs80gp in Coco mode."))
     End If
     If includeFbc Then
       Menu.Items(4).Items.Add(New MenuItem("Make E&XE File (FBC)...", "Creates executable file on disk"))
@@ -1284,6 +1310,8 @@ Tip: These topics are also available from the Help menu.
       Case "Start" : StartAction()
       Case "Restart" : RestartAction()
       Case "Continue" : ContinueAction()
+      Case "Launch w/ trs80gp (Model IV)..." : LaunchInTrs80gpM4Action()
+      Case "Launch w/ trs80gp (Coco)..." : LaunchInTrs80gpCocoAction()
       Case "Make EXE File (FBC)..." : MakeExeFileFbcAction()
       Case "In Web browser (QBJS)..." : LaunchInWebBrowserAction()
       Case "Step" : StepAction()
@@ -1617,7 +1645,7 @@ To get help on a QBasic keyword in the list below:
     Dim fs As Basic.IO.IVirtualFileSystem = New WindowsFileSystem
     Dim snd As Basic.Audio.ISound = Nothing
     Dim kbd As Basic.Input.IKeyboard = Nothing
-    Dim gpio As Basic.IO.IGpio = Nothing
+    'Dim gpio As Basic.IO.IGpio '= Nothing
     'm_display = New Display()
 
     If m_scrn0 IsNot Nothing Then
@@ -1722,6 +1750,62 @@ To get help on a QBasic keyword in the list below:
 
     Else
       m_context = New MessageDialog("Missing FBC64.EXE.")
+    End If
+
+  End Sub
+
+  Private Sub LaunchInTrs80gpM4Action()
+
+    Dim basePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly.Location)
+    Dim tool = System.IO.Path.Combine(basePath, "extras\trs80gp.exe")
+
+    If File.Exists(tool) Then
+
+      If File.Exists(m_path) Then
+
+        Dim execute = New ProcessStartInfo() With {.FileName = tool,
+                                                   .Arguments = $"-m4 ""{m_path}""",
+                                                   .UseShellExecute = False,
+                                                   .CreateNoWindow = False,
+                                                   .RedirectStandardOutput = False}
+        Using p = Process.Start(execute)
+          If Not p.HasExited Then
+            p.WaitForExit()
+          Else
+            m_context = New MessageDialog("Process start failed.") : Return
+          End If
+        End Using
+
+      End If
+
+    End If
+
+  End Sub
+
+  Private Sub LaunchInTrs80gpCocoAction()
+
+    Dim basePath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly.Location)
+    Dim tool = System.IO.Path.Combine(basePath, "extras\trs80gp.exe")
+
+    If File.Exists(tool) Then
+
+      If File.Exists(m_path) Then
+
+        Dim execute = New ProcessStartInfo() With {.FileName = tool,
+                                                   .Arguments = $"-mc ""{m_path}""",
+                                                   .UseShellExecute = False,
+                                                   .CreateNoWindow = False,
+                                                   .RedirectStandardOutput = False}
+        Using p = Process.Start(execute)
+          If Not p.HasExited Then
+            p.WaitForExit()
+          Else
+            m_context = New MessageDialog("Process start failed.") : Return
+          End If
+        End Using
+
+      End If
+
     End If
 
   End Sub

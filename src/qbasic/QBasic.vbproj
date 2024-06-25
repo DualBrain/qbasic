@@ -17,11 +17,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="extras\trs80gp.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Mono.Cecil" Version="0.11.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\vbPixelGameEngine\src\vbPixelGameEngine\vbPixelGameEngine.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="extras\trs80gp.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

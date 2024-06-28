@@ -275,6 +275,18 @@ Namespace Global.QB.CodeAnalysis
             '      context.)
             index += 1
 
+          Case BoundNodeKind.PsetStatement
+            Dim pset = CType(s, BoundPsetStatement)
+            Dim x = CInt(EvaluateExpression(pset.X))
+            Dim y = CInt(EvaluateExpression(pset.Y))
+            If pset.Color Is Nothing Then
+              QBLib.Video.PSET(x, y)
+            Else
+              Dim c = CInt(EvaluateExpression(pset.Color))
+              QBLib.Video.PSET(x, y, c)
+            End If
+            index += 1
+
           Case BoundNodeKind.RemStatement : index += 1
 
           Case BoundNodeKind.ReturnGosubStatement

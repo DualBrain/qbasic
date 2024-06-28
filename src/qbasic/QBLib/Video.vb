@@ -979,10 +979,15 @@ Namespace Global.QBLib
       If column > 0 AndAlso column < 81 Then m_cursorCol = column
     End Sub
 
-    '    Public Shared Sub PSET(x%, y%, color%)
-    '      m_display.SetPixel(x, y, m_palette(color))
-    '      Invalidate()
-    '    End Sub
+    Public Shared Sub PSET(x%, y%)
+      Buffer((x + 0) + (y * 640)) = m_palette(m_fgColor)
+      Invalidate()
+    End Sub
+
+    Public Shared Sub PSET(x%, y%, color%)
+      Buffer((x + 0) + (y * 640)) = m_palette(color)
+      Invalidate()
+    End Sub
 
     '    Public Shared Sub CIRCLE(x%, y%, radius#)
     '      CIRCLE(x, y, radius, m_fgColor)

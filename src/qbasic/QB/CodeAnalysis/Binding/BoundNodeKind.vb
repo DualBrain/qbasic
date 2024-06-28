@@ -39,6 +39,7 @@
     NopStatement
     OptionStatement
     PrintStatement
+    PsetStatement
     RemStatement
     ReturnGosubStatement
     ReturnStatement

@@ -143,6 +143,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.MidKeyword : Return ParseMidStatement()
         Case SyntaxKind.NameKeyword : Return ParseNameStatement()
         Case SyntaxKind.PrintKeyword : Return ParsePrintStatement()
+        Case SyntaxKind.PSetKeyword : Return ParsePsetStatement()
         Case SyntaxKind.OpenBraceToken : Return ParseBlockStatement(isTopLevel)
         Case SyntaxKind.OptionKeyword : Return ParseOptionStatement()
         Case SyntaxKind.ReadKeyword : Return ParseReadStatement()
@@ -590,6 +591,38 @@ Namespace Global.QB.CodeAnalysis.Syntax
       End While
 
       Return New PrintStatementSyntax(m_syntaxTree, printKeyword, If(nodes IsNot Nothing, nodes.ToImmutable, Nothing))
+
+    End Function
+
+    Private Function ParsePsetStatement() As PsetStatementSyntax
+
+      ' PSET [STEP](x,y)[, color]
+
+      Dim psetKeyword = MatchToken(SyntaxKind.PSetKeyword)
+      Dim optionalStepKeyword As SyntaxToken = Nothing
+      If Current.Kind = SyntaxKind.StepKeyword Then optionalStepKeyword = MatchToken(SyntaxKind.StepKeyword)
+      Dim openParenToken = MatchToken(SyntaxKind.OpenParenToken)
+      Dim xExpression = ParseExpression()
+      Dim commaToken = MatchToken(SyntaxKind.CommaToken)
+      Dim yExpression = ParseExpression()
+      Dim closeParenToken = MatchToken(SyntaxKind.CloseParenToken)
+      Dim optionalCommaToken As SyntaxToken = Nothing
+      Dim optionalColorExpression As ExpressionSyntax = Nothing
+      If Current.Kind = SyntaxKind.CommaToken Then
+        optionalCommaToken = MatchToken(SyntaxKind.CommaToken)
+        optionalColorExpression = ParseExpression()
+      End If
+
+      Return New PsetStatementSyntax(m_syntaxTree,
+                                     psetKeyword,
+                                     optionalStepKeyword,
+                                     openParenToken,
+                                     xExpression,
+                                     commaToken,
+                                     yExpression,
+                                     closeParenToken,
+                                     optionalCommaToken,
+                                     optionalColorExpression)
 
     End Function
 

@@ -482,6 +482,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
+        Case SyntaxKind.PSetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
         Case SyntaxKind.ReturnGosubStatement : Return BindReturnGosubStatement(CType(syntax, ReturnGosubStatementSyntax))
         Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
@@ -1005,6 +1006,17 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Return New BoundPrintStatement(nodes.ToImmutableArray)
 
+    End Function
+
+    Private Function BindPsetStatement(syntax As PsetStatementSyntax) As BoundStatement
+      Dim [step] = syntax.OptionalStepKeyword IsNot Nothing
+      Dim x = BindExpression(syntax.XExpression, TypeSymbol.Single)
+      Dim y = BindExpression(syntax.YExpression, TypeSymbol.Single)
+      Dim color As BoundExpression = Nothing
+      If syntax.OptionalColorExpression IsNot Nothing Then
+        color = BindExpression(syntax.OptionalColorExpression, TypeSymbol.Single)
+      End If
+      Return New BoundPsetStatement([step], x, y, color)
     End Function
 
     Private Shared Function BindRemStatement(syntax As RemStatementSyntax) As BoundStatement

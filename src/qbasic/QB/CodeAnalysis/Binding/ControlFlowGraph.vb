@@ -119,6 +119,7 @@ Namespace Global.QB.CodeAnalysis.Binding
                  BoundNodeKind.RmDirStatement,
                  BoundNodeKind.OptionStatement,
                  BoundNodeKind.PrintStatement,
+                 BoundNodeKind.PsetStatement,
                  BoundNodeKind.StopStatement,
                  BoundNodeKind.SystemStatement,
                  BoundNodeKind.VariableDeclaration
@@ -229,6 +230,7 @@ Namespace Global.QB.CodeAnalysis.Binding
                    BoundNodeKind.RmDirStatement,
                    BoundNodeKind.OptionStatement,
                    BoundNodeKind.PrintStatement,
+                   BoundNodeKind.PsetStatement,
                    BoundNodeKind.StopStatement,
                    BoundNodeKind.SystemStatement,
                    BoundNodeKind.VariableDeclaration

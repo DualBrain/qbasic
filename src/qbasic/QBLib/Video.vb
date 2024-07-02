@@ -1,5 +1,4 @@
-﻿Imports System.ComponentModel
-Imports VbPixelGameEngine
+﻿Imports VbPixelGameEngine
 
 Namespace Global.QBLib
 

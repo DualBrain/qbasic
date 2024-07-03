@@ -257,7 +257,7 @@
     PenKeyword
     PlayKeyword
     PokeKeyword
-    PresetKeyword
+    PResetKeyword
     PSetKeyword
     PutKeyword
     ResumeKeyword

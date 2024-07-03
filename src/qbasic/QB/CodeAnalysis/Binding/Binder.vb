@@ -483,10 +483,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
         Case SyntaxKind.PSetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
+        Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
         Case SyntaxKind.ReturnGosubStatement : Return BindReturnGosubStatement(CType(syntax, ReturnGosubStatementSyntax))
         Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
         Case SyntaxKind.RmDirStatement : Return BindRmDirStatement(CType(syntax, RmDirStatementSyntax))
+        Case SyntaxKind.ScreenKeyword : Return BindScreenStatement(CType(syntax, ScreenStatementSyntax))
         Case SyntaxKind.SingleLineIfStatement : Return BindSingleLineIfStatement(CType(syntax, SingleLineIfStatementSyntax))
         Case SyntaxKind.StopStatement : Return BindStopStatement(CType(syntax, StopStatementSyntax))
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
@@ -1019,6 +1021,17 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundPsetStatement([step], x, y, color)
     End Function
 
+    Private Function BindPresetStatement(syntax As PresetStatementSyntax) As BoundStatement
+      Dim [step] = syntax.OptionalStepKeyword IsNot Nothing
+      Dim x = BindExpression(syntax.XExpression, TypeSymbol.Single)
+      Dim y = BindExpression(syntax.YExpression, TypeSymbol.Single)
+      Dim color As BoundExpression = Nothing
+      If syntax.OptionalColorExpression IsNot Nothing Then
+        color = BindExpression(syntax.OptionalColorExpression, TypeSymbol.Single)
+      End If
+      Return New BoundPresetStatement([step], x, y, color)
+    End Function
+
     Private Shared Function BindRemStatement(syntax As RemStatementSyntax) As BoundStatement
       If syntax IsNot Nothing Then
       End If
@@ -1069,6 +1082,34 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindRmDirStatement(syntax As RmDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
       Return New BoundRmDirStatement(path)
+    End Function
+
+    Private Function BindScreenStatement(syntax As ScreenStatementSyntax) As BoundStatement
+
+      Dim mode As BoundExpression = Nothing
+      Dim colorBurst As BoundExpression = Nothing
+      Dim apage As BoundExpression = Nothing
+      Dim vpage As BoundExpression = Nothing
+      Dim [erase] As BoundExpression = Nothing
+
+      If syntax.OptionalModeExpression IsNot Nothing Then
+        mode = BindExpression(syntax.OptionalModeExpression, TypeSymbol.Integer)
+      End If
+      If syntax.OptionalColorBurstExpression IsNot Nothing Then
+        colorBurst = BindExpression(syntax.OptionalColorBurstExpression, TypeSymbol.Integer)
+      End If
+      If syntax.OptionalApageExpression IsNot Nothing Then
+        apage = BindExpression(syntax.OptionalApageExpression, TypeSymbol.Integer)
+      End If
+      If syntax.OptionalVpageExpression IsNot Nothing Then
+        vpage = BindExpression(syntax.OptionalVpageExpression, TypeSymbol.Integer)
+      End If
+      If syntax.OptionalEraseExpression IsNot Nothing Then
+        [erase] = BindExpression(syntax.OptionalEraseExpression, TypeSymbol.Integer)
+      End If
+
+      Return New BoundScreenStatement(mode, colorBurst, apage, vpage, [erase])
+
     End Function
 
     Private Function BindSingleLineIfStatement(syntax As SingleLineIfStatementSyntax) As BoundStatement

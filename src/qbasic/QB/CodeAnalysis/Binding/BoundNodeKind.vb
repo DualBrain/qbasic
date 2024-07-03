@@ -40,10 +40,12 @@
     OptionStatement
     PrintStatement
     PsetStatement
+    PresetStatement
     RemStatement
     ReturnGosubStatement
     ReturnStatement
     RmDirStatement
+    ScreenStatement
     StopStatement
     SystemStatement
     VariableDeclaration

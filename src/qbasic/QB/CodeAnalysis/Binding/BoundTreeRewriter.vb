@@ -31,10 +31,13 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case BoundNodeKind.OptionStatement : Return RewriteOptionStatement(DirectCast(node, BoundOptionStatement))
         Case BoundNodeKind.PrintStatement : Return RewritePrintStatement(DirectCast(node, BoundPrintStatement))
         Case BoundNodeKind.PsetStatement : Return RewritePSetStatement(DirectCast(node, BoundPsetStatement))
+        Case BoundNodeKind.PresetStatement : Return RewritePresetStatement(DirectCast(node, BoundPresetStatement))
         Case BoundNodeKind.RemStatement : Return RewriteRemStatement(DirectCast(node, BoundRemStatement))
+        Case BoundNodeKind.PsetStatement : Return RewritePsetStatement(DirectCast(node, BoundPsetStatement))
         Case BoundNodeKind.RmDirStatement : Return RewriteRmDirStatement(DirectCast(node, BoundRmDirStatement))
         Case BoundNodeKind.ReturnGosubStatement : Return RewriteReturnGosubStatement(DirectCast(node, BoundReturnGosubStatement))
         Case BoundNodeKind.ReturnStatement : Return RewriteReturnStatement(DirectCast(node, BoundReturnStatement))
+        Case BoundNodeKind.ScreenStatement : Return RewriteScreenStatement(DirectCast(node, BoundScreenStatement))
         Case BoundNodeKind.StopStatement : Return RewriteStopStatement(DirectCast(node, BoundStopStatement))
         Case BoundNodeKind.SystemStatement : Return RewriteSystemStatement(DirectCast(node, BoundSystemStatement))
         Case BoundNodeKind.VariableDeclaration : Return RewriteVariableDeclaration(DirectCast(node, BoundVariableDeclaration))
@@ -121,6 +124,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return node
     End Function
 
+    Protected Overridable Function RewriteScreenStatement(node As BoundScreenStatement) As BoundStatement
+      Return node
+    End Function
+
     Protected Overridable Function RewriteStopStatement(node As BoundStopStatement) As BoundStatement
       Return node
     End Function
@@ -130,6 +137,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Protected Overridable Function RewritePsetStatement(node As BoundPsetStatement) As BoundStatement
+      Return node
+    End Function
+
+    Protected Overridable Function RewritePresetStatement(node As BoundPresetStatement) As BoundStatement
       Return node
     End Function
 

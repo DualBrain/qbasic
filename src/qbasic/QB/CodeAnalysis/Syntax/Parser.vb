@@ -144,6 +144,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.NameKeyword : Return ParseNameStatement()
         Case SyntaxKind.PrintKeyword : Return ParsePrintStatement()
         Case SyntaxKind.PSetKeyword : Return ParsePsetStatement()
+        Case SyntaxKind.PresetKeyword : Return ParsePresetStatement()
         Case SyntaxKind.OpenBraceToken : Return ParseBlockStatement(isTopLevel)
         Case SyntaxKind.OptionKeyword : Return ParseOptionStatement()
         Case SyntaxKind.ReadKeyword : Return ParseReadStatement()
@@ -151,6 +152,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.RestoreKeyword : Return ParseRestoreStatement()
         Case SyntaxKind.ReturnKeyword : Return ParseReturnStatement(isTopLevel)
         Case SyntaxKind.RmDirKeyword : Return ParseRmDirStatement()
+        Case SyntaxKind.ScreenKeyword : Return ParseScreenStatement()
         Case SyntaxKind.StopKeyword : Return ParseStopStatement()
         Case SyntaxKind.SystemKeyword : Return ParseSystemStatement()
         Case SyntaxKind.WhileKeyword : Return ParseWhileStatement(isTopLevel)
@@ -523,6 +525,53 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
     End Function
 
+    Private Function ParseScreenStatement() As ScreenStatementSyntax
+
+      ' SCREEN [mode] [, [colorburst] [, [apage] [, [vpage] [, erase]]]]
+
+      Dim screenKeyword = MatchToken(SyntaxKind.ScreenKeyword)
+      Dim optionalModeExpression As ExpressionSyntax = Nothing
+      Dim optionalColorBurstCommaToken As SyntaxToken = Nothing
+      Dim optionalColorBurstExpression As ExpressionSyntax = Nothing
+      Dim optionalApageCommaToken As SyntaxToken = Nothing
+      Dim optionalApageExpression As ExpressionSyntax = Nothing
+      Dim optionalVpageCommaToken As SyntaxToken = Nothing
+      Dim optionalVpageExpression As ExpressionSyntax = Nothing
+      Dim optionalEraseCommaToken As SyntaxToken = Nothing
+      Dim optionalEraseExpression As ExpressionSyntax = Nothing
+
+      If Current.Kind <> SyntaxKind.CommaToken Then optionalModeExpression = ParseExpression()
+      If Current.Kind = SyntaxKind.CommaToken Then
+        optionalColorBurstCommaToken = MatchToken(SyntaxKind.CommaToken)
+        If Current.Kind <> SyntaxKind.CommaToken Then optionalColorBurstExpression = ParseExpression()
+      End If
+      If Current.Kind = SyntaxKind.CommaToken Then
+        optionalApageCommaToken = MatchToken(SyntaxKind.CommaToken)
+        If Current.Kind <> SyntaxKind.CommaToken Then optionalApageExpression = ParseExpression()
+      End If
+      If Current.Kind = SyntaxKind.CommaToken Then
+        optionalVpageCommaToken = MatchToken(SyntaxKind.CommaToken)
+        If Current.Kind <> SyntaxKind.CommaToken Then optionalVpageExpression = ParseExpression()
+      End If
+      If Current.Kind = SyntaxKind.CommaToken Then
+        optionalEraseCommaToken = MatchToken(SyntaxKind.CommaToken)
+        optionalEraseExpression = ParseExpression()
+      End If
+
+      Return New ScreenStatementSyntax(m_syntaxTree,
+                                       screenKeyword,
+                                       optionalModeExpression,
+                                       optionalColorBurstCommaToken,
+                                       optionalColorBurstExpression,
+                                       optionalApageCommaToken,
+                                       optionalApageExpression,
+                                       optionalVpageCommaToken,
+                                       optionalVpageExpression,
+                                       optionalEraseCommaToken,
+                                       optionalEraseExpression)
+
+    End Function
+
     Private Function ParsePrintStatement() As PrintStatementSyntax
 
       ' PRINT [#*file_number*,][*output_list*][{;|,}]
@@ -623,6 +672,38 @@ Namespace Global.QB.CodeAnalysis.Syntax
                                      closeParenToken,
                                      optionalCommaToken,
                                      optionalColorExpression)
+
+    End Function
+
+    Private Function ParsePresetStatement() As PresetStatementSyntax
+
+      ' PRESET [STEP](x,y)[, color]
+
+      Dim presetKeyword = MatchToken(SyntaxKind.PResetKeyword)
+      Dim optionalStepKeyword As SyntaxToken = Nothing
+      If Current.Kind = SyntaxKind.StepKeyword Then optionalStepKeyword = MatchToken(SyntaxKind.StepKeyword)
+      Dim openParenToken = MatchToken(SyntaxKind.OpenParenToken)
+      Dim xExpression = ParseExpression()
+      Dim commaToken = MatchToken(SyntaxKind.CommaToken)
+      Dim yExpression = ParseExpression()
+      Dim closeParenToken = MatchToken(SyntaxKind.CloseParenToken)
+      Dim optionalCommaToken As SyntaxToken = Nothing
+      Dim optionalColorExpression As ExpressionSyntax = Nothing
+      If Current.Kind = SyntaxKind.CommaToken Then
+        optionalCommaToken = MatchToken(SyntaxKind.CommaToken)
+        optionalColorExpression = ParseExpression()
+      End If
+
+      Return New PresetStatementSyntax(m_syntaxTree,
+                                       presetKeyword,
+                                       optionalStepKeyword,
+                                       openParenToken,
+                                       xExpression,
+                                       commaToken,
+                                       yExpression,
+                                       closeParenToken,
+                                       optionalCommaToken,
+                                       optionalColorExpression)
 
     End Function
 

@@ -799,9 +799,15 @@ Namespace Global.QBLib
     Private Sub New()
     End Sub
 
-    Public Shared Sub Init()
-      ReDim Screen0(1999)
-      ReDim Buffer(640 * 400 - 1)
+    'Public Shared Sub Init()
+    '  ReDim Screen0(1999)
+    '  ScreenInit()
+    'End Sub
+
+    Public Shared Sub ScreenInit()
+      m_cursorCol = 1 : m_cursorRow = 1
+      ReDim Screen0(m_textColumns * m_textRows - 1)
+      ReDim Buffer(m_screenPixelWidth * m_screenPixelHeight - 1)
       For index = 0 To Buffer.Length - 1
         Buffer(index) = Presets.Black
       Next
@@ -832,12 +838,6 @@ Namespace Global.QBLib
 
     End Sub
 
-    Private Shared Sub GraphicsInit(width%, height%)
-      If width <> 0 OrElse height <> 0 Then
-      End If
-      'm_display = New Sprite(width%, height%)
-    End Sub
-
     Friend Shared m_cursorVisible As Boolean = True
     Private Shared m_cursorStart As Integer = 6
     Public Shared ReadOnly Property CursorStart As Integer
@@ -851,32 +851,7 @@ Namespace Global.QBLib
         Return m_cursorStop
       End Get
     End Property
-    Private Shared m_cursorRow As Integer = 3
-    Private Shared m_cursorCol As Integer = 2
-    Public Shared Property CursorRow As Integer
-      Get
-        Return m_cursorRow
-      End Get
-      Set(value As Integer)
-        If value > 0 AndAlso value < 26 Then
-          m_cursorRow = value
-        Else
-          Stop
-        End If
-      End Set
-    End Property
-    Public Shared Property CursorCol As Integer
-      Get
-        Return m_cursorCol
-      End Get
-      Set(value As Integer)
-        If value > 0 AndAlso value < 81 Then
-          m_cursorCol = value
-        Else
-          Stop
-        End If
-      End Set
-    End Property
+
     Friend Shared m_textH As Integer = 16
     Friend Shared m_textW As Integer = 8
     Friend Shared ReadOnly m_palette() As Pixel = {Presets.Black,
@@ -900,25 +875,268 @@ Namespace Global.QBLib
 
       ' Shift view up by one row.
 
-      Dim si = 80
-      Dim c = 2000 - si
+      Dim si = m_textColumns '80
+      Dim e = (m_textColumns * m_textRows)
+      Dim c = (e - 1) - si '2000 - si
       Array.Copy(Screen0, si, Screen0, 0, c)
-      For index = c To 1999
+      For index = c To e - 1 '1999
         Screen0(index) = 0
       Next
-      si = 80 * (m_textW * m_textH)
-      c = (640 * 400) - si
+      'si = 80 * (m_textW * m_textH)
+      si = m_textColumns * (m_textW * m_textH)
+      'c = (640 * 400) - si
+      c = (m_screenPixelWidth * m_screenPixelHeight) - si
       Array.Copy(Buffer, si, Buffer, 0, c)
-      For index = c To ((640 * 400) - 1)
+      For index = c To ((m_screenPixelWidth * m_screenPixelHeight) - 1)
         Buffer(index) = m_palette(0)
       Next
       m_invalidated = True
 
     End Sub
 
+#Region "Shared Commands"
+
+    Friend Shared m_bgColor As Integer = 0
+    Friend Shared m_fgColor As Integer = 7
+    Friend Shared m_borderColor As Integer = 0
+    Friend Shared m_paletteIndex As Integer = 0
+
+    Public Shared Sub COLOR(fg%)
+      m_fgColor = fg
+    End Sub
+
+    Public Shared Sub COLOR(fg As Integer, bg As Integer)
+      m_fgColor = fg
+      m_bgColor = bg
+    End Sub
+
+    Public Shared Sub COLOR(fg As Integer, bg As Integer, border As Integer)
+      m_fgColor = fg
+      m_bgColor = bg
+      If border <> 0 Then
+      End If
+    End Sub
+
+    Public Shared Sub CLS()
+      For index = 0 To Screen0.Length - 1
+        Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
+      Next
+      For index = 0 To Buffer.Length - 1
+        Buffer(index) = m_palette(m_bgColor)
+      Next
+      m_cursorCol = 1
+      m_cursorRow = 1
+      Invalidate()
+    End Sub
+
+    Public Shared Sub CLS(viewport As Integer)
+      Select Case viewport
+        Case 0, 1, 2
+          CLS() 'TODO: For now, just call the base.
+        Case Else
+          Throw New ArgumentException("invalid value", NameOf(viewport))
+      End Select
+    End Sub
+
+#End Region
+
+#Region "Text Commands"
+
+    Friend Shared ScreenMode As Integer = 0
+    Friend Shared m_pages As Integer = 1
+
+    'Public Shared Sub SCREEN(mode%, colr%, active%, visible%)
+    '  If mode <> 0 OrElse colr <> 0 OrElse active <> 0 OrElse visible <> 0 Then
+    '  End If
+    '  Throw New NotImplementedException
+    'End Sub
+
+    Public Shared Sub SCREEN(mode As Integer)
+      SCREEN(mode, New Integer?, New Integer?, New Integer?, New Integer?)
+    End Sub
+
+    Public Shared Sub SCREEN(mode As Integer?, colorBurst As Integer?, aPage As Integer?, vPage As Integer?, [erase] As Integer?)
+      If mode IsNot Nothing Then
+        Select Case CInt(mode)
+          Case 0 ' Text Mode
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 25 ' 40x25, 40x43, 40x50, 80x25, 80x43, 80x50
+            m_textW = 8 : m_textH = 16 ' 8x8, 8x14, 9x14, 9x16
+            ' 64 colors to 16 attributes
+            m_pages = 8 ' 8, 4, 2, 1 depending on text resolution.
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 480
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 1 ' CGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 40 : m_textRows = 25 ' 40x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 320 : m_screenPixelHeight = 200
+            ' 16 colors to 4 attributes
+            m_pages = 2
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 2 ' CGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 25 ' 80x25
+            m_textW = 8 : m_textH = 8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 200
+            ' 16 colors to 2 attributes
+            m_pages = 2
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+        'Case 3 ' Hercules
+        '  m_mode = CInt(mode)
+        '  m_textColumns = 80 : m_textRows = 25 ' 80x25
+        '  m_textW = 9 : m_textH = 14 ' 9x14
+        '  m_screenPixelWidth = 720 : m_screenPixelHeight = 348 ' 720x348
+        '  ' Monochrome
+        '  m_pages = 2
+        '  GraphicsInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 3 ' Low-res 16-color
+            ScreenMode = CInt(mode)
+            m_textColumns = 20 : m_textRows = 25 ' 20x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 160 : m_screenPixelHeight = 200 ' 160x200
+            ' 16 colors to 16 attributes
+            m_pages = 2
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+        'Case 4 ' Olivetti
+        '  m_mode = CInt(mode)
+        '  m_textColumns = 80 : m_textRows = 25 ' 80x25
+        '  m_textW = 8 : m_textH = 16 ' 8x16
+        '  m_screenPixelWidth = 640 : m_screenPixelHeight = 400 ' 640x400
+        '  ' 16 colors to 1 attribute (foreground); background is black.
+        '  m_pages = 1
+        '  GraphicsInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 4 ' Med-res 4-color
+            ScreenMode = CInt(mode)
+            m_textColumns = 40 : m_textRows = 25 ' 40x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 320 : m_screenPixelHeight = 200 ' 320x200
+            ' 16 colors to 4 attributes
+            m_pages = 2
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 5 ' Med-res 16-color
+            ScreenMode = CInt(mode)
+            m_textColumns = 40 : m_textRows = 25 ' 40x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 320 : m_screenPixelHeight = 200 ' 320x200
+            ' 16 colors to 16 attributes
+            m_pages = 1
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 6 ' High-res 4-color
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 25 ' 80x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 200 ' 640x200
+            ' 16 colors to 4 attributes
+            m_pages = 1
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 7 ' EGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 40 : m_textRows = 25 ' 40x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 320 : m_screenPixelHeight = 200 ' 320x200
+            ' 16 colors to 16 attributes
+            m_pages = 8
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 8 ' EGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 25 ' 80x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 200 ' 640x200
+            ' 16 colors to 16 attributes
+            m_pages = 4
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 9 ' EGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 25 ' 80x25, 80x43
+            m_textW = 8 : m_textH = 14 ' 8x14, 8x8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 350 ' 640x350
+            ' 16 colors to 16 attributes
+            m_pages = 2
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 10 ' EGA (Monochrome)
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 25 ' 80x25, 80x43
+            m_textW = 8 : m_textH = 14 ' 8x14, 8x8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 350 ' 640x350
+            ' 9 psuedo-colors to 4 attributes
+            m_pages = 2
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 11 ' VGA/MCGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 30 ' 80x30, 80x60
+            m_textW = 8 : m_textH = 16 ' 8x16, 8x8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 480 ' 640x480
+            ' 256K colors to 2 attributes
+            m_pages = 1
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 12 ' VGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 80 : m_textRows = 30 ' 80x30, 80x60
+            m_textW = 8 : m_textH = 16 ' 8x16, 8x8
+            m_screenPixelWidth = 640 : m_screenPixelHeight = 480 ' 640x480
+            ' 256K colors to 16 attributes
+            m_pages = 1
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case 13 ' VGA/MCGA
+            ScreenMode = CInt(mode)
+            m_textColumns = 40 : m_textRows = 25 ' 40x25
+            m_textW = 8 : m_textH = 8 ' 8x8
+            m_screenPixelWidth = 320 : m_screenPixelHeight = 200 ' 320x200
+            ' 256K colors to 256 attributes
+            m_pages = 1
+            ScreenInit() 'm_screenPixelWidth, m_screenPixelHeight)
+          Case Else
+            Throw New NotImplementedException
+        End Select
+      End If
+    End Sub
+
+    Friend Shared m_textColumns As Integer = 80
+    Friend Shared m_textRows As Integer = 25
+
+    Private Shared m_cursorRow As Integer = 3
+    Private Shared m_cursorCol As Integer = 2
+
+    Public Shared Property CursorRow As Integer
+      Get
+        Return m_cursorRow
+      End Get
+      Set(value As Integer)
+        If value > 0 AndAlso value < m_textRows + 1 Then
+          m_cursorRow = value
+        Else
+          Stop
+        End If
+      End Set
+    End Property
+
+    Public Shared Property CursorCol As Integer
+      Get
+        Return m_cursorCol
+      End Get
+      Set(value As Integer)
+        If value > 0 AndAlso value < m_textColumns + 1 Then
+          m_cursorCol = value
+        Else
+          Stop
+        End If
+      End Set
+    End Property
+
+    Public Shared Function CSRLIN() As Integer
+      Return m_cursorRow
+    End Function
+
+    Public Shared Function POS(Optional dummy As Integer = 0) As Integer
+      If dummy = 0 Then
+      End If
+      Return m_cursorCol
+    End Function
+
     Public Shared Sub PRINT()
       m_cursorCol = 1
-      If m_cursorRow + 1 > 25 Then ShiftViewUp() Else m_cursorRow += 1
+      If m_cursorRow + 1 > m_textRows Then ShiftViewUp() Else m_cursorRow += 1
     End Sub
 
     Public Shared Sub PRINT(text As String, Optional noCr As Boolean = False, Optional noScroll As Boolean = False)
@@ -951,7 +1169,7 @@ Namespace Global.QBLib
         'm_cursorCol += If(text?.Length, 0)
       Else
         m_cursorCol = 1
-        If m_cursorRow + 1 > 25 Then ShiftViewUp() Else m_cursorRow += 1
+        If m_cursorRow + 1 > m_textRows Then ShiftViewUp() Else m_cursorRow += 1
       End If
       Invalidate()
     End Sub
@@ -974,19 +1192,48 @@ Namespace Global.QBLib
         Case Else
           Throw New ArgumentException($"stop={[stop]} is invalid; valid values are 0 and 31", NameOf([stop]))
       End Select
-      If row > 0 AndAlso row < 26 Then m_cursorRow = row
-      If column > 0 AndAlso column < 81 Then m_cursorCol = column
+      If row > 0 AndAlso row < m_textRows + 1 Then m_cursorRow = row
+      If column > 0 AndAlso column < m_textColumns + 1 Then m_cursorCol = column
     End Sub
 
-    Public Shared Sub PSET(x%, y%)
-      Buffer((x + 0) + (y * 640)) = m_palette(m_fgColor)
+#End Region
+
+#Region "Graphics Commands"
+
+    Friend Shared m_screenPixelHeight As Integer = 400
+    Friend Shared m_screenPixelWidth As Integer = 640
+    Friend Shared m_previousX As Integer = 0
+    Friend Shared m_previousY As Integer = 0
+
+    Public Shared Sub PSET([step] As Boolean, x%, y%)
+      If [step] Then x += m_previousX : y += m_previousY
+      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(m_fgColor)
+      m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
 
-    Public Shared Sub PSET(x%, y%, color%)
-      Buffer((x + 0) + (y * 640)) = m_palette(color)
+    Public Shared Sub PSET([step] As Boolean, x%, y%, color%)
+      If [step] Then x += m_previousX : y += m_previousY
+      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(color)
+      m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
+
+    Public Shared Sub PRESET([step] As Boolean, x%, y%)
+      If [step] Then x += m_previousX : y += m_previousY
+      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(m_bgColor)
+      m_previousX = x : m_previousY = y
+      Invalidate()
+    End Sub
+
+    Public Shared Sub PRESET([step] As Boolean, x%, y%, color%)
+      If [step] Then x += m_previousX : y += m_previousY
+      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(color)
+      m_previousX = x : m_previousY = y
+      Invalidate()
+    End Sub
+
+#End Region
 
     '    Public Shared Sub CIRCLE(x%, y%, radius#)
     '      CIRCLE(x, y, radius, m_fgColor)
@@ -1338,58 +1585,6 @@ Namespace Global.QBLib
     '  Loop
     'End Function
 
-    Friend Shared m_bgColor As Integer = 0
-    Friend Shared m_fgColor As Integer = 7
-    Friend Shared m_borderColor As Integer = 0
-    Friend Shared m_paletteIndex As Integer = 0
-
-    Public Shared Sub COLOR(fg%)
-      m_fgColor = fg
-    End Sub
-
-    Public Shared Sub COLOR(fg As Integer, bg As Integer)
-      m_fgColor = fg
-      m_bgColor = bg
-    End Sub
-
-    Public Shared Sub COLOR(fg As Integer, bg As Integer, border As Integer)
-      m_fgColor = fg
-      m_bgColor = bg
-      If border <> 0 Then
-      End If
-    End Sub
-
-    Public Shared Sub CLS()
-      For index = 0 To Screen0.Length - 1
-        Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
-      Next
-      For index = 0 To Buffer.Length - 1
-        Buffer(index) = m_palette(m_bgColor)
-      Next
-      m_cursorCol = 1
-      m_cursorRow = 1
-      Invalidate()
-    End Sub
-
-    Public Shared Sub CLS(viewport As Integer)
-      Select Case viewport
-        Case 0, 1, 2
-          CLS() 'TODO: For now, just call the base.
-        Case Else
-          Throw New ArgumentException("invalid value", NameOf(viewport))
-      End Select
-    End Sub
-
-    Public Shared Function CSRLIN() As Integer
-      Return m_cursorRow
-    End Function
-
-    Public Shared Function POS(Optional dummy As Integer = 0) As Integer
-      If dummy = 0 Then
-      End If
-      Return m_cursorCol
-    End Function
-
     Public Shared Async Function InputAsync(prompt$) As Task(Of String)
       PRINT(prompt$)
       Dim result$ = ""
@@ -1420,40 +1615,13 @@ Namespace Global.QBLib
       If colr% = 0 Then
         Return ch
       Else
-        If m_mode = 0 Then
+        If ScreenMode = 0 Then
           Return clr
         Else
           Return 0
         End If
       End If
     End Function
-
-#End Region
-
-#Region "SCREEN (Statement)"
-
-    Friend Shared m_mode As Integer = 0
-
-    Public Shared Sub SCREEN(mode%, colr%, active%, visible%)
-      If mode <> 0 OrElse colr <> 0 OrElse active <> 0 OrElse visible <> 0 Then
-      End If
-      Throw New NotImplementedException
-    End Sub
-
-    Public Shared Sub SCREEN(mode%)
-      Select Case mode
-        Case 0 ' Text Mode
-          m_mode = mode
-          m_textW = 8 : m_textH = 16
-          GraphicsInit(640, 480) ' 80 x 25 text
-        Case 9
-          m_mode = mode
-          m_textW = 8 : m_textH = 14
-          GraphicsInit(640, 350)
-        Case Else
-          Throw New NotImplementedException
-      End Select
-    End Sub
 
 #End Region
 
@@ -1708,7 +1876,7 @@ Namespace Global.QBLib
       Dim cr = m_cursorRow - 1
       Dim cc = m_cursorCol - 1
 
-      Dim index = ((cr * 80) + m_cursorCol) - 1
+      Dim index = ((cr * m_textColumns) + m_cursorCol) - 1
       Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + ascii)
 
       '----------------
@@ -1723,22 +1891,22 @@ Namespace Global.QBLib
         Dim bgc = m_palette(m_bgColor)
 
         For dy = 0 To m_textH - 1
-          Buffer((x + 0) + ((dy + y) * 640)) = If((map(dy) And 1) > 0, fgc, bgc)
-          Buffer((x + 1) + ((dy + y) * 640)) = If((map(dy) And 2) > 0, fgc, bgc)
-          Buffer((x + 2) + ((dy + y) * 640)) = If((map(dy) And 4) > 0, fgc, bgc)
-          Buffer((x + 3) + ((dy + y) * 640)) = If((map(dy) And 8) > 0, fgc, bgc)
-          Buffer((x + 4) + ((dy + y) * 640)) = If((map(dy) And 16) > 0, fgc, bgc)
-          Buffer((x + 5) + ((dy + y) * 640)) = If((map(dy) And 32) > 0, fgc, bgc)
-          Buffer((x + 6) + ((dy + y) * 640)) = If((map(dy) And 64) > 0, fgc, bgc)
-          Buffer((x + 7) + ((dy + y) * 640)) = If((map(dy) And 128) > 0, fgc, bgc)
+          Buffer((x + 0) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 1) > 0, fgc, bgc)
+          Buffer((x + 1) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 2) > 0, fgc, bgc)
+          Buffer((x + 2) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 4) > 0, fgc, bgc)
+          Buffer((x + 3) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 8) > 0, fgc, bgc)
+          Buffer((x + 4) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 16) > 0, fgc, bgc)
+          Buffer((x + 5) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 32) > 0, fgc, bgc)
+          Buffer((x + 6) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 64) > 0, fgc, bgc)
+          Buffer((x + 7) + ((dy + y) * m_screenPixelWidth)) = If((map(dy) And 128) > 0, fgc, bgc)
         Next
 
       End If
       '----------------
 
       m_cursorCol += 1
-      If m_cursorCol > 80 Then
-        If m_cursorRow + 1 > 25 Then
+      If m_cursorCol > m_textColumns Then
+        If m_cursorRow + 1 > m_textRows Then
           If Not noScroll Then ShiftViewUp()
         Else
           m_cursorRow += 1

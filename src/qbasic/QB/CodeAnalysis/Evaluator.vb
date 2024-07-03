@@ -102,7 +102,7 @@ Namespace Global.QB.CodeAnalysis
             Dim expression1 = If(cs.Expression1 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression1)))
             Dim expression2 = If(cs.Expression2 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression2)))
             Dim expression3 = If(cs.Expression3 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression3)))
-            Select Case QBLib.Video.m_mode
+            Select Case QBLib.Video.ScreenMode
               Case 0 'COLOR [foreground%] [,[background%] [,border%]]	Screen mode 0 (text only)
                 If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
                 If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
@@ -280,10 +280,22 @@ Namespace Global.QB.CodeAnalysis
             Dim x = CInt(EvaluateExpression(pset.X))
             Dim y = CInt(EvaluateExpression(pset.Y))
             If pset.Color Is Nothing Then
-              QBLib.Video.PSET(x, y)
+              QBLib.Video.PSET(pset.Step, x, y)
             Else
               Dim c = CInt(EvaluateExpression(pset.Color))
-              QBLib.Video.PSET(x, y, c)
+              QBLib.Video.PSET(pset.Step, x, y, c)
+            End If
+            index += 1
+
+          Case BoundNodeKind.PresetStatement
+            Dim pset = CType(s, BoundPresetStatement)
+            Dim x = CInt(EvaluateExpression(pset.X))
+            Dim y = CInt(EvaluateExpression(pset.Y))
+            If pset.Color Is Nothing Then
+              QBLib.Video.PRESET(pset.Step, x, y)
+            Else
+              Dim c = CInt(EvaluateExpression(pset.Color))
+              QBLib.Video.PRESET(pset.Step, x, y, c)
             End If
             index += 1
 
@@ -315,11 +327,23 @@ Namespace Global.QB.CodeAnalysis
             Dim rs = CType(s, BoundReturnStatement)
             m_lastValue = If(rs.Expression Is Nothing, Nothing, EvaluateExpression(rs.Expression))
             Return m_lastValue
+
           Case BoundNodeKind.RmDirStatement
             Dim rmdir = CType(s, BoundRmDirStatement)
             Dim value = CStr(EvaluateExpression(rmdir.Expression))
             System.IO.Directory.Delete(value)
             index += 1
+
+          Case BoundNodeKind.ScreenStatement
+            Dim screen = CType(s, BoundScreenStatement)
+            Dim mode = If(screen.Mode IsNot Nothing, CInt(EvaluateExpression(screen.Mode)), New Integer?)
+            Dim colorBurst = If(screen.ColorBurst IsNot Nothing, CInt(EvaluateExpression(screen.ColorBurst)), New Integer?)
+            Dim aPage = If(screen.APage IsNot Nothing, CInt(EvaluateExpression(screen.APage)), New Integer?)
+            Dim vPage = If(screen.VPage IsNot Nothing, CInt(EvaluateExpression(screen.VPage)), New Integer?)
+            Dim [erase] = If(screen.Erase IsNot Nothing, CInt(EvaluateExpression(screen.Erase)), New Integer?)
+            QBLib.Video.SCREEN(mode, colorBurst, aPage, vPage, [erase])
+            index += 1
+
           Case BoundNodeKind.StopStatement
             index = body.Statements.Length
           Case BoundNodeKind.SystemStatement

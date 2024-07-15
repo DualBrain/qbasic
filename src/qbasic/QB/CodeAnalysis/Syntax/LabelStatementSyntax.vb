@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class LabelStatementSyntax
+  Friend Class LabelStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, label As SyntaxToken)

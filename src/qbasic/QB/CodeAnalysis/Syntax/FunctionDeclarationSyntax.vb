@@ -8,8 +8,9 @@
                    openParenToken As SyntaxToken,
                    parameters As SeparatedSyntaxList(Of ParameterSyntax),
                    closeParenToken As SyntaxToken,
-                   asClause As AsClauseSyntax,
+                   asClause As AsClause,
                    statements As StatementSyntax,
+                   endKeyword As SyntaxToken,
                    endFunctionKeyword As SyntaxToken)
       MyBase.New(tree)
       Me.FunctionKeyword = functionKeyword
@@ -19,6 +20,7 @@
       Me.CloseParenToken = closeParenToken
       Me.AsClause = asClause
       Me.Statements = statements
+      Me.EndKeyword = endKeyword
       Me.EndFunctionKeyword = endFunctionKeyword
     End Sub
 
@@ -28,8 +30,9 @@
     Public ReadOnly Property OpenParenToken As SyntaxToken
     Public ReadOnly Property Parameters As SeparatedSyntaxList(Of ParameterSyntax)
     Public ReadOnly Property CloseParenToken As SyntaxToken
-    Public ReadOnly Property AsClause As AsClauseSyntax
+    Public ReadOnly Property AsClause As AsClause
     Public ReadOnly Property Statements As StatementSyntax
+    Public ReadOnly Property EndKeyword As SyntaxToken
     Public ReadOnly Property EndFunctionKeyword As SyntaxToken
 
   End Class
@@ -43,6 +46,7 @@
                    parameters As SeparatedSyntaxList(Of ParameterSyntax),
                    closeParenToken As SyntaxToken,
                    statements As StatementSyntax,
+                   endToken As SyntaxToken,
                    endDefKeyword As SyntaxToken)
       MyBase.New(tree)
       Me.DefKeyword = defKeyword
@@ -52,6 +56,7 @@
       Me.CloseParenToken = closeParenToken
       'Me.AsClause = asClause
       Me.Statements = statements
+      Me.EndKeyword = endToken
       Me.EndDefKeyword = endDefKeyword
     End Sub
 
@@ -63,6 +68,7 @@
     Public ReadOnly Property CloseParenToken As SyntaxToken
     'Public ReadOnly Property AsClause As AsClauseSyntax
     Public ReadOnly Property Statements As StatementSyntax
+    Public ReadOnly Property EndKeyword As SyntaxToken
     Public ReadOnly Property EndDefKeyword As SyntaxToken
 
   End Class
@@ -72,7 +78,7 @@
 
     Public Sub New(tree As SyntaxTree,
                    defKeyword As SyntaxToken,
-                   identifier As SyntaxToken,
+                   identifier As IdentifierSyntax,
                    openParenToken As SyntaxToken,
                    parameters As SeparatedSyntaxList(Of ParameterSyntax),
                    closeParenToken As SyntaxToken,
@@ -90,7 +96,7 @@
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.SingleLineDefDeclaration
     Public ReadOnly Property DefKeyword As SyntaxToken
-    Public ReadOnly Property Identifier As SyntaxToken
+    Public ReadOnly Property Identifier As IdentifierSyntax
     Public ReadOnly Property OpenParenToken As SyntaxToken
     Public ReadOnly Property Parameters As SeparatedSyntaxList(Of ParameterSyntax)
     Public ReadOnly Property CloseParenToken As SyntaxToken

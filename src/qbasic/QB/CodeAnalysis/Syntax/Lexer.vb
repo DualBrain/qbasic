@@ -212,7 +212,12 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "{"c : m_kind = SyntaxKind.OpenBraceToken : m_position += 1
         Case "}"c : m_kind = SyntaxKind.CloseBraceToken : m_position += 1
         'Case "|"c : m_kind = SyntaxKind.PipeToken : m_position += 1
-        Case "="c : m_kind = SyntaxKind.EqualToken : m_position += 1
+        Case "="c ' = => =<
+          Select Case LookAhead
+            Case ">"c : m_kind = SyntaxKind.GreaterThanEqualToken : m_position += 2
+            Case "<"c : m_kind = SyntaxKind.LessThanEqualToken : m_position += 2
+            Case Else : m_kind = SyntaxKind.EqualToken : m_position += 1
+          End Select
         Case ">"c ' > >=
           Select Case LookAhead
             Case "="c : m_kind = SyntaxKind.GreaterThanEqualToken : m_position += 2
@@ -224,7 +229,6 @@ Namespace Global.QB.CodeAnalysis.Syntax
             Case ">"c : m_kind = SyntaxKind.LessThanGreaterThanToken : m_position += 2
             Case Else : m_kind = SyntaxKind.LessThanToken : m_position += 1
           End Select
-        Case "."c : m_kind = SyntaxKind.PeriodToken : m_position += 1
         Case ","c : m_kind = SyntaxKind.CommaToken : m_position += 1
         Case ":"c : m_kind = SyntaxKind.ColonToken : m_position += 1
         Case ";"c : m_kind = SyntaxKind.SemicolonToken : m_position += 1
@@ -232,10 +236,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
         Case ChrW(34)
           ReadString()
-        Case "0"c, "1"c, "2"c, "3"c, "4"c, "5"c, "6"c, "7"c, "8"c, "9"c
+        Case "."c, "0"c, "1"c, "2"c, "3"c, "4"c, "5"c, "6"c, "7"c, "8"c, "9"c
           ReadNumberToken()
           'Case " "c, CChar(vbTab), CChar(vbCr), CChar(vbLf)
           '  ReadWhiteSpace()
+        Case "."c : m_kind = SyntaxKind.PeriodToken : m_position += 1
         Case "_"c
           ReadIdentifierOrKeyword()
         Case Else
@@ -271,9 +276,10 @@ Namespace Global.QB.CodeAnalysis.Syntax
       While Not done
         Select Case Current
           Case ChrW(0), ChrW(13), ChrW(10)
-            Dim span = New TextSpan(m_start, 1)
-            Dim location = New TextLocation(m_text, span)
-            Diagnostics.ReportUnterminatedString(location)
+            'TODO: Determine if we want to allow unterminated string literals???
+            'Dim span = New TextSpan(m_start, 1)
+            'Dim location = New TextLocation(m_text, span)
+            'Diagnostics.ReportUnterminatedString(location)
             done = True
           Case """"c
             If LookAhead = """"c Then
@@ -310,26 +316,46 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' C - Char
 
       Dim decimalCount = 0
-      While Char.IsDigit(Current) OrElse Current = "."c
-        If Current = "."c AndAlso decimalCount > 0 Then Exit While
+      While Char.IsDigit(Current) OrElse
+            Current = "."c
+        If Current = "."c Then decimalCount += 1
+        If decimalCount > 1 Then Exit While
         m_position += 1
       End While
       Dim length = m_position - m_start
       Dim text = m_text.ToString(m_start, length)
-      If text.Contains("."c) Then
-        Dim value As Single
-        If Not Single.TryParse(text, value) Then
+      If text.Contains("."c) OrElse
+         Current = "#"c OrElse
+         Current = "!"c Then
+        Dim value As Double
+        If Not Double.TryParse(text, value) Then
           Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
-          m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Single)
+          m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Double)
         End If
-        m_value = value
+        Dim asSingle = (Current = "#")
+        If Current = "#"c OrElse Current = "!" Then
+          text &= Current : m_position += 1
+        End If
+        If asSingle Then
+          m_value = CSng(value)
+        Else
+          m_value = value
+        End If
       Else
         Dim value As Integer
         If Not Integer.TryParse(text, value) Then
           Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
           m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Integer)
         End If
-        m_value = value
+        Dim asLong = (Current = "&")
+        If Current = "%"c OrElse Current = "&" Then
+          text &= Current : m_position += 1
+        End If
+        If asLong Then
+          m_value = value
+        Else
+          m_value = CShort(value)
+        End If
       End If
 
       m_kind = SyntaxKind.NumberToken
@@ -340,7 +366,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Const suffixChars As String = "%!#&$"
 
-      While Char.IsLetterOrDigit(Current) OrElse Current = "_"c OrElse suffixChars.Contains(Current) 'Current = "$"c
+      While Char.IsLetterOrDigit(Current) OrElse
+            Current = "_"c OrElse Current = "."c OrElse
+            suffixChars.Contains(Current) 'Current = "$"c
         If suffixChars.Contains(Current) Then
           m_position += 1
           Exit While
@@ -524,8 +552,20 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       End If
 
+      Dim bol = False
+      If Current = ":"c Then
+        If m_position - text.Length = 0 Then
+          bol = True
+        Else
+          Dim ch = m_text(m_position - text.Length - 1)
+          bol = (ch = vbLf)
+        End If
+      End If
+
       ' Test to see if this is a Label
-      If Current = ":" AndAlso
+      If bol AndAlso
+         Current = ":"c AndAlso
+         LookAhead <> " "c AndAlso
          Char.IsLetter(text(0)) AndAlso
          Not text.Contains(" "c) AndAlso
          Not text.Contains("%"c) AndAlso
@@ -533,6 +573,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
          Not text.Contains("&"c) AndAlso
          Not text.Contains("#"c) AndAlso
          Not text.Contains("$"c) Then
+
         ' start of line
         ' start with a-z character (yes)
         ' no spaces or %!&#$ (yes)

@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class ClsStatementSyntax
+  Friend Class ClsStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, clsKeyword As SyntaxToken, expression As ExpressionSyntax)

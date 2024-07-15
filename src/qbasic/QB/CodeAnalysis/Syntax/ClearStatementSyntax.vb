@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class ClearStatementSyntax
+  Friend Class ClearStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, clearKeyword As SyntaxToken, maxBytesCommaToken As SyntaxToken, maxBytesExpression As ExpressionSyntax, stackSpaceCommaToken As SyntaxToken, stackSpaceExpression As ExpressionSyntax)

@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class ContinueStatementSyntax
+  Friend Class ContinueStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, continueKeyword As SyntaxToken, scopeKeyword As SyntaxToken)

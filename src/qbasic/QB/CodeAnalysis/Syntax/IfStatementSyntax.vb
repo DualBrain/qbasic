@@ -76,14 +76,18 @@ Namespace Global.QB.CodeAnalysis.Syntax
                    expression As ExpressionSyntax,
                    thenKeyword As SyntaxToken,
                    statements As StatementSyntax,
-                   elseClause As ElseClauseSyntax,
+                   elseIfClauses As ImmutableArray(Of ElseIfClause),
+                   elseClause As ElseClause,
+                   endKeyword As SyntaxToken,
                    endIfKeyword As SyntaxToken)
       MyBase.New(tree)
       Me.IfKeyword = ifKeyword
       Me.Expression = expression
       Me.ThenKeyword = thenKeyword
       Me.Statements = statements
+      Me.ElseIfClauses = elseIfClauses
       Me.ElseClause = elseClause
+      Me.EndKeyword = endKeyword
       Me.EndIfKeyword = endIfKeyword
     End Sub
 
@@ -92,31 +96,33 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Public ReadOnly Property Expression As ExpressionSyntax
     Public ReadOnly Property ThenKeyword As SyntaxToken
     Public ReadOnly Property Statements As StatementSyntax
-    Public ReadOnly Property ElseClause As ElseClauseSyntax
+    Public ReadOnly Property ElseIfClauses As ImmutableArray(Of ElseIfClause)
+    Public ReadOnly Property ElseClause As ElseClause
+    Public ReadOnly Property EndKeyword As SyntaxToken
     Public ReadOnly Property EndIfKeyword As SyntaxToken
 
   End Class
 
-  'Public NotInheritable Class ElseIfStatementSyntax
-  '  Inherits SyntaxNode
+  Public NotInheritable Class ElseIfClause
+    Inherits SyntaxNode
 
-  '  Public Sub New(tree As SyntaxTree, elseIfKeyword As SyntaxToken, expression As ExpressionSyntax, thenKeyword As SyntaxToken, statements As StatementSyntax)
-  '    MyBase.New(tree)
-  '    Me.ElseIfKeyword = elseIfKeyword
-  '    Me.Expression = expression
-  '    Me.ThenKeyword = thenKeyword
-  '    Me.Statements = statements
-  '  End Sub
+    Public Sub New(tree As SyntaxTree, elseIfKeyword As SyntaxToken, expression As ExpressionSyntax, thenKeyword As SyntaxToken, statements As StatementSyntax)
+      MyBase.New(tree)
+      Me.ElseIfKeyword = elseIfKeyword
+      Me.Expression = expression
+      Me.ThenKeyword = thenKeyword
+      Me.Statements = statements
+    End Sub
 
-  '  Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.ElseIfStatement
-  '  Public ReadOnly Property ElseIfKeyword As SyntaxToken
-  '  Public ReadOnly Property Expression As ExpressionSyntax
-  '  Public ReadOnly Property ThenKeyword As SyntaxToken
-  '  Public ReadOnly Property Statements As StatementSyntax
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.ElseIfStatement
+    Public ReadOnly Property ElseIfKeyword As SyntaxToken
+    Public ReadOnly Property Expression As ExpressionSyntax
+    Public ReadOnly Property ThenKeyword As SyntaxToken
+    Public ReadOnly Property Statements As StatementSyntax
 
-  'End Class
+  End Class
 
-  Public NotInheritable Class ElseClauseSyntax
+  Public NotInheritable Class ElseClause
     Inherits SyntaxNode
 
     Public Sub New(tree As SyntaxTree, elseKeyword As SyntaxToken, statements As StatementSyntax)

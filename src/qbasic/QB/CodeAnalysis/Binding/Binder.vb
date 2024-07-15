@@ -296,7 +296,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim seenParameterNames As New HashSet(Of String)
 
       For Each parameterSyntax In syntax.Parameters
-        Dim parameterName = parameterSyntax.Identifier.Text
+        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
@@ -324,7 +324,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim seenParameterNames As New HashSet(Of String)
 
       For Each parameterSyntax In syntax.Parameters
-        Dim parameterName = parameterSyntax.Identifier.Text
+        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
@@ -352,7 +352,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim seenParameterNames As New HashSet(Of String)
 
       For Each parameterSyntax In syntax.Parameters
-        Dim parameterName = parameterSyntax.Identifier.Text
+        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
@@ -364,9 +364,9 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Dim type = If(BindAsClause(syntax.Parameters.First.AsClause), TypeSymbol.Nothing)
 
-      Dim func As New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), type, syntax)
+      Dim func As New FunctionSymbol(syntax.Identifier.Identifier.Text, parameters.ToImmutable(), type, syntax)
       'If func.Declaration.Identifier.Text IsNot Nothing AndAlso
-      If syntax.Identifier.Text IsNot Nothing AndAlso
+      If syntax.Identifier.Identifier.Text IsNot Nothing AndAlso
          Not m_scope.TryDeclareFunction(func) Then
         Diagnostics.ReportSymbolAlreadyDeclared(syntax.Identifier.Location, func.Name)
       End If
@@ -421,6 +421,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ParenExpression : Return BindParenExpression(CType(syntax, ParenExpressionSyntax))
         Case SyntaxKind.LiteralExpression : Return BindLiteralExpression(CType(syntax, LiteralExpressionSyntax))
         Case SyntaxKind.NameExpression : Return BindNameExpression(CType(syntax, NameExpressionSyntax))
+        Case SyntaxKind.IdentifierSyntax : Return BindNameExpression(CType(syntax, IdentifierExpressionSyntax))
         Case SyntaxKind.AssignmentExpression : Return BindAssignmentExpression(CType(syntax, AssignmentExpressionSyntax))
         Case SyntaxKind.UnaryExpression : Return BindUnaryExpression(CType(syntax, UnaryExpressionSyntax))
         Case SyntaxKind.BinaryExpression : Return BindBinaryExpression(CType(syntax, BinaryExpressionSyntax))
@@ -499,17 +500,20 @@ Namespace Global.QB.CodeAnalysis.Binding
       End Select
     End Function
 
-    Private Function BindSubscriptClause(syntax As SubscriptClauseSyntax) As (Lower As BoundExpression, Upper As BoundExpression)
+    Private Function BindSubscriptClause(syntax As DimensionsClauseSyntax) As (Lower As BoundExpression, Upper As BoundExpression)
       If syntax Is Nothing Then Return Nothing
       Dim lower As BoundExpression = Nothing
-      If syntax.Lower IsNot Nothing Then
-        lower = BindExpression(syntax.Lower.Lower)
+      Dim upper As BoundExpression = Nothing
+      If syntax.Dimensions?.Count = 1 Then
+        upper = BindExpression(CType(syntax.Dimensions(0), ExpressionSyntax))
+      ElseIf syntax.Dimensions?.Count = 3 Then
+        lower = BindExpression(CType(syntax.Dimensions(0), ExpressionSyntax))
+        upper = BindExpression(CType(syntax.Dimensions(2), ExpressionSyntax))
       End If
-      Dim upper = BindExpression(syntax.Upper)
       Return (lower, upper)
     End Function
 
-    Private Function BindAsClause(syntax As AsClauseSyntax) As TypeSymbol
+    Private Function BindAsClause(syntax As AsClause) As TypeSymbol
       If syntax Is Nothing Then Return Nothing
       Dim type = LookupType(syntax.Identifier.Text)
       If type Is Nothing Then
@@ -521,14 +525,14 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindAssignmentExpression(syntax As AssignmentExpressionSyntax) As BoundExpression
 
-      Dim name = syntax.IdentifierToken.Text
+      Dim name = syntax.Identifier.Identifier.Text
       Dim boundExpression = BindExpression(syntax.Expression)
 
-      Dim variable = DetermineVariableReference(syntax.IdentifierToken)
+      Dim variable = DetermineVariableReference(syntax.Identifier.Identifier)
       If variable Is Nothing Then
         ' Variable has not been declared, let's go ahead and do so.
         Dim type As TypeSymbol '= TypeSymbol.String
-        Dim suffix = syntax.IdentifierToken.Text.Last
+        Dim suffix = syntax.Identifier.Identifier.Text.Last
         Select Case suffix
           Case "%"c : type = TypeSymbol.Integer
           Case "&"c : type = TypeSymbol.Long
@@ -542,7 +546,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         'If Not syntax.IdentifierToken.Text.EndsWith("$") Then
         '  type = TypeSymbol.Double
         'End If
-        variable = BindVariableDeclaration(syntax.IdentifierToken, False, type) ' boundExpression.Type
+        variable = BindVariableDeclaration(syntax.Identifier.Identifier, False, type) ' boundExpression.Type
       End If
       'Dim variable = BindVariableReference(syntax.IdentifierToken)
       If variable Is Nothing Then
@@ -880,46 +884,90 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindLetStatement(syntax As LetStatementSyntax) As BoundStatement
 
-      Dim name = syntax.IdentifierToken.Text
       Dim boundExpression = BindExpression(syntax.Expression)
 
-      Dim variable = DetermineVariableReference(syntax.IdentifierToken)
-      If variable Is Nothing Then
-        If OPTION_EXPLICIT Then
-          ' Variable appears to not have been already declared, 
-          ' run through the normal process in order to generate
-          ' the appropriate error(s).
-          variable = BindVariableReference(syntax.IdentifierToken)
-        Else
-          ' Variable has not been declared, let's go ahead and do so.
-          Dim type As TypeSymbol '= TypeSymbol.String
-          Dim suffix = syntax.IdentifierToken.Text.Last
-          Select Case suffix
-            Case "%"c : type = TypeSymbol.Integer
-            Case "&"c : type = TypeSymbol.Long
-            Case "!"c : type = TypeSymbol.Single
-            Case "#"c : type = TypeSymbol.Double
-            Case "$"c : type = TypeSymbol.String
-            Case Else
-              'TODO: This needs to be set based on current DEFINT, etc.
-              type = TypeSymbol.Single
-              'TODO: Infer????
-              'type = boundExpression.Type
-          End Select
-          variable = BindVariableDeclaration(syntax.IdentifierToken, False, type)
+      For Each node In syntax.Identifiers
+        If TypeOf node Is IdentifierSyntax Then
+          Dim identifier = CType(node, IdentifierSyntax)
+          Dim name = identifier.Identifier.Text
+          Dim variable = DetermineVariableReference(identifier.Identifier)
+          If variable Is Nothing Then
+            If OPTION_EXPLICIT Then
+              ' Variable appears to not have been already declared, 
+              ' run through the normal process in order to generate
+              ' the appropriate error(s).
+              variable = BindVariableReference(identifier.Identifier)
+            Else
+              ' Variable has not been declared, let's go ahead and do so.
+              Dim type As TypeSymbol '= TypeSymbol.String
+              Dim suffix = identifier.Identifier.Text.Last
+              Select Case suffix
+                Case "%"c : type = TypeSymbol.Integer
+                Case "&"c : type = TypeSymbol.Long
+                Case "!"c : type = TypeSymbol.Single
+                Case "#"c : type = TypeSymbol.Double
+                Case "$"c : type = TypeSymbol.String
+                Case Else
+                  'TODO: This needs to be set based on current DEFINT, etc.
+                  type = TypeSymbol.Single
+                  'TODO: Infer????
+                  'type = boundExpression.Type
+              End Select
+              variable = BindVariableDeclaration(identifier.Identifier, False, type)
+            End If
+          End If
+          If variable.IsReadOnly Then
+            Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
+          End If
+
+          Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
+
+          Return New BoundLetStatement(variable, convertedExpression)
+
         End If
-      End If
-      If variable Is Nothing Then
-        Return Nothing
-      End If
+      Next
 
-      If variable.IsReadOnly Then
-        Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
-      End If
+      Return Nothing
 
-      Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
+      'Dim name = CType(syntax.Identifiers(0), SyntaxToken).Text
 
-      Return New BoundLetStatement(variable, convertedExpression)
+      'Dim variable = DetermineVariableReference(CType(syntax.Identifiers(0), SyntaxToken))
+      'If variable Is Nothing Then
+      '  If OPTION_EXPLICIT Then
+      '    ' Variable appears to not have been already declared, 
+      '    ' run through the normal process in order to generate
+      '    ' the appropriate error(s).
+      '    variable = BindVariableReference(CType(syntax.Identifiers(0), SyntaxToken))
+      '  Else
+      '    ' Variable has not been declared, let's go ahead and do so.
+      '    Dim type As TypeSymbol '= TypeSymbol.String
+      '    Dim suffix = CType(syntax.Identifiers(0), SyntaxToken).Text.Last
+      '    Select Case suffix
+      '      Case "%"c : type = TypeSymbol.Integer
+      '      Case "&"c : type = TypeSymbol.Long
+      '      Case "!"c : type = TypeSymbol.Single
+      '      Case "#"c : type = TypeSymbol.Double
+      '      Case "$"c : type = TypeSymbol.String
+      '      Case Else
+      '        'TODO: This needs to be set based on current DEFINT, etc.
+      '        type = TypeSymbol.Single
+      '        'TODO: Infer????
+      '        'type = boundExpression.Type
+      '    End Select
+      '    variable = BindVariableDeclaration(CType(syntax.Identifiers(0), SyntaxToken), False, type)
+      '  End If
+      'End If
+      'If variable Is Nothing Then
+      '  Return Nothing
+      'End If
+
+      'If variable.IsReadOnly Then
+      '  Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
+      'End If
+
+      'Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
+
+      'Return New BoundLetStatement(variable, convertedExpression)
 
     End Function
 
@@ -961,14 +1009,42 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundNameStatement(originalPath, destinationPath)
     End Function
 
-    Private Function BindNameExpression(syntax As NameExpressionSyntax) As BoundExpression
-      Dim name = syntax.IdentifierToken.Text
-      If syntax.IdentifierToken.IsMissing Then
+    'Private Function BindIdentifierExpression(syntax As IdentifierSyntax) As BoundExpression
+    '  Dim name = syntax.Identifier.Text
+    '  If syntax.Identifier.IsMissing Then
+    '    ' This means the token was inserted by the parser. We already
+    '    ' reported error so we can just return an error expression.
+    '    Return New BoundErrorExpression
+    '  End If
+    '  Dim variable = BindVariableReference(syntax.Identifier)
+    '  If variable Is Nothing Then
+    '    Return New BoundErrorExpression
+    '  End If
+    '  Return New BoundVariableExpression(variable)
+    'End Function
+
+    Private Function BindNameExpression(syntax As IdentifierExpressionSyntax) As BoundExpression
+      Dim name = syntax.Identifier.Text
+      If syntax.Identifier.IsMissing Then
         ' This means the token was inserted by the parser. We already
         ' reported error so we can just return an error expression.
         Return New BoundErrorExpression
       End If
-      Dim variable = BindVariableReference(syntax.IdentifierToken)
+      Dim variable = BindVariableReference(syntax.Identifier)
+      If variable Is Nothing Then
+        Return New BoundErrorExpression
+      End If
+      Return New BoundVariableExpression(variable)
+    End Function
+
+    Private Function BindNameExpression(syntax As NameExpressionSyntax) As BoundExpression
+      Dim name = syntax.Identifier.Identifier.Text
+      If syntax.Identifier.Identifier.IsMissing Then
+        ' This means the token was inserted by the parser. We already
+        ' reported error so we can just return an error expression.
+        Return New BoundErrorExpression
+      End If
+      Dim variable = BindVariableReference(syntax.Identifier.Identifier)
       If variable Is Nothing Then
         Return New BoundErrorExpression
       End If
@@ -1177,11 +1253,11 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindVariableDeclaration(syntax As VariableDeclarationSyntax) As BoundStatement
       Dim isReadOnly = (syntax.KeywordToken.Kind = SyntaxKind.ConstKeyword)
-      Dim subscript = BindSubscriptClause(syntax.SubscriptClause)
+      Dim subscript = BindSubscriptClause(syntax.Dimensions)
       Dim type = BindAsClause(syntax.AsClause)
       Dim initializer As BoundExpression = Nothing
       If syntax.InitClause IsNot Nothing Then
-        initializer = BindExpression(syntax.InitClause.Initializer)
+        initializer = BindExpression(CType(syntax.InitClause.Initializer(0), ExpressionSyntax))
       End If
       Dim variableType = If(type, initializer?.Type)
       If variableType Is Nothing Then
@@ -1214,7 +1290,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Else
         Dim variable = BindVariableDeclaration(syntax.IdentifierToken, isReadOnly, variableType)
         Dim convertedInitializer As BoundExpression = Nothing
-        If syntax.InitClause IsNot Nothing Then convertedInitializer = BindConversion(syntax.InitClause.Initializer.Location, initializer, variableType)
+        If syntax.InitClause IsNot Nothing Then convertedInitializer = BindConversion(syntax.InitClause.Initializer(0).Location, initializer, variableType)
         Return New BoundVariableDeclaration(variable, convertedInitializer)
       End If
     End Function

@@ -3,13 +3,13 @@
   Public NotInheritable Class NameExpressionSyntax
     Inherits ExpressionSyntax
 
-    Public Sub New(tree As SyntaxTree, identifierToken As SyntaxToken)
+    Public Sub New(tree As SyntaxTree, identifier As IdentifierSyntax)
       MyBase.New(tree)
-      Me.IdentifierToken = identifierToken
+      Me.Identifier = identifier
     End Sub
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.NameExpression
-    Public ReadOnly Property IdentifierToken As SyntaxToken
+    Public ReadOnly Property Identifier As IdentifierSyntax
 
   End Class
 

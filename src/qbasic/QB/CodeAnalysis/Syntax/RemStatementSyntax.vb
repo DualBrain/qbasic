@@ -3,15 +3,13 @@
   Friend Class RemStatementSyntax
     Inherits StatementSyntax
 
-    Public Sub New(tree As SyntaxTree, remKeyword As SyntaxToken, comment As String)
+    Public Sub New(tree As SyntaxTree, remKeyword As SyntaxToken)
       MyBase.New(tree)
       Me.RemKeyword = remKeyword
-      Me.Comment = comment
     End Sub
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.RemStatement
     Public ReadOnly Property RemKeyword As SyntaxToken
-    Public ReadOnly Property Comment As String
 
   End Class
 

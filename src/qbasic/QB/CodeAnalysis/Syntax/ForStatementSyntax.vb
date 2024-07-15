@@ -13,7 +13,8 @@
                    stepKeyword As SyntaxToken,
                    increment As ExpressionSyntax,
                    statements As StatementSyntax,
-                   nextKeyword As SyntaxToken)
+                   nextKeyword As SyntaxToken,
+                   optionalIdentifier As SyntaxToken)
       MyBase.New(tree)
       Me.ForKeyword = forKeyword
       Me.Identifier = identifier
@@ -25,6 +26,7 @@
       Me.Increment = increment
       Me.Statements = statements
       Me.NextKeyword = nextKeyword
+      Me.OptionalIdentifier = optionalIdentifier
     End Sub
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.ForStatement
@@ -38,6 +40,7 @@
     Public ReadOnly Property Increment As ExpressionSyntax
     Public ReadOnly Property Statements As StatementSyntax
     Public ReadOnly Property NextKeyword As SyntaxToken
+    Public ReadOnly Property OptionalIdentifier As SyntaxToken
 
   End Class
 

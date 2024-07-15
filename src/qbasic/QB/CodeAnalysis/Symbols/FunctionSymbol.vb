@@ -24,7 +24,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
       MyBase.New(name)
       Me.Parameters = parameters
       Me.Type = type
-      Me.Declaration = New FunctionDeclarationSyntax(declaration.SyntaxTree, declaration.DefKeyword, declaration.Identifier, declaration.OpenParenToken, declaration.Parameters, declaration.CloseParenToken, declaration.Parameters.First.AsClause, declaration.Statements, declaration.EndDefKeyword)
+      Me.Declaration = New FunctionDeclarationSyntax(declaration.SyntaxTree, declaration.DefKeyword, declaration.Identifier, declaration.OpenParenToken, declaration.Parameters, declaration.CloseParenToken, declaration.Parameters.First.AsClause, declaration.Statements, declaration.EndKeyword, declaration.EndDefKeyword)
     End Sub
 
     Sub New(name As String, parameters As ImmutableArray(Of ParameterSymbol), type As TypeSymbol, declaration As SingleLineDefDeclarationSyntax)
@@ -35,7 +35,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Dim statements = ImmutableArray.CreateBuilder(Of StatementSyntax)
       statements.Add(statement)
       Dim block = New BlockStatementSyntax(declaration.SyntaxTree, Nothing, statements.ToImmutable, Nothing)
-      Me.Declaration = New FunctionDeclarationSyntax(declaration.SyntaxTree, declaration.DefKeyword, declaration.Identifier, declaration.OpenParenToken, declaration.Parameters, declaration.CloseParenToken, declaration.Parameters.First.AsClause, block, Nothing)
+      Me.Declaration = New FunctionDeclarationSyntax(declaration.SyntaxTree, declaration.DefKeyword, declaration.Identifier.Identifier, declaration.OpenParenToken, declaration.Parameters, declaration.CloseParenToken, declaration.Parameters.First.AsClause, block, Nothing, Nothing)
     End Sub
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Function

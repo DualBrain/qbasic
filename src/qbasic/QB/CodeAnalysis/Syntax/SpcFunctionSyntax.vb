@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class SpcFunctionSyntax
+  Friend Class SpcFunctionSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, spcKeyword As SyntaxToken, openParen As SyntaxToken, expression As ExpressionSyntax, closeParen As SyntaxToken)

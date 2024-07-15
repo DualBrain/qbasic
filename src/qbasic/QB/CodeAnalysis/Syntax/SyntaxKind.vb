@@ -2,10 +2,12 @@
 
   Public Enum SyntaxKind
 
-    BadToken
-    EndOfFileToken
+    TrueKeyword
+    FalseKeyword
+    AndAlsoKeyword
+    OrElseKeyword
 
-    Label
+    BadToken
 
     ' Trivia
     LineNumberTrivia
@@ -13,8 +15,56 @@
     LineBreakTrivia
     WhiteSpaceTrivia
     SingleLineCommentTrivia
+    EndOfFileToken
+
+#Region "SpecBAS"
+
+    AtKeyword
+    AutoKeyword
+    BorderKeyword
+    DefaultKeyword
+    FillKeyword
+    FullKeyword
+    GoKeyword
+    GrabKeyword
+    HsvKeyword
+    IncKeyword
+    InkKeyword
+    InverseKeyword
+    MoveKeyword
+    OverKeyword
+    PaperKeyword
+    ProgKeyword
+    ShlKeyword
+    ShrKeyword
+    UpdateKeyword
+    ZxAsciiKeyword
+
+    SbAtClause
+    SbAutoStatement
+    SbBorderStatement
+    SbCircleStatement
+    SbGotoStatement
+    SbGosubStatement
+    SbIncStatement
+    SbInkStatement
+    SbInverseStatement
+    SbMoveStatement
+    SbOverStatement
+    SbPaletteDefaultStatement
+    SbPaletteHsvStatement
+    SbPaletteShiftStatement
+    SbPaletteStatement
+    SbPaperStatement
+    SbProgStatement
+    SbScreenStatement
+    SbWaitStatement
+    SbZxAsciiStatement
+
+#End Region
 
     ' Tokens
+    Label
     BackslashToken
     CloseBraceToken
     CloseParenToken
@@ -39,7 +89,6 @@
     SlashToken
     StarToken
     StringToken
-
     NumberToken
     'ExclamationToken
     'AmpersandToken
@@ -47,15 +96,28 @@
 
     ' Keywords
 
-    AndAlsoKeyword
+    AbsoluteKeyword
+    AccessKeyword
     AndKeyword
+    'AndAlsoKeyword
     AnyKeyword
+    AppendKeyword
     AsKeyword
     BaseKeyword
+    BeepKeyword
+    BinaryKeyword
+    BLoadKeyword
+    BSaveKeyword
+    CallKeyword
+    CaseKeyword
+    ChainKeyword
     ChDirKeyword
+    CircleKeyword
     ClearKeyword
+    CloseKeyword
     ClsKeyword
     ColorKeyword
+    ComKeyword
     CommonKeyword
     ConstKeyword
     ContinueKeyword
@@ -63,6 +125,8 @@
     ContinueForKeyword
     ContinueWhileKeyword
     DataKeyword
+    DateKeyword
+    DeclareKeyword
     DefKeyword
     DefDblKeyword
     DefIntKeyword
@@ -71,51 +135,82 @@
     DefStrKeyword
     DimKeyword
     DoKeyword
-    EachKeyword
-    ElseIfKeyword
+    DoubleKeyword
+    DrawKeyword
+    'EachKeyword
     ElseKeyword
+    ElseIfKeyword
     EndKeyword
-    EndDefKeyword
-    EndFunctionKeyword
-    EndSubKeyword
-    EndIfKeyword
-    EndTypeKeyword
+    'EndDefKeyword
+    'EndFunctionKeyword
+    'EndIfKeyword
+    'EndSelectKeyword
+    'EndSubKeyword
+    'EndTypeKeyword
+    EnvironKeyword
     EqvKeyword
     EraseKeyword
     ErrorKeyword
     ExitKeyword
     ExitDefKeyword
-    ExitFunctionKeyword
-    ExitSubKeyword
     ExitDoKeyword
     ExitForKeyword
+    ExitFunctionKeyword
+    ExitSubKeyword
     ExitWhileKeyword
-    FalseKeyword
+    'FalseKeyword
+    FieldKeyword
+    FilesKeyword
     ForKeyword
     FunctionKeyword
+    GetKeyword
     GosubKeyword
     GotoKeyword
     IfKeyword
     ImpKeyword
-    InKeyword
+    'InKeyword
     InputKeyword
+    IntegerKeyword
+    IoCtlKeyword
+    IsKeyword
+    KeyKeyword
     KillKeyword
+    LenKeyword
     LetKeyword
     LineKeyword
     LineInputKeyword
+    ListKeyword
     LocateKeyword
     LockKeyword
+    LongKeyword
     LoopKeyword
+    LPrintKeyword
+    LSetKeyword
     MidKeyword
     MkDirKeyword
     ModKeyword
     NameKeyword
     NextKeyword
     NotKeyword
+    OffKeyword
+    OnKeyword
+    OpenKeyword
     OptionKeyword
-    OrElseKeyword
     OrKeyword
+    'OrElseKeyword
+    OutKeyword
+    OutputKeyword
+    PaintKeyword
+    PaletteKeyword
+    PCopyKeyword
+    'PeekKeyword
+    PenKeyword
+    PlayKeyword
+    PokeKeyword
+    PresetKeyword
     PrintKeyword
+    PsetKeyword
+    PutKeyword
     RandomKeyword
     RandomizeKeyword
     ReadKeyword
@@ -123,24 +218,44 @@
     RemKeyword
     ResetKeyword
     RestoreKeyword
+    ResumeKeyword
     ReturnKeyword
     RmDirKeyword
+    RSetKeyword
+    RunKeyword
+    ScreenKeyword
+    SeekKeyword
+    SegKeyword
+    SelectKeyword
     SharedKeyword
-    SpcKeyword
+    ShellKeyword
+    SingleKeyword
     SleepKeyword
+    SoundKeyword
+    SpcKeyword
     StaticKeyword
     StepKeyword
+    StickKeyword
     StopKeyword
+    StrigKeyword
+    StringKeyword
     SubKeyword
     SwapKeyword
     SystemKeyword
     TabKeyword
     ThenKeyword
+    TimeKeyword
+    TimerKeyword
     ToKeyword
-    TrueKeyword
+    TroffKeyword
+    TronKeyword
+    'TrueKeyword
     TypeKeyword
     UnlockKeyword
     UntilKeyword
+    UsingKeyword
+    ViewKeyword
+    WaitKeyword
     WendKeyword
     WhileKeyword
     WidthKeyword
@@ -150,15 +265,19 @@
 
     ' Nodes
     AsClause
+    CaseClause
+    CaseElseClause
+    CaseMatchExpression
     CompilationUnit
     DefDeclaration
+    DefVarRangeClause
+    DimensionClause
+    DimensionsClause
     FunctionDeclaration
     GlobalStatement
     InitClause
-    LowerSubscriptClause
     Parameter
     SingleLineElseClause
-    SubscriptClause
     UntilClause
     WhileClause
 
@@ -168,46 +287,128 @@
 
     ' Statements
     BlockStatement
+    IdentifierSyntax
+    MultiLineIfBlock
+    SingleLineDefDeclaration
+    SingleLineIfStatement
+    StatementSeparatorStatement
+    VariableDeclarationStatement
+
+    BeepStatement
+    BloadStatement
+    BsaveStatement
+    CallStatement
+    ChainStatement
     ChDirStatement
+    CircleStatement
     ClearStatement
+    CloseStatement
     ClsStatement
     ColorStatement
+    ComStatement
+    CommonStatement
+    ConstStatement
     ContinueStatement
+    DateStatement
+    DeclareStatement
+    DefSegStatement
+    DefTypeStatement
+    DimStatement
     DataStatement
     DoUntilStatement
     DoWhileStatement
+    DrawStatement
     EndStatement
     ElseIfStatement
     ElseStatement
+    EnvironStatement
+    EraseStatement
+    ErrorStatement
     ExitStatement
     ExpressionStatement
-    ForEachStatement
+    FieldStatement
+    FilesStatement
+    'ForEachStatement
     ForStatement
+    FunctionStatement
+    GetStatement
+    GetFileStatement
     GosubStatement
     GotoStatement
     IfStatement
     InputStatement
+    IoCtlStatement
+    KeyStatement
+    KeyListStatement
+    KeyOffStatement
+    KeyOnStatement
     KillStatement
     LabelStatement
     LetStatement
+    LineStatement
+    LineInputStatement
+    LineInputFileStatement
+    LocateStatement
+    LockStatement
+    LockRangeStatement
+    LprintStatement
+    LsetStatement
     MidStatement
     MkDirStatement
-    MultiLineIfBlock
     NameStatement
+    OnErrorGotoStatement
+    OnGotoStatement
+    OpenStatement
     OptionStatement
+    OutStatement
+    PaintStatement
+    PcopyStatement
+    PenStatement
+    PlayStatement
+    PokeStatement
     PrintStatement
+    PutStatement
+    PutFileStatement
+    RandomizeStatement
     ReadStatement
+    RedimStatement
     RemStatement
+    ResetStatement
     RestoreStatement
+    ResumeStatement
+    ResumeNextStatement
     ReturnGosubStatement
     ReturnStatement
     RmDirStatement
-    SingleLineDefDeclaration
-    SingleLineIfStatement
+    RsetStatement
+    RunStatement
+    SeekStatement
+    SelectCaseStatement
+    SharedStatement
+    ShellStatement
+    SleepStatement
+    SoundStatement
+    StaticStatement
     StopStatement
+    StrigStatement
+    SubStatement
+    SwapStatement
     SystemStatement
-    VariableDeclarationStatement
+    TimeStatement
+    TimerStatement
+    TroffStatement
+    TronStatement
+    UnlockStatement
+    UnlockRangeStatement
+    ViewStatement
+    ViewPrintStatement
+    WaitStatement
     WhileStatement
+    WidthStatement
+    WidthFileStatement
+    WidthLprintStatement
+    WindowStatement
+    WriteStatement
 
     ' Expressions
     AssignmentExpression
@@ -218,72 +419,6 @@
     ParenExpression
     UnaryExpression
 
-    ' Newly added 3/15...
-    AbsoluteKeyword
-    AccessKeyword
-    BeepKeyword
-    BloadKeyword
-    BsaveKeyword
-    CallKeyword
-    CaseKeyword
-    ChainKeyword
-    CircleKeyword
-    CloseKeyword
-    ComKeyword
-    DateKeyword
-    DeclareKeyword
-    DoubleKeyword
-    DrawKeyword
-    EndSelectKeyword
-    EnvironKeyword
-    FieldKeyword
-    FilesKeyword
-    GetKeyword
-    IntegerKeyword
-    IoCtlKeyword
-    KeyKeyword
-    ListKeyword
-    LongKeyword
-    LPrintKeyword
-    LSetKeyword
-    OffKeyword
-    OnKeyword
-    OpenKeyword
-    OutKeyword
-    PaintKeyword
-    PaletteKeyword
-    PCopyKeyword
-    PeekKeyword
-    PenKeyword
-    PlayKeyword
-    PokeKeyword
-    PResetKeyword
-    PSetKeyword
-    PutKeyword
-    ResumeKeyword
-    RSetKeyword
-    RunKeyword
-    ScreenKeyword
-    SegKeyword
-    SeekKeyword
-    SelectKeyword
-    ShellKeyword
-    SingleKeyword
-    SoundKeyword
-    StrigKeyword
-    StringKeyword
-    TimeKeyword
-    TimerKeyword
-    TroffKeyword
-    TronKeyword
-    UsingKeyword
-    ViewKeyword
-    WaitKeyword
-    AppendKeyword
-    BinaryKeyword
-    IsKeyword
-    OutputKeyword
-    StickKeyword
   End Enum
 
 End Namespace

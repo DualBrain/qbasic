@@ -1,64 +1,129 @@
-﻿'Imports System.Collections.Immutable
+﻿Imports System.Collections.Immutable
 
-'Namespace Global.QB.CodeAnalysis.Syntax
-'  Public NotInheritable Class SelectCaseStatementSyntax
-'    Inherits StatementSyntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
-'    Public Sub New(test As ExpressionSyntax,
-'                   cases As ImmutableArray(Of CaseClauseSyntax),
-'                   caseElseClause As CaseElseClauseSyntax)
-'      Me.Test = test
-'      Me.Cases = cases
-'      Me.CaseElseClause = caseElseClause
-'    End Sub
+  Public NotInheritable Class SelectCaseStatementSyntax
+    Inherits StatementSyntax
 
-'    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.SelectCaseStatement
-'    Public ReadOnly Property Test As ExpressionSyntax
-'    Public ReadOnly Property Cases As ImmutableArray(Of CaseClauseSyntax)
-'    Public ReadOnly Property CaseElseClause As CaseElseClauseSyntax
+    Public Sub New(tree As SyntaxTree,
+                   selectKeyword As SyntaxToken,
+                   selectCaseKeyword As SyntaxToken,
+                   test As ExpressionSyntax,
+                   cases As ImmutableArray(Of CaseClauseSyntax),
+                   caseElseClause As CaseElseClauseSyntax,
+                   endKeyword As SyntaxToken,
+                   endSelectKeyword As SyntaxToken)
+      MyBase.New(tree)
+      Me.SelectKeyword = selectKeyword
+      Me.SelectCaseKeyword = selectCaseKeyword
+      Me.Test = test
+      Me.Cases = cases
+      Me.CaseElseClause = caseElseClause
+      Me.EndKeyword = endKeyword
+      Me.EndSelectKeyword = endSelectKeyword
+    End Sub
 
-'  End Class
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.SelectCaseStatement
+    Public ReadOnly Property SelectKeyword As SyntaxToken
+    Public ReadOnly Property SelectCaseKeyword As SyntaxToken
+    Public ReadOnly Property Test As ExpressionSyntax
+    Public ReadOnly Property Cases As ImmutableArray(Of CaseClauseSyntax)
+    Public ReadOnly Property CaseElseClause As CaseElseClauseSyntax
+    Public ReadOnly Property EndKeyword As SyntaxToken
+    Public ReadOnly Property EndSelectKeyword As SyntaxToken
+  End Class
 
-'  Public NotInheritable Class CaseClauseSyntax
-'    Inherits SyntaxNode
+  Public NotInheritable Class CaseClauseSyntax
+    Inherits SyntaxNode
 
-'    Public Sub New(matches As ImmutableArray(Of CaseMatchExpressionSyntax), statement As StatementSyntax)
-'      Me.Matches = matches
-'      Me.Statement = statement
-'    End Sub
+    Public Sub New(tree As SyntaxTree,
+                   caseKeyword As SyntaxToken,
+                   matches As ImmutableArray(Of ExpressionSyntax), statement As StatementSyntax)
+      MyBase.New(tree)
+      Me.CaseKeyword = caseKeyword
+      Me.Matches = matches
+      Me.Statement = statement
+    End Sub
 
-'    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseClauseSyntax
-'    Public ReadOnly Property Matches As ImmutableArray(Of CaseMatchExpressionSyntax)
-'    Public ReadOnly Property Statement As StatementSyntax
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseClause
+    Public ReadOnly Property CaseKeyword As SyntaxToken
+    Public ReadOnly Property Matches As ImmutableArray(Of ExpressionSyntax)
+    Public ReadOnly Property Statement As StatementSyntax
 
-'  End Class
+  End Class
 
-'  Public NotInheritable Class CaseElseClauseSyntax
-'    Inherits SyntaxNode
+  Public NotInheritable Class CaseElseClauseSyntax
+    Inherits SyntaxNode
 
-'    Public Sub New(statement As StatementSyntax)
-'      Me.Statement = statement
-'    End Sub
+    Public Sub New(tree As SyntaxTree,
+                   caseKeyword As SyntaxToken,
+                   elseKeyword As SyntaxToken,
+                   statement As StatementSyntax)
+      MyBase.New(tree)
+      Me.CaseKeyword = caseKeyword
+      Me.ElseKeyword = elseKeyword
+      Me.Statement = statement
+    End Sub
 
-'    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseElseClauseSyntax
-'    Public ReadOnly Property Statement As StatementSyntax
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseElseClause
+    Public ReadOnly Property CaseKeyword As SyntaxToken
+    Public ReadOnly Property ElseKeyword As SyntaxToken
+    Public ReadOnly Property Statement As StatementSyntax
 
-'  End Class
+  End Class
 
-'  Public NotInheritable Class CaseMatchExpressionSyntax
-'    Inherits SyntaxNode
+  Public NotInheritable Class CaseMatchExpressionSyntax
+    Inherits ExpressionSyntax
 
-'    Public Sub New(comparisonKind As SyntaxKind, expression As ExpressionSyntax, Optional expressionTo As ExpressionSyntax = Nothing)
-'      Me.ComparisonKind = comparisonKind
-'      Me.Expression = expression
-'      Me.ExpressionTo = expressionTo
-'    End Sub
+    Public Sub New(tree As SyntaxTree,
+                   expression As ExpressionSyntax)
+      MyBase.New(tree)
+      Me.Expression = expression
+    End Sub
 
-'    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseMatchExpressionSyntax
-'    Public ReadOnly Property ComparisonKind As SyntaxKind
-'    Public ReadOnly Property Expression As ExpressionSyntax
-'    Public ReadOnly Property ExpressionTo As ExpressionSyntax
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseMatchExpression
+    Public ReadOnly Property Expression As ExpressionSyntax
 
-'  End Class
+  End Class
 
-'End Namespace
+  Public NotInheritable Class CaseIsMatchExpressionSyntax
+    Inherits ExpressionSyntax
+
+    Public Sub New(tree As SyntaxTree,
+                   isKeyword As SyntaxToken,
+                   comparison As SyntaxToken,
+                   expression As ExpressionSyntax)
+      MyBase.New(tree)
+      Me.IsKeyword = isKeyword
+      Me.Comparison = comparison
+      Me.Expression = expression
+    End Sub
+
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseMatchExpression
+    Public ReadOnly Property IsKeyword As SyntaxToken
+    Public ReadOnly Property Comparison As SyntaxToken
+    Public ReadOnly Property Expression As ExpressionSyntax
+
+  End Class
+
+  Public NotInheritable Class CaseMatchRangeExpressionSyntax
+    Inherits ExpressionSyntax
+
+    Public Sub New(tree As SyntaxTree,
+                   start As ExpressionSyntax,
+                   toKeyword As SyntaxToken,
+                   [end] As ExpressionSyntax)
+      MyBase.New(tree)
+      Me.Start = start
+      Me.ToKeyword = toKeyword
+      Me.End = [end]
+    End Sub
+
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.CaseMatchExpression
+    Public ReadOnly Property Start As ExpressionSyntax
+    Public ReadOnly Property ToKeyword As SyntaxToken
+    Public ReadOnly Property [End] As ExpressionSyntax
+
+  End Class
+
+End Namespace

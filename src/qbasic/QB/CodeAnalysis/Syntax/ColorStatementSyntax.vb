@@ -1,13 +1,13 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class ColorStatementSyntax
+  Friend Class ColorStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, colorKeyword As SyntaxToken, argumentExpression1 As ExpressionSyntax, commaToken1 As SyntaxToken, argumentExpression2 As ExpressionSyntax, commaToken2 As SyntaxToken, argumentExpression3 As ExpressionSyntax)
       MyBase.New(tree)
       Me.ColorKeyword = colorKeyword
       Me.ArgumentExpression1 = argumentExpression1
-      Me.commaToken1 = commaToken1
+      Me.CommaToken1 = commaToken1
       Me.ArgumentExpression2 = argumentExpression2
       Me.CommaToken2 = commaToken2
       Me.ArgumentExpression3 = argumentExpression3

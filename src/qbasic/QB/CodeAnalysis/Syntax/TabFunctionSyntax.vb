@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class TabFunctionSyntax
+  Friend Class TabFunctionSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, tabKeyword As SyntaxToken, openParen As SyntaxToken, expression As ExpressionSyntax, closeParen As SyntaxToken)

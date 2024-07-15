@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class StopStatementSyntax
+  Friend Class StopStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, stopKeyword As SyntaxToken)

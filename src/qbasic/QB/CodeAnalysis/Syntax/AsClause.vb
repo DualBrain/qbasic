@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Public NotInheritable Class AsClauseSyntax
+  Partial Public NotInheritable Class AsClause
     Inherits SyntaxNode
 
     Sub New(tree As SyntaxTree, asKeyword As SyntaxToken, identifier As SyntaxToken)

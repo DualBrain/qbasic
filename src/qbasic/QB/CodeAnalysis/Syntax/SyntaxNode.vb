@@ -1,5 +1,6 @@
-﻿'Imports System.Reflection
-Imports System.Reflection
+﻿Imports System.Reflection
+Imports System.Runtime.InteropServices.JavaScript.JSType
+Imports Mono.Cecil
 Imports QB.CodeAnalysis.Text
 
 Namespace Global.QB.CodeAnalysis.Syntax
@@ -81,6 +82,10 @@ Namespace Global.QB.CodeAnalysis.Syntax
       PrettyPrint(writer, Me)
     End Sub
 
+    Public Sub WriteTo2(writer As System.IO.TextWriter)
+      PrettyPrint2(writer, Me)
+    End Sub
+
     'Private Shared Sub PrettyPrint(writer As System.IO.TextWriter, node As SyntaxNode, Optional indent As String = "", Optional isLast As Boolean = True)
 
     '  Dim isToConsole = (writer Is Console.Out)
@@ -124,7 +129,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
           If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGreen
 
-          writer.WriteLine($"L: {trivia.Kind}")
+          writer.WriteLine($"L: {trivia.Kind} '{trivia.Text}'")
 
         Next
       End If
@@ -144,13 +149,18 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       If token IsNot Nothing Then
         If node.Kind = SyntaxKind.IdentifierToken Then
-          writer.Write(" '")
-          writer.Write(token.Text)
-          writer.Write("'")
+          If token.Text Is Nothing Then
+            Console.ForegroundColor = ConsoleColor.Red
+            writer.Write(" !!SN!!")
+            'ElseIf functions.Contains(token.Text?.ToUpper) Then
+            '  Console.ForegroundColor = ConsoleColor.Yellow
+            '  writer.Write($" '{token.Text}':{token.Span.Length}")
+          Else
+            Console.ForegroundColor = ConsoleColor.DarkCyan
+            writer.Write($" '{token.Text}':{token.Span.Length}")
+          End If
         ElseIf token.Value IsNot Nothing Then
-          writer.Write(" '")
-          writer.Write(token.Value)
-          writer.Write("'")
+          writer.Write($" '{token.Value}':{token.Span.Length}")
         End If
       End If
 
@@ -173,7 +183,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
           If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGreen
 
-          writer.WriteLine($"T: {trivia.Kind}")
+          If trivia.Kind = SyntaxKind.LineBreakTrivia Then
+            writer.WriteLine($"T: {trivia.Kind}")
+          Else
+            writer.WriteLine($"T: {trivia.Kind} '{trivia.Text}'")
+          End If
 
         Next
       End If
@@ -184,6 +198,117 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       For Each child In node.GetChildren
         PrettyPrint(writer, child, indent, child Is lastChild)
+      Next
+
+    End Sub
+
+    Private Shared Sub PrettyPrint2(writer As System.IO.TextWriter, node As SyntaxNode, Optional indent As String = "", Optional isLast As Boolean = True)
+
+      Dim functions = {"ABS", "ASC", "ASN", "ATN",
+        "CDBL", "CHR$", "CINT", "CLNG", "COS", "CSNG", "CSRLIN", "CVD", "CVDMBF", "CVI", "CVL", "CVS", "CVSMBF",
+        "DATE$",
+        "EOF", "ERDEV", "ERDEV$", "ERL", "ERR", "EXP",
+        "FILEATTR", "FIX", "FRE", "FREEFILE",
+        "GFXH", "GFXW", "GPOINT",
+        "HEX$",
+        "INKEY$", "INP", "INPUT$", "INSTR", "INT", "IOCTL$",
+        "LBOUND", "LCASE$", "LEFT$", "LEN", "LOC", "LOF", "LOG", "LPOS", "LTRIM$",
+        "MAX", "MID$", "MIN", "MKD$", "MKDMBF$", "MKI$", "MKL$", "MKS$", "MKSMBF$", "MOUSEBTN", "MOUSEX", "MOUSEY", "MSECS",
+        "OCT$",
+        "PEEK", "PLAY", "PI", "PMAP", "POINT", "POWERTWO", "POS",
+        "RGBTOINT", "RIGHT$", "RND", "RTRIM$",
+        "SCREEN", "SCRH", "SCRW", "SEEK", "SGN", "SIN", "SPACE$", "SPC", "SQR", "STICK", "STR$", "STRIG", "STRING$",
+        "TAB", "TAN", "TAU", "TIME$", "TIMER",
+        "UBOUND", "UCASE$",
+        "VAL", "VARPTR", "VARPTR$", "VARSEG"}
+
+      Dim isToConsole = writer Is Console.Out
+      Dim token = TryCast(node, SyntaxToken)
+
+      If token IsNot Nothing Then 'TypeOf node Is SyntaxToken Then
+
+        For Each trivia In token.LeadingTrivia
+
+          If trivia.Kind = SyntaxKind.LineNumberTrivia Then
+            If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGray
+            'writer.WriteLine($"{vbLf}{trivia.Text}:")
+            writer.Write(trivia.Text)
+          ElseIf trivia.Kind = SyntaxKind.WhiteSpaceTrivia Then
+            If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGray
+            writer.Write(New String("·"c, trivia.Text.Length))
+          Else
+            If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGray
+            writer.Write(trivia.Text)
+          End If
+
+        Next
+
+        'Dim hasTrailingTrivia = token IsNot Nothing AndAlso token.TrailingTrivia.Any
+        'Dim tokenMarker = If(Not hasTrailingTrivia AndAlso isLast, "└──", "├──")
+
+        If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGray
+
+        Select Case token.Kind
+          Case SyntaxKind.BadToken : Console.ForegroundColor = ConsoleColor.Red
+          Case SyntaxKind.Label
+            If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGray
+          Case SyntaxKind.IdentifierToken
+            If token.Text Is Nothing Then
+              Console.ForegroundColor = ConsoleColor.Red
+              writer.Write("  !!SN!!  ")
+            ElseIf functions.Contains(token.Text?.ToUpper) Then
+              Console.ForegroundColor = ConsoleColor.Yellow
+            Else
+              Console.ForegroundColor = ConsoleColor.DarkCyan
+            End If
+          Case SyntaxKind.StringToken : Console.ForegroundColor = ConsoleColor.DarkYellow
+          Case SyntaxKind.NumberToken : Console.ForegroundColor = ConsoleColor.Blue
+          Case SyntaxKind.ColonToken, SyntaxKind.SemicolonToken, SyntaxKind.CommaToken
+            Console.ForegroundColor = ConsoleColor.Gray
+          Case SyntaxKind.EqualToken, SyntaxKind.GreaterThanEqualToken, SyntaxKind.LessThanEqualToken, SyntaxKind.GreaterThanToken, SyntaxKind.LessThanToken
+            Console.ForegroundColor = ConsoleColor.Gray
+          Case SyntaxKind.PlusToken, SyntaxKind.MinusToken, SyntaxKind.StarToken, SyntaxKind.SlashToken, SyntaxKind.BackslashToken, SyntaxKind.OpenParenToken, SyntaxKind.CloseParenToken
+            Console.ForegroundColor = ConsoleColor.Gray
+          Case SyntaxKind.NameExpression
+            Console.ForegroundColor = ConsoleColor.Magenta
+          Case Else
+            Console.ForegroundColor = ConsoleColor.Magenta
+        End Select
+
+        'If token.Kind = SyntaxKind.ColonToken Then
+        '  writer.Write(vbLf)
+        'Else
+        writer.Write(token.Text)
+        'End If
+
+        For Each trivia In token.TrailingTrivia
+
+          If isToConsole Then
+            If trivia.Kind = SyntaxKind.SingleLineCommentTrivia Then
+              Console.ForegroundColor = ConsoleColor.DarkGreen
+              writer.Write(trivia.Text)
+            ElseIf trivia.Kind = SyntaxKind.WhiteSpaceTrivia Then
+              If isToConsole Then Console.ForegroundColor = ConsoleColor.DarkGray
+              writer.Write("·")
+            Else
+              Console.ForegroundColor = ConsoleColor.DarkGray
+              writer.Write(trivia.Text)
+            End If
+          Else
+            writer.Write(trivia.Text)
+          End If
+
+
+        Next
+
+        If isToConsole Then Console.ResetColor()
+
+      End If
+
+      Dim lastChild = node.GetChildren.LastOrDefault
+
+      For Each child In node.GetChildren
+        PrettyPrint2(writer, child, indent, child Is lastChild)
       Next
 
     End Sub

@@ -1,6 +1,6 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
-  Partial Friend Class ExitStatementSyntax
+  Friend Class ExitStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, exitKeyword As SyntaxToken, scopeKeyword As SyntaxToken)

@@ -1731,7 +1731,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       '  IF condition THEN statements [ELSE statements]
 
       Dim ifKeyword = MatchToken(SyntaxKind.IfKeyword)
-      Dim expression = ParseExpression()
+      Dim condition = ParseExpression()
       Dim thenKeyword = MatchToken(SyntaxKind.ThenKeyword)
 
       Dim thenLine = m_text.GetLineIndex(thenKeyword.Span.Start)
@@ -1757,7 +1757,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Dim endIfKeyword = MatchToken(SyntaxKind.IfKeyword)
         Return New IfStatementSyntax(m_syntaxTree,
                                      ifKeyword,
-                                     expression,
+                                     condition,
                                      thenKeyword,
                                      statements,
                                      elseIfClauses.ToImmutableArray,
@@ -1768,7 +1768,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Dim elseClause = ParseOptionalSingleLineElseClause(isTopLevel)
         Return New SingleLineIfStatementSyntax(m_syntaxTree,
                                                ifKeyword,
-                                               expression,
+                                               condition,
                                                thenKeyword,
                                                statements,
                                                elseClause)

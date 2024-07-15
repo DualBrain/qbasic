@@ -73,7 +73,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
     Public Sub New(tree As SyntaxTree,
                    ifKeyword As SyntaxToken,
-                   expression As ExpressionSyntax,
+                   condition As ExpressionSyntax,
                    thenKeyword As SyntaxToken,
                    statements As StatementSyntax,
                    elseIfClauses As ImmutableArray(Of ElseIfClause),
@@ -82,7 +82,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
                    endIfKeyword As SyntaxToken)
       MyBase.New(tree)
       Me.IfKeyword = ifKeyword
-      Me.Expression = expression
+      Me.Condition = condition
       Me.ThenKeyword = thenKeyword
       Me.Statements = statements
       Me.ElseIfClauses = elseIfClauses
@@ -93,7 +93,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.IfStatement
     Public ReadOnly Property IfKeyword As SyntaxToken
-    Public ReadOnly Property Expression As ExpressionSyntax
+    Public ReadOnly Property Condition As ExpressionSyntax
     Public ReadOnly Property ThenKeyword As SyntaxToken
     Public ReadOnly Property Statements As StatementSyntax
     Public ReadOnly Property ElseIfClauses As ImmutableArray(Of ElseIfClause)

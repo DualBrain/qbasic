@@ -802,7 +802,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       'TODO: Need to handle ElseIf...
 
-      Dim condition = BindExpression(syntax.Expression, TypeSymbol.Boolean)
+      Dim condition = BindExpression(syntax.Condition, TypeSymbol.Boolean)
 
       If condition.ConstantValue IsNot Nothing Then
         If Not CBool(condition.ConstantValue.Value) Then

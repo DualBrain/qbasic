@@ -419,6 +419,34 @@
     ParenExpression
     UnaryExpression
 
+    ' End Block
+    EndTypeStatement
+    EndIfStatement
+    'EndUsingStatement
+    'EndWithStatement
+    EndSelectStatement
+    'EndStructureStatement
+    'EndEnumStatement
+    'EndInterfaceStatement
+    'EndClassStatement
+    'EndModuleStatement
+    'EndNamespaceStatement
+    EndSubStatement
+    EndFunctionStatement
+    'EndGetStatement
+    'EndSetStatement
+    'EndPropertyStatement
+    'EndOperatorStatement
+    'EndEventStatement
+    'EndAddHandlerStatement
+    'EndRemoveHandlerStatement
+    'EndRaiseEventStatement
+    'EndWhileStatement
+    'EndTryStatement
+    'EndSyncLockStatement
+
+    ForStepClause
+
   End Enum
 
 End Namespace

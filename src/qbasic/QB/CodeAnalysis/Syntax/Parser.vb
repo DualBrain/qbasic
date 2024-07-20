@@ -1511,11 +1511,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim startValue = ParseExpression()
       Dim toKeyword = MatchToken(SyntaxKind.ToKeyword)
       Dim endValue = ParseExpression()
-      Dim stepKeyword As SyntaxToken = Nothing
-      Dim increment As ExpressionSyntax = Nothing
+      Dim stepClause As ForStepClause = Nothing
       If Peek(0).Kind = SyntaxKind.StepKeyword Then
-        stepKeyword = MatchToken(SyntaxKind.StepKeyword)
-        increment = ParseExpression()
+        Dim stepKeyword = MatchToken(SyntaxKind.StepKeyword)
+        Dim stepValue = ParseExpression()
+        stepClause = New ForStepClause(m_syntaxTree, stepKeyword, stepValue)
       End If
       Dim statements = ParseBlockStatement(isTopLevel)
       Dim nextKeyword As SyntaxToken '= Nothing
@@ -1536,8 +1536,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
                                     startValue,
                                     toKeyword,
                                     endValue,
-                                    stepKeyword,
-                                    increment,
+                                    stepClause,
                                     statements,
                                     nextKeyword,
                                     optionalIdentifier)

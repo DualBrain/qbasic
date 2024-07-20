@@ -1,7 +1,7 @@
 ﻿Namespace Global.QB.CodeAnalysis.Syntax
 
   Public MustInherit Class StatementSyntax
-    Inherits SyntaxNode
+    Inherits QbSyntaxNode
 
     Friend Sub New(tree As SyntaxTree)
       MyBase.New(tree)

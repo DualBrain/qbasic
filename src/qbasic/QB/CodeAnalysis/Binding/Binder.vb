@@ -759,13 +759,13 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindForStatement(syntax As ForStatementSyntax) As BoundStatement
 
-      Dim lowerBound = BindExpression(syntax.StartValue, TypeSymbol.Long)
-      Dim upperBound = BindExpression(syntax.EndValue, TypeSymbol.Long)
-      Dim stepper = If(syntax.Increment Is Nothing, Nothing, BindExpression(syntax.Increment, TypeSymbol.Long))
+      Dim lowerBound = BindExpression(syntax.FromValue, TypeSymbol.Long)
+      Dim upperBound = BindExpression(syntax.ToValue, TypeSymbol.Long)
+      Dim stepper = If(syntax.StepClause Is Nothing, Nothing, BindExpression(syntax.StepClause.StepValue, TypeSymbol.Long))
 
       m_scope = New BoundScope(m_scope)
 
-      Dim variable = BindVariableDeclaration(syntax.Identifier, True, TypeSymbol.Long)
+      Dim variable = BindVariableDeclaration(syntax.controlVariable, True, TypeSymbol.Long)
       Dim exitLabel As BoundLabel = Nothing
       Dim continueLabel As BoundLabel = Nothing
       Dim body = BindLoopBody(syntax.Statements, exitLabel, continueLabel)

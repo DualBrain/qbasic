@@ -33,6 +33,7 @@
     KillStatement
     LabelStatement
     LetStatement
+    LocateStatement
     MidStatement
     MkDirStatement
     NameStatement

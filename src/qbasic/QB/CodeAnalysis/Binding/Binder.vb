@@ -478,6 +478,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.KillStatement : Return BindKillStatement(CType(syntax, KillStatementSyntax))
         Case SyntaxKind.LabelStatement : Return BindLabelStatement(CType(syntax, LabelStatementSyntax))
         Case SyntaxKind.LetStatement : Return BindLetStatement(CType(syntax, LetStatementSyntax))
+        Case SyntaxKind.LocateStatement : Return BindLocateStatement(CType(syntax, LocateStatementSyntax))
         Case SyntaxKind.MidStatement : Return BindMidStatement(CType(syntax, MidStatementSyntax))
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
@@ -974,6 +975,15 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Shared Function BindLiteralExpression(syntax As LiteralExpressionSyntax) As BoundExpression
       Dim value = If(syntax.Value, 0)
       Return New BoundLiteralExpression(value)
+    End Function
+
+    Private Function BindLocateStatement(syntax As LocateStatementSyntax) As BoundStatement
+      Dim row = If(syntax.Row Is Nothing, Nothing, BindExpression(syntax.Row))
+      Dim col = If(syntax.Col Is Nothing, Nothing, BindExpression(syntax.Col))
+      Dim visible = If(syntax.Visible Is Nothing, Nothing, BindExpression(syntax.Visible))
+      Dim scanStart = If(syntax.ScanStart Is Nothing, Nothing, BindExpression(syntax.ScanStart))
+      Dim scanStop = If(syntax.ScanStop Is Nothing, Nothing, BindExpression(syntax.ScanStop))
+      Return New BoundLocateStatement(row, col, visible, scanStart, scanStop)
     End Function
 
     Private Function BindLoopBody(statements As StatementSyntax, ByRef exitLabel As BoundLabel, ByRef continueLabel As BoundLabel) As BoundStatement

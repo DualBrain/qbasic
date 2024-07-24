@@ -190,15 +190,15 @@ Namespace Global.QB.CodeAnalysis
                 For i = 0 To input.Variables.Length - 1
                   Dim value = potentials(i)
                   If input.Variables(i).Type Is TypeSymbol.Double OrElse
-                 input.Variables(i).Type Is TypeSymbol.Single OrElse
-                 input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
-                 input.Variables(i).Type Is TypeSymbol.Long64 OrElse
-                 input.Variables(i).Type Is TypeSymbol.ULong OrElse
-                 input.Variables(i).Type Is TypeSymbol.Long OrElse
-                 input.Variables(i).Type Is TypeSymbol.UInteger OrElse
-                 input.Variables(i).Type Is TypeSymbol.Integer OrElse
-                 input.Variables(i).Type Is TypeSymbol.SByte OrElse
-                 input.Variables(i).Type Is TypeSymbol.Byte Then
+                     input.Variables(i).Type Is TypeSymbol.Single OrElse
+                     input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
+                     input.Variables(i).Type Is TypeSymbol.Long64 OrElse
+                     input.Variables(i).Type Is TypeSymbol.ULong OrElse
+                     input.Variables(i).Type Is TypeSymbol.Long OrElse
+                     input.Variables(i).Type Is TypeSymbol.UInteger OrElse
+                     input.Variables(i).Type Is TypeSymbol.Integer OrElse
+                     input.Variables(i).Type Is TypeSymbol.SByte OrElse
+                     input.Variables(i).Type Is TypeSymbol.Byte Then
                     If IsNumeric(value) Then
                       If value.Contains("."c) Then
                         If input.Variables(i).Type Is TypeSymbol.Single OrElse
@@ -267,6 +267,20 @@ Namespace Global.QB.CodeAnalysis
             index += 1
 
             'EvaluateLetStatement(CType(s, BoundLetStatement)) : index += 1
+
+          Case BoundNodeKind.LocateStatement
+
+            Dim ls = CType(s, BoundLocateStatement)
+            Dim row = If(ls.Row Is Nothing, -1, CInt(EvaluateExpression(ls.Row)))
+            Dim col = If(ls.Col Is Nothing, -1, CInt(EvaluateExpression(ls.Col)))
+            Dim visible = If(ls.Visible Is Nothing, -1, CInt(EvaluateExpression(ls.Visible)))
+            Dim scanStart = If(ls.ScanStart Is Nothing, -1, CInt(EvaluateExpression(ls.ScanStart)))
+            Dim scanStop = If(ls.Scanstop Is Nothing, -1, CInt(EvaluateExpression(ls.Scanstop)))
+
+            QBLib.Video.LOCATE(row, col, visible, scanStart, scanStop)
+
+            index += 1
+
           Case BoundNodeKind.OptionStatement
             'TODO: Need to handle with Arrays.
             'TODO: Also need to track that no other invalid

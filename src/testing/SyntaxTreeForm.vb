@@ -42,16 +42,16 @@ Friend Class SyntaxTreeForm
     Dim current As TreeNode
 
     If view Is Nothing Then
-      Dim txt = m_code.Substring(node.FullSpan.Start, node.FullSpan.Length)
-      current = TreeView1.Nodes.Add($"{node.Kind} '{txt}'")
+      'Dim txt = m_code.Substring(node.FullSpan.Start, node.FullSpan.Length)
+      current = TreeView1.Nodes.Add($"{node.Kind} [{node.Span.Start}..{node.Span.Start + node.Span.Length - 1}]")
     Else
-      Dim txt = m_code.Substring(node.FullSpan.Start, node.FullSpan.Length)
-      current = view.Nodes.Add($"{node.Kind} '{txt}'")
+      'Dim txt = m_code.Substring(node.FullSpan.Start, node.FullSpan.Length)
+      current = view.Nodes.Add($"{node.Kind} [{node.Span.Start}..{node.Span.Start + node.Span.Length - 1}]")
     End If
 
     For Each token In node.ChildTokens
-      Dim txt = m_code.Substring(token.FullSpan.Start, token.FullSpan.Length)
-      current.Nodes.Add($"tkn: {CType(token.RawKind, Microsoft.CodeAnalysis.VisualBasic.SyntaxKind)} '{txt}'")
+      'Dim txt = m_code.Substring(token.FullSpan.Start, token.FullSpan.Length)
+      current.Nodes.Add($"tkn: {CType(token.RawKind, Microsoft.CodeAnalysis.VisualBasic.SyntaxKind)} [{token.Span.Start}..{token.Span.Length}]")
     Next
 
     If node.ContainsDiagnostics Then
@@ -62,9 +62,9 @@ Friend Class SyntaxTreeForm
 
     If node.HasLeadingTrivia Then
       For Each trivia In node.GetLeadingTrivia
-        Dim txt = m_code.Substring(trivia.FullSpan.Start, node.FullSpan.Length)
+        'Dim txt = m_code.Substring(trivia.FullSpan.Start, node.FullSpan.Length)
         Dim kind = CType(trivia.RawKind, Microsoft.CodeAnalysis.VisualBasic.SyntaxKind)
-        Dim nn = current.Nodes.Add($"L: {kind} '{txt}'")
+        Dim nn = current.Nodes.Add($"L: {kind} [{trivia.Span.Start}..{trivia.Span.Start + trivia.Span.Length - 1}]")
         nn.ForeColor = Color.DarkGray
       Next
     End If
@@ -72,13 +72,13 @@ Friend Class SyntaxTreeForm
     If node.HasTrailingTrivia Then
       For Each trivia In node.GetTrailingTrivia
         Dim kind = CType(trivia.RawKind, Microsoft.CodeAnalysis.VisualBasic.SyntaxKind)
-        Dim txt As String
-        Try
-          txt = m_code.Substring(trivia.FullSpan.Start, node.FullSpan.Length)
-        Catch ex As Exception
-          txt = ex.Message
-        End Try
-        Dim nn = current.Nodes.Add($"T: {kind} {txt}")
+        'Dim txt As String
+        'Try
+        '  txt = m_code.Substring(trivia.FullSpan.Start, node.FullSpan.Length)
+        'Catch ex As Exception
+        '  txt = ex.Message
+        'End Try
+        Dim nn = current.Nodes.Add($"T: {kind} [{trivia.Span.Start}..{trivia.Span.Start + trivia.Span.Length - 1}]")
         nn.ForeColor = Color.DarkGray
       Next
     End If
@@ -108,7 +108,7 @@ Friend Class SyntaxTreeForm
 
     If token IsNot Nothing Then
       For Each trivia In token.LeadingTrivia
-        Dim nn = view.Nodes.Add($"L: {trivia.Kind} '{trivia.Text}'")
+        Dim nn = view.Nodes.Add($"L: {trivia.Kind} [{trivia.Span.Start}..{trivia.Span.Length}]")
         nn.ForeColor = Color.DarkGray
       Next
     End If
@@ -117,11 +117,11 @@ Friend Class SyntaxTreeForm
 
     If syntax.Kind <> SyntaxKind.GlobalStatement Then
 
-      Dim txt = m_code.Substring(syntax.Span.Start, syntax.Span.Length)
+      'Dim txt = m_code.Substring(syntax.Span.Start, syntax.Span.Length)
       If view Is Nothing Then
-        current = TreeView1.Nodes.Add($"{syntax.Kind} '{txt}'")
+        current = TreeView1.Nodes.Add($"{syntax.Kind} [{syntax.Span.Start}..{syntax.Span.Length}]")
       Else
-        current = view.Nodes.Add($"{syntax.Kind} '{txt}'")
+        current = view.Nodes.Add($"{syntax.Kind} [{syntax.Span.Start}..{syntax.Span.Length}]")
       End If
 
       If token IsNot Nothing Then
@@ -133,7 +133,7 @@ Friend Class SyntaxTreeForm
             view.Nodes.Add($" '{token.Text}':{token.Span.Length}")
           End If
         ElseIf token.Value IsNot Nothing Then
-          view.Nodes.Add($" '{token.Value}':{token.Span.Length}")
+          view.Nodes.Add($" '{token.Value}' [{token.Span.Start}..{token.Span.Length}]")
         End If
       End If
 
@@ -144,7 +144,7 @@ Friend Class SyntaxTreeForm
             Dim nn = view.Nodes.Add($"T: {trivia.Kind}")
             nn.ForeColor = Color.DarkGray
           Else
-            Dim nn = view.Nodes.Add($"T: {trivia.Kind} '{trivia.Text}'")
+            Dim nn = view.Nodes.Add($"T: {trivia.Kind}  [{trivia.Span.Start}..{trivia.Span.Length}]")
             nn.ForeColor = Color.DarkGray
           End If
 

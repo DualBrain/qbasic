@@ -7,59 +7,64 @@ Namespace Global.QB.CodeAnalysis.Binding
     Public Overridable Function RewriteStatement(node As BoundStatement) As BoundStatement
       Select Case node.Kind
         Case BoundNodeKind.BlockStatement : Return RewriteBlockStatement(DirectCast(node, BoundBlockStatement))
-        Case BoundNodeKind.ChDirStatement : Return RewriteChDirStatement(DirectCast(node, BoundChDirStatement))
-        Case BoundNodeKind.ClearStatement : Return RewriteClearStatement(DirectCast(node, BoundClearStatement))
-        Case BoundNodeKind.ClsStatement : Return RewriteClsStatement(DirectCast(node, BoundClsStatement))
-        Case BoundNodeKind.ColorStatement : Return RewriteColorStatement(DirectCast(node, BoundColorStatement))
+        'Case BoundNodeKind.ChDirStatement : Return RewriteChDirStatement(DirectCast(node, BoundChDirStatement))
+        'Case BoundNodeKind.ClearStatement : Return RewriteClearStatement(DirectCast(node, BoundClearStatement))
+        'Case BoundNodeKind.ClsStatement : Return RewriteClsStatement(DirectCast(node, BoundClsStatement))
+        'Case BoundNodeKind.ColorStatement : Return RewriteColorStatement(DirectCast(node, BoundColorStatement))
         Case BoundNodeKind.ConditionalGotoStatement : Return RewriteConditionalGotoStatement(DirectCast(node, BoundConditionalGotoStatement))
         Case BoundNodeKind.DoUntilStatement : Return RewriteDoUntilStatement(DirectCast(node, BoundDoUntilStatement))
         Case BoundNodeKind.DoWhileStatement : Return RewriteDoWhileStatement(DirectCast(node, BoundDoWhileStatement))
-        Case BoundNodeKind.EndStatement : Return RewriteEndStatement(DirectCast(node, BoundEndStatement))
+        'Case BoundNodeKind.EndStatement : Return RewriteEndStatement(DirectCast(node, BoundEndStatement))
         Case BoundNodeKind.ExpressionStatement : Return RewriteExpressionStatement(DirectCast(node, BoundExpressionStatement))
         Case BoundNodeKind.ForStatement : Return RewriteForStatement(DirectCast(node, BoundForStatement))
-        Case BoundNodeKind.GosubStatement : Return RewriteGosubStatement(DirectCast(node, BoundGosubStatement))
-        Case BoundNodeKind.GotoStatement : Return RewriteGotoStatement(DirectCast(node, BoundGotoStatement))
+        'Case BoundNodeKind.GosubStatement : Return RewriteGosubStatement(DirectCast(node, BoundGosubStatement))
+        'Case BoundNodeKind.GotoStatement : Return RewriteGotoStatement(DirectCast(node, BoundGotoStatement))
         Case BoundNodeKind.IfStatement : Return RewriteIfStatement(DirectCast(node, BoundIfStatement))
-        Case BoundNodeKind.InputStatement : Return RewriteInputStatement(DirectCast(node, BoundInputStatement))
-        Case BoundNodeKind.KillStatement : Return RewriteKillStatement(DirectCast(node, BoundKillStatement))
-        Case BoundNodeKind.LabelStatement : Return RewriteLabelStatement(DirectCast(node, BoundLabelStatement))
-        Case BoundNodeKind.LetStatement : Return RewriteLetStatement(DirectCast(node, BoundLetStatement))
-        Case BoundNodeKind.MidStatement : Return RewriteMidStatement(DirectCast(node, BoundMidStatement))
-        Case BoundNodeKind.MkDirStatement : Return RewriteMkDirStatement(DirectCast(node, BoundMkDirStatement))
-        Case BoundNodeKind.NameStatement : Return RewriteNameStatement(DirectCast(node, BoundNameStatement))
-        Case BoundNodeKind.NopStatement : Return RewriteNopStatement(DirectCast(node, BoundNopStatement))
-        Case BoundNodeKind.OptionStatement : Return RewriteOptionStatement(DirectCast(node, BoundOptionStatement))
+        'Case BoundNodeKind.InputStatement : Return RewriteInputStatement(DirectCast(node, BoundInputStatement))
+        'Case BoundNodeKind.KillStatement : Return RewriteKillStatement(DirectCast(node, BoundKillStatement))
+        'Case BoundNodeKind.LabelStatement : Return RewriteLabelStatement(DirectCast(node, BoundLabelStatement))
+        'Case BoundNodeKind.LetStatement : Return RewriteLetStatement(DirectCast(node, BoundLetStatement))
+        'Case BoundNodeKind.LocateStatement : Return RewriteLocateStatement(DirectCast(node, BoundLocateStatement))
+        'Case BoundNodeKind.MidStatement : Return RewriteMidStatement(DirectCast(node, BoundMidStatement))
+        'Case BoundNodeKind.MkDirStatement : Return RewriteMkDirStatement(DirectCast(node, BoundMkDirStatement))
+        'Case BoundNodeKind.NameStatement : Return RewriteNameStatement(DirectCast(node, BoundNameStatement))
+        'Case BoundNodeKind.NopStatement : Return RewriteNopStatement(DirectCast(node, BoundNopStatement))
+        'Case BoundNodeKind.OptionStatement : Return RewriteOptionStatement(DirectCast(node, BoundOptionStatement))
         Case BoundNodeKind.PrintStatement : Return RewritePrintStatement(DirectCast(node, BoundPrintStatement))
-        Case BoundNodeKind.PsetStatement : Return RewritePSetStatement(DirectCast(node, BoundPsetStatement))
-        Case BoundNodeKind.PresetStatement : Return RewritePresetStatement(DirectCast(node, BoundPresetStatement))
-        Case BoundNodeKind.RemStatement : Return RewriteRemStatement(DirectCast(node, BoundRemStatement))
-        Case BoundNodeKind.PsetStatement : Return RewritePsetStatement(DirectCast(node, BoundPsetStatement))
-        Case BoundNodeKind.RmDirStatement : Return RewriteRmDirStatement(DirectCast(node, BoundRmDirStatement))
-        Case BoundNodeKind.ReturnGosubStatement : Return RewriteReturnGosubStatement(DirectCast(node, BoundReturnGosubStatement))
+        'Case BoundNodeKind.PsetStatement : Return RewritePSetStatement(DirectCast(node, BoundPsetStatement))
+        'Case BoundNodeKind.PresetStatement : Return RewritePresetStatement(DirectCast(node, BoundPresetStatement))
+        'Case BoundNodeKind.RemStatement : Return RewriteRemStatement(DirectCast(node, BoundRemStatement))
+        'Case BoundNodeKind.PsetStatement : Return RewritePsetStatement(DirectCast(node, BoundPsetStatement))
+        'Case BoundNodeKind.RmDirStatement : Return RewriteRmDirStatement(DirectCast(node, BoundRmDirStatement))
+        'Case BoundNodeKind.ReturnGosubStatement : Return RewriteReturnGosubStatement(DirectCast(node, BoundReturnGosubStatement))
         Case BoundNodeKind.ReturnStatement : Return RewriteReturnStatement(DirectCast(node, BoundReturnStatement))
-        Case BoundNodeKind.ScreenStatement : Return RewriteScreenStatement(DirectCast(node, BoundScreenStatement))
-        Case BoundNodeKind.StopStatement : Return RewriteStopStatement(DirectCast(node, BoundStopStatement))
-        Case BoundNodeKind.SystemStatement : Return RewriteSystemStatement(DirectCast(node, BoundSystemStatement))
+        'Case BoundNodeKind.ScreenStatement : Return RewriteScreenStatement(DirectCast(node, BoundScreenStatement))
+        'Case BoundNodeKind.StopStatement : Return RewriteStopStatement(DirectCast(node, BoundStopStatement))
+        'Case BoundNodeKind.SystemStatement : Return RewriteSystemStatement(DirectCast(node, BoundSystemStatement))
         Case BoundNodeKind.VariableDeclaration : Return RewriteVariableDeclaration(DirectCast(node, BoundVariableDeclaration))
         Case BoundNodeKind.WhileStatement : Return RewriteWhileStatement(DirectCast(node, BoundWhileStatement))
         Case Else
-          Throw New Exception($"Unexpected node: {node.Kind}")
+          'TODO: Might be OK; but could cause problems in *some* situations; see directly above this code.
+          Return node
+          'Throw New Exception($"Unexpected node: {node.Kind}")
       End Select
     End Function
 
     Public Overridable Function RewriteExpression(node As BoundExpression) As BoundExpression
       If node Is Nothing Then Return node
       Select Case node.Kind
-        Case BoundNodeKind.ErrorExpression : Return RewriteErrorExpression(DirectCast(node, BoundErrorExpression))
-        Case BoundNodeKind.LiteralExpression : Return RewriteLiteralExpression(DirectCast(node, BoundLiteralExpression))
-        Case BoundNodeKind.VariableExpression : Return RewriteVariableExpression(DirectCast(node, BoundVariableExpression))
+        'Case BoundNodeKind.ErrorExpression : Return RewriteErrorExpression(DirectCast(node, BoundErrorExpression))
+        'Case BoundNodeKind.LiteralExpression : Return RewriteLiteralExpression(DirectCast(node, BoundLiteralExpression))
+        'Case BoundNodeKind.VariableExpression : Return RewriteVariableExpression(DirectCast(node, BoundVariableExpression))
         Case BoundNodeKind.AssignmentExpression : Return RewriteAssignmentExpression(DirectCast(node, BoundAssignmentExpression))
         Case BoundNodeKind.UnaryExpression : Return RewriteUnaryExpression(DirectCast(node, BoundUnaryExpression))
         Case BoundNodeKind.BinaryExpression : Return RewriteBinaryExpression(DirectCast(node, BoundBinaryExpression))
         Case BoundNodeKind.CallExpression : Return RewriteCallExpression(DirectCast(node, BoundCallExpression))
         Case BoundNodeKind.ConversionExpression : Return RewriteConversionExpression(DirectCast(node, BoundConversionExpression))
         Case Else
-          Throw New Exception($"Unexpected node: {node.Kind}")
+          'TODO: Might be OK; but could cause problems in *some* situations; see directly above this code.
+          Return node
+          'Throw New Exception($"Unexpected node: {node.Kind}")
       End Select
     End Function
 
@@ -108,65 +113,65 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundBlockStatement(builder.MoveToImmutable)
     End Function
 
-    Protected Overridable Function RewriteChDirStatement(node As BoundChDirStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteChDirStatement(node As BoundChDirStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteClearStatement(node As BoundClearStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteClearStatement(node As BoundClearStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteClsStatement(node As BoundClsStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteClsStatement(node As BoundClsStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteColorStatement(node As BoundColorStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteColorStatement(node As BoundColorStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteScreenStatement(node As BoundScreenStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteScreenStatement(node As BoundScreenStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteStopStatement(node As BoundStopStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteStopStatement(node As BoundStopStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteSystemStatement(node As BoundSystemStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteSystemStatement(node As BoundSystemStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewritePsetStatement(node As BoundPsetStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewritePsetStatement(node As BoundPsetStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewritePresetStatement(node As BoundPresetStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewritePresetStatement(node As BoundPresetStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteMkDirStatement(node As BoundMkDirStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteMkDirStatement(node As BoundMkDirStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteInputStatement(node As BoundInputStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteInputStatement(node As BoundInputStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteKillStatement(node As BoundKillStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteKillStatement(node As BoundKillStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteNameStatement(node As BoundNameStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteNameStatement(node As BoundNameStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteRmDirStatement(node As BoundRmDirStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteRmDirStatement(node As BoundRmDirStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteOptionStatement(node As BoundOptionStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteOptionStatement(node As BoundOptionStatement) As BoundStatement
+    '  Return node
+    'End Function
 
     Protected Overridable Function RewritePrintStatement(node As BoundPrintStatement) As BoundStatement
 
@@ -310,21 +315,25 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Function
 
-    Protected Overridable Function RewriteLetStatement(node As BoundLetStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteLetStatement(node As BoundLetStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteMidStatement(node As BoundMidStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteLocateStatement(node As BoundLocateStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteNopStatement(node As BoundNopStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteMidStatement(node As BoundMidStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteRemStatement(node As BoundRemStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteNopStatement(node As BoundNopStatement) As BoundStatement
+    '  Return node
+    'End Function
+
+    'Protected Overridable Function RewriteRemStatement(node As BoundRemStatement) As BoundStatement
+    '  Return node
+    'End Function
 
     Protected Overridable Function RewriteVariableDeclaration(node As BoundVariableDeclaration) As BoundStatement
       Dim initializer = RewriteExpression(node.Initializer)
@@ -389,21 +398,21 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundForStatement(node.Variable, lowerBound, upperBound, stepper, body, node.ExitLabel, node.ContinueLabel)
     End Function
 
-    Protected Overridable Function RewriteLabelStatement(node As BoundLabelStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteLabelStatement(node As BoundLabelStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteGosubStatement(node As BoundGosubStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteGosubStatement(node As BoundGosubStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteGotoStatement(node As BoundGotoStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteGotoStatement(node As BoundGotoStatement) As BoundStatement
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteEndStatement(node As BoundEndStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteEndStatement(node As BoundEndStatement) As BoundStatement
+    '  Return node
+    'End Function
 
     Protected Overridable Function RewriteConditionalGotoStatement(node As BoundConditionalGotoStatement) As BoundStatement
       Dim condition = RewriteExpression(node.Condition)
@@ -413,9 +422,9 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundConditionalGotoStatement(node.Label, condition, node.JumpIfTrue)
     End Function
 
-    Protected Overridable Function RewriteReturnGosubStatement(node As BoundReturnGosubStatement) As BoundStatement
-      Return node
-    End Function
+    'Protected Overridable Function RewriteReturnGosubStatement(node As BoundReturnGosubStatement) As BoundStatement
+    '  Return node
+    'End Function
 
     Protected Overridable Function RewriteReturnStatement(node As BoundReturnStatement) As BoundStatement
       Dim expression = If(node.Expression Is Nothing, Nothing, RewriteExpression(node.Expression))
@@ -434,17 +443,17 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
     End Function
 
-    Private Shared Function RewriteErrorExpression(node As BoundErrorExpression) As BoundExpression
-      Return node
-    End Function
+    'Private Shared Function RewriteErrorExpression(node As BoundErrorExpression) As BoundExpression
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteLiteralExpression(node As BoundLiteralExpression) As BoundExpression
-      Return node
-    End Function
+    'Protected Overridable Function RewriteLiteralExpression(node As BoundLiteralExpression) As BoundExpression
+    '  Return node
+    'End Function
 
-    Protected Overridable Function RewriteVariableExpression(node As BoundVariableExpression) As BoundExpression
-      Return node
-    End Function
+    'Protected Overridable Function RewriteVariableExpression(node As BoundVariableExpression) As BoundExpression
+    '  Return node
+    'End Function
 
     Protected Overridable Function RewriteAssignmentExpression(node As BoundAssignmentExpression) As BoundExpression
       Dim expression = RewriteExpression(node.Expression)

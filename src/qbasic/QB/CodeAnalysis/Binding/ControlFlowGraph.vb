@@ -96,38 +96,40 @@ Namespace Global.QB.CodeAnalysis.Binding
                  BoundNodeKind.ReturnStatement
               m_statements.Add(statement)
               StartBlock()
-            Case BoundNodeKind.ChDirStatement,
-                 BoundNodeKind.ClearStatement,
-                 BoundNodeKind.ClsStatement,
-                 BoundNodeKind.ColorStatement,
-                 BoundNodeKind.EndStatement,
-                 BoundNodeKind.ExpressionStatement,
-                 BoundNodeKind.GosubStatement,
-                 BoundNodeKind.HandleCommaStatement,
-                 BoundNodeKind.HandlePrintLineStatement,
-                 BoundNodeKind.HandlePrintStatement,
-                 BoundNodeKind.HandleSpcStatement,
-                 BoundNodeKind.HandleTabStatement,
-                 BoundNodeKind.InputStatement,
-                 BoundNodeKind.KillStatement,
-                 BoundNodeKind.LetStatement,
-                 BoundNodeKind.NameStatement,
-                 BoundNodeKind.MidStatement,
-                 BoundNodeKind.MkDirStatement,
-                 BoundNodeKind.NopStatement,
-                 BoundNodeKind.RemStatement,
-                 BoundNodeKind.RmDirStatement,
-                 BoundNodeKind.OptionStatement,
-                 BoundNodeKind.PrintStatement,
-                 BoundNodeKind.PsetStatement,
-                 BoundNodeKind.PresetStatement,
-                 BoundNodeKind.ScreenStatement,
-                 BoundNodeKind.StopStatement,
-                 BoundNodeKind.SystemStatement,
-                 BoundNodeKind.VariableDeclaration
-              m_statements.Add(statement)
+              'Case BoundNodeKind.ChDirStatement,
+              '     BoundNodeKind.ClearStatement,
+              '     BoundNodeKind.ClsStatement,
+              '     BoundNodeKind.ColorStatement,
+              '     BoundNodeKind.EndStatement,
+              '     BoundNodeKind.ExpressionStatement,
+              '     BoundNodeKind.GosubStatement,
+              '     BoundNodeKind.HandleCommaStatement,
+              '     BoundNodeKind.HandlePrintLineStatement,
+              '     BoundNodeKind.HandlePrintStatement,
+              '     BoundNodeKind.HandleSpcStatement,
+              '     BoundNodeKind.HandleTabStatement,
+              '     BoundNodeKind.InputStatement,
+              '     BoundNodeKind.KillStatement,
+              '     BoundNodeKind.LetStatement,
+              '     BoundNodeKind.NameStatement,
+              '     BoundNodeKind.MidStatement,
+              '     BoundNodeKind.MkDirStatement,
+              '     BoundNodeKind.NopStatement,
+              '     BoundNodeKind.RemStatement,
+              '     BoundNodeKind.RmDirStatement,
+              '     BoundNodeKind.OptionStatement,
+              '     BoundNodeKind.PrintStatement,
+              '     BoundNodeKind.PsetStatement,
+              '     BoundNodeKind.PresetStatement,
+              '     BoundNodeKind.ScreenStatement,
+              '     BoundNodeKind.StopStatement,
+              '     BoundNodeKind.SystemStatement,
+              '     BoundNodeKind.VariableDeclaration
+              '  m_statements.Add(statement)
             Case Else
-              Throw New Exception($"Unexpected statement: {statement.Kind}")
+              'TODO: Might be OK; but could cause problems in *some* situations; see directly above this code.
+              m_statements.Add(statement)
+              'Throw New Exception($"Unexpected statement: {statement.Kind}")
           End Select
         Next
         EndBlock()
@@ -207,42 +209,46 @@ Namespace Global.QB.CodeAnalysis.Binding
                 Connect(current, elseBlock, elseCondition)
               Case BoundNodeKind.ReturnStatement
                 Connect(current, m_end)
-              Case BoundNodeKind.ChDirStatement,
-                   BoundNodeKind.ClearStatement,
-                   BoundNodeKind.ClsStatement,
-                   BoundNodeKind.ColorStatement,
-                   BoundNodeKind.EndStatement,
-                   BoundNodeKind.ExpressionStatement,
-                   BoundNodeKind.GosubStatement,
-                   BoundNodeKind.HandleCommaStatement,
-                   BoundNodeKind.HandlePrintLineStatement,
-                   BoundNodeKind.HandlePrintStatement,
-                   BoundNodeKind.HandleSpcStatement,
-                   BoundNodeKind.HandleTabStatement,
-                   BoundNodeKind.InputStatement,
-                   BoundNodeKind.KillStatement,
-                   BoundNodeKind.LabelStatement,
-                   BoundNodeKind.LetStatement,
-                   BoundNodeKind.MidStatement,
-                   BoundNodeKind.MkDirStatement,
-                   BoundNodeKind.NameStatement,
-                   BoundNodeKind.NopStatement,
-                   BoundNodeKind.RemStatement,
-                   BoundNodeKind.ReturnGosubStatement,
-                   BoundNodeKind.RmDirStatement,
-                   BoundNodeKind.OptionStatement,
-                   BoundNodeKind.PrintStatement,
-                   BoundNodeKind.PsetStatement,
-                   BoundNodeKind.PresetStatement,
-                   BoundNodeKind.ScreenStatement,
-                   BoundNodeKind.StopStatement,
-                   BoundNodeKind.SystemStatement,
-                   BoundNodeKind.VariableDeclaration
+                'Case BoundNodeKind.ChDirStatement,
+                '     BoundNodeKind.ClearStatement,
+                '     BoundNodeKind.ClsStatement,
+                '     BoundNodeKind.ColorStatement,
+                '     BoundNodeKind.EndStatement,
+                '     BoundNodeKind.ExpressionStatement,
+                '     BoundNodeKind.GosubStatement,
+                '     BoundNodeKind.HandleCommaStatement,
+                '     BoundNodeKind.HandlePrintLineStatement,
+                '     BoundNodeKind.HandlePrintStatement,
+                '     BoundNodeKind.HandleSpcStatement,
+                '     BoundNodeKind.HandleTabStatement,
+                '     BoundNodeKind.InputStatement,
+                '     BoundNodeKind.KillStatement,
+                '     BoundNodeKind.LabelStatement,
+                '     BoundNodeKind.LetStatement,
+                '     BoundNodeKind.MidStatement,
+                '     BoundNodeKind.MkDirStatement,
+                '     BoundNodeKind.NameStatement,
+                '     BoundNodeKind.NopStatement,
+                '     BoundNodeKind.RemStatement,
+                '     BoundNodeKind.ReturnGosubStatement,
+                '     BoundNodeKind.RmDirStatement,
+                '     BoundNodeKind.OptionStatement,
+                '     BoundNodeKind.PrintStatement,
+                '     BoundNodeKind.PsetStatement,
+                '     BoundNodeKind.PresetStatement,
+                '     BoundNodeKind.ScreenStatement,
+                '     BoundNodeKind.StopStatement,
+                '     BoundNodeKind.SystemStatement,
+                '     BoundNodeKind.VariableDeclaration
+                '  If isLastStatementInBlock Then
+                '    Connect(current, [next])
+                '  End If
+              Case Else
+                'TODO: Might be OK; but could cause problems in *some* situations; see directly above this code.
                 If isLastStatementInBlock Then
                   Connect(current, [next])
                 End If
-              Case Else
-                Throw New Exception($"Unexpected statement: {statement.Kind}")
+                'Throw New Exception($"Unexpected statement: {statement.Kind}")
             End Select
           Next
         Next

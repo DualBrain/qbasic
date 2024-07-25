@@ -461,6 +461,8 @@ Namespace Global.QB.CodeAnalysis.Binding
       Select Case syntax.Kind
         Case SyntaxKind.BlockStatement : Return BindBlockStatement(CType(syntax, BlockStatementSyntax))
         Case SyntaxKind.ChDirStatement : Return BindChDirStatement(CType(syntax, ChDirStatementSyntax))
+        Case SyntaxKind.CircleStatement : Return BindCircleStatement(CType(syntax, CircleStatementSyntax))
+        Case SyntaxKind.ColorStatement : Return BindColorStatement(CType(syntax, ColorStatementSyntax))
         Case SyntaxKind.ClearStatement : Return BindClearStatement(CType(syntax, ClearStatementSyntax))
         Case SyntaxKind.ClsStatement : Return BindClsStatement(CType(syntax, ClsStatementSyntax))
         Case SyntaxKind.ColorStatement : Return BindColorStatement(CType(syntax, ColorStatementSyntax))
@@ -493,6 +495,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ScreenKeyword : Return BindScreenStatement(CType(syntax, ScreenStatementSyntax))
         Case SyntaxKind.SingleLineIfStatement : Return BindSingleLineIfStatement(CType(syntax, SingleLineIfStatementSyntax))
         Case SyntaxKind.StopStatement : Return BindStopStatement(CType(syntax, StopStatementSyntax))
+        Case SyntaxKind.SwapStatement : Return BindSwapStatement(CType(syntax, SwapStatementSyntax))
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
@@ -652,6 +655,18 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
       Return New BoundChDirStatement(path)
+    End Function
+
+    Private Function BindCircleStatement(syntax As CircleStatementSyntax) As BoundStatement
+      Dim [step] = syntax.OptionalStepKeyword IsNot Nothing
+      Dim x = BindExpression(syntax.X)
+      Dim y = BindExpression(syntax.Y)
+      Dim radius = BindExpression(syntax.Radius)
+      Dim color = If(syntax.OptionalColor IsNot Nothing, BindExpression(syntax.OptionalColor), Nothing)
+      Dim start = If(syntax.OptionalStart IsNot Nothing, BindExpression(syntax.OptionalStart), Nothing)
+      Dim [end] = If(syntax.OptionalEnd IsNot Nothing, BindExpression(syntax.OptionalEnd), Nothing)
+      Dim aspect = If(syntax.OptionalAspect IsNot Nothing, BindExpression(syntax.OptionalAspect), Nothing)
+      Return New BoundCircleStatement([step], x, y, radius, color, start, [end], aspect)
     End Function
 
     Private Function BindClearStatement(syntax As ClearStatementSyntax) As BoundStatement
@@ -1248,6 +1263,12 @@ Namespace Global.QB.CodeAnalysis.Binding
       If syntax IsNot Nothing Then
       End If
       Return New BoundSystemStatement()
+    End Function
+
+    Private Function BindSwapStatement(syntax As SwapStatementSyntax) As BoundStatement
+      Dim variable1 = BindNameExpression(CType(syntax.Variable1, NameExpressionSyntax))
+      Dim variable2 = BindNameExpression(CType(syntax.Variable2, NameExpressionSyntax))
+      Return New BoundSwapStatement(variable1, variable2)
     End Function
 
     Private Function BindUnaryExpression(syntax As UnaryExpressionSyntax) As BoundExpression

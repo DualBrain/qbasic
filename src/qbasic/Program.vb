@@ -409,8 +409,8 @@ Tip: These topics are also available from the Help menu.
                 End Using
 
                 'm_subs.Clear()
-                For Each line In p.Lines
-                  For Each statement In line.Statements
+                For Each line1 In p.Lines
+                  For Each statement In line1.Statements
                     Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
                     If token IsNot Nothing Then
                       Select Case token.Keyword

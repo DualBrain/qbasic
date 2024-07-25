@@ -3326,7 +3326,7 @@ repeat:
       Dim comma = MatchToken(SyntaxKind.CommaToken)
       Dim variable2 = ParseIdentifier()
 
-      Return New SwapStatementSyntax(m_syntaxTree, swapKeyword, variable1, comma, variable2)
+      Return New SwapStatementSyntax(m_syntaxTree, swapKeyword, New NameExpressionSyntax(m_syntaxTree, variable1), comma, New NameExpressionSyntax(m_syntaxTree, variable2))
 
     End Function
 

@@ -33,8 +33,8 @@ Public Class DocumentPanel
   Public Property Text As String
     Get
       Dim result = ""
-      For Each line In m_document
-        result &= line & vbLf
+      For Each line1 In m_document
+        result &= line1 & vbLf
       Next
       Return result
     End Get
@@ -42,8 +42,8 @@ Public Class DocumentPanel
       Clear() : m_document.Clear()
       value = value.Replace(vbCrLf, vbLf)
       Dim lines = value.Split(vbLf)
-      For Each line In lines
-        m_document.Add(line)
+      For Each line1 In lines
+        m_document.Add(line1)
       Next
     End Set
   End Property
@@ -234,8 +234,8 @@ Public Class DocumentPanel
       If EditorHeight > 3 Then
         ' Determine maximum width of text across all lines
         Dim maxCols = 1
-        For Each line In m_document
-          If line.Length > maxCols Then maxCols = line.Length
+        For Each line1 In m_document
+          If line1.Length > maxCols Then maxCols = line1.Length
         Next
         ' Determine horizontal percent
         Dim percent = CurrentColumn / maxCols

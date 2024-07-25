@@ -11,6 +11,7 @@
     ' Statements
     BlockStatement
     ChDirStatement
+    CircleStatement
     ClearStatement
     ClsStatement
     ColorStatement
@@ -49,6 +50,7 @@
     ScreenStatement
     StopStatement
     SystemStatement
+    SwapStatement
     VariableDeclaration
     WhileStatement
 

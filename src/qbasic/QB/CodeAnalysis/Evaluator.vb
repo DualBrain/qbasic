@@ -75,6 +75,17 @@ Namespace Global.QB.CodeAnalysis
             Dim value = CStr(EvaluateExpression(chdir.Expression))
             System.IO.Directory.SetCurrentDirectory(value)
             index += 1
+          Case BoundNodeKind.CircleStatement
+            Dim circle = CType(s, BoundCircleStatement)
+            Dim x = CInt(EvaluateExpression(circle.X))
+            Dim y = CInt(EvaluateExpression(circle.Y))
+            Dim radius = CSng(EvaluateExpression(circle.Radius))
+            Dim color = If(circle.Color IsNot Nothing, CInt(EvaluateExpression(circle.Color)), New Integer?)
+            Dim start = If(circle.Start IsNot Nothing, CDbl(EvaluateExpression(circle.Start)), New Double?)
+            Dim [end] = If(circle.End IsNot Nothing, CDbl(EvaluateExpression(circle.End)), New Double?)
+            Dim aspect = If(circle.Aspect IsNot Nothing, CDbl(EvaluateExpression(circle.Aspect)), New Double?)
+            QBLib.Video.CIRCLE(x, y, radius, color, start, [end], aspect)
+            index += 1
           Case BoundNodeKind.ClearStatement
             index += 1
           Case BoundNodeKind.ClsStatement
@@ -363,6 +374,22 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.SystemStatement
             index = body.Statements.Length
             m_lastValue = UInt64.MaxValue
+          Case BoundNodeKind.SwapStatement
+            Dim swap = CType(s, BoundSwapStatement)
+            Dim variable1 = CType(swap.Variable1, BoundVariableExpression)
+            Dim variable2 = CType(swap.Variable2, BoundVariableExpression)
+
+            Dim hold = m_globals(variable1.Variable)
+            m_globals(variable1.Variable) = m_globals(variable2.Variable)
+            m_globals(variable2.Variable) = hold
+
+            'Dim locals = m_locals.Peek
+            'Dim hold = locals(variable1.Variable)
+            'locals(variable1.Variable) = locals(variable2.Variable)
+            'locals(variable2.Variable) = hold
+
+            index += 1
+
           Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")

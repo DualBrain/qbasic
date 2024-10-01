@@ -34,6 +34,7 @@
     KillStatement
     LabelStatement
     LetStatement
+    LineStatement
     LocateStatement
     MidStatement
     MkDirStatement

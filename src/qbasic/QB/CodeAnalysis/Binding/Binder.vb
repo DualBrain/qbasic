@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.Immutable
+Imports System.Runtime.InteropServices
 Imports QB.CodeAnalysis.Lowering
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
@@ -480,13 +481,14 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.KillStatement : Return BindKillStatement(CType(syntax, KillStatementSyntax))
         Case SyntaxKind.LabelStatement : Return BindLabelStatement(CType(syntax, LabelStatementSyntax))
         Case SyntaxKind.LetStatement : Return BindLetStatement(CType(syntax, LetStatementSyntax))
+        Case SyntaxKind.LineStatement : Return BindLineStatement(CType(syntax, LineStatementSyntax))
         Case SyntaxKind.LocateStatement : Return BindLocateStatement(CType(syntax, LocateStatementSyntax))
         Case SyntaxKind.MidStatement : Return BindMidStatement(CType(syntax, MidStatementSyntax))
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
-        Case SyntaxKind.PSetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
+        Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
         Case SyntaxKind.ReturnGosubStatement : Return BindReturnGosubStatement(CType(syntax, ReturnGosubStatementSyntax))
@@ -990,6 +992,24 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Shared Function BindLiteralExpression(syntax As LiteralExpressionSyntax) As BoundExpression
       Dim value = If(syntax.Value, 0)
       Return New BoundLiteralExpression(value)
+    End Function
+
+    Private Function BindLineStatement(syntax As LineStatementSyntax) As BoundStatement
+      Dim step1 = syntax.OptionalStep1 IsNot Nothing
+      Dim x1 = If(syntax.OptionalX1 Is Nothing, Nothing, BindExpression(syntax.OptionalX1))
+      Dim y1 = If(syntax.OptionalY1 Is Nothing, Nothing, BindExpression(syntax.OptionalY1))
+      Dim step2 = syntax.OptionalStep2 IsNot Nothing
+      Dim x2 = BindExpression(syntax.X2)
+      Dim y2 = BindExpression(syntax.Y2)
+      Dim attribute = If(syntax.OptionalAttribute Is Nothing, Nothing, BindExpression(syntax.OptionalAttribute))
+      Dim mode As Integer = 0
+      Select Case syntax.OptionalMode?.Text?.ToLower
+        Case "b" : mode = 1
+        Case "bf" : mode = 2
+        Case Else
+      End Select
+      Dim style = If(syntax.OptionalStyle Is Nothing, Nothing, BindExpression(syntax.OptionalStyle))
+      Return New BoundLineStatement(step1, x1, y1, step2, x2, y2, attribute, mode, style)
     End Function
 
     Private Function BindLocateStatement(syntax As LocateStatementSyntax) As BoundStatement

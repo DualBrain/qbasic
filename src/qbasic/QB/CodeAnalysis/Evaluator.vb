@@ -1,6 +1,7 @@
 ﻿Imports QB.CodeAnalysis.Binding
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
+Imports QBLib
 
 Namespace Global.QB.CodeAnalysis
 
@@ -278,6 +279,23 @@ Namespace Global.QB.CodeAnalysis
             index += 1
 
             'EvaluateLetStatement(CType(s, BoundLetStatement)) : index += 1
+
+          Case BoundNodeKind.LineStatement
+
+            Dim ls = CType(s, BoundLineStatement)
+            Dim step1 = ls.Step1
+            Dim x1 = If(ls.X1 IsNot Nothing, CInt(EvaluateExpression(ls.X1)), New Integer?)
+            Dim y1 = If(ls.Y1 IsNot Nothing, CInt(EvaluateExpression(ls.Y1)), New Integer?)
+            Dim step2 = ls.Step2
+            Dim x2 = CInt(EvaluateExpression(ls.X2))
+            Dim y2 = CInt(EvaluateExpression(ls.Y2))
+            Dim attribute = If(ls.Attribute IsNot Nothing, CInt(EvaluateExpression(ls.Attribute)), New Integer?)
+            Dim mode = CType(ls.Mode, LineOption)
+            Dim style = If(ls.Style IsNot Nothing, CInt(EvaluateExpression(ls.Style)), New Integer?)
+
+            QBLib.Video.LINE(step1, x1, y1, step2, x2, y2, attribute, mode)
+
+            index += 1
 
           Case BoundNodeKind.LocateStatement
 

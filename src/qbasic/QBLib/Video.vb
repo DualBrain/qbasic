@@ -1213,9 +1213,9 @@ Namespace Global.QBLib
       Invalidate()
     End Sub
 
-    Public Shared Sub PSET([step] As Boolean, x%, y%, color%)
+    Public Shared Sub PSET([step] As Boolean, x%, y%, color As Integer?)
       If [step] Then x += m_previousX : y += m_previousY
-      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(color)
+      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(If(color, m_fgColor))
       m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
@@ -1227,9 +1227,9 @@ Namespace Global.QBLib
       Invalidate()
     End Sub
 
-    Public Shared Sub PRESET([step] As Boolean, x%, y%, color%)
+    Public Shared Sub PRESET([step] As Boolean, x%, y%, color As Integer?)
       If [step] Then x += m_previousX : y += m_previousY
-      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(color)
+      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(If(color, m_bgColor))
       m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
@@ -1417,7 +1417,7 @@ Namespace Global.QBLib
         px = Math.Cos(start) : py = Math.Sin(start)
         x2 = CInt(px * xspan + 0.5) : y2 = CInt(py * yspan - 0.5)
         'FastLine(ix, iy, ix + x2, iy - y2, col)
-        LINE(ix, iy, ix + x2, iy - y2, attribute)
+        LINE(False, ix, iy, False, ix + x2, iy - y2, attribute)
       End If
 
       px = 1
@@ -1463,7 +1463,7 @@ allplotted:
         px = Math.Cos([end]) : py = Math.Sin([end])
         x2 = CInt(px * xspan + 0.5) : y2 = CInt(py * yspan - 0.5)
         'FastLine(ix, iy, ix + x2, iy - y2, col)
-        LINE(ix, iy, ix + x2, iy - y2, attribute)
+        LINE(False, ix, iy, False, ix + x2, iy - y2, attribute)
       End If
 
       Invalidate()
@@ -1526,10 +1526,30 @@ allplotted:
     '  Return ((c1.A = c2.A) AndAlso (c1.B = c2.B) AndAlso (c1.G = c2.G) AndAlso (c1.R = c2.R))
     'End Function
 
-    Public Shared Sub LINE(x1!, y1!, x2!, y2!, attr%, Optional lo As LineOption = LineOption.None)
+    Public Shared Sub LINE(step1 As Boolean, x1in As Single?, y1in As Single?, step2 As Boolean, x2!, y2!, attr As Integer?, Optional lo As LineOption = LineOption.None, Optional style% = -1)
+
+      Dim x1 As Single
+      Dim y1 As Single
+
+      If x1in Is Nothing OrElse y1in Is Nothing Then
+        ' need to determine the previous x, y
+        x1 = m_previousX
+        y1 = m_previousY
+      Else
+        x1 = CSng(x1in)
+        y1 = CSng(y1in)
+      End If
 
       If x2 < x1 Then SWAP(x1, x2)
       If y2 < y1 Then SWAP(y1, y2)
+
+      If step1 Then
+        ' need to offset the x1, y1 (and x2, y2?) based on previous x,y
+      End If
+
+      If step2 Then
+        ' need to offset the x1, y1 (and x2, y2?) based on previous x,y
+      End If
 
       Select Case lo
         Case LineOption.None
@@ -1549,7 +1569,7 @@ allplotted:
           If dx = 0 Then ' Line is vertical
             If y2 < y1 Then SWAP(y1, y2)
             For y = y1 To y2
-              If rol() Then PSET(False, CInt(x1), CInt(y), attr%) ' Draw(x1, y, p)
+              If rol() Then PSET(False, CInt(x1), CInt(y), attr) ' Draw(x1, y, p)
             Next
             Return
           End If
@@ -1557,7 +1577,7 @@ allplotted:
           If dy = 0 Then ' Line is horizontal
             If x2 < x1 Then SWAP(x1, x2)
             For x = x1 To x2
-              If rol() Then PSET(False, CInt(x), CInt(y1), attr%) ' Draw(x, y1, p)
+              If rol() Then PSET(False, CInt(x), CInt(y1), attr) ' Draw(x, y1, p)
             Next
             Return
           End If
@@ -1576,7 +1596,7 @@ allplotted:
             Else
               x = x2 : y = y2 : xe = x1
             End If
-            If rol() Then PSET(False, CInt(x), CInt(y), attr%) ' Draw(x, y, p)
+            If rol() Then PSET(False, CInt(x), CInt(y), attr) ' Draw(x, y, p)
 
             For i = 0 To xe - x
               x += 1
@@ -1590,7 +1610,7 @@ allplotted:
                 End If
                 px += 2 * (dy1 - dx1)
               End If
-              If rol() Then PSET(False, CInt(x), CInt(y), attr%) ' Draw(x, y, p)
+              If rol() Then PSET(False, CInt(x), CInt(y), attr) ' Draw(x, y, p)
             Next
 
           Else
@@ -1603,7 +1623,7 @@ allplotted:
             Else
               x = x2 : y = y2 : ye = y1
             End If
-            If rol() Then PSET(False, CInt(x), CInt(y), attr%) ' Draw(x, y, p)
+            If rol() Then PSET(False, CInt(x), CInt(y), attr) ' Draw(x, y, p)
 
             For i = 0 To ye - y
               y += 1
@@ -1617,15 +1637,38 @@ allplotted:
                 End If
                 py += 2 * (dx1 - dy1)
               End If
-              If rol() Then PSET(False, CInt(x), CInt(y), attr%) ' Draw(x, y, p)
+              If rol() Then PSET(False, CInt(x), CInt(y), attr) ' Draw(x, y, p)
             Next
 
           End If
 
-          'Case LineOption.B
+        Case LineOption.B
           '  m_pge.DrawRect(CInt(Fix(x1)), CInt(Fix(y1)), CInt(Fix((x2 - x1))) + 1, CInt(Fix(y2 - y1)) + 1, m_palette(attr))
-          'Case LineOption.BF
+
+          LINE(step1, x1, y1, step2, x2, y1, attr, lo, style)
+          LINE(step1, x2, y1, step2, x2, y2, attr, lo, style)
+          LINE(step1, x2, y2, step2, x1, y2, attr, lo, style)
+          LINE(step1, x1, y2, step2, x1, y1, attr, lo, style)
+
+        Case LineOption.BF
           '  m_pge.FillRect(CInt(Fix(x1)), CInt(Fix(y1)), CInt(Fix((x2 - x1))) + 1, CInt(Fix(y2 - y1)) + 1, m_palette(attr))
+
+          If x1 < 0 Then x1 = 0
+          If x1 >= m_screenPixelWidth Then x1 = m_screenPixelWidth
+          If y1 < 0 Then y1 = 0
+          If y1 >= m_screenPixelHeight Then y1 = m_screenPixelHeight
+
+          If x2 < 0 Then x2 = 0
+          If x2 >= m_screenPixelWidth Then x2 = m_screenPixelWidth
+          If y2 < 0 Then y2 = 0
+          If y2 >= m_screenPixelHeight Then y2 = m_screenPixelHeight
+
+          For i = x1 To x2 - 1
+            For j = y1 To y2 - 1
+              PSET(False, CInt(i), CInt(j), attr)
+            Next
+          Next
+
         Case Else
       End Select
       Invalidate()

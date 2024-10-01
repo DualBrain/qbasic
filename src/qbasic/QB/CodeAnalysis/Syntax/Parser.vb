@@ -2041,7 +2041,7 @@ repeat:
 
       If Current.Kind = SyntaxKind.CommaToken Then
         optionalComma4 = MatchToken(SyntaxKind.CommaToken)
-        If Current.Text?.ToLower = "B" OrElse Current.Text?.ToLower = "BF" Then optionalMode = NextToken()
+        If Current.Text?.ToUpper = "B" OrElse Current.Text?.ToUpper = "BF" Then optionalMode = NextToken()
       End If
 
       If Current.Kind = SyntaxKind.CommaToken Then

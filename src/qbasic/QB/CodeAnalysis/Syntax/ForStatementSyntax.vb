@@ -38,7 +38,7 @@
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.ForStatement
     Public ReadOnly Property ForKeyword As SyntaxToken
-    Public ReadOnly Property controlVariable As SyntaxToken
+    Public ReadOnly Property ControlVariable As SyntaxToken
     Public ReadOnly Property EqualsToken As SyntaxToken
     Public ReadOnly Property FromValue As ExpressionSyntax
     Public ReadOnly Property ToKeyword As SyntaxToken

@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Basic</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+    <OptionExplicit>true</OptionExplicit>
+    <OptionStrict>true</OptionStrict>
+    <OptionInfer>true</OptionInfer>
+  </PropertyGroup>
+
+</Project>

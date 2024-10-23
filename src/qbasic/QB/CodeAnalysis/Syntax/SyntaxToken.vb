@@ -47,7 +47,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' A token is missing if it was inserted by the parser and doesn't appear in source
     ''' </summary>
     ''' <returns></returns>
-    Public ReadOnly Property IsMissing As Boolean
+    Public Overloads ReadOnly Property IsMissing As Boolean
 
   End Class
 

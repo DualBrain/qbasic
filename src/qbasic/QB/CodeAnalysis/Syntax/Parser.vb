@@ -1886,6 +1886,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Select Case Current.Kind
         Case SyntaxKind.OpenParenToken
           Stop
+          Return Nothing
         Case SyntaxKind.OffKeyword
           Dim offKeyword = MatchToken(SyntaxKind.OffKeyword)
           Return New KeyOffStatementSyntax(m_syntaxTree, keyKeyword, offKeyword)
@@ -2522,10 +2523,13 @@ repeat:
       Select Case Current.Kind
         Case SyntaxKind.OnKeyword
           Stop
+          Return Nothing
         Case SyntaxKind.OffKeyword
           Stop
+          Return Nothing
         Case SyntaxKind.StopKeyword
           Stop
+          Return Nothing
         Case Else
           Dim command = ParseExpression()
           Return New PlayStatementSyntax(m_syntaxTree, playKeyword, command)

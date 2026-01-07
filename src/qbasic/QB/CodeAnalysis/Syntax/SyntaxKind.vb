@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Public Enum SyntaxKind
 
@@ -208,6 +208,7 @@
     PlayKeyword
     PokeKeyword
     PresetKeyword
+    PreserveKeyword
     PrintKeyword
     PsetKeyword
     PutKeyword
@@ -215,6 +216,7 @@
     RandomizeKeyword
     ReadKeyword
     RedimKeyword
+    RedimPreserveKeyword
     RemKeyword
     ResetKeyword
     RestoreKeyword
@@ -292,6 +294,7 @@
     SingleLineDefDeclaration
     SingleLineIfStatement
     StatementSeparatorStatement
+    VariableDeclaration
     VariableDeclarationStatement
 
     BeepStatement
@@ -412,6 +415,7 @@
 
     ' Expressions
     AssignmentExpression
+    ArrayAccessExpression
     BinaryExpression
     CallExpression
     LiteralExpression

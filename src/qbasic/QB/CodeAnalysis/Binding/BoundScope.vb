@@ -1,8 +1,9 @@
-﻿Option Explicit On
+Option Explicit On
 Option Strict On
 Option Infer On
 
 Imports System.Collections.Immutable
+
 Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis.Binding
@@ -26,14 +27,8 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function TryDeclareSymbol(Of TSymbol As Symbol)(symbol As TSymbol) As Boolean
+
       Dim name = symbol.Name
-      'If (symbol.Kind = SymbolKind.LocalVariable OrElse
-      '    symbol.Kind = SymbolKind.GlobalVariable) AndAlso
-      '   Not "%&!#$".Contains(name.Last) Then
-      '  'TODO: Need to determine type based on DEF... setting.
-      '  '      Until that happens, default to single-precision.
-      '  name &= "!"c
-      'End If
       Dim key = $"{name.ToLower}"
       If symbol.Kind = SymbolKind.Function Then
         Dim f = TryCast(symbol, FunctionSymbol)
@@ -41,11 +36,17 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
       If m_symbols Is Nothing Then
         m_symbols = New Dictionary(Of String, Symbol)
-      ElseIf m_symbols.ContainsKey(key) Then
+      End If
+      If m_symbols.ContainsKey(key) Then
         Return False
       End If
-      m_symbols.Add(key, symbol)
+      m_symbols(key) = symbol
       Return True
+    End Function
+
+    Public Function TryLookupVariable(name As String) As VariableSymbol
+      Dim symbol = TryLookupSymbol(name.ToLower)
+      Return TryCast(symbol, VariableSymbol)
     End Function
 
     Public Function TryLookupFunction(name As String, parameters As List(Of TypeSymbol)) As Symbol

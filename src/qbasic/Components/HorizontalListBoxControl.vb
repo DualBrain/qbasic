@@ -8,7 +8,7 @@
 
   Public Event SelectedIndexChanged As EventHandler(Of EventArgs)
 
-  Private m_itemWidth As Integer = -1
+  Private ReadOnly m_itemWidth As Integer = -1
 
   Public ReadOnly Property SelectedItem As String
     Get

@@ -4,7 +4,7 @@ Imports QB.CodeAnalysis.Syntax
 Friend Class SyntaxTreeForm
 
   Private m_code As String
-  Private m_vb As Boolean
+  Private ReadOnly m_vb As Boolean
 
   Friend Sub New(code As String, Optional vb As Boolean = False)
 

@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Symbols
+Namespace Global.QB.CodeAnalysis.Symbols
 
   Public Enum SymbolKind
     [Function]
@@ -6,6 +6,7 @@
     LocalVariable
     Parameter
     Type
+    Variable
   End Enum
 
 End Namespace

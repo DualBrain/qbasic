@@ -1,5 +1,6 @@
-﻿Imports VbPixelGameEngine
 Imports QBLib.Core
+
+Imports VbPixelGameEngine
 
 Namespace Global.QBLib
 
@@ -840,6 +841,7 @@ Namespace Global.QBLib
     End Sub
 
     Friend Shared m_cursorVisible As Boolean = True
+    Friend Shared StdoutMode As Boolean = False
     Private Shared m_cursorStart As Integer = 6
     Public Shared ReadOnly Property CursorStart As Integer
       Get
@@ -919,6 +921,15 @@ Namespace Global.QBLib
     End Sub
 
     Public Shared Sub CLS()
+      If StdoutMode Then
+        Try
+          Console.Clear()
+        Catch
+          ' Ignore if console clear fails
+        End Try
+        Return
+      End If
+
       For index = 0 To Screen0.Length - 1
         Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
       Next
@@ -1141,9 +1152,20 @@ Namespace Global.QBLib
     End Sub
 
     Public Shared Sub PRINT(text As String, Optional noCr As Boolean = False, Optional noScroll As Boolean = False)
+      If StdoutMode Then
+        ' Output to console
+        If text IsNot Nothing Then
+          Console.Write(text)
+        End If
+        If Not noCr Then
+          Console.WriteLine()
+        End If
+        Return
+      End If
+
       'TODO: (Possibly) Need to take into account the usage of TAB
       '      Tab should return a token that can then be used
-      '      within the PRINT statement in order to do 
+      '      within the PRINT statement in order to do
       '      specific formatting.  This is because the TAB
       '      could be called after other formatting (USING) takes
       '      place.  So should determine the total output and then

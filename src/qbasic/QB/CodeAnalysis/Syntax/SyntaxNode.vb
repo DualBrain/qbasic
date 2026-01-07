@@ -1,4 +1,5 @@
 ﻿Imports System.Reflection
+
 Imports QB.CodeAnalysis.Text
 
 Namespace Global.QB.CodeAnalysis.Syntax

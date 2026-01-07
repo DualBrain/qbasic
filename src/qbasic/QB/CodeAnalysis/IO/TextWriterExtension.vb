@@ -1,8 +1,9 @@
 ﻿Imports System.CodeDom.Compiler
 Imports System.IO
 Imports System.Runtime.CompilerServices
-Imports QB.CodeAnalysis.Syntax
+
 Imports QB.CodeAnalysis
+Imports QB.CodeAnalysis.Syntax
 'Imports System.Console
 'Imports System.ConsoleColor
 Imports QB.CodeAnalysis.Text

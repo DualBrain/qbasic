@@ -1,7 +1,8 @@
-﻿Imports QB.CodeAnalysis.Symbols
+Imports Mono.Cecil
+
+Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 Imports QB.CodeAnalysis.Text
-Imports Mono.Cecil
 
 Namespace Global.QB.CodeAnalysis
 
@@ -33,7 +34,7 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Public Sub Concat(diagnostics As DiagnosticBag)
-      m_diagnostics.Concat(diagnostics.m_diagnostics)
+      m_diagnostics.AddRange(diagnostics)
     End Sub
 
     Public Sub ReportInvalidNumber(location As TextLocation, text As String, type As TypeSymbol)
@@ -95,6 +96,50 @@ Namespace Global.QB.CodeAnalysis
 
     Public Sub ReportSymbolAlreadyDeclared(location As TextLocation, name As String)
       ReportError(location, $"'{name}' is already declared.")
+    End Sub
+
+    Public Sub ReportArrayAlreadyDimensioned(name As String)
+      ReportError(Nothing, $"Array '{name}' is already dimensioned.")
+    End Sub
+
+    Public Sub ReportInvalidArrayBounds(location As TextLocation, lower As Integer, upper As Integer)
+      ReportError(location, $"Array bounds are invalid: {lower} to {upper}. Lower bound must be less than or equal to upper bound.")
+    End Sub
+
+    Public Sub ReportRedimTypeMismatch(location As TextLocation, name As String, existingType As String, newType As String)
+      ReportError(location, $"REDIM cannot change the data type of array '{name}' from {existingType} to {newType}.")
+    End Sub
+
+    Public Sub ReportRedimOnStaticArray(location As TextLocation, name As String)
+      ReportError(location, $"Cannot REDIM static array '{name}'. Static arrays cannot be redimensioned.")
+    End Sub
+
+    Public Sub ReportRedimDimensionCountMismatch(location As TextLocation, name As String, existingDimensions As Integer, newDimensions As Integer)
+      ReportError(location, $"REDIM cannot change the number of dimensions of array '{name}' from {existingDimensions} to {newDimensions}.")
+    End Sub
+
+    Public Sub ReportArgumentMustBeArray(location As TextLocation, functionName As String)
+      ReportError(location, $"Argument to {functionName} must be an array.")
+    End Sub
+
+    Public Sub ReportEraseRequiresArray(location As TextLocation, name As String)
+      ReportError(location, $"ERASE can only be used on arrays, not on variable '{name}'.")
+    End Sub
+
+    Public Sub ReportArraySizeTooLarge(location As TextLocation, size As Long)
+      ReportError(location, $"Array size {size} is too large. Maximum allowed is 65535 elements.")
+    End Sub
+
+    Public Sub ReportArrayBoundsOutOfRange(location As TextLocation)
+      ReportError(location, "Array bounds are out of valid range (-32768 to 32767).")
+    End Sub
+
+    Public Sub ReportOptionBaseAlreadyDeclared(location As TextLocation)
+      ReportError(location, $"OPTION BASE can only be specified once per module.")
+    End Sub
+
+    Public Sub ReportInvalidOptionBaseValue(location As TextLocation, value As Integer)
+      ReportError(location, $"OPTION BASE value must be 0 or 1, not {value}.")
     End Sub
 
     Public Sub ReportCannotAssign(location As TextLocation, name As String)
@@ -191,7 +236,7 @@ Namespace Global.QB.CodeAnalysis
           ' Report just for non empty blocks.
           If firstStatement IsNot Nothing Then ReportUnreachableCode(firstStatement)
         Case SyntaxKind.VariableDeclarationStatement
-          ReportUnreachableCode(CType(node, VariableDeclarationSyntax).KeywordToken.Location)
+          ReportUnreachableCode(CType(node, VariableDeclarationSyntax).Identifier.Location)
         Case SyntaxKind.IfStatement
           ReportUnreachableCode(CType(node, IfStatementSyntax).IfKeyword.Location)
         Case SyntaxKind.WhileStatement

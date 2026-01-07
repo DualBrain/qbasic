@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Friend Class IdentifierExpressionSyntax
     Inherits ExpressionSyntax
@@ -9,6 +9,14 @@
       OpenParen = identifier.OpenParen
       Arguments = identifier.Arguments
       CloseParen = identifier.CloseParen
+    End Sub
+
+    Public Sub New(tree As SyntaxTree, identifier As SyntaxToken)
+      MyBase.New(tree)
+      Me.Identifier = identifier
+      Me.OpenParen = Nothing
+      Me.Arguments = Nothing
+      Me.CloseParen = Nothing
     End Sub
 
     Public Sub New(tree As SyntaxTree, identifier As SyntaxToken, openParen As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeParen As SyntaxToken)

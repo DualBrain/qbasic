@@ -1,7 +1,7 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Public Class IdentifierSyntax
-    Inherits SyntaxNode
+    Inherits ExpressionSyntax
 
     Public Sub New(tree As SyntaxTree, identifier As SyntaxToken, openParen As SyntaxToken, arguments As SeparatedSyntaxList(Of ExpressionSyntax), closeParen As SyntaxToken)
       MyBase.New(tree)

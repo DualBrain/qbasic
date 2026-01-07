@@ -1,6 +1,7 @@
-﻿Imports System.CodeDom.Compiler
+Imports System.CodeDom.Compiler
 Imports System.IO
 Imports System.Runtime.CompilerServices
+
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 Imports QB.IO
@@ -70,6 +71,8 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Sub WriteHandlePrintStatement(node As BoundHandlePrintStatement, writer As IndentedTextWriter)
       writer.WriteKeyword("HandlePrint(")
       node.Expression.WriteTo(writer)
+      writer.WriteKeyword(", ")
+      writer.WriteKeyword(node.NoCr.ToString())
       writer.WriteKeyword(")")
       writer.WriteLine()
     End Sub
@@ -373,7 +376,11 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Sub
 
     Private Sub WriteAssignmentExpression(node As BoundAssignmentExpression, writer As IndentedTextWriter)
-      writer.WriteIdentifier(node.Variable.Name)
+      If TypeOf node.Variable Is BoundVariableExpression Then
+        writer.WriteIdentifier(CType(node.Variable, BoundVariableExpression).Variable.Name)
+      Else
+        node.Variable.WriteTo(writer)
+      End If
       writer.WriteSpace
       writer.WritePunctuation(SyntaxKind.EqualToken)
       writer.WriteSpace

@@ -1,5 +1,6 @@
 ﻿Imports System.Collections.Immutable
 Imports System.Text
+
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Text
 

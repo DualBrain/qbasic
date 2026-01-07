@@ -1,32 +1,199 @@
 Imports System.Drawing
 Imports System.IO
 Imports System.IO.Compression
+Imports System.Linq
 Imports System.Reflection
 Imports System.Runtime.InteropServices
 'Imports System.Runtime.InteropServices '.OSPlatform
 Imports System.Runtime.InteropServices.RuntimeInformation
 Imports System.Text
 
-Imports VbPixelGameEngine
+Imports Basic
+
+Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib.Video
-Imports Basic.Parser
-Imports Basic
+
+Imports VbPixelGameEngine
 
 Friend Module Program
 
-  Sub Main()
-    Dim demo As New QBasic
-    If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
-      demo.ShowEngineName = False : demo.ShowIPS = False
-      demo.Start()
+  Sub Main(args As String())
+    If args.Length > 0 Then
+      If Not HandleCommandLineArguments(args) Then
+        ' Command line processing failed or showed help/error, exit
+        Return
+      End If
+    Else
+      ' No arguments, start GUI normally
+      Dim demo As New QBasic
+      If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
+        demo.ShowEngineName = False : demo.ShowIPS = False
+        demo.Start()
+      End If
     End If
+  End Sub
+
+  Private Function HandleCommandLineArguments(args As String()) As Boolean
+    Dim filename As String = Nothing
+    Dim showSyntaxTree As Boolean = False
+    Dim showMethods As Boolean = False
+    Dim stdoutMode As Boolean = False
+    Dim showHelp As Boolean = False
+
+    For Each arg In args
+      If arg.StartsWith("--") OrElse arg.StartsWith("-") Then
+        Select Case arg.ToLower()
+          Case "--syntax-tree", "-t"
+            showSyntaxTree = True
+          Case "--methods", "-m"
+            showMethods = True
+          Case "--stdout", "-s"
+            stdoutMode = True
+          Case "--help", "-h"
+            showHelp = True
+          Case Else
+            Console.WriteLine($"Unknown option: {arg}")
+            ShowUsage()
+            Return False
+        End Select
+      ElseIf arg.EndsWith(".bas", StringComparison.OrdinalIgnoreCase) Then
+        If filename IsNot Nothing Then
+          Console.WriteLine("Error: Multiple .bas files specified")
+          ShowUsage()
+          Return False
+        End If
+        filename = arg
+      Else
+        Console.WriteLine($"Unknown argument: {arg}")
+        ShowUsage()
+        Return False
+      End If
+    Next
+
+    If showHelp Then
+      ShowUsage()
+      Return False
+    End If
+
+    If showSyntaxTree Or showMethods Then
+      If filename Is Nothing Then
+        Console.WriteLine("Error: --syntax-tree or --methods requires a .bas file")
+        ShowUsage()
+        Return False
+      End If
+      HandleAnalysisMode(filename, showSyntaxTree, showMethods)
+      Return False ' Exit after showing analysis
+    ElseIf filename IsNot Nothing AndAlso stdoutMode Then
+      HandleRunMode(filename, stdoutMode)
+      Return False ' Exit after running program
+    ElseIf filename IsNot Nothing Then
+      ' Load file into IDE
+      Dim demo As New QBasic(filename)
+      If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
+        demo.ShowEngineName = False : demo.ShowIPS = False
+        demo.Start()
+      End If
+      Return False
+    Else
+      Console.WriteLine("Error: No .bas file specified")
+      ShowUsage()
+      Return False
+    End If
+  End Function
+
+  Private Sub ShowUsage()
+    Console.WriteLine("QBasic Interpreter")
+    Console.WriteLine()
+    Console.WriteLine("Usage:")
+    Console.WriteLine("  qbasic                         Start GUI IDE")
+    Console.WriteLine("  qbasic <filename.bas>          Load file into GUI IDE")
+    Console.WriteLine("  qbasic <filename.bas> --stdout Run program in console")
+    Console.WriteLine("  qbasic <filename.bas> [options] Analyze QBasic program")
+    Console.WriteLine()
+    Console.WriteLine("Options:")
+    Console.WriteLine("  --syntax-tree, -t    Display syntax tree")
+    Console.WriteLine("  --methods, -m        Display method definitions (SUB, FUNCTION, DEF FN)")
+    Console.WriteLine("  --stdout, -s         Run program and output to console instead of GUI")
+    Console.WriteLine("  --help, -h           Show this help message")
+    Console.WriteLine()
+    Console.WriteLine("Examples:")
+    Console.WriteLine("  qbasic program.bas")
+    Console.WriteLine("  qbasic program.bas --syntax-tree")
+    Console.WriteLine("  qbasic program.bas --methods")
+    Console.WriteLine("  qbasic --help")
+  End Sub
+
+  Private Sub HandleAnalysisMode(filename As String, showSyntaxTree As Boolean, showMethods As Boolean)
+    Try
+      Dim sourceText = File.ReadAllText(filename)
+      Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(sourceText)
+
+      If showSyntaxTree Then
+        Console.WriteLine("Syntax Tree:")
+        Console.WriteLine(syntaxTree.Root.ToString())
+      End If
+
+      If showMethods Then
+        Console.WriteLine("Methods (SUB, FUNCTION, DEF FN):")
+        FindAndDisplayMethods(syntaxTree.Root)
+      End If
+
+    Catch ex As Exception
+      Console.WriteLine($"Error: {ex.Message}")
+    End Try
+  End Sub
+
+  Private Sub FindAndDisplayMethods(node As SyntaxNode)
+    ' Check if this node itself is a method definition
+    If TypeOf node Is FunctionDeclarationSyntax Then
+      Dim func = CType(node, FunctionDeclarationSyntax)
+      Console.WriteLine($"FUNCTION {func.Identifier.Text}")
+    ElseIf TypeOf node Is FunctionStatementSyntax Then
+      Dim funcStmt = CType(node, FunctionStatementSyntax)
+      Console.WriteLine($"FUNCTION {funcStmt.Identifier.Text}")
+    ElseIf TypeOf node Is DefDeclarationSyntax Then
+      Console.WriteLine("DEF FN")
+    ElseIf TypeOf node Is SingleLineDefDeclarationSyntax Then
+      Console.WriteLine("DEF FN")
+    ElseIf TypeOf node Is SubStatementSyntax Then
+      Dim subStmt = CType(node, SubStatementSyntax)
+      Console.WriteLine($"SUB {subStmt.Identifier.Text}")
+    End If
+
+    ' Recursively search child nodes
+    For Each child In node.GetChildren()
+      FindAndDisplayMethods(child)
+    Next
+  End Sub
+
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean)
+    Try
+      Dim sourceText = File.ReadAllText(filename)
+      If Not stdoutMode Then
+        Console.WriteLine($"Running program: {filename}")
+        ' Initialize graphics for GUI mode
+        QBLib.Video.ScreenInit()
+      End If
+
+      ' Set stdout mode
+      QBLib.Video.StdoutMode = stdoutMode
+
+      ' Create interpreter and run the program
+      Dim interpreter = New QB.Interpreter()
+      interpreter.Run(sourceText)
+
+    Catch ex As Exception
+      Console.WriteLine($"Error: {ex.Message}")
+    End Try
   End Sub
 
 End Module
 
 Friend Class QBasic
   Inherits PixelGameEngine
+
+  Private ReadOnly m_initialFile As String
 
   'Private m_selected As Integer
   Private m_result As DialogResult = DialogResult.None
@@ -61,9 +228,80 @@ Friend Class QBasic
   Private m_cr As Integer
   Private m_cc As Integer
 
-  Friend Sub New()
+  Friend Sub New(Optional initialFile As String = Nothing)
     AppName = "Community QBasic"
+    m_initialFile = initialFile
     m_pathspec = System.IO.Path.Combine(System.Environment.CurrentDirectory(), If(IsOSPlatform(OSPlatform.Windows), "*.BAS", "*.*"))
+  End Sub
+
+  Private Sub LoadFile(path As String)
+    m_path = path
+    If System.IO.File.Exists(m_path) Then
+
+      Document1.Clear()
+      Document2.Clear()
+
+      Dim code = System.IO.File.ReadAllText(m_path)
+      Document1.Text = code
+      Document1.Title = System.IO.Path.GetFileName(m_path)
+
+      ' B#
+      Dim tree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(code)
+      Document2.Text = tree.Root.ToString
+      Document2.Title = "Tree"
+
+      ' GW - commented out as p is not initialized
+      ' Dim p As Basic.Parser.Parser
+      ' Using s As New MemoryStream()
+      '   Dim buffer() = code.ToByteArray
+      '   s.Write(buffer, 0, buffer.Length)
+      '   s.Seek(0, SeekOrigin.Begin)
+      ' End Using
+
+      ' 'm_subs.Clear()
+      ' For Each line1 In p.Lines
+      '   For Each statement In line1.Statements
+      '     Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
+      '     If token IsNot Nothing Then
+      '       Select Case token.Keyword
+      '         Case "END"
+      '           Dim nextToken = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+      '           If nextToken Is Nothing Then
+      '           ElseIf nextToken?.Keyword = "FUNCTION" Then
+      '           ElseIf nextToken?.Keyword = "IF" Then
+      '           ElseIf nextToken?.Keyword = "SELECT" Then
+      '           ElseIf nextToken?.Keyword = "SUB" Then
+      '           ElseIf nextToken?.Keyword = "TYPE" Then
+      '           Else
+      '             Stop
+      '           End If
+      '         Case "BEEP"
+      '         Case "CALL", "CIRCLE", "CLS", "COLOR"
+      '         Case "DEFINT", "DEF", "DIM"
+      '         Case "ELSE", "END"
+      '         Case "FOR"
+      '         Case "GET", "GOSUB"
+      '         Case "IF", "INPUT"
+      '         Case "LET", "LINE", "LOCATE"
+      '         Case "NEXT"
+      '         Case "ON"
+      '         Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
+      '         Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
+      '         Case "SCREEN"
+      '         Case "VIEW"
+      '         Case "WEND", "WHILE", "WIDTH"
+      '         Case "SUB", "FUNCTION"
+      '           token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+
+      '         Case Else
+      '           Debug.WriteLine(token.Keyword)
+      '       End Select
+      '     End If
+      '     Exit For
+      '   Next
+      ' Next
+
+    End If
   End Sub
 
   <DllImport("user32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
@@ -195,6 +433,11 @@ Friend Class QBasic
     m_context = New WelcomeDialog()
 
     DrawScreen()
+
+    If m_initialFile IsNot Nothing Then
+      LoadFile(m_initialFile)
+      DrawScreen()
+    End If
 
     'InterpreterTimer.Enabled = True
 
@@ -400,58 +643,58 @@ Tip: These topics are also available from the Help menu.
                 Document2.Title = "Tree"
 
                 ' GW
-                Dim p As Basic.Parser.Parser
+                Dim p As Basic.Parser.Parser = Nothing
                 Using s As New MemoryStream()
                   Dim buffer() = code.ToByteArray
                   s.Write(buffer, 0, buffer.Length)
                   s.Seek(0, SeekOrigin.Begin)
-                  p = New Parser(s)
+
                 End Using
 
                 'm_subs.Clear()
-                For Each line1 In p.Lines
-                  For Each statement In line1.Statements
-                    Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
-                    If token IsNot Nothing Then
-                      Select Case token.Keyword
-                        Case "END"
-                          Dim nextToken = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
-                          If nextToken Is Nothing Then
-                          ElseIf nextToken?.Keyword = "FUNCTION" Then
-                          ElseIf nextToken?.Keyword = "IF" Then
-                          ElseIf nextToken?.Keyword = "SELECT" Then
-                          ElseIf nextToken?.Keyword = "SUB" Then
-                          ElseIf nextToken?.Keyword = "TYPE" Then
-                          Else
-                            Stop
-                          End If
-                        Case "BEEP"
-                        Case "CALL", "CIRCLE", "CLS", "COLOR"
-                        Case "DEFINT", "DEF", "DIM"
-                        Case "ELSE", "END"
-                        Case "FOR"
-                        Case "GET", "GOSUB"
-                        Case "IF", "INPUT"
-                        Case "LET", "LINE", "LOCATE"
-                        Case "NEXT"
-                        Case "ON"
-                        Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
-                        Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
-                        Case "SCREEN"
-                        Case "VIEW"
-                        Case "WEND", "WHILE", "WIDTH"
-                        Case "SUB", "FUNCTION"
-                          token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
-                          If TypeOf token Is IdentifierToken Then
-                            m_subs.Add(token.ToString)
-                          End If
-                        Case Else
-                          Debug.WriteLine(token.Keyword)
-                      End Select
-                    End If
-                    Exit For
+                If p IsNot Nothing Then
+                  For Each line1 In p.Lines
+                    For Each statement In line1.Statements
+                      Dim token = If(statement?.Tokens?.Count > 0, statement.Tokens(0), Nothing)
+                      If token IsNot Nothing Then
+                        Select Case token.Keyword
+                          Case "END"
+                            Dim nextToken = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+                            If nextToken Is Nothing Then
+                            ElseIf nextToken?.Keyword = "FUNCTION" Then
+                            ElseIf nextToken?.Keyword = "IF" Then
+                            ElseIf nextToken?.Keyword = "SELECT" Then
+                            ElseIf nextToken?.Keyword = "SUB" Then
+                            ElseIf nextToken?.Keyword = "TYPE" Then
+                            Else
+                              Stop
+                            End If
+                          Case "BEEP"
+                          Case "CALL", "CIRCLE", "CLS", "COLOR"
+                          Case "DEFINT", "DEF", "DIM"
+                          Case "ELSE", "END"
+                          Case "FOR"
+                          Case "GET", "GOSUB"
+                          Case "IF", "INPUT"
+                          Case "LET", "LINE", "LOCATE"
+                          Case "NEXT"
+                          Case "ON"
+                          Case "PAINT", "PALETTE", "PLAY", "POKE", "PRINT", "PSET", "PUT"
+                          Case "RANDOMIZE", "READ", "REM", "RESTORE", "RESUME", "RETURN"
+                          Case "SCREEN"
+                          Case "VIEW"
+                          Case "WEND", "WHILE", "WIDTH"
+                          Case "SUB", "FUNCTION"
+                            token = If(statement?.Tokens?.Count > 1, statement.Tokens(1), Nothing)
+
+                          Case Else
+                            Debug.WriteLine(token.Keyword)
+                        End Select
+                      End If
+                      Exit For
+                    Next
                   Next
-                Next
+                End If
 
               End If
             Case DialogResult.Cancel

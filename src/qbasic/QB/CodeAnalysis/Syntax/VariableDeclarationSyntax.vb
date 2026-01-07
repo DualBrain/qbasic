@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Public NotInheritable Class ConstStatementSyntax
     Inherits StatementSyntax
@@ -46,23 +46,22 @@
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree,
-                   identifierToken As SyntaxToken,
-                   dimensions As DimensionsClauseSyntax,
+                   identifier As SyntaxToken,
+                   bounds As DimensionsClauseSyntax,
                    asClause As AsClause,
-                   initClause As InitClauseSyntax)
+                   initializer As InitClauseSyntax)
       MyBase.New(tree)
-      Me.IdentifierToken = identifierToken
-      Me.Dimensions = dimensions
+      Me.Identifier = identifier
+      Me.Bounds = bounds
       Me.AsClause = asClause
-      Me.InitClause = initClause
+      Me.Initializer = initializer
     End Sub
 
-    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.VariableDeclarationStatement
-    Public ReadOnly Property KeywordToken As SyntaxToken
-    Public ReadOnly Property IdentifierToken As SyntaxToken
-    Public ReadOnly Property Dimensions As DimensionsClauseSyntax
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.VariableDeclaration
+    Public ReadOnly Property Identifier As SyntaxToken
+    Public ReadOnly Property Bounds As DimensionsClauseSyntax
     Public ReadOnly Property AsClause As AsClause
-    Public ReadOnly Property InitClause As InitClauseSyntax
+    Public ReadOnly Property Initializer As InitClauseSyntax
 
   End Class
 

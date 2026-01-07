@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.Immutable
+
 Imports QB.CodeAnalysis.Syntax
 
 Namespace Global.QB.CodeAnalysis.Symbols

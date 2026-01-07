@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Symbols
+Namespace Global.QB.CodeAnalysis.Symbols
 
   Public NotInheritable Class TypeSymbol
     Inherits Symbol

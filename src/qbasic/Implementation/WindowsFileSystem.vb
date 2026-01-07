@@ -18,9 +18,9 @@ Public Class WindowsFileSystem
   ' Implementation notes: 
   ' * If a file is "open", it is included in the dictionary.
   ' * If a file is "closed", it is not included in the dictionary.
-  Private m_fileHandleList As New Dictionary(Of String, FileHandle)
+  Private ReadOnly m_fileHandleList As New Dictionary(Of String, FileHandle)
 
-  Private m_basePath As String = IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), "gw-basic")
+  Private ReadOnly m_basePath As String = IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), "gw-basic")
 
   Public Sub New()
     If Not IO.Directory.Exists(m_basePath) Then

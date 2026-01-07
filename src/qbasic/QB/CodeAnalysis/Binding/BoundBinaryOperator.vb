@@ -42,7 +42,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     ' 02 EQV
     ' 01 IMP
 
-    Private Shared m_operators As New List(Of BoundBinaryOperator)
+    Private Shared ReadOnly m_operators As New List(Of BoundBinaryOperator)
 
     'Private Shared ReadOnly m_operators As BoundBinaryOperator() =
     '  {New BoundBinaryOperator(SyntaxKind.HatToken, BoundBinaryOperatorKind.Raise, TypeSymbol.Integer),

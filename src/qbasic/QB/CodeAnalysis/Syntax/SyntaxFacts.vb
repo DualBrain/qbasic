@@ -1,4 +1,4 @@
-﻿' Presedence
+' Presedence
 ' -------------------------
 ' 14 ()
 ' 13 ^
@@ -216,6 +216,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "play" : Return SyntaxKind.PlayKeyword
         Case "poke" : Return SyntaxKind.PokeKeyword
         Case "preset" : Return SyntaxKind.PresetKeyword
+        Case "preserve" : Return SyntaxKind.PreserveKeyword
         Case "print" : Return SyntaxKind.PrintKeyword
         Case "pset" : Return SyntaxKind.PsetKeyword
         Case "put" : Return SyntaxKind.PutKeyword

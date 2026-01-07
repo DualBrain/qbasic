@@ -1,12 +1,15 @@
-﻿Imports System.Collections.Immutable
-Imports QB.CodeAnalysis.Binding
-Imports Ccl = Mono.Cecil
-Imports QB.CodeAnalysis.Symbols
-Imports Mono.Cecil.Cil
-Imports Mono.Cecil
-Imports Mono.Cecil.Rocks
-Imports QB.CodeAnalysis.Syntax
+Imports System.Collections.Immutable
 Imports System.Text
+
+Imports Mono.Cecil
+Imports Mono.Cecil.Cil
+Imports Mono.Cecil.Rocks
+
+Imports QB.CodeAnalysis.Binding
+Imports QB.CodeAnalysis.Symbols
+Imports QB.CodeAnalysis.Syntax
+
+Imports Ccl = Mono.Cecil
 
 Namespace Global.QB.CodeAnalysis.Emit
 
@@ -206,7 +209,8 @@ Namespace Global.QB.CodeAnalysis.Emit
     End Sub
 
     Private Sub EmitAssignmentExpression(ilProcessor As ILProcessor, node As BoundAssignmentExpression)
-      Dim variableDefinition = _locals(node.Variable)
+      Dim variable = CType(node.Variable, BoundVariableExpression).Variable
+      Dim variableDefinition = _locals(variable)
       EmitExpression(ilProcessor, node.Expression)
       ilProcessor.Emit(OpCodes.Dup)
       ilProcessor.Emit(OpCodes.Stloc, variableDefinition)
@@ -420,7 +424,11 @@ Namespace Global.QB.CodeAnalysis.Emit
 
     Private Sub EmitHandlePrintStatement(ilProcessor As ILProcessor, node As BoundHandlePrintStatement)
       EmitExpression(ilProcessor, node.Expression)
-      ilProcessor.Emit(OpCodes.Call, _consoleWriteReference)
+      If node.NoCr Then
+        ilProcessor.Emit(OpCodes.Call, _consoleWriteReference)
+      Else
+        ilProcessor.Emit(OpCodes.Call, _consoleWriteLineReference)
+      End If
     End Sub
 
     Private Shared Sub EmitHandleSpcStatement(ilProcessor As ILProcessor, node As BoundHandleSpcStatement)

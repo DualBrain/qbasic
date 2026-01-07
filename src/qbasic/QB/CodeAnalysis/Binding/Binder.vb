@@ -1,5 +1,6 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
+
 Imports QB.CodeAnalysis.Lowering
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
@@ -17,6 +18,9 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private ReadOnly Property Diagnostics As DiagnosticBag = New DiagnosticBag
     Private ReadOnly m_loopStack As New Stack(Of (ExitLabel As BoundLabel, ContinueLabel As BoundLabel))
     Private m_labelCounter As Integer
+    Private m_optionBase As Integer = 0 ' Default to 0 as per QBasic spec
+    Private m_optionBaseDeclared As Boolean = False ' Track if OPTION BASE was already declared
+    Private m_arrayModeDynamic As Boolean = True ' Track current $DYNAMIC/$STATIC metacommand state (default $DYNAMIC)
 
     Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol)
       m_scope = New BoundScope(parent)
@@ -422,10 +426,18 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ParenExpression : Return BindParenExpression(CType(syntax, ParenExpressionSyntax))
         Case SyntaxKind.LiteralExpression : Return BindLiteralExpression(CType(syntax, LiteralExpressionSyntax))
         Case SyntaxKind.NameExpression : Return BindNameExpression(CType(syntax, NameExpressionSyntax))
-        Case SyntaxKind.IdentifierSyntax : Return BindNameExpression(CType(syntax, IdentifierExpressionSyntax))
+        Case SyntaxKind.IdentifierSyntax
+          If TypeOf syntax Is IdentifierSyntax Then
+            Return BindIdentifierExpression(DirectCast(syntax, IdentifierSyntax))
+          ElseIf TypeOf syntax Is IdentifierExpressionSyntax Then
+            Return BindNameExpression(DirectCast(syntax, IdentifierExpressionSyntax))
+          Else
+            Throw New Exception("Unexpected syntax type")
+          End If
         Case SyntaxKind.AssignmentExpression : Return BindAssignmentExpression(CType(syntax, AssignmentExpressionSyntax))
         Case SyntaxKind.UnaryExpression : Return BindUnaryExpression(CType(syntax, UnaryExpressionSyntax))
         Case SyntaxKind.BinaryExpression : Return BindBinaryExpression(CType(syntax, BinaryExpressionSyntax))
+        Case SyntaxKind.ArrayAccessExpression : Return BindArrayAccessExpression(CType(syntax, ArrayAccessExpressionSyntax))
         Case SyntaxKind.CallExpression : Return BindCallExpression(CType(syntax, CallExpressionSyntax))
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
@@ -468,6 +480,9 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ClsStatement : Return BindClsStatement(CType(syntax, ClsStatementSyntax))
         Case SyntaxKind.ColorStatement : Return BindColorStatement(CType(syntax, ColorStatementSyntax))
         Case SyntaxKind.ContinueStatement : Return BindContinueStatement(CType(syntax, ContinueStatementSyntax))
+        Case SyntaxKind.DimStatement : Return BindDimStatement(CType(syntax, DimStatementSyntax))
+        Case SyntaxKind.EraseStatement : Return BindEraseStatement(CType(syntax, EraseStatementSyntax))
+        Case SyntaxKind.RedimStatement : Return BindRedimStatement(CType(syntax, RedimStatementSyntax))
         Case SyntaxKind.DoUntilStatement : Return BindDoUntilStatement(CType(syntax, DoUntilStatementSyntax))
         Case SyntaxKind.DoWhileStatement : Return BindDoWhileStatement(CType(syntax, DoWhileStatementSyntax))
         Case SyntaxKind.EndStatement : Return BindEndStatement(CType(syntax, EndStatementSyntax))
@@ -531,41 +546,10 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindAssignmentExpression(syntax As AssignmentExpressionSyntax) As BoundExpression
 
-      Dim name = syntax.Identifier.Identifier.Text
-      Dim boundExpression = BindExpression(syntax.Expression)
+      Dim boundLeft = BindExpression(syntax.Variable, canBeVoid:=True)
+      Dim boundRight = BindExpression(syntax.Expression)
 
-      Dim variable = DetermineVariableReference(syntax.Identifier.Identifier)
-      If variable Is Nothing Then
-        ' Variable has not been declared, let's go ahead and do so.
-        Dim type As TypeSymbol '= TypeSymbol.String
-        Dim suffix = syntax.Identifier.Identifier.Text.Last
-        Select Case suffix
-          Case "%"c : type = TypeSymbol.Integer
-          Case "&"c : type = TypeSymbol.Long
-          Case "!"c : type = TypeSymbol.Single
-          Case "#"c : type = TypeSymbol.Double
-          Case "$"c : type = TypeSymbol.String
-          Case Else
-            'TODO: This needs to be set based on current DEFINT, etc.
-            type = TypeSymbol.Single
-        End Select
-        'If Not syntax.IdentifierToken.Text.EndsWith("$") Then
-        '  type = TypeSymbol.Double
-        'End If
-        variable = BindVariableDeclaration(syntax.Identifier.Identifier, False, type) ' boundExpression.Type
-      End If
-      'Dim variable = BindVariableReference(syntax.IdentifierToken)
-      If variable Is Nothing Then
-        Return boundExpression
-      End If
-
-      If variable.IsReadOnly Then
-        Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
-      End If
-
-      Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
-
-      Return New BoundAssignmentExpression(variable, convertedExpression)
+      Return New BoundAssignmentExpression(boundLeft, boundRight)
 
     End Function
 
@@ -592,8 +576,52 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundBlockStatement(statements.ToImmutable)
     End Function
 
+    Private Function BindArrayAccessExpression(syntax As ArrayAccessExpressionSyntax) As BoundExpression
+      ' This shouldn't be called directly since we handle array access in BindCallExpression
+      Throw New Exception("ArrayAccessExpression should be handled in BindCallExpression")
+    End Function
+
     Private Function BindCallExpression(syntax As CallExpressionSyntax) As BoundExpression
 
+      ' Check for LBOUND/UBOUND functions first
+      If syntax.Identifier.Text.ToUpper() = "LBOUND" Or syntax.Identifier.Text.ToUpper() = "UBOUND" Then
+        Return BindBoundFunction(syntax)
+      End If
+
+      ' First check if this is array access (identifier with parentheses)
+      Dim variableSymbol = m_scope.TryLookupVariable(syntax.Identifier.Text)
+      If variableSymbol IsNot Nothing AndAlso Not variableSymbol.IsArray AndAlso syntax.Arguments.Count = 1 Then
+        ' Redeclare scalar as array
+        Dim lowerBound = New BoundLiteralExpression(0)
+        Dim upperBound = New BoundLiteralExpression(10)
+        variableSymbol = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
+      End If
+      If variableSymbol IsNot Nothing AndAlso variableSymbol.IsArray Then
+        ' This is array access
+        If syntax.Arguments.Count <> 1 Then
+          Diagnostics.ReportWrongArgumentCount(syntax.Identifier.Location, syntax.Identifier.Text, 1, syntax.Arguments.Count)
+          Return New BoundErrorExpression
+        End If
+        Dim index = BindExpression(syntax.Arguments(0))
+        Return New BoundArrayAccessExpression(variableSymbol, index)
+      End If
+
+      ' Check for automatic array dimensioning - if variable doesn't exist, create array with bounds 0-9
+      If variableSymbol Is Nothing Then
+        ' Automatic array dimensioning: create array with bounds 0-10
+        If syntax.Arguments.Count <> 1 Then
+          Diagnostics.ReportWrongArgumentCount(syntax.Identifier.Location, syntax.Identifier.Text, 1, syntax.Arguments.Count)
+          Return New BoundErrorExpression
+        End If
+        Dim index = BindExpression(syntax.Arguments(0))
+        ' Create automatic array with bounds 0-10
+        Dim lowerBound = New BoundLiteralExpression(0)
+        Dim upperBound = New BoundLiteralExpression(10)
+        Dim autoArray = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
+        Return New BoundArrayAccessExpression(autoArray, index)
+      End If
+
+      ' Not an array, proceed with function call logic
       Dim t = LookupType(syntax.Identifier.Text)
       If syntax.Arguments.Count = 1 AndAlso TypeOf t Is TypeSymbol Then
         Return BindConversion(syntax.Arguments(0), t, True)
@@ -991,6 +1019,10 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Shared Function BindLiteralExpression(syntax As LiteralExpressionSyntax) As BoundExpression
       Dim value = If(syntax.Value, 0)
+      ' Convert Int16 literals to Int32 to avoid overflow issues
+      If TypeOf value Is Short Then
+        value = CInt(CShort(value))
+      End If
       Return New BoundLiteralExpression(value)
     End Function
 
@@ -1068,6 +1100,49 @@ Namespace Global.QB.CodeAnalysis.Binding
     '  Return New BoundVariableExpression(variable)
     'End Function
 
+    Private Function BindIdentifierExpression(syntax As IdentifierSyntax) As BoundExpression
+      Dim name = syntax.Identifier.Text
+      If syntax.Identifier.IsMissing Then
+        ' This means the token was inserted by the parser. We already
+        ' reported error so we can just return an error expression.
+        Return New BoundErrorExpression
+      End If
+      Dim symbol = m_scope.TryLookupSymbol(name)
+      Dim variable As VariableSymbol = Nothing
+      If TypeOf symbol Is VariableSymbol Then
+        variable = CType(symbol, VariableSymbol)
+      ElseIf symbol Is Nothing Then
+        If syntax.OpenParen IsNot Nothing Then
+          ' Implicit array - declare in current compilation's global scope
+          Dim arrayType = TypeSymbol.Single
+          variable = New GlobalArraySymbol(name, arrayType, New BoundLiteralExpression(0), New BoundLiteralExpression(10), True, 1)
+          ' Find the current compilation's global scope to declare automatic arrays
+          Dim globalScope = m_scope
+          While globalScope.Parent IsNot Nothing AndAlso globalScope.Parent.Parent IsNot Nothing
+            globalScope = globalScope.Parent
+          End While
+          globalScope.TryDeclareVariable(variable)
+        Else
+          ' Implicit scalar
+          variable = New VariableSymbol(name, False, TypeSymbol.Single, Nothing, Nothing, True, 0)
+          m_scope.TryDeclareVariable(variable)
+        End If
+      Else
+        Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, name)
+        Return New BoundErrorExpression
+      End If
+      If syntax.OpenParen IsNot Nothing Then
+        If Not variable.IsArray Then
+          Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, name)
+          Return New BoundErrorExpression
+        End If
+        Dim index = BindExpression(syntax.Arguments(0))
+        Return New BoundArrayAccessExpression(variable, index)
+      Else
+        Return New BoundVariableExpression(variable)
+      End If
+    End Function
+
     Private Function BindNameExpression(syntax As IdentifierExpressionSyntax) As BoundExpression
       Dim name = syntax.Identifier.Text
       If syntax.Identifier.IsMissing Then
@@ -1096,9 +1171,20 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundVariableExpression(variable)
     End Function
 
-    Private Shared Function BindOptionStatement(syntax As OptionStatementSyntax) As BoundStatement
-      Dim numberToken = syntax.NumberToken
-      Return New BoundOptionStatement(CInt(numberToken.Text))
+    Private Function BindOptionStatement(syntax As OptionStatementSyntax) As BoundStatement
+      ' Validate that OPTION BASE hasn't been declared already
+      If m_optionBaseDeclared Then
+        Diagnostics.ReportOptionBaseAlreadyDeclared(syntax.OptionKeyword.Location)
+      End If
+
+      Dim number = CInt(syntax.NumberToken.Text)
+      If number <> 0 AndAlso number <> 1 Then
+        Diagnostics.ReportInvalidOptionBaseValue(syntax.NumberToken.Location, number)
+      End If
+
+      m_optionBase = number
+      m_optionBaseDeclared = True
+      Return New BoundOptionStatement(number)
     End Function
 
     Private Function BindParenExpression(syntax As ParenExpressionSyntax) As BoundExpression
@@ -1153,9 +1239,15 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundPresetStatement([step], x, y, color)
     End Function
 
-    Private Shared Function BindRemStatement(syntax As RemStatementSyntax) As BoundStatement
-      If syntax IsNot Nothing Then
+    Private Function BindRemStatement(syntax As RemStatementSyntax) As BoundStatement
+      ' Check for metacommands
+      Dim comment = syntax.Comment.ToUpper().Trim()
+      If comment = "$DYNAMIC" Then
+        m_arrayModeDynamic = True
+      ElseIf comment = "$STATIC" Then
+        m_arrayModeDynamic = False
       End If
+
       Return New BoundRemStatement()
     End Function
 
@@ -1303,57 +1395,46 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindVariableDeclaration(syntax As VariableDeclarationSyntax) As BoundStatement
-      Dim isReadOnly = (syntax.KeywordToken.Kind = SyntaxKind.ConstKeyword)
-      Dim subscript = BindSubscriptClause(syntax.Dimensions)
-      Dim type = BindAsClause(syntax.AsClause)
-      Dim initializer As BoundExpression = Nothing
-      If syntax.InitClause IsNot Nothing Then
-        initializer = BindExpression(CType(syntax.InitClause.Initializer(0), ExpressionSyntax))
-      End If
-      Dim variableType = If(type, initializer?.Type)
-      If variableType Is Nothing Then
-        Dim suffix = syntax.IdentifierToken.Text.Last
+      Dim name = syntax.Identifier.Text
+      Dim bounds = syntax.Bounds
+      Dim isArray = bounds IsNot Nothing
+      Dim type As TypeSymbol = BindAsClause(syntax.AsClause)
+      If type Is Nothing Then
+        ' No AS clause, check variable name suffix
+        Dim suffix = name.Last
         Select Case suffix
-          Case "%"c : variableType = TypeSymbol.Integer
-          Case "&"c : variableType = TypeSymbol.Long
-          Case "!"c : variableType = TypeSymbol.Single
-          Case "#"c : variableType = TypeSymbol.Double
-          Case "$"c : variableType = TypeSymbol.String
+          Case "%"c : type = TypeSymbol.Integer
+          Case "&"c : type = TypeSymbol.Long
+          Case "!"c : type = TypeSymbol.Single
+          Case "#"c : type = TypeSymbol.Double
+          Case "$"c : type = TypeSymbol.String
           Case Else
-            'TODO: This needs to be set based on current DEFINT, etc.
-            variableType = TypeSymbol.Single
-        End Select
-      Else
-        ' A type was specified, but the identifier also contains a type specifier???
-        Dim suffix = syntax.IdentifierToken.Text.Last
-        Select Case suffix
-          Case "%"c, "&"c, "!"c, "#"c, "$"c
-            'TODO: An error????
-          Case Else
-            ' all good...
+            type = TypeSymbol.Single ' Default for arrays without suffix
         End Select
       End If
-      If subscript.Upper IsNot Nothing Then
-        ' Array
-        Dim variable = BindArrayDeclaration(syntax.IdentifierToken, variableType, subscript.Lower, subscript.Upper)
-        'Dim convertedInitializer = BindConversion(syntax.Initializer.Location, initializer, variableType)
-        Return New BoundVariableDeclaration(variable, Nothing)
-      Else
-        Dim variable = BindVariableDeclaration(syntax.IdentifierToken, isReadOnly, variableType)
-        Dim convertedInitializer As BoundExpression = Nothing
-        If syntax.InitClause IsNot Nothing Then convertedInitializer = BindConversion(syntax.InitClause.Initializer(0).Location, initializer, variableType)
-        Return New BoundVariableDeclaration(variable, convertedInitializer)
+      Dim lower As BoundExpression = Nothing
+      Dim upper As BoundExpression = Nothing
+      Dim dimensionCount = 0
+      If bounds IsNot Nothing Then
+        dimensionCount = bounds.Dimensions.Where(Function(d) TypeOf d Is DimensionClauseSyntax).Count()
+        BindDimensionsClause(bounds, lower, upper)
+        ' Validate array bounds at compile time if they are constants
+        ValidateArrayBounds(syntax.Identifier, lower, upper)
       End If
+      Dim isStaticArray = Not m_arrayModeDynamic
+      Dim variable = New VariableSymbol(name, isArray, type, lower, upper, isStaticArray, dimensionCount)
+
+      Return New BoundVariableDeclaration(variable, Nothing)
     End Function
 
-    Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression) As VariableSymbol
+    Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, dimensionCount As Integer, Optional isStaticArray As Boolean = False) As VariableSymbol
       Dim name = If(identifier.Text, "?")
       Dim [declare] = Not identifier.IsMissing
       Dim variable = If(m_function Is Nothing,
-                        DirectCast(New GlobalArraySymbol(name, type, lower, upper), VariableSymbol),
-                        DirectCast(New LocalArraySymbol(name, type, lower, upper), VariableSymbol))
-      If [declare] AndAlso Not m_scope.TryDeclareVariable(variable) Then
-        Diagnostics.ReportSymbolAlreadyDeclared(identifier.Location, name)
+                       DirectCast(New GlobalArraySymbol(name, type, lower, upper, isStaticArray, dimensionCount), VariableSymbol),
+                       DirectCast(New LocalArraySymbol(name, type, lower, upper, isStaticArray, dimensionCount), VariableSymbol))
+      If [declare] Then
+        m_scope.TryDeclareVariable(variable)
       End If
       Return variable
     End Function
@@ -1368,6 +1449,198 @@ Namespace Global.QB.CodeAnalysis.Binding
         Diagnostics.ReportSymbolAlreadyDeclared(identifier.Location, name)
       End If
       Return variable
+    End Function
+
+    Private Function BindDimStatement(syntax As DimStatementSyntax) As BoundStatement
+
+      Dim boundDeclarations = ImmutableArray.CreateBuilder(Of BoundVariableDeclaration)
+      Dim isShared = syntax.OptionalSharedKeyword IsNot Nothing
+
+      For Each variableNode In syntax.Variables
+        If TypeOf variableNode Is VariableDeclarationSyntax Then
+          Dim variableDecl = CType(variableNode, VariableDeclarationSyntax)
+          Dim boundDecl = CType(BindVariableDeclaration(variableDecl), BoundVariableDeclaration)
+          Dim variable = boundDecl.Variable
+          If Not m_scope.TryDeclareVariable(variable) Then
+            Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+          End If
+          boundDeclarations.Add(boundDecl)
+        End If
+      Next
+
+      Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
+    End Function
+
+    Private Function BindRedimStatement(syntax As RedimStatementSyntax) As BoundStatement
+      Dim preserve = syntax.OptionalPreserveKeyword IsNot Nothing
+      Dim isShared = syntax.OptionalSharedKeyword IsNot Nothing
+      Dim boundDeclarations = ImmutableArray.CreateBuilder(Of BoundVariableDeclaration)
+
+      For Each variableNode In syntax.Variables
+        If TypeOf variableNode Is VariableDeclarationSyntax Then
+          Dim variableDecl = CType(variableNode, VariableDeclarationSyntax)
+          Dim variableName = variableDecl.Identifier.Text
+
+          ' Check if variable already exists
+          Dim existingSymbol = m_scope.TryLookupSymbol(variableName)
+
+          If existingSymbol Is Nothing OrElse Not (TypeOf existingSymbol Is VariableSymbol AndAlso CType(existingSymbol, VariableSymbol).IsArray) Then
+            ' Variable doesn't exist or is not an array - create new dynamic array
+            ' Extract type from AS clause or default to Single
+            Dim arrayType As TypeSymbol = BindAsClause(variableDecl.AsClause)
+            If arrayType Is Nothing Then
+              ' No AS clause, check variable name suffix
+              Dim suffix = variableName.Last
+              Select Case suffix
+                Case "%"c : arrayType = TypeSymbol.Integer
+                Case "&"c : arrayType = TypeSymbol.Long
+                Case "!"c : arrayType = TypeSymbol.Single
+                Case "#"c : arrayType = TypeSymbol.Double
+                Case "$"c : arrayType = TypeSymbol.String
+                Case Else
+                  arrayType = TypeSymbol.Single ' Default for dynamic arrays
+              End Select
+            End If
+
+            ' Count dimensions
+            Dim dimensionCount = 0
+            If variableDecl.Bounds IsNot Nothing Then
+              dimensionCount = variableDecl.Bounds.Dimensions.Where(Function(d) TypeOf d Is DimensionClauseSyntax).Count()
+            End If
+
+            ' Bind bounds
+            Dim lower As BoundExpression = Nothing
+            Dim upper As BoundExpression = Nothing
+            If variableDecl.Bounds IsNot Nothing Then
+              BindDimensionsClause(variableDecl.Bounds, lower, upper)
+              ' Validate array bounds at compile time if they are constants
+              ValidateArrayBounds(variableDecl.Identifier, lower, upper)
+            End If
+
+            ' Create new array respecting current $STATIC/$DYNAMIC metacommand state
+            Dim isStaticArray = Not m_arrayModeDynamic
+            Dim newArray = BindArrayDeclaration(variableDecl.Identifier, arrayType, lower, upper, dimensionCount, isStaticArray)
+            Dim boundDecl = New BoundVariableDeclaration(newArray, Nothing)
+            boundDeclarations.Add(boundDecl)
+          Else
+            ' Variable exists and is an array - proceed with normal REDIM validation
+            Dim boundDecl = CType(BindVariableDeclaration(variableDecl), BoundVariableDeclaration)
+            Dim newVariable = boundDecl.Variable
+
+            Dim existingVariable = CType(existingSymbol, VariableSymbol)
+            If existingVariable.Type IsNot newVariable.Type Then
+              Diagnostics.ReportRedimTypeMismatch(variableDecl.Identifier.Location, newVariable.Name, existingVariable.Type.Name, newVariable.Type.Name)
+            End If
+            ' Check if trying to REDIM a static array
+            If existingVariable.IsStaticArray Then
+              Diagnostics.ReportRedimOnStaticArray(variableDecl.Identifier.Location, newVariable.Name)
+            End If
+            ' Check if REDIM changes the number of dimensions
+            If existingVariable.DimensionCount <> newVariable.DimensionCount Then
+              Diagnostics.ReportRedimDimensionCountMismatch(variableDecl.Identifier.Location, newVariable.Name, existingVariable.DimensionCount, newVariable.DimensionCount)
+            End If
+
+            boundDeclarations.Add(boundDecl)
+          End If
+        End If
+      Next
+
+      Return New BoundRedimStatement(preserve, boundDeclarations.ToImmutable(), isShared)
+    End Function
+
+    Private Function BindEraseStatement(syntax As EraseStatementSyntax) As BoundStatement
+      Dim boundVariables = ImmutableArray.CreateBuilder(Of BoundExpression)
+
+      For Each variableNode In syntax.Variables
+        If TypeOf variableNode Is SyntaxToken AndAlso CType(variableNode, SyntaxToken).Kind = SyntaxKind.IdentifierToken Then
+          Dim token = CType(variableNode, SyntaxToken)
+          Dim variableSymbol = DetermineVariableReference(token)
+          If variableSymbol IsNot Nothing Then
+            ' Validate that ERASE is only used on arrays
+            If Not variableSymbol.IsArray Then
+              Diagnostics.ReportEraseRequiresArray(token.Location, token.Text)
+            Else
+              Dim boundVariable = New BoundVariableExpression(variableSymbol)
+              boundVariables.Add(boundVariable)
+            End If
+          Else
+            Diagnostics.ReportUndefinedVariable(token.Location, token.Text)
+          End If
+        End If
+      Next
+
+      Return New BoundEraseStatement(boundVariables.ToImmutable())
+    End Function
+
+    Private Function BindCallStatement(syntax As CallStatementSyntax) As BoundStatement
+      Dim callSyntax = New CallExpressionSyntax(syntax.SyntaxTree, syntax.Identifier, syntax.OpenParen, syntax.Expressions, syntax.CloseParen)
+      Dim boundCall = CType(BindExpression(callSyntax), BoundCallExpression)
+      Return New BoundCallStatement(boundCall)
+    End Function
+
+    Private Sub BindDimensionsClause(syntax As DimensionsClauseSyntax, ByRef lower As BoundExpression, ByRef upper As BoundExpression)
+      Dim dimensions = syntax.Dimensions
+      If dimensions.Count = 0 Then
+        lower = New BoundLiteralExpression(0)
+        upper = New BoundLiteralExpression(10)
+        Return
+      End If
+      Dim dimension = CType(dimensions(0), DimensionClauseSyntax)
+      Dim lowerSyntax = dimension.OptionalLower
+      Dim upperSyntax = dimension.Upper
+      lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(m_optionBase))
+      upper = BindExpression(upperSyntax)
+    End Sub
+
+    Private Sub ValidateArrayBounds(identifier As SyntaxToken, lower As BoundExpression, upper As BoundExpression)
+      ' Only validate if both bounds are compile-time constants
+      If TypeOf lower Is BoundLiteralExpression AndAlso TypeOf upper Is BoundLiteralExpression Then
+        Try
+          Dim lowerValue = Convert.ToInt32(DirectCast(lower, BoundLiteralExpression).Value)
+          Dim upperValue = Convert.ToInt32(DirectCast(upper, BoundLiteralExpression).Value)
+          If lowerValue > upperValue Then
+            Diagnostics.ReportInvalidArrayBounds(identifier.Location, lowerValue, upperValue)
+          End If
+          ' Check array size limit
+          Dim arraySize = CLng(upperValue) - CLng(lowerValue) + 1
+          If arraySize > 65535 Then
+            Diagnostics.ReportArraySizeTooLarge(identifier.Location, arraySize)
+          End If
+        Catch ex As OverflowException
+          Diagnostics.ReportArrayBoundsOutOfRange(identifier.Location)
+        End Try
+      End If
+    End Sub
+
+    Private Function BindBoundFunction(syntax As CallExpressionSyntax) As BoundExpression
+      Dim functionName = syntax.Identifier.Text.ToUpper()
+      Dim isLbound = (functionName = "LBOUND")
+      Dim isUbound = (functionName = "UBOUND")
+
+      ' Validate arguments: LBOUND/UBOUND(array[, dimension])
+      If syntax.Arguments.Count < 1 Or syntax.Arguments.Count > 2 Then
+        Diagnostics.ReportWrongArgumentCount(syntax.Identifier.Location, functionName, 1, syntax.Arguments.Count)
+        Return New BoundErrorExpression
+      End If
+
+      ' First argument must be an array variable
+      Dim arrayArg = BindExpression(syntax.Arguments(0))
+      If Not (TypeOf arrayArg Is BoundVariableExpression AndAlso DirectCast(arrayArg, BoundVariableExpression).Variable.IsArray) Then
+        Diagnostics.ReportArgumentMustBeArray(syntax.Arguments(0).Location, functionName)
+        Return New BoundErrorExpression
+      End If
+
+      Dim arrayVariable = DirectCast(arrayArg, BoundVariableExpression).Variable
+
+      ' Optional second argument is dimension (defaults to 1)
+      Dim dimension As BoundExpression = Nothing
+      If syntax.Arguments.Count = 2 Then
+        dimension = BindExpression(syntax.Arguments(1))
+      Else
+        dimension = New BoundLiteralExpression(1)
+      End If
+
+      Return New BoundBoundFunctionExpression(arrayVariable, dimension, isLbound)
     End Function
 
     Private Function BindVariableReference(identifierToken As SyntaxToken) As VariableSymbol

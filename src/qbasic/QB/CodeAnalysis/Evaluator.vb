@@ -1,6 +1,9 @@
-﻿Imports QB.CodeAnalysis.Binding
+Imports System.Collections.Immutable
+
+Imports QB.CodeAnalysis.Binding
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
+
 Imports QBLib
 
 Namespace Global.QB.CodeAnalysis
@@ -8,11 +11,15 @@ Namespace Global.QB.CodeAnalysis
   Friend NotInheritable Class Evaluator
 
     Private ReadOnly m_program As BoundProgram
-    Private ReadOnly m_globals As Dictionary(Of VariableSymbol, Object)
+    Private ReadOnly m_globals As Dictionary(Of String, Object)
+    Private ReadOnly m_globalVariables As ImmutableArray(Of VariableSymbol)
     Private ReadOnly m_functions As New Dictionary(Of FunctionSymbol, BoundBlockStatement)
-    Private ReadOnly m_locals As New Stack(Of Dictionary(Of VariableSymbol, Object))
+    Private ReadOnly m_locals As New Stack(Of Dictionary(Of String, Object))
 
     Private ReadOnly m_container As New Stack(Of String)
+
+    ' Track current array bounds (updated by REDIM)
+    Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Lower As Integer, Upper As Integer))
 
     'Private m_random As Random
 
@@ -21,11 +28,15 @@ Namespace Global.QB.CodeAnalysis
 
     Private m_lastValue As Object
 
-    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object))
+    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol))
 
       m_program = program
-      m_globals = variables
-      m_locals.Push(New Dictionary(Of VariableSymbol, Object))
+      m_globals = New Dictionary(Of String, Object)
+      For Each kv In variables
+        m_globals(kv.Key.Name) = kv.Value
+      Next
+      m_globalVariables = globalVariables
+      m_locals.Push(New Dictionary(Of String, Object))
 
       Dim current = program
       While current IsNot Nothing
@@ -39,7 +50,27 @@ Namespace Global.QB.CodeAnalysis
 
     End Sub
 
+
+
     Public Function Evaluate() As Object
+      ' Initialize global variables
+      For Each v As VariableSymbol In m_globalVariables
+        If Not m_globals.ContainsKey(v.Name) Then
+          If v.IsArray Then
+            Dim lower = EvaluateExpression(v.Lower)
+            Dim upper = EvaluateExpression(v.Upper)
+            Dim size = CInt(upper) - CInt(lower) + 1
+            Dim list = New List(Of Object)(size)
+            For i = 0 To size - 1
+              list.Add(0)
+            Next
+            m_globals(v.Name) = list
+          Else
+            m_globals(v.Name) = Nothing
+          End If
+        End If
+      Next
+
       Dim func = If(m_program.MainFunction, m_program.ScriptFunction)
       If func Is Nothing Then
         Return Nothing
@@ -397,9 +428,9 @@ Namespace Global.QB.CodeAnalysis
             Dim variable1 = CType(swap.Variable1, BoundVariableExpression)
             Dim variable2 = CType(swap.Variable2, BoundVariableExpression)
 
-            Dim hold = m_globals(variable1.Variable)
-            m_globals(variable1.Variable) = m_globals(variable2.Variable)
-            m_globals(variable2.Variable) = hold
+            Dim hold = m_globals(variable1.Variable.Name)
+            m_globals(variable1.Variable.Name) = m_globals(variable2.Variable.Name)
+            m_globals(variable2.Variable.Name) = hold
 
             'Dim locals = m_locals.Peek
             'Dim hold = locals(variable1.Variable)
@@ -409,6 +440,10 @@ Namespace Global.QB.CodeAnalysis
             index += 1
 
           Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
+          Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
+          Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
+          Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
+          Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
         End Select
@@ -424,15 +459,15 @@ Namespace Global.QB.CodeAnalysis
       Dim value = CStr(EvaluateExpression(node.Expression))
       'Assign(node.Variable, value)
       If node.Variable.Kind = SymbolKind.GlobalVariable Then
-        Dim temp = CStr(m_globals(node.Variable))
+        Dim temp = CStr(m_globals(node.Variable.Name))
         Mid(temp, positionValue, lengthValue) = value
-        m_globals(node.Variable) = temp
+        m_globals(node.Variable.Name) = temp
       Else
         Dim locals = m_locals.Peek
-        locals(node.Variable) = value
-        Dim temp = CStr(locals(node.Variable))
+        locals(node.Variable.Name) = value
+        Dim temp = CStr(locals(node.Variable.Name))
         Mid(temp, positionValue, lengthValue) = value
-        locals(node.Variable) = temp
+        locals(node.Variable.Name) = temp
       End If
     End Sub
 
@@ -467,7 +502,7 @@ Namespace Global.QB.CodeAnalysis
       Else
         str = CStr(value)
       End If
-      QBLib.Video.PRINT(str, True) ': QBLib.Video.PRINT(" "c, True)
+      QBLib.Video.PRINT(str, node.NoCr) ': QBLib.Video.PRINT(" "c, True)
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)
@@ -507,7 +542,21 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateVariableDeclaration(node As BoundVariableDeclaration)
       Dim value As Object
-      If node.Initializer IsNot Nothing Then
+      If node.Variable.IsArray Then
+        ' Initialize array as a List
+        Dim lowerBound = CInt(EvaluateExpression(node.Variable.Lower))
+        Dim upperBound = CInt(EvaluateExpression(node.Variable.Upper))
+        Dim size = upperBound - lowerBound + 1
+        Dim arrayList = New List(Of Object)(size)
+        For i = 0 To size - 1
+          If node.Variable.Type Is TypeSymbol.String Then
+            arrayList.Add("")
+          Else
+            arrayList.Add(0)
+          End If
+        Next
+        value = arrayList
+      ElseIf node.Initializer IsNot Nothing Then
         value = EvaluateExpression(node.Initializer)
       Else
         If node.Variable.Type Is TypeSymbol.String Then
@@ -521,9 +570,176 @@ Namespace Global.QB.CodeAnalysis
       Assign(node.Variable, value)
     End Sub
 
+    Private Sub EvaluateDimStatement(node As BoundStatement)
+      Dim dimStmt = CType(node, BoundDimStatement)
+      Dim declarations = DirectCast(CallByName(node, "Declarations", CallType.Get), ImmutableArray(Of BoundVariableDeclaration))
+      Dim preserve = False
+      If node.GetType() = GetType(BoundRedimStatement) Then
+        preserve = CBool(CallByName(node, "Preserve", CallType.Get))
+      End If
+      For Each declaration In declarations
+        Dim variable = declaration.Variable
+        If variable.IsArray Then
+          ' Calculate new size
+          Dim lower = EvaluateExpression(variable.Lower)
+          Dim upper = EvaluateExpression(variable.Upper)
+          Dim lowerInt As Integer
+          Dim upperInt As Integer
+          ' Convert bounds to integers with proper error handling
+          Try
+            lowerInt = Convert.ToInt32(lower)
+            upperInt = Convert.ToInt32(upper)
+          Catch ex As OverflowException
+            Throw New Exception("Array bounds are out of valid range (-32768 to 32767).")
+          End Try
+          If upperInt < lowerInt Then
+            Throw New Exception($"Array bounds are invalid: {lowerInt} to {upperInt}. Lower bound must be less than or equal to upper bound.")
+          End If
+          ' Check for reasonable array size (QBasic had memory limits)
+          Dim arraySize = CLng(upperInt) - CLng(lowerInt) + 1 ' Use Long to avoid overflow
+          If arraySize > 65535 Then
+            Throw New Exception($"Array size {arraySize} is too large. Maximum allowed is 65535 elements.")
+          End If
+          If arraySize <= 0 Then
+            Throw New Exception($"Invalid array size {arraySize}. Array must have at least 1 element.")
+          End If
+          Dim newSize = CInt(arraySize)
+          ' Get existing list
+          Dim existingList As List(Of Object) = Nothing
+          If m_globals.ContainsKey(variable.Name) AndAlso TypeOf m_globals(variable.Name) Is List(Of Object) Then
+            existingList = CType(m_globals(variable.Name), List(Of Object))
+          End If
+
+          ' Create new list
+          Dim newList = New List(Of Object)(newSize)
+          For i = 0 To newSize - 1
+            newList.Add(0)
+          Next
+          ' Copy old values if preserve
+          If preserve AndAlso existingList IsNot Nothing Then
+            Dim copySize = Math.Min(existingList.Count, newSize)
+            For i = 0 To copySize - 1
+              newList(i) = existingList(i)
+            Next
+          End If
+          m_globals(variable.Name) = newList
+        Else
+          EvaluateVariableDeclaration(declaration)
+        End If
+      Next
+    End Sub
+
+    Private Sub EvaluateRedimStatement(node As BoundRedimStatement)
+      For Each declaration In node.Declarations
+        Dim variable = declaration.Variable
+        If variable.IsArray Then
+          ' Calculate new size
+          Dim lower = EvaluateExpression(variable.Lower)
+          Dim upper = EvaluateExpression(variable.Upper)
+          Dim newSize = CInt(upper) - CInt(lower) + 1
+          ' Get existing list
+          Dim existingList As List(Of Object) = Nothing
+          If m_globals.ContainsKey(variable.Name) AndAlso TypeOf m_globals(variable.Name) Is List(Of Object) Then
+            existingList = CType(m_globals(variable.Name), List(Of Object))
+          End If
+
+          ' Create new list
+          Dim newList = New List(Of Object)(newSize)
+          For i = 0 To newSize - 1
+            newList.Add(0)
+          Next
+          ' Copy old values if preserve
+          If node.Preserve AndAlso existingList IsNot Nothing Then
+            Dim copySize = Math.Min(existingList.Count, newSize)
+            For i = 0 To copySize - 1
+              newList(i) = existingList(i)
+            Next
+          End If
+          m_globals(variable.Name) = newList
+          ' Update current bounds for this array
+          Dim lowerBound = CInt(EvaluateExpression(variable.Lower))
+          Dim upperBound = CInt(EvaluateExpression(variable.Upper))
+          m_arrayBounds(variable.Name) = (lowerBound, upperBound)
+        End If
+      Next
+    End Sub
+
+    Private Sub EvaluateEraseStatement(node As BoundEraseStatement)
+      For Each variable In node.Variables
+        If TypeOf variable Is BoundVariableExpression Then
+          Dim varExpr = CType(variable, BoundVariableExpression)
+          Dim varName = varExpr.Variable.Name
+          Dim varSymbol = varExpr.Variable
+
+          ' Check if variable exists
+          If Not m_globals.ContainsKey(varName) Then
+            Throw New Exception($"Array '{varName}' does not exist.")
+          End If
+
+          Dim value = m_globals(varName)
+          If TypeOf value Is List(Of Object) Then
+            ' It's an array - handle based on static/dynamic status
+            Dim arrayList = CType(value, List(Of Object))
+
+            If varSymbol.IsStaticArray Then
+              ' Static arrays: reinitialize all elements
+              If varSymbol.Type.Name = "Integer" OrElse varSymbol.Type.Name = "Long" OrElse varSymbol.Type.Name = "Single" OrElse varSymbol.Type.Name = "Double" Then
+                ' Numeric arrays: set to 0
+                For i = 0 To arrayList.Count - 1
+                  arrayList(i) = 0
+                Next
+              ElseIf varSymbol.Type.Name = "String" Then
+                ' String arrays: set to empty string
+                For i = 0 To arrayList.Count - 1
+                  arrayList(i) = ""
+                Next
+              Else
+                ' Other types: set to default value
+                For i = 0 To arrayList.Count - 1
+                  arrayList(i) = Nothing
+                Next
+              End If
+            Else
+              ' Dynamic arrays: deallocate (remove from globals)
+              m_globals.Remove(varName)
+            End If
+          Else
+            ' This should not happen due to compile-time validation, but add runtime check anyway
+            Throw New Exception($"Variable '{varName}' is not an array.")
+          End If
+        End If
+      Next
+    End Sub
+
+    Private Sub EvaluateCallStatement(node As BoundCallStatement)
+      EvaluateCallExpression(node.Call)
+    End Sub
+
     Private Sub EvaluateExpressionStatement(node As BoundExpressionStatement)
       m_lastValue = EvaluateExpression(node.Expression)
     End Sub
+
+    Private Function EvaluateBoundFunctionExpression(node As BoundBoundFunctionExpression) As Object
+      ' Evaluate LBOUND or UBOUND function
+      Dim arrayName = node.ArrayVariable.Name
+      Dim dimension = CInt(EvaluateExpression(node.Dimension))
+
+      ' For now, assume dimension 1 (single dimension arrays)
+      If dimension <> 1 Then
+        Throw New NotImplementedException("Multi-dimensional LBOUND/UBOUND not yet implemented")
+      End If
+
+      ' Check if array has current runtime bounds (updated by REDIM)
+      If m_arrayBounds.ContainsKey(arrayName) Then
+        Dim bounds = m_arrayBounds(arrayName)
+        Return If(node.IsLbound, bounds.Lower, bounds.Upper)
+      Else
+        ' Use symbol bounds (from DIM declaration)
+        Dim lower = If(node.ArrayVariable.Lower IsNot Nothing, CInt(EvaluateExpression(node.ArrayVariable.Lower)), 0)
+        Dim upper = If(node.ArrayVariable.Upper IsNot Nothing, CInt(EvaluateExpression(node.ArrayVariable.Upper)), 10)
+        Return If(node.IsLbound, lower, upper)
+      End If
+    End Function
 
     Private Function EvaluateExpression(node As BoundExpression) As Object
 
@@ -532,11 +748,13 @@ Namespace Global.QB.CodeAnalysis
       End If
 
       Select Case node.Kind
-        'Case BoundNodeKind.LiteralExpression : Return EvaluateLiteralExpression(CType(node, BoundLiteralExpression))
+         'Case BoundNodeKind.LiteralExpression : Return EvaluateLiteralExpression(CType(node, BoundLiteralExpression))
+        Case BoundNodeKind.ArrayAccessExpression : Return EvaluateArrayAccessExpression(CType(node, BoundArrayAccessExpression))
         Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
         Case BoundNodeKind.AssignmentExpression : Return EvaluateAssignmentExpression(CType(node, BoundAssignmentExpression))
-        Case BoundNodeKind.UnaryExpression : Return EvaluateUnaryExpression(CType(node, BoundUnaryExpression))
         Case BoundNodeKind.BinaryExpression : Return EvaluateBinaryExpression(CType(node, BoundBinaryExpression))
+        Case BoundNodeKind.UnaryExpression : Return EvaluateUnaryExpression(CType(node, BoundUnaryExpression))
+        Case BoundNodeKind.BoundFunctionExpression : Return EvaluateBoundFunctionExpression(CType(node, BoundBoundFunctionExpression))
         Case BoundNodeKind.CallExpression : Return EvaluateCallExpression(CType(node, BoundCallExpression))
         Case BoundNodeKind.ConversionExpression : Return EvaluateConversionExpression(CType(node, BoundConversionExpression))
         Case Else
@@ -547,20 +765,85 @@ Namespace Global.QB.CodeAnalysis
 
     Private Shared Function EvaluateConstantExpression(node As BoundExpression) As Object
       Debug.Assert(node.ConstantValue IsNot Nothing)
-      Return node.ConstantValue.Value
+      Try
+        Return node.ConstantValue.Value
+      Catch ex As OverflowException
+        Throw New Exception("Numeric literal is too large.")
+      End Try
     End Function
 
     Private Function EvaluateVariableExpression(node As BoundVariableExpression) As Object
       If node.Variable.Kind = SymbolKind.GlobalVariable Then
         If Not OPTION_EXPLICIT AndAlso
-           Not m_globals.ContainsKey(node.Variable) Then
+           Not m_globals.ContainsKey(node.Variable.Name) Then
           Assign(node.Variable, 0)
         End If
-        Return m_globals(node.Variable)
+        Return m_globals(node.Variable.Name)
       Else
         Dim locals = m_locals.Peek
-        Return locals(node.Variable)
+        Return locals(node.Variable.Name)
       End If
+    End Function
+
+    Private Function EvaluateArrayAccessExpression(node As BoundArrayAccessExpression) As Object
+      Dim arrayValue As List(Of Object)
+      ' Assume all arrays are global for now
+      arrayValue = CType(m_globals(node.Variable.Name), List(Of Object))
+
+      ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
+      Dim lower As Integer
+      Dim upper As Integer
+      If m_arrayBounds.ContainsKey(node.Variable.Name) Then
+        Dim bounds = m_arrayBounds(node.Variable.Name)
+        lower = bounds.Lower
+        upper = bounds.Upper
+      Else
+        lower = If(node.Variable.Lower IsNot Nothing, CInt(EvaluateExpression(node.Variable.Lower)), 0)
+        upper = If(node.Variable.Upper IsNot Nothing, CInt(EvaluateExpression(node.Variable.Upper)), arrayValue.Count - 1)
+      End If
+      Dim index = CInt(EvaluateExpression(node.Index))
+
+      ' Handle bounds checking
+      If index < lower OrElse index > upper Then
+        Throw New IndexOutOfRangeException($"Array index {index} out of bounds")
+      End If
+
+      Return arrayValue(index - lower)
+    End Function
+
+    Private Function EvaluateArrayAccessExpressionForAssignment(node As BoundArrayAccessExpression) As Tuple(Of List(Of Object), Integer)
+      Dim arrayValue As List(Of Object)
+      ' Assume all arrays are global for now
+      If Not m_globals.ContainsKey(node.Variable.Name) Then
+        ' Create array if it doesn't exist
+        Dim size = 11 ' Default size 0-10
+        Dim list = New List(Of Object)(size)
+        For i = 0 To size - 1
+          list.Add(0)
+        Next
+        m_globals(node.Variable.Name) = list
+      End If
+      arrayValue = CType(m_globals(node.Variable.Name), List(Of Object))
+
+      ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
+      Dim lower As Integer
+      Dim upper As Integer
+      If m_arrayBounds.ContainsKey(node.Variable.Name) Then
+        Dim bounds = m_arrayBounds(node.Variable.Name)
+        lower = bounds.Lower
+        upper = bounds.Upper
+      Else
+        lower = If(node.Variable.Lower IsNot Nothing, CInt(EvaluateExpression(node.Variable.Lower)), 0)
+        upper = If(node.Variable.Upper IsNot Nothing, CInt(EvaluateExpression(node.Variable.Upper)), arrayValue.Count - 1)
+      End If
+      Dim index = CInt(EvaluateExpression(node.Index))
+
+      ' Handle bounds checking
+      If index < lower OrElse index > upper Then
+        Throw New IndexOutOfRangeException($"Array index {index} out of bounds")
+      End If
+
+      Return Tuple.Create(arrayValue, index - lower)
     End Function
 
     Private Function EvaluateAssignmentExpression(node As BoundAssignmentExpression) As Object
@@ -846,7 +1129,7 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Chr Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Strings.Chr(value)
-      ElseIf node.Function Is BuiltinFunctions.Cdbl Then
+      ElseIf node.Function Is BuiltinFunctions.CDbl Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return value
       ElseIf node.Function Is BuiltinFunctions.CInt Then
@@ -1049,7 +1332,7 @@ Namespace Global.QB.CodeAnalysis
           Return g_lastRndResult
         End If
         'Return Microsoft.VisualBasic.Rnd
-      ElseIf node.Function Is BuiltinFunctions.RTrim Then
+      ElseIf node.Function Is BuiltinFunctions.Rtrim Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.RTrim(value)
       ElseIf node.Function Is BuiltinFunctions.Screen Then
@@ -1115,12 +1398,12 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       Else
-        Dim locals = New Dictionary(Of VariableSymbol, Object)
+        Dim locals = New Dictionary(Of String, Object)
         For i = 0 To node.Arguments.Length - 1
           Dim parameter = node.Function.Parameters(i)
           Dim value = EvaluateExpression(node.Arguments(i))
           Debug.Assert(value IsNot Nothing)
-          locals.Add(parameter, value)
+          locals.Add(parameter.Name, value)
         Next
         m_locals.Push(locals)
         Dim statement = m_functions(node.Function)
@@ -1167,10 +1450,21 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub Assign(variable As VariableSymbol, value As Object)
       If variable.Kind = SymbolKind.GlobalVariable Then
-        m_globals(variable) = value
+        m_globals(variable.Name) = value
       Else
         Dim locals = m_locals.Peek
-        locals(variable) = value
+        locals(variable.Name) = value
+      End If
+    End Sub
+
+    Private Sub Assign(expression As BoundExpression, value As Object)
+      If TypeOf expression Is BoundVariableExpression Then
+        Dim variable = CType(expression, BoundVariableExpression).Variable
+        Assign(variable, value)
+      ElseIf TypeOf expression Is BoundArrayAccessExpression Then
+        Dim arrayAccess = CType(expression, BoundArrayAccessExpression)
+        Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
+        tuple.Item1(tuple.Item2) = value
       End If
     End Sub
 

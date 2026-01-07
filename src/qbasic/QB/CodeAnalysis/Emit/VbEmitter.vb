@@ -1,12 +1,13 @@
-﻿Imports System.Collections.Immutable
-Imports QB.CodeAnalysis.Binding
-'Imports Ccl = Mono.Cecil
-Imports QB.CodeAnalysis.Symbols
+Imports System.Collections.Immutable
 'Imports Mono.Cecil.Cil
 'Imports Mono.Cecil
 'Imports Mono.Cecil.Rocks
 'Imports QB.CodeAnalysis.Syntax
 Imports System.Text
+
+Imports QB.CodeAnalysis.Binding
+'Imports Ccl = Mono.Cecil
+Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Namespace Global.QB.CodeAnalysis.Emit
@@ -447,7 +448,11 @@ Namespace Global.QB.CodeAnalysis.Emit
     End Sub
 
     Private Sub EmitHandlePrintStatement(node As BoundHandlePrintStatement)
-      m_contents &= $"{Tab()}System.Console.Write("
+      If node.NoCr Then
+        m_contents &= $"{Tab()}System.Console.Write("
+      Else
+        m_contents &= $"{Tab()}System.Console.WriteLine("
+      End If
       EmitExpression(node.Expression)
       m_contents &= $"){vbCrLf}"
     End Sub

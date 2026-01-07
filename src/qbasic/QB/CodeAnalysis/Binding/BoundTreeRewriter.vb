@@ -1,4 +1,4 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 
 Namespace Global.QB.CodeAnalysis.Binding
 
@@ -38,6 +38,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         'Case BoundNodeKind.RmDirStatement : Return RewriteRmDirStatement(DirectCast(node, BoundRmDirStatement))
         'Case BoundNodeKind.ReturnGosubStatement : Return RewriteReturnGosubStatement(DirectCast(node, BoundReturnGosubStatement))
         Case BoundNodeKind.ReturnStatement : Return RewriteReturnStatement(DirectCast(node, BoundReturnStatement))
+        Case BoundNodeKind.HandlePrintStatement : Return RewriteHandlePrintStatement(DirectCast(node, BoundHandlePrintStatement))
         'Case BoundNodeKind.ScreenStatement : Return RewriteScreenStatement(DirectCast(node, BoundScreenStatement))
         'Case BoundNodeKind.StopStatement : Return RewriteStopStatement(DirectCast(node, BoundStopStatement))
         'Case BoundNodeKind.SystemStatement : Return RewriteSystemStatement(DirectCast(node, BoundSystemStatement))
@@ -210,41 +211,27 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       'Return node
 
-      'Dim builder As ImmutableArray(Of BoundStatement).Builder = Nothing
       Dim builder = ImmutableArray.CreateBuilder(Of BoundStatement)()
-      Dim cr = False
-      For Each entry In node.Nodes
-        If TypeOf entry Is BoundSymbol Then
-          Select Case CType(entry, BoundSymbol).Value
-            Case ";"c
-              cr = False
-            Case ","
-              ' Convert to a HandleComma statement.
-              builder.Add(New BoundHandleCommaStatement())
-              cr = False
-            Case Else
-              cr = True
-          End Select
+      For i = 0 To node.Nodes.Length - 1
+        Dim entry = node.Nodes(i)
+        If TypeOf entry Is BoundExpression Then
+          Dim nextEntry = If(i < node.Nodes.Length - 1, node.Nodes(i + 1), Nothing)
+          Dim noCr = nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso (CType(nextEntry, BoundSymbol).Value = ";"c OrElse CType(nextEntry, BoundSymbol).Value = ","c)
+          Dim expression = RewriteExpression(CType(entry, BoundExpression))
+          builder.Add(New BoundHandlePrintStatement(expression, noCr))
+        ElseIf TypeOf entry Is BoundSymbol Then
+          Dim s = CType(entry, BoundSymbol).Value
+          If s = ","c Then
+            builder.Add(New BoundHandleCommaStatement())
+          End If
         ElseIf TypeOf entry Is BoundSpcFunction Then
           Dim expression = RewriteExpression(CType(entry, BoundSpcFunction).Expression)
           builder.Add(New BoundHandleSpcStatement(expression))
-          cr = False
         ElseIf TypeOf entry Is BoundTabFunction Then
           Dim expression = RewriteExpression(CType(entry, BoundTabFunction).Expression)
           builder.Add(New BoundHandleTabStatement(expression))
-          cr = False
-        Else
-          Dim expression = RewriteExpression(CType(entry, BoundExpression))
-          builder.Add(New BoundHandlePrintStatement(expression))
-          cr = True
         End If
       Next
-      If cr Then
-        builder.Add(New BoundHandlePrintLineStatement())
-      End If
-      If builder Is Nothing Then
-        Return node
-      End If
       Return New BoundBlockStatement(builder.ToImmutable)
 
       'Dim screenWidth = 80
@@ -512,6 +499,15 @@ Namespace Global.QB.CodeAnalysis.Binding
         Return node
       Else
         Return New BoundConversionExpression(node.Type, expression)
+      End If
+    End Function
+
+    Protected Overridable Function RewriteHandlePrintStatement(node As BoundHandlePrintStatement) As BoundStatement
+      Dim expression = RewriteExpression(node.Expression)
+      If expression Is node.Expression Then
+        Return node
+      Else
+        Return New BoundHandlePrintStatement(expression, node.NoCr)
       End If
     End Function
 

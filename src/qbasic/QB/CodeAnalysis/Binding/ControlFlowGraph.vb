@@ -1,7 +1,8 @@
-﻿Imports System.IO
+Imports System.CodeDom.Compiler
+Imports System.IO
+
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
-Imports System.CodeDom.Compiler
 
 Namespace Global.QB.CodeAnalysis.Binding
 
@@ -374,7 +375,7 @@ ScanAgain:
           Dim es = CType(entry, BoundExpressionStatement)
           If es.Expression.Kind = BoundNodeKind.AssignmentExpression Then
             Dim ae = CType(es.Expression, BoundAssignmentExpression)
-            If String.Compare(ae.Variable.Name, name, True) = 0 Then
+            If TypeOf ae.Variable Is BoundVariableExpression AndAlso String.Compare(CType(ae.Variable, BoundVariableExpression).Variable.Name, name, True) = 0 Then
               nameCount += 1
             End If
           End If

@@ -1,6 +1,6 @@
-﻿Imports System.Runtime.InteropServices.RuntimeInformation
+﻿Imports System.Reflection
 Imports System.Runtime.InteropServices.OSPlatform
-Imports System.Reflection
+Imports System.Runtime.InteropServices.RuntimeInformation
 
 Public Class SaveAsDialog
   Inherits Form
@@ -8,7 +8,7 @@ Public Class SaveAsDialog
 
   Private ReadOnly m_initialPath As String
   Private m_folder As String
-  Private m_filename As String = ""
+  Private ReadOnly m_filename As String = ""
 
   Public ReadOnly Property Path As String
     Get

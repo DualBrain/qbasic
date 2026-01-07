@@ -1,4 +1,4 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 Imports System.IO
 Imports System.Threading
 
@@ -21,12 +21,18 @@ Namespace Global.QB.CodeAnalysis
     '  SyntaxTree = syntax
     'End Sub
 
+    Private ReadOnly m_diagnostics As New DiagnosticBag
+
     Private Sub New(isScript As Boolean,
                     previous As Compilation,
                     ParamArray syntaxTrees() As SyntaxTree)
       Me.IsScript = isScript
       Me.Previous = previous
       Me.SyntaxTrees = syntaxTrees.ToImmutableArray
+      If previous IsNot Nothing Then
+        m_diagnostics.Concat(previous.Diagnostics)
+      End If
+      m_diagnostics.AddRange(CType(GlobalScope.Diagnostics, IEnumerable(Of Diagnostic)))
     End Sub
 
     Public Shared Function Create(ParamArray syntaxTrees() As SyntaxTree) As Compilation
@@ -54,6 +60,12 @@ Namespace Global.QB.CodeAnalysis
     Public ReadOnly Property Variables As ImmutableArray(Of VariableSymbol)
       Get
         Return GlobalScope.Variables
+      End Get
+    End Property
+
+    Friend ReadOnly Property Diagnostics As DiagnosticBag
+      Get
+        Return m_diagnostics
       End Get
     End Property
 
@@ -142,22 +154,33 @@ Namespace Global.QB.CodeAnalysis
     '  Return New EvaluationResult(ImmutableArray(Of Diagnostic).Empty, value)
     'End Function
 
-    Public Function Evaluate(variables As Dictionary(Of VariableSymbol, Object)) As EvaluationResult
+    Public Function Evaluate(variables As Dictionary(Of String, Object)) As EvaluationResult
 
       If GlobalScope.Diagnostics.Any Then
-        Return New EvaluationResult(GlobalScope.Diagnostics, Nothing)
+        Dim bag = New DiagnosticBag
+        bag.AddRange(GlobalScope.Diagnostics)
+        Return New EvaluationResult(bag.ToImmutableArray, Nothing)
       End If
 
       Dim program = GetProgram()
 
       If program.ErrorDiagnostics.Any Then
-        Return New EvaluationResult(program.Diagnostics, Nothing)
+        Dim bag = New DiagnosticBag
+        bag.AddRange(program.Diagnostics)
+        Return New EvaluationResult(bag.ToImmutableArray, Nothing)
       End If
 
-      Dim evaluator = New Evaluator(program, variables)
+      Dim variableDict = New Dictionary(Of VariableSymbol, Object)
+      For Each v In GlobalScope.Variables
+        If variables.ContainsKey(v.Name) Then
+          variableDict(v) = variables(v.Name)
+        End If
+      Next
+
+      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables)
       Dim value = evaluator.Evaluate
 
-      Return New EvaluationResult(program.WarningDiagnostics, value)
+      Return New EvaluationResult(Diagnostics.ToImmutableArray, value)
 
     End Function
 

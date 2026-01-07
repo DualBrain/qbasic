@@ -1,4 +1,4 @@
-﻿Imports QB.CodeAnalysis.Binding
+Imports QB.CodeAnalysis.Binding
 
 Namespace Global.QB.CodeAnalysis.Symbols
 
@@ -16,8 +16,8 @@ Namespace Global.QB.CodeAnalysis.Symbols
   Public NotInheritable Class GlobalArraySymbol
     Inherits VariableSymbol
 
-    Friend Sub New(name As String, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression)
-      MyBase.New(name, True, type, lower, upper)
+    Friend Sub New(name As String, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer)
+      MyBase.New(name, True, type, lower, upper, isStaticArray, dimensionCount)
     End Sub
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.GlobalVariable

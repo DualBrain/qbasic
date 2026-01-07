@@ -1,5 +1,5 @@
-﻿Imports System.Runtime.InteropServices.RuntimeInformation
-Imports System.Runtime.InteropServices
+﻿Imports System.Runtime.InteropServices
+Imports System.Runtime.InteropServices.RuntimeInformation
 
 Public Class OpenDialog
   Inherits Form
@@ -7,7 +7,7 @@ Public Class OpenDialog
 
   Private ReadOnly m_initialPath As String
   Private m_folder As String
-  Private m_filespec As String
+  Private ReadOnly m_filespec As String
   Private m_searchPattern As String = "*.BAS"
 
   Public ReadOnly Property Path As String

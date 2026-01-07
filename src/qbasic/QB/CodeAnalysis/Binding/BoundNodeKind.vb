@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Binding
+Namespace Global.QB.CodeAnalysis.Binding
 
   Friend Enum BoundNodeKind
 
@@ -10,6 +10,7 @@
 
     ' Statements
     BlockStatement
+    CallStatement
     ChDirStatement
     CircleStatement
     ClearStatement
@@ -53,11 +54,16 @@
     SystemStatement
     SwapStatement
     VariableDeclaration
+    DimStatement
+    EraseStatement
+    RedimStatement
     WhileStatement
 
     ' Expressions
+    ArrayAccessExpression
     BinaryExpression
     AssignmentExpression
+    BoundFunctionExpression
     CallExpression
     ConversionExpression
     ErrorExpression

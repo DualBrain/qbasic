@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.Immutable
+
 Imports QB.CodeAnalysis.Binding
 
 Namespace Global.QB.CodeAnalysis.Emit

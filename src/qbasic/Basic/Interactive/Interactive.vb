@@ -250,7 +250,7 @@ Namespace Global.Basic
     'Private ReadOnly m_dialect As Parser.Dialect = Parser.Dialect.Hybrid
     Private ReadOnly m_reservedWords As New List(Of String)
 
-    Private m_isTrial As Boolean = False
+    Private ReadOnly m_isTrial As Boolean = False
 
     Private ReadOnly m_region As String = "en-US"
 

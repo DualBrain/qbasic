@@ -1,4 +1,4 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 
 Namespace Global.QB.CodeAnalysis.Syntax
 
@@ -166,6 +166,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.DefSngKeyword : Return ParseDefTypeStatement()
         Case SyntaxKind.DefStrKeyword : Return ParseDefTypeStatement()
         Case SyntaxKind.DimKeyword : Return ParseVariableDeclaration()
+        Case SyntaxKind.RedimKeyword : Return ParseRedimStatement()
         Case SyntaxKind.DoKeyword : Return ParseDoStatement(isTopLevel)
         Case SyntaxKind.DrawKeyword : Return ParseDrawStatement()
         Case SyntaxKind.EndKeyword : Return ParseEndStatement()
@@ -922,17 +923,16 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Do
 
         Dim variable = MatchToken(SyntaxKind.IdentifierToken)
-        Dim boundsClause = ParseOptionalBoundsClause()
-        Dim asClause = ParseOptionalAsClause()
+        Dim optionalBoundsClause = ParseOptionalBoundsClause()
+        Dim optionalAsClause = ParseOptionalAsClause()
 
         variables.Add(New VariableDeclarationSyntax(m_syntaxTree,
                                                          variable,
-                                                         boundsClause,
-                                                         asClause,
+                                                         optionalBoundsClause,
+                                                         optionalAsClause,
                                                          Nothing))
 
-        If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
-        variables.Add(MatchToken(SyntaxKind.CommaToken))
+        If TryMatchToken(SyntaxKind.CommaToken) Is Nothing Then Exit Do
 
       Loop
 
@@ -2813,12 +2813,11 @@ repeat:
 
     Private Function ParseRedimStatement() As RedimStatementSyntax
 
-      'QBasic: REDIM [SHARED] variable(subscripts) [AS type][,variable(subscripts) [AS type]]...
-
-      'Note: Might be able to merge this with DIM.
+      'QBasic: REDIM [PRESERVE] [SHARED] variable(subscripts) [AS type][,variable(subscripts) [AS type]]...
 
       Dim redimKeyword = MatchToken(SyntaxKind.RedimKeyword)
-      Dim sharedKeyword = TryMatchToken(SyntaxKind.SharedKeyword)
+      Dim optionalPreserveKeyword = TryMatchToken(SyntaxKind.PreserveKeyword)
+      Dim optionalSharedKeyword = TryMatchToken(SyntaxKind.SharedKeyword)
 
       Dim variables As New List(Of SyntaxNode)
 
@@ -2829,20 +2828,20 @@ repeat:
         Dim optionalAsClause = ParseOptionalAsClause()
 
         variables.Add(New VariableDeclarationSyntax(m_syntaxTree,
-                                                         variable,
-                                                         optionalBoundsClause,
-                                                         optionalAsClause,
-                                                         Nothing))
+                                                     variable,
+                                                     optionalBoundsClause,
+                                                     optionalAsClause,
+                                                     Nothing))
 
-        If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
-        variables.Add(MatchToken(SyntaxKind.CommaToken))
+        If TryMatchToken(SyntaxKind.CommaToken) Is Nothing Then Exit Do
 
       Loop
 
       Return New RedimStatementSyntax(m_syntaxTree,
-                                      redimKeyword,
-                                      sharedKeyword,
-                                      variables)
+                                       redimKeyword,
+                                       optionalPreserveKeyword,
+                                       optionalSharedKeyword,
+                                       variables)
 
     End Function
 
@@ -3684,7 +3683,11 @@ repeat:
         If precedence = 0 OrElse precedence <= parentPrecedence Then Exit Do
         Dim operatorToken = NextToken()
         Dim right = ParseBinaryExpression(precedence)
-        left = New BinaryExpressionSyntax(m_syntaxTree, left, operatorToken, right)
+        If operatorToken.Kind = SyntaxKind.EqualToken Then
+          left = New AssignmentExpressionSyntax(m_syntaxTree, left, operatorToken, right)
+        Else
+          left = New BinaryExpressionSyntax(m_syntaxTree, left, operatorToken, right)
+        End If
       Loop
       Return left
     End Function
@@ -3832,11 +3835,19 @@ repeat:
                                   closeParen)
     End Function
 
-    Public Function ParseIdentifierExpression() As IdentifierExpressionSyntax
+    Public Function ParseIdentifierExpression() As ExpressionSyntax
 
-      Dim identifier = ParseIdentifier()
+      Dim identifierToken = MatchToken(SyntaxKind.IdentifierToken)
 
-      Return New IdentifierExpressionSyntax(m_syntaxTree, identifier)
+      ' Check if this is followed by parentheses (function call or array access)
+      If Current.Kind = SyntaxKind.OpenParenToken Then
+        Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+        Dim arguments = ParseArguments()
+        Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+        Return New CallExpressionSyntax(m_syntaxTree, identifierToken, openParen, arguments, closeParen)
+      End If
+
+      Return New IdentifierExpressionSyntax(m_syntaxTree, identifierToken)
 
     End Function
 

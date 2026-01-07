@@ -1,4 +1,4 @@
-﻿Imports QB.CodeAnalysis
+Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 Imports QB.IO
@@ -8,7 +8,7 @@ Namespace Global.QB
   Public Class Interpreter
 
     Private m_previous As Compilation = Nothing
-    Private ReadOnly m_variables As New Dictionary(Of VariableSymbol, Object)
+    Private ReadOnly m_variables As New Dictionary(Of String, Object)
 
     Sub New()
 

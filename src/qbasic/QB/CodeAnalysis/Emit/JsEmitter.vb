@@ -1,5 +1,6 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 Imports System.Text
+
 Imports QB.CodeAnalysis.Binding
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
@@ -12,7 +13,7 @@ Namespace Global.QB.CodeAnalysis.Emit
 
     Private ReadOnly _diagnostics As New DiagnosticBag
 
-    Private m_moduleName As String
+    Private ReadOnly m_moduleName As String
     Private m_contents As String = ""
 
     Friend Sub New(moduleName As String, references() As String)
@@ -545,7 +546,11 @@ Namespace Global.QB.CodeAnalysis.Emit
     End Sub
 
     Private Sub EmitHandlePrintStatement(node As BoundHandlePrintStatement)
-      m_contents &= $"{Tab()}console.print("
+      If node.NoCr Then
+        m_contents &= $"{Tab()}console.print("
+      Else
+        m_contents &= $"{Tab()}console.log("
+      End If
       EmitExpression(node.Expression)
       m_contents &= $");{vbCrLf}"
     End Sub

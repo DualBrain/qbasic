@@ -1,5 +1,6 @@
-﻿'Imports System.Collections.Immutable
+'Imports System.Collections.Immutable
 Imports System.Collections.Immutable
+
 Imports QB.CodeAnalysis.Binding
 Imports QB.CodeAnalysis.Symbols
 'Imports QB.CodeAnalysis.Symbols
@@ -271,7 +272,7 @@ Namespace Global.QB.CodeAnalysis.Lowering
 
       Dim increment = New BoundExpressionStatement(
               New BoundAssignmentExpression(
-                node.Variable,
+                New BoundVariableExpression(node.Variable),
                 New BoundBinaryExpression(
                   variableExpression,
                   BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),

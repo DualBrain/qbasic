@@ -2,7 +2,7 @@
   Inherits Form
   Implements IContext
 
-  Private m_name As String
+  Private ReadOnly m_name As String
 
   Public Shadows ReadOnly Property CursorRow As Integer Implements IContext.CursorRow
     Get

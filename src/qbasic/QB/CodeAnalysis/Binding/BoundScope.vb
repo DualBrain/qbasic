@@ -33,6 +33,15 @@ Namespace Global.QB.CodeAnalysis.Binding
       If symbol.Kind = SymbolKind.Function Then
         Dim f = TryCast(symbol, FunctionSymbol)
         key &= $"[{If(f?.Parameters.Length, 0)}]"
+      Else
+        ' For variables, check if there's already a function with this name
+        If m_symbols IsNot Nothing AndAlso m_symbols.Keys.Any(Function(k) k.StartsWith($"{name.ToLower}[")) Then
+          Return False
+        End If
+        ' Also check parent scopes
+        If Parent IsNot Nothing AndAlso Parent.TryLookupSymbol($"{name.ToLower}[") IsNot Nothing Then
+          Return False
+        End If
       End If
       If m_symbols Is Nothing Then
         m_symbols = New Dictionary(Of String, Symbol)
@@ -50,15 +59,14 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Public Function TryLookupFunction(name As String, parameters As List(Of TypeSymbol)) As Symbol
-      'If Not "%&!#$".Contains(name.Last) Then name &= "!"c
-      Dim key = $"{name.ToLower}"
-      key &= $"[{If(parameters?.Count, 0)}]"
+      ' First try exact match
+      Dim key = $"{name.ToLower}[{If(parameters?.Count, 0)}]"
       Dim result = TryLookupSymbol(key)
-      If result Is Nothing Then
-        key = $"{name.ToLower}["
-        result = TryLookupSymbol(key)
-      End If
-      Return result
+      If result IsNot Nothing Then Return result
+
+      ' If not found, look for any function with this name (for now, just return nothing to avoid bugs)
+      ' TODO: Implement proper function overload resolution
+      Return Parent?.TryLookupFunction(name, parameters)
     End Function
 
     Public Function TryLookupSymbol(name As String) As Symbol

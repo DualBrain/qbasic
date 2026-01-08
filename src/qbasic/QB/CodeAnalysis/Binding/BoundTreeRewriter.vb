@@ -333,13 +333,15 @@ Namespace Global.QB.CodeAnalysis.Binding
     Protected Overridable Function RewriteIfStatement(node As BoundIfStatement) As BoundStatement
       Dim condition = RewriteExpression(node.Expression)
       Dim thenStatement = RewriteStatement(node.Statements)
+      Dim elseIfStatements = node.ElseIfStatements.Select(Function(e) New BoundElseIfStatement(RewriteExpression(e.Expression), RewriteStatement(e.Statements))).ToImmutableArray()
       Dim elseStatement = RewriteStatement(node.ElseStatement)
       If condition Is node.Expression AndAlso
          thenStatement.Equals(node.Statements) AndAlso
+         elseIfStatements.SequenceEqual(node.ElseIfStatements) AndAlso
          elseStatement.Equals(node.ElseStatement) Then
         Return node
       End If
-      Return New BoundIfStatement(condition, thenStatement, elseStatement)
+      Return New BoundIfStatement(condition, thenStatement, elseIfStatements, elseStatement)
     End Function
 
     Protected Overridable Function RewriteWhileStatement(node As BoundWhileStatement) As BoundStatement

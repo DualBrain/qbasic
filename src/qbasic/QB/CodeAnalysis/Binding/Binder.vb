@@ -567,12 +567,10 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindBlockStatement(syntax As BlockStatementSyntax) As BoundStatement
       Dim statements = ImmutableArray.CreateBuilder(Of BoundStatement)
-      m_scope = New BoundScope(m_scope)
       For Each statementSyntax In syntax.Statements
         Dim statement = BindStatement(statementSyntax)
         statements.Add(statement)
       Next
-      m_scope = m_scope.Parent
       Return New BoundBlockStatement(statements.ToImmutable)
     End Function
 
@@ -582,11 +580,6 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindCallExpression(syntax As CallExpressionSyntax) As BoundExpression
-
-      ' Check for LBOUND/UBOUND functions first
-      If syntax.Identifier.Text.ToUpper() = "LBOUND" Or syntax.Identifier.Text.ToUpper() = "UBOUND" Then
-        Return BindBoundFunction(syntax)
-      End If
 
       ' First check if this is array access (identifier with parentheses)
       Dim variableSymbol = m_scope.TryLookupVariable(syntax.Identifier.Text)
@@ -606,27 +599,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Return New BoundArrayAccessExpression(variableSymbol, index)
       End If
 
-      ' Check for automatic array dimensioning - if variable doesn't exist, create array with bounds 0-9
-      If variableSymbol Is Nothing Then
-        ' Automatic array dimensioning: create array with bounds 0-10
-        If syntax.Arguments.Count <> 1 Then
-          Diagnostics.ReportWrongArgumentCount(syntax.Identifier.Location, syntax.Identifier.Text, 1, syntax.Arguments.Count)
-          Return New BoundErrorExpression
-        End If
-        Dim index = BindExpression(syntax.Arguments(0))
-        ' Create automatic array with bounds 0-10
-        Dim lowerBound = New BoundLiteralExpression(0)
-        Dim upperBound = New BoundLiteralExpression(10)
-        Dim autoArray = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
-        Return New BoundArrayAccessExpression(autoArray, index)
-      End If
-
-      ' Not an array, proceed with function call logic
-      Dim t = LookupType(syntax.Identifier.Text)
-      If syntax.Arguments.Count = 1 AndAlso TypeOf t Is TypeSymbol Then
-        Return BindConversion(syntax.Arguments(0), t, True)
-      End If
-
+      ' Check for function calls
       Dim boundArguments = ImmutableArray.CreateBuilder(Of BoundExpression)()
 
       Dim parameters = New List(Of TypeSymbol)
@@ -636,49 +609,56 @@ Namespace Global.QB.CodeAnalysis.Binding
         parameters.Add(boundArgument.Type)
       Next
 
-      'Dim symbol = m_scope.TryLookupSymbol(syntax.Identifier.Text)
       Dim symbol = m_scope.TryLookupFunction(syntax.Identifier.Text, parameters)
-      If symbol Is Nothing Then
-        Diagnostics.ReportUndefinedFunction(syntax.Identifier.Location, syntax.Identifier.Text)
-        Return New BoundErrorExpression
-      End If
-
-      Dim func = TryCast(symbol, FunctionSymbol)
-      If func Is Nothing Then
-        Diagnostics.ReportNotAFunction(syntax.Identifier.Location, syntax.Identifier.Text)
-        Return New BoundErrorExpression
-      End If
-
-      If syntax.Arguments.Count <> func.Parameters.Length Then
-        Dim span As TextSpan
-        If syntax.Arguments.Count > func.Parameters.Length Then
-          Dim firstExceedingNode As SyntaxNode
-          If func.Parameters.Length > 0 Then
-            firstExceedingNode = syntax.Arguments.GetSeparator(func.Parameters.Length - 1)
-          Else
-            firstExceedingNode = syntax.Arguments(0)
-          End If
-          Dim lastExceedingArgument = syntax.Arguments(syntax.Arguments.Count - 1)
-          span = TextSpan.FromBounds(firstExceedingNode.Span.Start, lastExceedingArgument.Span.[End])
-        Else
-          span = syntax.CloseParenToken.Span
+      If symbol IsNot Nothing Then
+        Dim func = TryCast(symbol, FunctionSymbol)
+        If func Is Nothing Then
+          Diagnostics.ReportNotAFunction(syntax.Identifier.Location, syntax.Identifier.Text)
+          Return New BoundErrorExpression
         End If
-        Dim location = New TextLocation(syntax.SyntaxTree.Text, span)
-        Diagnostics.ReportWrongArgumentCount(location, func.Name, func.Parameters.Length, syntax.Arguments.Count)
-        Return New BoundErrorExpression
+
+        If syntax.Arguments.Count <> func.Parameters.Length Then
+          Dim span As TextSpan
+          If syntax.Arguments.Count > func.Parameters.Length Then
+            Dim firstExceedingNode As SyntaxNode
+            If func.Parameters.Length > 0 Then
+              firstExceedingNode = syntax.Arguments.GetSeparator(func.Parameters.Length - 1)
+            Else
+              firstExceedingNode = syntax.Arguments(0)
+            End If
+            Dim lastExceedingArgument = syntax.Arguments(syntax.Arguments.Count - 1)
+            span = TextSpan.FromBounds(firstExceedingNode.Span.Start, lastExceedingArgument.Span.[End])
+          Else
+            span = If(syntax.CloseParenToken IsNot Nothing, syntax.CloseParenToken.Span, syntax.Identifier.Span)
+          End If
+          Dim location = New TextLocation(syntax.SyntaxTree.Text, span)
+          Diagnostics.ReportWrongArgumentCount(location, func.Name, func.Parameters.Length, syntax.Arguments.Count)
+          Return New BoundErrorExpression
+        End If
+
+        For i = 0 To syntax.Arguments.Count - 1
+          Dim argumentLocation = syntax.Arguments(i).Location
+          Dim argument = boundArguments(i)
+          Dim parameter = func.Parameters(i)
+          boundArguments(i) = BindConversion(argumentLocation, argument, parameter.Type)
+        Next
+
+        Return New BoundCallExpression(func, boundArguments.ToImmutable())
       End If
 
-      For i = 0 To syntax.Arguments.Count - 1
+      ' Not function, check for automatic array dimensioning
+      If variableSymbol Is Nothing AndAlso syntax.Arguments.Count = 1 Then
+        Dim index = BindExpression(syntax.Arguments(0))
+        ' Create automatic array with bounds 0-10
+        Dim lowerBound = New BoundLiteralExpression(0)
+        Dim upperBound = New BoundLiteralExpression(10)
+        Dim autoArray = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
+        Return New BoundArrayAccessExpression(autoArray, index)
+      End If
 
-        Dim argumentLocation = syntax.Arguments(i).Location
-        Dim argument = boundArguments(i)
-        Dim parameter = func.Parameters(i)
-
-        boundArguments(i) = BindConversion(argumentLocation, argument, parameter.Type)
-
-      Next
-
-      Return New BoundCallExpression(func, boundArguments.ToImmutable())
+      ' Error
+      Diagnostics.ReportUndefinedFunction(syntax.Identifier.Location, syntax.Identifier.Text)
+      Return New BoundErrorExpression
 
     End Function
 
@@ -842,12 +822,6 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindIfStatement(syntax As IfStatementSyntax) As BoundStatement
 
-      'Dim ifStatement = syntax.IfStatement
-      'Dim elseIfStatements = syntax.ElseIfStatements
-      Dim elseStatement = syntax.ElseClause
-
-      'TODO: Need to handle ElseIf...
-
       Dim condition = BindExpression(syntax.Condition, TypeSymbol.Boolean)
 
       If condition.ConstantValue IsNot Nothing Then
@@ -859,8 +833,16 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
 
       Dim thenStatement = BindStatement(syntax.Statements)
-      Dim elseClause = If(elseStatement IsNot Nothing, BindStatement(elseStatement.Statements), Nothing)
-      Return New BoundIfStatement(condition, thenStatement, elseClause)
+
+      Dim elseIfStatementsBuilder = ImmutableArray.CreateBuilder(Of BoundElseIfStatement)
+      For Each elseIfSyntax In syntax.ElseIfClauses
+        Dim elseIfCondition = BindExpression(elseIfSyntax.Expression, TypeSymbol.Boolean)
+        Dim elseIfStatements = BindStatement(elseIfSyntax.Statements)
+        elseIfStatementsBuilder.Add(New BoundElseIfStatement(elseIfCondition, elseIfStatements))
+      Next
+
+      Dim elseClause = If(syntax.ElseClause IsNot Nothing, BindStatement(syntax.ElseClause.Statements), Nothing)
+      Return New BoundIfStatement(condition, thenStatement, elseIfStatementsBuilder.ToImmutable(), elseClause)
 
     End Function
 
@@ -1361,7 +1343,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         statements = BindStatement(syntax.Statements)
       End If
       Dim elseStatement = If(syntax.ElseClause IsNot Nothing, BindStatement(syntax.ElseClause.Statements), Nothing)
-      Return New BoundIfStatement(condition, statements, elseStatement)
+      Return New BoundIfStatement(condition, statements, ImmutableArray(Of BoundElseIfStatement).Empty, elseStatement)
 
     End Function
 

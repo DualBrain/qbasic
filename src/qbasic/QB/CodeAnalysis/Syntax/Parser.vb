@@ -1730,7 +1730,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       '  IF condition THEN statements [ELSE statements]
 
       Dim ifKeyword = MatchToken(SyntaxKind.IfKeyword)
-      Dim condition = ParseExpression()
+      Dim condition = ParseBinaryExpression(allowAssignment:=False)
       Dim thenKeyword = MatchToken(SyntaxKind.ThenKeyword)
 
       Dim thenLine = m_text.GetLineIndex(thenKeyword.Span.Start)
@@ -1795,7 +1795,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       If Current.Kind <> SyntaxKind.ElseIfKeyword Then Return Nothing
       Dim elseIfKeyword = MatchToken(SyntaxKind.ElseIfKeyword)
-      Dim expression = ParseExpression()
+      Dim expression = ParseBinaryExpression(allowAssignment:=False)
       Dim thenKeyword = MatchToken(SyntaxKind.ThenKeyword)
       Dim statements = ParseBlockStatement(isTopLevel)
       Return New ElseIfClause(m_syntaxTree, elseIfKeyword, expression, thenKeyword, statements)
@@ -3668,12 +3668,12 @@ repeat:
 
 #Region "Expressions"
 
-    Private Function ParseBinaryExpression(Optional parentPrecedence As Integer = 0) As ExpressionSyntax
+    Private Function ParseBinaryExpression(Optional parentPrecedence As Integer = 0, Optional allowAssignment As Boolean = True) As ExpressionSyntax
       Dim left As ExpressionSyntax
       Dim unaryOperatorPrecedence = SyntaxFacts.GetUnaryOperatorPrecedence(Current.Kind)
       If unaryOperatorPrecedence <> 0 AndAlso unaryOperatorPrecedence > parentPrecedence Then
         Dim operatorToken = NextToken()
-        Dim operand = ParseBinaryExpression(unaryOperatorPrecedence)
+        Dim operand = ParseBinaryExpression(unaryOperatorPrecedence, allowAssignment)
         left = New UnaryExpressionSyntax(m_syntaxTree, operatorToken, operand)
       Else
         left = ParsePrimaryExpression()
@@ -3682,8 +3682,8 @@ repeat:
         Dim precedence = SyntaxFacts.GetBinaryOperatorPrecedence(Current.Kind)
         If precedence = 0 OrElse precedence <= parentPrecedence Then Exit Do
         Dim operatorToken = NextToken()
-        Dim right = ParseBinaryExpression(precedence)
-        If operatorToken.Kind = SyntaxKind.EqualToken Then
+        Dim right = ParseBinaryExpression(precedence, allowAssignment)
+        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment Then
           left = New AssignmentExpressionSyntax(m_syntaxTree, left, operatorToken, right)
         Else
           left = New BinaryExpressionSyntax(m_syntaxTree, left, operatorToken, right)
@@ -3847,8 +3847,24 @@ repeat:
         Return New CallExpressionSyntax(m_syntaxTree, identifierToken, openParen, arguments, closeParen)
       End If
 
+      ' Check if this is a function that can be called without parentheses
+      If IsFunctionWithoutParentheses(identifierToken.Text) Then
+        Return New CallExpressionSyntax(m_syntaxTree, identifierToken, Nothing, New SeparatedSyntaxList(Of ExpressionSyntax)(ImmutableArray.Create(Of SyntaxNode)()), Nothing)
+      End If
+
       Return New IdentifierExpressionSyntax(m_syntaxTree, identifierToken)
 
+    End Function
+
+    Private Function IsFunctionWithoutParentheses(name As String) As Boolean
+      ' In QBasic, certain functions can be called without parentheses
+      ' These are typically functions that don't require parameters or have default behavior
+      Select Case name.ToUpper()
+        Case "RND", "TIMER"
+          Return True
+        Case Else
+          Return False
+      End Select
     End Function
 
     'Private Function ParseNameExpression() As ExpressionSyntax

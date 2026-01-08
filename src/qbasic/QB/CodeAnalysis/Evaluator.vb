@@ -209,6 +209,7 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.HandlePrintStatement : EvaluateHandlePrintStatement(CType(s, BoundHandlePrintStatement)) : index += 1
           Case BoundNodeKind.HandleSpcStatement : EvaluateHandleSpcStatement(CType(s, BoundHandleSpcStatement)) : index += 1
           Case BoundNodeKind.HandleTabStatement : EvaluateHandleTabStatement(CType(s, BoundHandleTabStatement)) : index += 1
+          Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement)) : index += 1
 
           Case BoundNodeKind.InputStatement
 
@@ -349,27 +350,27 @@ Namespace Global.QB.CodeAnalysis
             '      context.)
             index += 1
 
-          Case BoundNodeKind.PsetStatement
-            Dim pset = CType(s, BoundPsetStatement)
-            Dim x = CInt(EvaluateExpression(pset.X))
-            Dim y = CInt(EvaluateExpression(pset.Y))
-            If pset.Color Is Nothing Then
-              QBLib.Video.PSET(pset.Step, x, y)
+           Case BoundNodeKind.PsetStatement
+             Dim psetStmt = CType(s, BoundPsetStatement)
+             Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
+             Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
+            If psetStmt.Color Is Nothing Then
+              QBLib.Video.PSET(psetStmt.Step, x, y)
             Else
-              Dim c = CInt(EvaluateExpression(pset.Color))
-              QBLib.Video.PSET(pset.Step, x, y, c)
+              Dim c = CInt(EvaluateExpression(psetStmt.Color))
+              QBLib.Video.PSET(psetStmt.Step, x, y, c)
             End If
             index += 1
 
           Case BoundNodeKind.PresetStatement
-            Dim pset = CType(s, BoundPresetStatement)
-            Dim x = CInt(EvaluateExpression(pset.X))
-            Dim y = CInt(EvaluateExpression(pset.Y))
-            If pset.Color Is Nothing Then
-              QBLib.Video.PRESET(pset.Step, x, y)
+             Dim psetStmt = CType(s, BoundPresetStatement)
+             Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
+             Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
+            If psetStmt.Color Is Nothing Then
+              QBLib.Video.PRESET(psetStmt.Step, x, y)
             Else
-              Dim c = CInt(EvaluateExpression(pset.Color))
-              QBLib.Video.PRESET(pset.Step, x, y, c)
+              Dim c = CInt(EvaluateExpression(psetStmt.Color))
+              QBLib.Video.PRESET(psetStmt.Step, x, y, c)
             End If
             index += 1
 
@@ -538,6 +539,27 @@ Namespace Global.QB.CodeAnalysis
       End If
       Dim str = Microsoft.VisualBasic.Strings.Space(diff)
       QBLib.Video.PRINT(str, True)
+    End Sub
+
+    Private Sub EvaluateIfStatement(node As BoundIfStatement)
+      Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+      If conditionValue Then
+        EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+      Else
+        Dim executed = False
+        For Each elseIfClause In node.ElseIfStatements
+          If Not executed Then
+            Dim elseIfCondition = CBool(EvaluateExpression(elseIfClause.Expression))
+            If elseIfCondition Then
+              EvaluateStatement(CType(elseIfClause.Statements, BoundBlockStatement))
+              executed = True
+            End If
+          End If
+        Next
+        If Not executed AndAlso node.ElseStatement IsNot Nothing Then
+          EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement))
+        End If
+      End If
     End Sub
 
     Private Sub EvaluateVariableDeclaration(node As BoundVariableDeclaration)
@@ -1449,6 +1471,8 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Private Sub Assign(variable As VariableSymbol, value As Object)
+      ' Convert value to the variable's type
+      value = ConvertValue(value, variable.Type)
       If variable.Kind = SymbolKind.GlobalVariable Then
         m_globals(variable.Name) = value
       Else
@@ -1456,6 +1480,21 @@ Namespace Global.QB.CodeAnalysis
         locals(variable.Name) = value
       End If
     End Sub
+
+    Private Function ConvertValue(value As Object, targetType As TypeSymbol) As Object
+      If value Is Nothing Then Return Nothing
+      If targetType Is TypeSymbol.Integer Then
+        Return CInt(value)
+      ElseIf targetType Is TypeSymbol.Single Then
+        Return CSng(value)
+      ElseIf targetType Is TypeSymbol.Double Then
+        Return CDbl(value)
+      ElseIf targetType Is TypeSymbol.Long Then
+        Return CLng(value)
+      Else
+        Return value
+      End If
+    End Function
 
     Private Sub Assign(expression As BoundExpression, value As Object)
       If TypeOf expression Is BoundVariableExpression Then

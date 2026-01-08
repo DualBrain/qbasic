@@ -1,0 +1,3 @@
+FOR i = 1 TO 10
+PRINT INT(RND * 100)
+NEXT i

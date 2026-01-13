@@ -907,7 +907,8 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Shared Function BindLabelStatement(syntax As LabelStatementSyntax) As BoundStatement
       Dim label = syntax.Label
-      Dim boundLabel = New BoundLabel(label.Text.Substring(0, label.Text.Length - 1))
+      Dim labelName = If(label.Kind = SyntaxKind.Label, label.Text.Substring(0, label.Text.Length - 1), label.Text)
+      Dim boundLabel = New BoundLabel(labelName)
       Return New BoundLabelStatement(boundLabel)
     End Function
 

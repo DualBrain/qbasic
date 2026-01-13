@@ -64,7 +64,11 @@ Namespace QBasic.CodeAnalysis.Tests
 
     <Fact>
     Public Sub SyntaxTreeParsesMultipleStatements()
-      Dim text = "x = 1" & vbCrLf & "PRINT x" & vbCrLf & "y = 2"
+      Dim text = "
+x = 1
+PRINT x
+y = 2
+"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = DirectCast(syntaxTree.Root, CompilationUnitSyntax)
 
@@ -74,11 +78,14 @@ Namespace QBasic.CodeAnalysis.Tests
 
     <Fact>
     Public Sub SyntaxTreeParsesStatementsWithLineNumbers()
-      Dim text = "10 PRINT ""Hello""" & vbCrLf & "20 x = 42"
+      Dim text = "
+10 PRINT ""Hello""
+20 x = 42
+"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = DirectCast(syntaxTree.Root, CompilationUnitSyntax)
-
-      Assert.Equal(2, root.Members.Count)
+      'NOTE: "label" count separately
+      Assert.Equal(4, root.Members.Length)
       Assert.Empty(syntaxTree.Diagnostics)
     End Sub
 

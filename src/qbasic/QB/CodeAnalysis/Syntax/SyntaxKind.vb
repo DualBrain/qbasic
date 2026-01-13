@@ -15,6 +15,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     LineBreakTrivia
     WhiteSpaceTrivia
     SingleLineCommentTrivia
+    LineContinuationTrivia
     EndOfFileToken
 
 #Region "SpecBAS"
@@ -361,6 +362,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     NameStatement
     OnErrorGotoStatement
     OnGotoStatement
+    OnGosubStatement
     OpenStatement
     OptionStatement
     OutStatement

@@ -1,4 +1,4 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 Imports System.Text
 
 Imports QB.CodeAnalysis.Symbols
@@ -95,20 +95,17 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Select Case Current
           Case ChrW(0)
             done = True
-          Case "0"c, "1"c, "2"c, "3"c, "4"c, "5"c, "6"c, "7"c, "8"c, "9"c
-            Dim line = m_text.GetLineIndex(m_position)
-            If m_position = 0 OrElse
-               m_text.Lines(line).Start = m_position Then
-              While Char.IsDigit(Current)
-                m_position += 1
-              End While
-              m_kind = SyntaxKind.LineNumberTrivia
-            Else
-              done = True
-            End If
-          Case "'"c
-            ReadSingleLineComment()
-          Case ChrW(10), ChrW(13)
+
+           Case "'"c
+             ReadSingleLineComment()
+           Case "_"c
+             If LookAhead = ChrW(10) OrElse LookAhead = ChrW(13) OrElse LookAhead = ChrW(0) Then
+               m_kind = SyntaxKind.LineContinuationTrivia
+               m_position += 1
+             Else
+               done = True
+             End If
+           Case ChrW(10), ChrW(13)
             If Not leading Then done = True
             ReadLineBreak()
           Case " "c, ChrW(9) ' Short-circuit whitespace checking (common).
@@ -237,11 +234,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
         Case ChrW(34)
           ReadString()
-        Case "."c, "0"c, "1"c, "2"c, "3"c, "4"c, "5"c, "6"c, "7"c, "8"c, "9"c
+        Case "0"c To "9"c
           ReadNumberToken()
-          'Case " "c, CChar(vbTab), CChar(vbCr), CChar(vbLf)
-          '  ReadWhiteSpace()
-        Case "."c : m_kind = SyntaxKind.PeriodToken : m_position += 1
+        Case "."c
+          If Char.IsDigit(LookAhead) Then
+            ReadNumberToken()
+          Else
+            m_kind = SyntaxKind.PeriodToken
+            m_position += 1
+          End If
         Case "_"c
           ReadIdentifierOrKeyword()
         Case Else
@@ -276,12 +277,12 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       While Not done
         Select Case Current
-          Case ChrW(0), ChrW(13), ChrW(10)
-            'TODO: Determine if we want to allow unterminated string literals???
-            'Dim span = New TextSpan(m_start, 1)
-            'Dim location = New TextLocation(m_text, span)
-            'Diagnostics.ReportUnterminatedString(location)
-            done = True
+           Case ChrW(0), ChrW(13), ChrW(10)
+             'TODO: Determine if we want to allow unterminated string literals???
+             'Dim span = New TextSpan(m_start, 1)
+             'Dim location = New TextLocation(m_text, span)
+             'Diagnostics.ReportUnterminatedString(location)
+             done = True
           Case """"c
             If LookAhead = """"c Then
               sb.Append(Current)
@@ -317,17 +318,30 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' C - Char
 
       Dim decimalCount = 0
-      While Char.IsDigit(Current) OrElse
-            Current = "."c
-        If Current = "."c Then decimalCount += 1
-        If decimalCount > 1 Then Exit While
-        m_position += 1
-      End While
-      Dim length = m_position - m_start
-      Dim text = m_text.ToString(m_start, length)
-      If text.Contains("."c) OrElse
-         Current = "#"c OrElse
-         Current = "!"c Then
+       While Char.IsDigit(Current) OrElse
+             Current = "."c
+         If Current = "."c Then decimalCount += 1
+         If decimalCount > 1 Then Exit While
+         m_position += 1
+       End While
+
+       ' Handle exponent
+       If Current = "E"c OrElse Current = "e"c Then
+         m_position += 1
+         If Current = "+"c OrElse Current = "-"c Then
+           m_position += 1
+         End If
+         While Char.IsDigit(Current)
+           m_position += 1
+         End While
+       End If
+
+       Dim length = m_position - m_start
+       Dim text = m_text.ToString(m_start, length)
+       If text.Contains("."c) OrElse
+          text.Contains("E"c) OrElse text.Contains("e"c) OrElse
+          Current = "#"c OrElse
+          Current = "!"c Then
         Dim value As Double
         If Not Double.TryParse(text, value) Then
           Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
@@ -352,11 +366,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
         If Current = "%"c OrElse Current = "&" Then
           text &= Current : m_position += 1
         End If
-        If asLong Then
-          m_value = value
-        Else
-          m_value = CShort(value)
-        End If
+         If asLong Then
+           m_value = CLng(value)
+         Else
+           m_value = value
+         End If
       End If
 
       m_kind = SyntaxKind.NumberToken

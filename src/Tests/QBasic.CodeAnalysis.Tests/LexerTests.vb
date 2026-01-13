@@ -175,8 +175,10 @@ Namespace QBasic.CodeAnalysis.Tests
       Dim text = "123"
       Dim tokens = LexAll(text)
 
-      Assert.Single(tokens)
-      Assert.Equal(SyntaxKind.EndOfFileToken, tokens(0).Kind)
+      Assert.Equal(2, tokens.Count)
+      Assert.Equal(SyntaxKind.NumberToken, tokens(0).Kind)
+      Assert.Equal(123, tokens(0).Value)
+      Assert.Equal(SyntaxKind.EndOfFileToken, tokens(1).Kind)
     End Sub
 
     <Fact>
@@ -186,8 +188,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
       Assert.Equal(2, tokens.Count)
       Assert.Equal(SyntaxKind.NumberToken, tokens(0).Kind)
-      Assert.Equal(1, tokens(0).LeadingTrivia.Length)
-      Assert.Equal(SyntaxKind.LineNumberTrivia, tokens(0).LeadingTrivia(0).Kind)
+      Assert.Equal(1.23, tokens(0).Value)
       Assert.Equal(SyntaxKind.EndOfFileToken, tokens(1).Kind)
     End Sub
 
@@ -196,13 +197,10 @@ Namespace QBasic.CodeAnalysis.Tests
       Dim text = "1.23E10"
       Dim tokens = LexAll(text)
 
-      Assert.Equal(3, tokens.Count)
+      Assert.Equal(2, tokens.Count)
       Assert.Equal(SyntaxKind.NumberToken, tokens(0).Kind)
-      Assert.Equal(1, tokens(0).LeadingTrivia.Length)
-      Assert.Equal(SyntaxKind.LineNumberTrivia, tokens(0).LeadingTrivia(0).Kind)
-      Assert.Equal(SyntaxKind.IdentifierToken, tokens(1).Kind)
-      Assert.Equal("E10", tokens(1).Text)
-      Assert.Equal(SyntaxKind.EndOfFileToken, tokens(2).Kind)
+      Assert.Equal(0, tokens(0).LeadingTrivia.Length)
+      Assert.Equal(SyntaxKind.EndOfFileToken, tokens(1).Kind)
     End Sub
 
     <Fact>
@@ -446,8 +444,8 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.Equal(SyntaxKind.StringToken, result.Tokens(0).Kind)
       Assert.Equal("Hello World", result.Tokens(0).Value)
       Assert.Equal(SyntaxKind.EndOfFileToken, result.Tokens(1).Kind)
-      ' Should have diagnostic for unterminated string
-      Assert.Equal(1, result.Diagnostics.Length)
+      ' Unterminated strings are valid in QBasic
+      Assert.Equal(0, result.Diagnostics.Length)
     End Sub
 
     <Fact>

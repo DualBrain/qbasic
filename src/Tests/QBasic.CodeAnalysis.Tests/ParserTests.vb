@@ -23,7 +23,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
     <Fact>
     Public Sub ParsesBinaryExpression()
-      Dim text = "1 + 2"
+      Dim text = "LET A = 1 + 2"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = syntaxTree.Root
 
@@ -62,7 +62,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
     <Fact>
     Public Sub ParsesComplexExpression()
-      Dim text = "1 + 2 * 3 - 4"
+      Dim text = "LET A = 1 + 2 * 3 - 4"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = syntaxTree.Root
 
@@ -208,7 +208,9 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.Single(compilationUnit.Members)
       Assert.IsType(GetType(GlobalStatementSyntax), compilationUnit.Members(0))
       Dim globalStmt = DirectCast(compilationUnit.Members(0), GlobalStatementSyntax)
-      Assert.IsType(GetType(LetStatementSyntax), globalStmt.Statement)
+      Assert.IsType(GetType(ExpressionStatementSyntax), globalStmt.Statement)
+      Dim exprStmt = DirectCast(globalStmt.Statement, ExpressionStatementSyntax)
+      Assert.IsType(GetType(AssignmentExpressionSyntax), exprStmt.Expression)
       Assert.Empty(syntaxTree.Diagnostics)
     End Sub
 

@@ -1,4 +1,5 @@
 Imports System.Collections.Immutable
+Imports System.Net.NetworkInformation
 Imports System.Runtime.InteropServices
 
 Imports QB.CodeAnalysis.Lowering
@@ -715,9 +716,9 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindConversion(diagnosticLocation As TextLocation,
-                                    expression As BoundExpression,
-                                    type As TypeSymbol,
-                                    Optional allowExplicit As Boolean = False) As BoundExpression
+                                     expression As BoundExpression,
+                                     [type] As TypeSymbol,
+                                     Optional allowExplicit As Boolean = True) As BoundExpression
       Dim c = Conversion.Classify(expression.Type, [type])
       If Not c.Exists Then
         If expression.Type IsNot TypeSymbol.Error AndAlso [type] IsNot TypeSymbol.Error Then
@@ -725,7 +726,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
         Return New BoundErrorExpression
       End If
-      If Not allowExplicit AndAlso c.IsExplicit Then
+      If Not allowExplicit AndAlso c.IsExplicit AndAlso Not ((expression.Type Is TypeSymbol.Integer OrElse expression.Type Is TypeSymbol.Single OrElse expression.Type Is TypeSymbol.Double OrElse expression.Type Is TypeSymbol.Long) AndAlso ([type] Is TypeSymbol.Integer OrElse [type] Is TypeSymbol.Single OrElse [type] Is TypeSymbol.Double OrElse [type] Is TypeSymbol.Long)) Then
         Diagnostics.ReportCannotConvertImplicitly(diagnosticLocation, expression.Type, [type])
       End If
 
@@ -785,13 +786,13 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindForStatement(syntax As ForStatementSyntax) As BoundStatement
 
-      Dim lowerBound = BindExpression(syntax.FromValue, TypeSymbol.Long)
-      Dim upperBound = BindExpression(syntax.ToValue, TypeSymbol.Long)
-      Dim stepper = If(syntax.StepClause Is Nothing, Nothing, BindExpression(syntax.StepClause.StepValue, TypeSymbol.Long))
+      Dim lowerBound = BindExpression(syntax.FromValue, TypeSymbol.Single)
+      Dim upperBound = BindExpression(syntax.ToValue, TypeSymbol.Single)
+      Dim stepper = If(syntax.StepClause Is Nothing, Nothing, BindExpression(syntax.StepClause.StepValue, TypeSymbol.Single))
 
       m_scope = New BoundScope(m_scope)
 
-      Dim variable = BindVariableDeclaration(syntax.controlVariable, True, TypeSymbol.Long)
+      Dim variable = BindVariableDeclaration(syntax.ControlVariable, True, TypeSymbol.Single)
       Dim exitLabel As BoundLabel = Nothing
       Dim continueLabel As BoundLabel = Nothing
       Dim body = BindLoopBody(syntax.Statements, exitLabel, continueLabel)
@@ -948,7 +949,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
           End If
 
-          Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
+          Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type, allowExplicit:=True)
 
           Return New BoundLetStatement(variable, convertedExpression)
 
@@ -1106,7 +1107,21 @@ Namespace Global.QB.CodeAnalysis.Binding
           globalScope.TryDeclareVariable(variable)
         Else
           ' Implicit scalar
-          variable = New VariableSymbol(name, False, TypeSymbol.Single, Nothing, Nothing, True, 0)
+          ' No AS clause, check variable name suffix
+          Dim type = TypeSymbol.Single
+          Dim suffix = name.Last
+          Select Case suffix
+            Case "%"c : Type = TypeSymbol.Integer
+            Case "&"c : Type = TypeSymbol.Long
+            Case "!"c : Type = TypeSymbol.Single
+            Case "#"c : Type = TypeSymbol.Double
+            Case "$"c : Type = TypeSymbol.String
+            Case Else
+              'Type = TypeSymbol.Single ' Default for arrays without suffix
+          End Select
+          variable = If(m_function Is Nothing,
+                        DirectCast(New GlobalVariableSymbol(name, False, type, Nothing), VariableSymbol),
+                        DirectCast(New LocalVariableSymbol(name, False, type, Nothing), VariableSymbol))
           m_scope.TryDeclareVariable(variable)
         End If
       Else

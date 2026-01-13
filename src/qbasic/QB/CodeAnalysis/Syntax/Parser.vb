@@ -3683,7 +3683,9 @@ repeat:
         If precedence = 0 OrElse precedence <= parentPrecedence Then Exit Do
         Dim operatorToken = NextToken()
         Dim right = ParseBinaryExpression(precedence, allowAssignment)
-        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment Then
+        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment AndAlso (TypeOf left Is IdentifierSyntax OrElse TypeOf left Is CallExpressionSyntax) Then
+          ' For assignment, parse the right side with lowest precedence and no nested assignments
+          right = ParseBinaryExpression(0, False)
           left = New AssignmentExpressionSyntax(m_syntaxTree, left, operatorToken, right)
         Else
           left = New BinaryExpressionSyntax(m_syntaxTree, left, operatorToken, right)
@@ -3721,16 +3723,45 @@ repeat:
     '  Return ParseNameExpression()
     'End Function
 
-    Private Function ParsePrimaryExpression() As ExpressionSyntax
-      Select Case Current.Kind
-        Case SyntaxKind.OpenParenToken : Return ParseParenExpression()
-        'Case SyntaxKind.FalseKeyword, SyntaxKind.TrueKeyword : Return ParseBooleanLiteral()
-        Case SyntaxKind.NumberToken : Return ParseNumberLiteral()
-        Case SyntaxKind.StringToken : Return ParseStringLiteral()
-          'Case SyntaxKind.IdentifierToken : ParseNameOrCallExpression()
-        Case Else
-          Return ParseIdentifierExpression() 'ParseNameOrCallExpression()
-      End Select
+     Private Function ParsePrimaryExpression() As ExpressionSyntax
+       Select Case Current.Kind
+         Case SyntaxKind.OpenParenToken : Return ParseParenExpression()
+         'Case SyntaxKind.FalseKeyword, SyntaxKind.TrueKeyword : Return ParseBooleanLiteral()
+         Case SyntaxKind.NumberToken : Return ParseNumberLiteral()
+         Case SyntaxKind.StringToken : Return ParseStringLiteral()
+           'Case SyntaxKind.IdentifierToken : ParseNameOrCallExpression()
+         Case Else
+           Return ParseNameOrCallExpression()
+       End Select
+     End Function
+
+    Private Function ParseNameOrCallExpression() As ExpressionSyntax
+      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
+         Peek(1).Kind = SyntaxKind.OpenParenToken Then
+        Return ParseCallExpression()
+      End If
+      Return ParseNameExpression()
+    End Function
+
+    Private Function ParseNameExpression() As ExpressionSyntax
+      Dim token = MatchIdentifierOrKeyword()
+      Return New IdentifierExpressionSyntax(m_syntaxTree, token)
+    End Function
+
+    Private Function ParseCallExpression() As ExpressionSyntax
+      Dim token = MatchIdentifierOrKeyword()
+      Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+      Dim arguments = ParseArguments()
+      Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+      Return New CallExpressionSyntax(m_syntaxTree, token, openParen, arguments, closeParen)
+    End Function
+
+    Private Function MatchIdentifierOrKeyword() As SyntaxToken
+      If Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword Then
+        Return NextToken()
+      End If
+      ' For error, return missing identifier
+      Return New SyntaxToken(m_syntaxTree, SyntaxKind.IdentifierToken, Current.Position, "", Nothing, ImmutableArray(Of SyntaxTrivia).Empty, ImmutableArray(Of SyntaxTrivia).Empty)
     End Function
 
 #End Region
@@ -3859,7 +3890,7 @@ repeat:
     Private Function IsFunctionWithoutParentheses(name As String) As Boolean
       ' In QBasic, certain functions can be called without parentheses
       ' These are typically functions that don't require parameters or have default behavior
-      Select Case name.ToUpper()
+      Select Case name?.ToUpper()
         Case "RND", "TIMER"
           Return True
         Case Else

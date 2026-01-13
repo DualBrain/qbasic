@@ -28,6 +28,13 @@ Namespace Global.QB.CodeAnalysis
 
     Private m_lastValue As Object
 
+    ' Added so that we can access the "variables" for unit testing.
+    Public ReadOnly Property Globals As Dictionary(Of String, Object)
+      Get
+        Return m_globals
+      End Get
+    End Property
+
     Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol))
 
       m_program = program
@@ -53,6 +60,7 @@ Namespace Global.QB.CodeAnalysis
 
 
     Public Function Evaluate() As Object
+
       ' Initialize global variables
       For Each v As VariableSymbol In m_globalVariables
         If Not m_globals.ContainsKey(v.Name) Then
@@ -350,10 +358,10 @@ Namespace Global.QB.CodeAnalysis
             '      context.)
             index += 1
 
-           Case BoundNodeKind.PsetStatement
-             Dim psetStmt = CType(s, BoundPsetStatement)
-             Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
-             Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
+          Case BoundNodeKind.PsetStatement
+            Dim psetStmt = CType(s, BoundPsetStatement)
+            Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
+            Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
             If psetStmt.Color Is Nothing Then
               QBLib.Video.PSET(psetStmt.Step, x, y)
             Else
@@ -363,9 +371,9 @@ Namespace Global.QB.CodeAnalysis
             index += 1
 
           Case BoundNodeKind.PresetStatement
-             Dim psetStmt = CType(s, BoundPresetStatement)
-             Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
-             Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
+            Dim psetStmt = CType(s, BoundPresetStatement)
+            Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
+            Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
             If psetStmt.Color Is Nothing Then
               QBLib.Video.PRESET(psetStmt.Step, x, y)
             Else
@@ -401,6 +409,7 @@ Namespace Global.QB.CodeAnalysis
             '      to a Gosub.
             Dim rs = CType(s, BoundReturnStatement)
             m_lastValue = If(rs.Expression Is Nothing, Nothing, EvaluateExpression(rs.Expression))
+            'm_lastValue = If(rs.Expression Is Nothing, m_lastValue, EvaluateExpression(rs.Expression))
             Return m_lastValue
 
           Case BoundNodeKind.RmDirStatement
@@ -796,14 +805,18 @@ Namespace Global.QB.CodeAnalysis
 
     Private Function EvaluateVariableExpression(node As BoundVariableExpression) As Object
       If node.Variable.Kind = SymbolKind.GlobalVariable Then
-        If Not OPTION_EXPLICIT AndAlso
-           Not m_globals.ContainsKey(node.Variable.Name) Then
-          Assign(node.Variable, 0)
+        If m_globals.ContainsKey(node.Variable.Name) Then
+          Return m_globals(node.Variable.Name)
+        Else
+          Return Nothing
         End If
-        Return m_globals(node.Variable.Name)
       Else
         Dim locals = m_locals.Peek
-        Return locals(node.Variable.Name)
+        If locals.ContainsKey(node.Variable.Name) Then
+          Return locals(node.Variable.Name)
+        Else
+          Return Nothing
+        End If
       End If
     End Function
 
@@ -879,7 +892,13 @@ Namespace Global.QB.CodeAnalysis
       Dim operand = EvaluateExpression(node.Operand)
       Select Case node.Op.Kind
         Case BoundUnaryOperatorKind.Identity : Return CInt(operand)
-        Case BoundUnaryOperatorKind.Negation : Return -CInt(operand)
+        Case BoundUnaryOperatorKind.Negation
+          If TypeOf operand Is Single Then Return -CSng(operand)
+          If TypeOf operand Is Integer Then Return -CInt(operand)
+          If TypeOf operand Is Long Then Return -CLng(operand)
+          If TypeOf operand Is Double Then Return -CDbl(operand)
+          If TypeOf operand Is SByte Then Return -CSByte(operand)
+          Throw New Exception($"Unexpected negation operation")
         Case BoundUnaryOperatorKind.LogicalNegation : Return Not CBool(operand)
         Case BoundUnaryOperatorKind.BitwiseComplement : Return Not CInt(operand)
         Case Else
@@ -1014,72 +1033,72 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
         Case BoundBinaryOperatorKind.Equal
-          Return Equals(left, right)
+          Return If(Equals(left, right), -1, 0)
         Case BoundBinaryOperatorKind.NotEqual
-          Return Not Equals(left, right)
+          Return If(Not Equals(left, right), -1, 0)
 
         Case BoundBinaryOperatorKind.GreaterThan
           Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
-            Case TypeSymbol.Type.Decimal : Return (CDec(left) > CDec(right))
-            Case TypeSymbol.Type.Double : Return (CDbl(left) > CDbl(right))
-            Case TypeSymbol.Type.Single : Return (CSng(left) > CSng(right))
-            Case TypeSymbol.Type.ULong64 : Return (CULng(left) > CULng(right))
-            Case TypeSymbol.Type.Long64 : Return (CLng(left) > CLng(right))
-            Case TypeSymbol.Type.ULong : Return (CUInt(left) > CUInt(right))
-            Case TypeSymbol.Type.Long : Return (CInt(left) > CInt(right))
-            Case TypeSymbol.Type.UInteger : Return (CUShort(left) > CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) > CShort(right))
-            Case TypeSymbol.Type.SByte : Return (CSByte(left) > CSByte(right))
-            Case TypeSymbol.Type.Byte : Return (CByte(left) > CByte(right))
-            Case TypeSymbol.Type.String : Return (CStr(left) > CStr(right))
+            Case TypeSymbol.Type.Decimal : Return If(CDec(left) > CDec(right), -1, 0)
+            Case TypeSymbol.Type.Double : Return If(CDbl(left) > CDbl(right), -1, 0)
+            Case TypeSymbol.Type.Single : Return If(CSng(left) > CSng(right), -1, 0)
+            Case TypeSymbol.Type.ULong64 : Return If(CULng(left) > CULng(right), -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If(CLng(left) > CLng(right), -1, 0)
+            Case TypeSymbol.Type.ULong : Return If(CUInt(left) > CUInt(right), -1, 0)
+            Case TypeSymbol.Type.Long : Return If(CInt(left) > CInt(right), -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If(CUShort(left) > CUShort(right), -1, 0)
+            Case TypeSymbol.Type.Integer : Return If(CShort(left) > CShort(right), -1, 0)
+            Case TypeSymbol.Type.SByte : Return If(CSByte(left) > CSByte(right), -1, 0)
+            Case TypeSymbol.Type.Byte : Return If(CByte(left) > CByte(right), -1, 0)
+            Case TypeSymbol.Type.String : Return If(CStr(left) > CStr(right), -1, 0)
           End Select
 
         Case BoundBinaryOperatorKind.GreaterThanEqual
           Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
-            Case TypeSymbol.Type.Decimal : Return (CDec(left) >= CDec(right))
-            Case TypeSymbol.Type.Double : Return (CDbl(left) >= CDbl(right))
-            Case TypeSymbol.Type.Single : Return (CSng(left) >= CSng(right))
-            Case TypeSymbol.Type.ULong64 : Return (CULng(left) >= CULng(right))
-            Case TypeSymbol.Type.Long64 : Return (CLng(left) >= CLng(right))
-            Case TypeSymbol.Type.ULong : Return (CUInt(left) >= CUInt(right))
-            Case TypeSymbol.Type.Long : Return (CInt(left) >= CInt(right))
-            Case TypeSymbol.Type.UInteger : Return (CUShort(left) >= CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) >= CShort(right))
-            Case TypeSymbol.Type.SByte : Return (CSByte(left) >= CSByte(right))
-            Case TypeSymbol.Type.Byte : Return (CByte(left) >= CByte(right))
-            Case TypeSymbol.Type.String : Return (CStr(left) >= CStr(right))
+            Case TypeSymbol.Type.Decimal : Return If(CDec(left) >= CDec(right), -1, 0)
+            Case TypeSymbol.Type.Double : Return If(CDbl(left) >= CDbl(right), -1, 0)
+            Case TypeSymbol.Type.Single : Return If(CSng(left) >= CSng(right), -1, 0)
+            Case TypeSymbol.Type.ULong64 : Return If(CULng(left) >= CULng(right), -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If(CLng(left) >= CLng(right), -1, 0)
+            Case TypeSymbol.Type.ULong : Return If(CUInt(left) >= CUInt(right), -1, 0)
+            Case TypeSymbol.Type.Long : Return If(CInt(left) >= CInt(right), -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If(CUShort(left) >= CUShort(right), -1, 0)
+            Case TypeSymbol.Type.Integer : Return If(CShort(left) >= CShort(right), -1, 0)
+            Case TypeSymbol.Type.SByte : Return If(CSByte(left) >= CSByte(right), -1, 0)
+            Case TypeSymbol.Type.Byte : Return If(CByte(left) >= CByte(right), -1, 0)
+            Case TypeSymbol.Type.String : Return If(CStr(left) >= CStr(right), -1, 0)
           End Select
 
         Case BoundBinaryOperatorKind.LessThan
           Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
-            Case TypeSymbol.Type.Decimal : Return (CDec(left) < CDec(right))
-            Case TypeSymbol.Type.Double : Return (CDbl(left) < CDbl(right))
-            Case TypeSymbol.Type.Single : Return (CSng(left) < CSng(right))
-            Case TypeSymbol.Type.ULong64 : Return (CULng(left) < CULng(right))
-            Case TypeSymbol.Type.Long64 : Return (CLng(left) < CLng(right))
-            Case TypeSymbol.Type.ULong : Return (CUInt(left) < CUInt(right))
-            Case TypeSymbol.Type.Long : Return (CInt(left) < CInt(right))
-            Case TypeSymbol.Type.UInteger : Return (CUShort(left) < CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) < CShort(right))
-            Case TypeSymbol.Type.SByte : Return (CSByte(left) < CSByte(right))
-            Case TypeSymbol.Type.Byte : Return (CByte(left) < CByte(right))
-            Case TypeSymbol.Type.String : Return (CStr(left) < CStr(right))
+            Case TypeSymbol.Type.Decimal : Return If(CDec(left) < CDec(right), -1, 0)
+            Case TypeSymbol.Type.Double : Return If(CDbl(left) < CDbl(right), -1, 0)
+            Case TypeSymbol.Type.Single : Return If(CSng(left) < CSng(right), -1, 0)
+            Case TypeSymbol.Type.ULong64 : Return If(CULng(left) < CULng(right), -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If(CLng(left) < CLng(right), -1, 0)
+            Case TypeSymbol.Type.ULong : Return If(CUInt(left) < CUInt(right), -1, 0)
+            Case TypeSymbol.Type.Long : Return If(CInt(left) < CInt(right), -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If(CUShort(left) < CUShort(right), -1, 0)
+            Case TypeSymbol.Type.Integer : Return If(CShort(left) < CShort(right), -1, 0)
+            Case TypeSymbol.Type.SByte : Return If(CSByte(left) < CSByte(right), -1, 0)
+            Case TypeSymbol.Type.Byte : Return If(CByte(left) < CByte(right), -1, 0)
+            Case TypeSymbol.Type.String : Return If(CStr(left) < CStr(right), -1, 0)
           End Select
 
         Case BoundBinaryOperatorKind.LessThanEqual
           Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
-            Case TypeSymbol.Type.Decimal : Return (CDec(left) <= CDec(right))
-            Case TypeSymbol.Type.Double : Return (CDbl(left) <= CDbl(right))
-            Case TypeSymbol.Type.Single : Return (CSng(left) <= CSng(right))
-            Case TypeSymbol.Type.ULong64 : Return (CULng(left) <= CULng(right))
-            Case TypeSymbol.Type.Long64 : Return (CLng(left) <= CLng(right))
-            Case TypeSymbol.Type.ULong : Return (CUInt(left) <= CUInt(right))
-            Case TypeSymbol.Type.Long : Return (CInt(left) <= CInt(right))
-            Case TypeSymbol.Type.UInteger : Return (CUShort(left) <= CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) <= CShort(right))
-            Case TypeSymbol.Type.SByte : Return (CSByte(left) <= CSByte(right))
-            Case TypeSymbol.Type.Byte : Return (CByte(left) <= CByte(right))
-            Case TypeSymbol.Type.String : Return (CStr(left) <= CStr(right))
+            Case TypeSymbol.Type.Decimal : Return If(CDec(left) <= CDec(right), -1, 0)
+            Case TypeSymbol.Type.Double : Return If(CDbl(left) <= CDbl(right), -1, 0)
+            Case TypeSymbol.Type.Single : Return If(CSng(left) <= CSng(right), -1, 0)
+            Case TypeSymbol.Type.ULong64 : Return If(CULng(left) <= CULng(right), -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If(CLng(left) <= CLng(right), -1, 0)
+            Case TypeSymbol.Type.ULong : Return If(CUInt(left) <= CUInt(right), -1, 0)
+            Case TypeSymbol.Type.Long : Return If(CInt(left) <= CInt(right), -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If(CUShort(left) <= CUShort(right), -1, 0)
+            Case TypeSymbol.Type.Integer : Return If(CShort(left) <= CShort(right), -1, 0)
+            Case TypeSymbol.Type.SByte : Return If(CSByte(left) <= CSByte(right), -1, 0)
+            Case TypeSymbol.Type.Byte : Return If(CByte(left) <= CByte(right), -1, 0)
+            Case TypeSymbol.Type.String : Return If(CStr(left) <= CStr(right), -1, 0)
           End Select
 
         Case BoundBinaryOperatorKind.LogicalAnd, BoundBinaryOperatorKind.BitwiseAnd
@@ -1140,8 +1159,24 @@ Namespace Global.QB.CodeAnalysis
 
     Private Function EvaluateCallExpression(node As BoundCallExpression) As Object
       If node.Function Is BuiltinFunctions.Abs Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Abs(value)
+        Dim argValue = EvaluateExpression(node.Arguments(0))
+        ' Preserve the input type for ABS
+        If TypeOf argValue Is Single Then
+          Return MathF.Abs(CSng(argValue))
+        ElseIf TypeOf argValue Is Integer Then
+          Return Math.Abs(CInt(argValue))
+        ElseIf TypeOf argValue Is Double Then
+          Return Math.Abs(CDbl(argValue))
+        ElseIf TypeOf argValue Is Short Then
+          Return Math.Abs(CShort(argValue))
+        ElseIf TypeOf argValue Is SByte Then
+          Return Math.Abs(CSByte(argValue))
+        Else
+          ' Default to Double
+          Return Math.Abs(CDbl(argValue))
+        End If
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return MathF.Abs(value)
       ElseIf node.Function Is BuiltinFunctions.Asc Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Strings.Asc(value)
@@ -1218,6 +1253,7 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Fix Then
+        'NOTE: FIX truncates a floating-point expression to its integer portion.
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Fix(value)
       ElseIf node.Function Is BuiltinFunctions.Fre Then
@@ -1247,6 +1283,7 @@ Namespace Global.QB.CodeAnalysis
         Dim string2 = CStr(EvaluateExpression(node.Arguments(2)))
         Return Microsoft.VisualBasic.InStr(position, string1, string2)
       ElseIf node.Function Is BuiltinFunctions.Int Then
+        'NOTE: INT returns the largest integer less than or equal to the numeric expression.
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Int(value)
       ElseIf node.Function Is BuiltinFunctions.IoCtl Then
@@ -1441,8 +1478,14 @@ Namespace Global.QB.CodeAnalysis
       Dim value = EvaluateExpression(node.Expression)
       If node.Type Is TypeSymbol.Any Then
         Return value
-      ElseIf node.Type Is TypeSymbol.Boolean Then
-        Return Convert.ToBoolean(value)
+       ElseIf node.Type Is TypeSymbol.Boolean Then
+         If TypeOf value Is Boolean Then
+           Return If(CBool(value), -1, 0)
+         ElseIf TypeOf value Is Double OrElse TypeOf value Is Single OrElse TypeOf value Is Integer OrElse TypeOf value Is Short OrElse TypeOf value Is Long OrElse TypeOf value Is Byte OrElse TypeOf value Is SByte Then
+           Return If(CDbl(value) <> 0, -1, 0)
+         Else
+          Return If(Convert.ToBoolean(value), -1, 0)
+        End If
       ElseIf node.Type Is TypeSymbol.Byte Then
         Return Convert.ToByte(value)
       ElseIf node.Type Is TypeSymbol.SByte Then
@@ -1460,7 +1503,11 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Type Is TypeSymbol.ULong64 Then
         Return Convert.ToUInt64(value)
       ElseIf node.Type Is TypeSymbol.Single Then
-        Return Convert.ToSingle(value)
+        If TypeOf value Is Boolean Then
+          Return If(CBool(value), -1.0!, 0!)
+        Else
+          Return Convert.ToSingle(value)
+        End If
       ElseIf node.Type Is TypeSymbol.Double Then
         Return Convert.ToDouble(value)
       ElseIf node.Type Is TypeSymbol.String Then

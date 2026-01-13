@@ -76,7 +76,7 @@ Namespace Global.QB.CodeAnalysis.Lowering
 
     Protected Overrides Function RewriteIfStatement(node As BoundIfStatement) As BoundStatement
 
-      If node.ElseStatement Is Nothing Then
+      If node.ElseIfStatements.Length = 0 AndAlso node.ElseStatement Is Nothing Then
 
         ' IF *expression* THEN
         '   *statements*
@@ -101,37 +101,69 @@ Namespace Global.QB.CodeAnalysis.Lowering
 
       Else
 
-        ' if <condition> then
-        '   <trueBody>
-        ' else
-        '   <falseBody>
-        ' end if
+        ' IF condition THEN
+        '   statements
+        ' ELSEIF condition2 THEN
+        '   statements2
+        ' ...
+        ' ELSE
+        '   statementsN
+        ' END IF
         '
         ' ------>
         '
-        ' gotoFalse <condition> else
-        ' <trueBody>
+        ' gotoFalse condition elseIf1
+        ' statements
         ' goto end
-        ' else:
-        ' <falseBody>
+        ' elseIf1:
+        ' gotoFalse condition2 elseIf2
+        ' statements2
+        ' goto end
+        ' ...
+        ' elseN:
+        ' statementsN
         ' end:
 
-        Dim elseLabel = GenerateLabel()
+        Dim builder = ImmutableArray.CreateBuilder(Of BoundStatement)()
+
         Dim endLabel = GenerateLabel()
 
-        Dim gotoFalse = New BoundConditionalGotoStatement(elseLabel, node.Expression, False)
-        Dim gotoEndStatement = New BoundGotoStatement(endLabel)
+        ' First IF condition
+        Dim nextLabel = If(node.ElseIfStatements.Length > 0,
+                          GenerateLabel(),
+                          If(node.ElseStatement IsNot Nothing, GenerateLabel(), endLabel))
+        Dim gotoFalse = New BoundConditionalGotoStatement(nextLabel, node.Expression, False)
+        builder.Add(gotoFalse)
+        builder.Add(node.Statements)
+        builder.Add(New BoundGotoStatement(endLabel))
 
-        Dim elseLabelStatement = New BoundLabelStatement(elseLabel)
+        ' ELSEIF clauses
+        For i = 0 To node.ElseIfStatements.Length - 1
+          Dim elseIfStmt = node.ElseIfStatements(i)
+          Dim elseIfLabel = New BoundLabelStatement(nextLabel)
+          builder.Add(elseIfLabel)
+
+          nextLabel = If(i < node.ElseIfStatements.Length - 1,
+                        GenerateLabel(),
+                        If(node.ElseStatement IsNot Nothing, GenerateLabel(), endLabel))
+
+          Dim elseIfGotoFalse = New BoundConditionalGotoStatement(nextLabel, elseIfStmt.Expression, False)
+          builder.Add(elseIfGotoFalse)
+          builder.Add(elseIfStmt.Statements)
+          builder.Add(New BoundGotoStatement(endLabel))
+        Next
+
+        ' ELSE clause
+        If node.ElseStatement IsNot Nothing Then
+          Dim elseLabel = New BoundLabelStatement(nextLabel)
+          builder.Add(elseLabel)
+          builder.Add(node.ElseStatement)
+        End If
+
         Dim endLabelStatement = New BoundLabelStatement(endLabel)
+        builder.Add(endLabelStatement)
 
-        Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
-          gotoFalse,
-          node.Statements,
-          gotoEndStatement,
-          elseLabelStatement,
-          node.ElseStatement,
-          endLabelStatement))
+        Dim result = New BoundBlockStatement(builder.ToImmutable())
 
         Return RewriteStatement(result)
 

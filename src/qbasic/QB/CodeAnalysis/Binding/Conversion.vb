@@ -1,4 +1,4 @@
-﻿Imports QB.CodeAnalysis.Symbols
+Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis.Binding
 
@@ -92,6 +92,21 @@ Namespace Global.QB.CodeAnalysis.Binding
         If [to] Is TypeSymbol.Boolean OrElse [to] Is TypeSymbol.Integer Then
           Return Conversion.Explicit
         End If
+      End If
+
+      ' Numeric to Boolean
+      If [to] Is TypeSymbol.Boolean AndAlso ([from] Is TypeSymbol.Decimal OrElse
+                                             [from] Is TypeSymbol.Double OrElse
+                                             [from] Is TypeSymbol.Single OrElse
+                                             [from] Is TypeSymbol.ULong64 OrElse
+                                             [from] Is TypeSymbol.Long64 OrElse
+                                             [from] Is TypeSymbol.ULong OrElse
+                                             [from] Is TypeSymbol.Long OrElse
+                                             [from] Is TypeSymbol.UInteger OrElse
+                                             [from] Is TypeSymbol.Integer OrElse
+                                             [from] Is TypeSymbol.SByte OrElse
+                                             [from] Is TypeSymbol.Byte) Then
+        Return Conversion.Implicit
       End If
 
       Return Conversion.None

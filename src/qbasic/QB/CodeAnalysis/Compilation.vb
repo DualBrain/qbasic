@@ -177,19 +177,19 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-       Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables)
-       Dim value = evaluator.Evaluate
+      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables)
+      Dim value = evaluator.Evaluate
 
-       ' Copy the evaluator's globals back to the caller's variables dictionary
-       If evaluator.Globals IsNot Nothing AndAlso evaluator.Globals.Count > 0 Then
-         For Each kv In evaluator.Globals
-           variables(kv.Key) = kv.Value
-         Next
-       End If
+      ' Copy the evaluator's globals back to the caller's variables dictionary
+      If evaluator.Globals IsNot Nothing AndAlso evaluator.Globals.Count > 0 Then
+        For Each kv In evaluator.Globals
+          variables(kv.Key) = kv.Value
+        Next
+      End If
 
-       Dim result = New EvaluationResult(Diagnostics.ToImmutableArray, value)
+      Dim result = New EvaluationResult(Diagnostics.ToImmutableArray, value)
 
-       Return result
+      Return result
 
     End Function
 

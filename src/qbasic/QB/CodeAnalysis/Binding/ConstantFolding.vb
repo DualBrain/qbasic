@@ -52,7 +52,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Select Case op.Kind
         Case BoundBinaryOperatorKind.Raise
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) ^ CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) ^ CDbl(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) ^ CSng(r))
@@ -66,7 +66,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) ^ CByte(r))
           End Select
         Case BoundBinaryOperatorKind.Addition
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) + CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) + CDbl(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) + CSng(r))
@@ -81,7 +81,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.String : Return New BoundConstant(CStr(l) & CStr(r))
           End Select
         Case BoundBinaryOperatorKind.Subtraction
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) - CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) - CDbl(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) - CSng(r))
@@ -95,7 +95,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) - CByte(r))
           End Select
         Case BoundBinaryOperatorKind.Multiplication
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) * CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) * CDbl(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) * CSng(r))
@@ -109,7 +109,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) * CByte(r))
           End Select
         Case BoundBinaryOperatorKind.Division
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) / CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) / CDbl(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) / CSng(r))
@@ -123,7 +123,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) / CByte(r))
           End Select
         Case BoundBinaryOperatorKind.IntegerDivision
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CLng(l) \ CLng(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CLng(l) \ CLng(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CInt(l) \ CInt(r))
@@ -252,7 +252,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case Else
           End Select
         Case BoundBinaryOperatorKind.ModOperation
-           Select Case TypeSymbol.TypeSymbolToType(op.Type)
+          Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) Mod CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) Mod CDbl(r))
             Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) Mod CSng(r))

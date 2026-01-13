@@ -1478,12 +1478,12 @@ Namespace Global.QB.CodeAnalysis
       Dim value = EvaluateExpression(node.Expression)
       If node.Type Is TypeSymbol.Any Then
         Return value
-       ElseIf node.Type Is TypeSymbol.Boolean Then
-         If TypeOf value Is Boolean Then
-           Return If(CBool(value), -1, 0)
-         ElseIf TypeOf value Is Double OrElse TypeOf value Is Single OrElse TypeOf value Is Integer OrElse TypeOf value Is Short OrElse TypeOf value Is Long OrElse TypeOf value Is Byte OrElse TypeOf value Is SByte Then
-           Return If(CDbl(value) <> 0, -1, 0)
-         Else
+      ElseIf node.Type Is TypeSymbol.Boolean Then
+        If TypeOf value Is Boolean Then
+          Return If(CBool(value), -1, 0)
+        ElseIf TypeOf value Is Double OrElse TypeOf value Is Single OrElse TypeOf value Is Integer OrElse TypeOf value Is Short OrElse TypeOf value Is Long OrElse TypeOf value Is Byte OrElse TypeOf value Is SByte Then
+          Return If(CDbl(value) <> 0, -1, 0)
+        Else
           Return If(Convert.ToBoolean(value), -1, 0)
         End If
       ElseIf node.Type Is TypeSymbol.Byte Then

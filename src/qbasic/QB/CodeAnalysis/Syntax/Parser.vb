@@ -3723,17 +3723,17 @@ repeat:
     '  Return ParseNameExpression()
     'End Function
 
-     Private Function ParsePrimaryExpression() As ExpressionSyntax
-       Select Case Current.Kind
-         Case SyntaxKind.OpenParenToken : Return ParseParenExpression()
+    Private Function ParsePrimaryExpression() As ExpressionSyntax
+      Select Case Current.Kind
+        Case SyntaxKind.OpenParenToken : Return ParseParenExpression()
          'Case SyntaxKind.FalseKeyword, SyntaxKind.TrueKeyword : Return ParseBooleanLiteral()
-         Case SyntaxKind.NumberToken : Return ParseNumberLiteral()
-         Case SyntaxKind.StringToken : Return ParseStringLiteral()
-           'Case SyntaxKind.IdentifierToken : ParseNameOrCallExpression()
-         Case Else
-           Return ParseNameOrCallExpression()
-       End Select
-     End Function
+        Case SyntaxKind.NumberToken : Return ParseNumberLiteral()
+        Case SyntaxKind.StringToken : Return ParseStringLiteral()
+          'Case SyntaxKind.IdentifierToken : ParseNameOrCallExpression()
+        Case Else
+          Return ParseNameOrCallExpression()
+      End Select
+    End Function
 
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
       If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso

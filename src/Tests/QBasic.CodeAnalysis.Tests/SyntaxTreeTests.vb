@@ -1,5 +1,6 @@
-Imports Xunit
 Imports QB.CodeAnalysis.Syntax
+
+Imports Xunit
 
 Namespace QBasic.CodeAnalysis.Tests
 

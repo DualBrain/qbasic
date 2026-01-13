@@ -517,6 +517,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
+        Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
       End Select

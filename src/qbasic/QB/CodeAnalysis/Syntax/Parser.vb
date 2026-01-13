@@ -1,4 +1,5 @@
 Imports System.Collections.Immutable
+Imports System.Runtime.InteropServices.Marshalling
 
 Namespace Global.QB.CodeAnalysis.Syntax
 
@@ -2316,7 +2317,9 @@ repeat:
                                                  expression,
                                                  gosubKeyword,
                                                  targets)
-           End Select
+            Case Else
+              Throw New InvalidOperationException("Unexpected syntax kind?")
+          End Select
 
       End Select
 

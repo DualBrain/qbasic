@@ -1,7 +1,4 @@
-﻿'Option Compare Binary
-'Option Strict On
-
-'Imports System.Collections.Immutable
+﻿'Imports System.Collections.Immutable
 'Imports System.Globalization
 'Imports System.Runtime.InteropServices
 'Imports System.Text

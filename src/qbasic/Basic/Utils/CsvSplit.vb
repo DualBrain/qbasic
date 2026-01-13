@@ -12,9 +12,6 @@
 ' *******************************************************************
 ' Modified heavily for Portable Library. 8/26/2011
 
-Option Explicit On
-Option Strict On
-
 Namespace Global.Basic.Utils
 
   Friend NotInheritable Class CsvSplit

@@ -1,8 +1,4 @@
-﻿Option Explicit On
-Option Strict On
-Option Infer On
-
-Namespace Global.Basic.Audio
+﻿Namespace Global.Basic.Audio
 
   Public Class SoundGenerator
     Implements IDisposable

@@ -1,8 +1,4 @@
-﻿'Option Explicit On
-'Option Strict On
-'Option Infer On
-
-'Imports System.Reflection
+﻿'Imports System.Reflection
 'Imports QB.CodeAnalysis.Syntax
 
 'Namespace Global.Basic.CodeAnalysis.Syntax

@@ -1,8 +1,4 @@
-﻿'Option Explicit On
-'Option Strict On
-'Option Infer On
-
-'Imports Basic.Interpreter
+﻿'Imports Basic.Interpreter
 
 'Public Class WebServiceFileSystem
 '  Implements IVirtualFileSystemAsync

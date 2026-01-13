@@ -1,8 +1,4 @@
-﻿'Option Explicit On
-'Option Strict On
-'Option Infer On
-
-'Imports SSDD.Basic.IO
+﻿'Imports SSDD.Basic.IO
 
 'Public Class IsolatedStorageFileSystem
 '  Implements IVirtualFileSystem
@@ -1015,10 +1011,6 @@
 '  End Property
 
 'End Class
-
-''Option Explicit On
-''Option Strict On
-''Option Infer On
 
 ''Imports Basic.Interpreter
 

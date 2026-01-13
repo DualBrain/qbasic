@@ -1,4 +1,4 @@
-﻿Namespace Global.QBLib
+﻿Namespace Global.QB
 
   Partial Public NotInheritable Class Core
 
@@ -22,6 +22,12 @@
     End Sub
 
     Public Shared Sub SWAP(ByRef value1 As Single, ByRef value2 As Single)
+      Dim temp = value1
+      value1 = value2
+      value2 = temp
+    End Sub
+
+    Public Shared Sub SWAP(ByRef value1 As Double, ByRef value2 As Double)
       Dim temp = value1
       value1 = value2
       value2 = temp

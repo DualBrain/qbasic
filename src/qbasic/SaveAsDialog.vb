@@ -43,7 +43,7 @@ Public Class SaveAsDialog
 
     m_initialPath = path
     If m_initialPath Is Nothing Then
-      If IsOSPlatform(Windows) Then
+      If IsOSPlatform(Runtime.InteropServices.OSPlatform.Windows) Then
         m_initialPath = IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)
       Else
         m_initialPath = IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)
@@ -223,7 +223,7 @@ Public Class SaveAsDialog
       Dim rightSide = If(split < txt.Length - 1, txt.Substring(split), "")
       FileTextBox.Text = $"{FolderListBox.SelectedItem}{rightSide}"
     Else
-      If IsOSPlatform(Windows) Then
+      If IsOSPlatform(Runtime.InteropServices.OSPlatform.Windows) Then
         FileTextBox.Text = $"{FolderListBox.SelectedItem}\{txt}"
       Else
         FileTextBox.Text = $"{FolderListBox.SelectedItem}/{txt}"

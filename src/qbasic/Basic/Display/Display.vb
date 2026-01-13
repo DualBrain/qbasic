@@ -1,8 +1,4 @@
-﻿Option Explicit On
-Option Strict On
-Option Infer On
-
-Namespace Global.Basic.Display
+﻿Namespace Global.Basic.Display
 
   'Imports System.Windows.Media.Imaging
 

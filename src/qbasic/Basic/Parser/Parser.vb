@@ -1,8 +1,4 @@
-﻿Option Explicit On
-Option Strict On
-Option Infer On
-
-Namespace Global.Basic.Parser
+﻿Namespace Global.Basic.Parser
 
   Public Class Parser
 

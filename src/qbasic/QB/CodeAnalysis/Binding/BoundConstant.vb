@@ -1,8 +1,4 @@
-﻿Option Explicit On
-Option Strict On
-Option Infer On
-
-Namespace Global.QB.CodeAnalysis.Binding
+﻿Namespace Global.QB.CodeAnalysis.Binding
 
   Friend NotInheritable Class BoundConstant
 

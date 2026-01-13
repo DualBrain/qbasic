@@ -45,7 +45,7 @@
     Dim textOffset = (Size.Cols - welcomeText.Length) \ 2
     QPrintRC(welcomeText, Location.Row + 2, Location.Col + textOffset, OneColor(0, 8))
 
-    Dim copyrightText = "Copyright (C) Dartmouth Didn't, 1964-2024"
+    Dim copyrightText = "Copyright (C) Dartmouth Didn't, 1964-2026"
     textOffset = (Size.Cols - copyrightText.Length) \ 2
     QPrintRC(copyrightText, Location.Row + 4, Location.Col + textOffset, OneColor(0, 8))
 

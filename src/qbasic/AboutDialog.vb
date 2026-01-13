@@ -41,7 +41,7 @@
     Dim version = "Version 1.0"
     Dim versionOffset = (Size.Cols - version.Length) \ 2
     QPrintRC(version, Location.Row + 3, Location.Col + versionOffset, OneColor(0, 8))
-    Dim copyright = "Copyright (C) Dartmouth Didn't, 1964-2024"
+    Dim copyright = "Copyright (C) Dartmouth Didn't, 1964-2026"
     Dim copyrightOffset = (Size.Cols - copyright.Length) \ 2
     QPrintRC(copyright, Location.Row + 4, Location.Col + copyrightOffset, OneColor(0, 8))
 

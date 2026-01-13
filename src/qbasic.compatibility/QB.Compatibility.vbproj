@@ -1,12 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <RootNamespace>Basic</RootNamespace>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <OptionExplicit>true</OptionExplicit>
     <OptionStrict>true</OptionStrict>
     <OptionInfer>true</OptionInfer>
+    <AssemblyName>QB.Compatibility</AssemblyName>
   </PropertyGroup>
-
 </Project>

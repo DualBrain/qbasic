@@ -1,8 +1,4 @@
-﻿Option Explicit On
-Option Strict On
-Option Infer On
-
-Namespace Global.QB.CodeAnalysis.Text
+﻿Namespace Global.QB.CodeAnalysis.Text
 
   Public Structure TextSpan
 

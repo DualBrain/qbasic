@@ -26,6 +26,9 @@ Namespace Global.QB.CodeAnalysis
     'TODO: Need to make this scoped.
     Private ReadOnly m_gosubStack As New Stack(Of Integer)
 
+    Private ReadOnly m_data As New List(Of Object)
+    Private m_dataIndex As Integer = 0
+
     Private m_lastValue As Object
 
     ' Added so that we can access the "variables" for unit testing.
@@ -453,8 +456,10 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
           Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
           Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
-          Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
-          Case Else
+           Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
+           Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
+           Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
+           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
         End Select
       End While
@@ -462,6 +467,24 @@ Namespace Global.QB.CodeAnalysis
       Return m_lastValue
 
     End Function
+
+    Private Sub EvaluateDataStatement(node As BoundDataStatement)
+      For Each value In node.Data
+        m_data.Add(value)
+      Next
+    End Sub
+
+    Private Sub EvaluateReadStatement(node As BoundReadStatement)
+      For Each variable In node.Variables
+        If m_dataIndex < m_data.Count Then
+          m_globals(variable.Name) = m_data(m_dataIndex)
+          m_dataIndex += 1
+        Else
+          ' Out of data error
+          Throw New Exception("Out of DATA")
+        End If
+      Next
+    End Sub
 
     Private Sub EvaluateMidStatement(node As BoundMidStatement)
       Dim positionValue = CInt(EvaluateExpression(node.PositionExpression))

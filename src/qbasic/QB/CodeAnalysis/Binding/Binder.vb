@@ -517,6 +517,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
+        Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
+        Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
@@ -1113,11 +1115,11 @@ Namespace Global.QB.CodeAnalysis.Binding
           Dim type = TypeSymbol.Single
           Dim suffix = name.Last
           Select Case suffix
-            Case "%"c : Type = TypeSymbol.Integer
-            Case "&"c : Type = TypeSymbol.Long
-            Case "!"c : Type = TypeSymbol.Single
-            Case "#"c : Type = TypeSymbol.Double
-            Case "$"c : Type = TypeSymbol.String
+            Case "%"c : type = TypeSymbol.Integer
+            Case "&"c : type = TypeSymbol.Long
+            Case "!"c : type = TypeSymbol.Single
+            Case "#"c : type = TypeSymbol.Double
+            Case "$"c : type = TypeSymbol.String
             Case Else
               'Type = TypeSymbol.Single ' Default for arrays without suffix
           End Select
@@ -1735,6 +1737,49 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case Else
           Return Nothing
       End Select
+    End Function
+
+    Private Function BindDataStatement(syntax As DataStatementSyntax) As BoundStatement
+      Dim data = ImmutableArray.CreateBuilder(Of Object)()
+      Dim i = 0
+      While i < syntax.Tokens.Length
+        Dim token = syntax.Tokens(i)
+        If token.Kind = SyntaxKind.NumberToken Then
+          If i > 0 AndAlso syntax.Tokens(i - 1).Kind = SyntaxKind.MinusToken Then
+            data.Add(-CDbl(token.Value))
+          Else
+            data.Add(token.Value)
+          End If
+        ElseIf token.Kind = SyntaxKind.StringToken Then
+          data.Add(token.Value)
+        ElseIf token.Kind = SyntaxKind.CommaToken OrElse token.Kind = SyntaxKind.MinusToken Then
+          ' skip separators
+        Else
+          ' Diagnostics.ReportInvalidDataConstant(token.Location, token.Text)
+        End If
+        i += 1
+      End While
+      Return New BoundDataStatement(data.ToImmutable())
+    End Function
+
+    Private Function BindReadStatement(syntax As ReadStatementSyntax) As BoundStatement
+      Dim variables = ImmutableArray.CreateBuilder(Of VariableSymbol)()
+      Dim i = 0
+      While i < syntax.Tokens.Length
+        Dim token = syntax.Tokens(i)
+        If token.Kind = SyntaxKind.IdentifierToken Then
+          Dim variable = BindVariableReference(token)
+          If variable IsNot Nothing Then
+            variables.Add(variable)
+          End If
+        ElseIf token.Kind = SyntaxKind.CommaToken Then
+          ' skip
+        Else
+          ' Diagnostics.ReportInvalidReadVariable(token.Location, token.Text)
+        End If
+        i += 1
+      End While
+      Return New BoundReadStatement(variables.ToImmutable())
     End Function
 
   End Class

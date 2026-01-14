@@ -630,7 +630,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Diagnostics.ReportUndefinedBinaryOperator(syntax.OperatorToken.Location, syntax.OperatorToken.Text, boundLeft.Type, boundRight.Type)
         Return New BoundErrorExpression
       End If
-      Return New BoundBinaryExpression(boundLeft, boundOperator, boundRight)
+      Return New BoundBinaryExpression(boundLeft, boundOperator, boundRight, syntax)
     End Function
 
     Private Function BindBlockStatement(syntax As BlockStatementSyntax) As BoundStatement
@@ -715,7 +715,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           Next
         End If
 
-        Return New BoundCallExpression(func, boundArguments.ToImmutable())
+        Return New BoundCallExpression(func, boundArguments.ToImmutable(), syntax)
       End If
 
       ' Not function, check for automatic array dimensioning
@@ -1078,7 +1078,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       If TypeOf value Is Short Then
         value = CInt(CShort(value))
       End If
-      Return New BoundLiteralExpression(value)
+      Return New BoundLiteralExpression(value, syntax)
     End Function
 
     Private Function BindLineStatement(syntax As LineStatementSyntax) As BoundStatement
@@ -1208,7 +1208,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim index = BindExpression(syntax.Arguments(0))
         Return New BoundArrayAccessExpression(variable, index)
       Else
-        Return New BoundVariableExpression(variable)
+        Return New BoundVariableExpression(variable, syntax)
       End If
     End Function
 
@@ -1223,7 +1223,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       If variable Is Nothing Then
         Return New BoundErrorExpression
       End If
-      Return New BoundVariableExpression(variable)
+      Return New BoundVariableExpression(variable, syntax)
     End Function
 
     Private Function BindNameExpression(syntax As NameExpressionSyntax) As BoundExpression
@@ -1237,7 +1237,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       If variable Is Nothing Then
         Return New BoundErrorExpression
       End If
-      Return New BoundVariableExpression(variable)
+      Return New BoundVariableExpression(variable, syntax)
     End Function
 
     Private Function BindOptionStatement(syntax As OptionStatementSyntax) As BoundStatement
@@ -1257,7 +1257,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindParenExpression(syntax As ParenExpressionSyntax) As BoundExpression
-      Return BindExpression(syntax.Expression)
+      Return New BoundParenExpression(BindExpression(syntax.Expression), syntax)
     End Function
 
     Private Function BindPrintStatement(syntax As PrintStatementSyntax) As BoundStatement
@@ -1460,7 +1460,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Diagnostics.ReportUndefinedUnaryOperator(syntax.OperatorToken.Location, syntax.OperatorToken.Text, boundOperand.Type)
         Return New BoundErrorExpression
       End If
-      Return New BoundUnaryExpression(boundOperator, boundOperand)
+      Return New BoundUnaryExpression(boundOperator, boundOperand, syntax)
     End Function
 
     Private Function BindVariableDeclaration(syntax As VariableDeclarationSyntax) As BoundStatement

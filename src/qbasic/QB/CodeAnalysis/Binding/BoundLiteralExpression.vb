@@ -1,11 +1,12 @@
-﻿Imports QB.CodeAnalysis.Symbols
+Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis.Binding
 
   Friend NotInheritable Class BoundLiteralExpression
     Inherits BoundExpression
 
-    Sub New(value As Object)
+    Sub New(value As Object, Optional syntax As Syntax.ExpressionSyntax = Nothing)
+      MyBase.New(syntax)
       If TypeOf value Is Decimal Then
         Me.Type = TypeSymbol.Decimal
       ElseIf TypeOf value Is Double Then

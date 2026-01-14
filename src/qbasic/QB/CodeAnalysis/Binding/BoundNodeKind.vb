@@ -62,17 +62,18 @@ Namespace Global.QB.CodeAnalysis.Binding
      RedimStatement
      WhileStatement
 
-    ' Expressions
-    ArrayAccessExpression
-    BinaryExpression
-    AssignmentExpression
-    BoundFunctionExpression
-    CallExpression
-    ConversionExpression
-    ErrorExpression
-    LiteralExpression
-    VariableExpression
-    UnaryExpression
+     ' Expressions
+     ArrayAccessExpression
+     BinaryExpression
+     AssignmentExpression
+     BoundFunctionExpression
+     CallExpression
+     ConversionExpression
+     ErrorExpression
+     LiteralExpression
+     ParenExpression
+     VariableExpression
+     UnaryExpression
 
   End Enum
 

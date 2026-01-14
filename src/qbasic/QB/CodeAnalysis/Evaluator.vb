@@ -31,6 +31,20 @@ Namespace Global.QB.CodeAnalysis
 
     Private m_lastValue As Object
 
+    Private Class ByRefVariable
+      Public Property Name As String
+      Public Sub New(name As String)
+        Me.Name = name
+      End Sub
+    End Class
+
+    Private Function GetVariableNameFromSyntax(syntax As ExpressionSyntax) As String
+      If TypeOf syntax Is IdentifierExpressionSyntax Then
+        Return DirectCast(syntax, IdentifierExpressionSyntax).Identifier.Text
+      End If
+      Throw New Exception("Not a variable syntax")
+    End Function
+
     ' Added so that we can access the "variables" for unit testing.
     Public ReadOnly Property Globals As Dictionary(Of String, Object)
       Get
@@ -456,10 +470,10 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
           Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
           Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
-           Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
-           Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
-           Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
-           Case Else
+          Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
+          Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
+          Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
+          Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
         End Select
       End While
@@ -808,6 +822,7 @@ Namespace Global.QB.CodeAnalysis
         Case BoundNodeKind.AssignmentExpression : Return EvaluateAssignmentExpression(CType(node, BoundAssignmentExpression))
         Case BoundNodeKind.BinaryExpression : Return EvaluateBinaryExpression(CType(node, BoundBinaryExpression))
         Case BoundNodeKind.UnaryExpression : Return EvaluateUnaryExpression(CType(node, BoundUnaryExpression))
+        Case BoundNodeKind.ParenExpression : Return EvaluateParenExpression(CType(node, BoundParenExpression))
         Case BoundNodeKind.BoundFunctionExpression : Return EvaluateBoundFunctionExpression(CType(node, BoundBoundFunctionExpression))
         Case BoundNodeKind.CallExpression : Return EvaluateCallExpression(CType(node, BoundCallExpression))
         Case BoundNodeKind.ConversionExpression : Return EvaluateConversionExpression(CType(node, BoundConversionExpression))
@@ -836,11 +851,20 @@ Namespace Global.QB.CodeAnalysis
       Else
         Dim locals = m_locals.Peek
         If locals.ContainsKey(node.Variable.Name) Then
-          Return locals(node.Variable.Name)
+          Dim value = locals(node.Variable.Name)
+          If TypeOf value Is ByRefVariable Then
+            Return m_globals(DirectCast(value, ByRefVariable).Name)
+          Else
+            Return value
+          End If
         Else
           Return Nothing
         End If
       End If
+    End Function
+
+    Private Function EvaluateParenExpression(node As BoundParenExpression) As Object
+      Return EvaluateExpression(node.Expression)
     End Function
 
     Private Function EvaluateArrayAccessExpression(node As BoundArrayAccessExpression) As Object
@@ -1483,9 +1507,14 @@ Namespace Global.QB.CodeAnalysis
         Dim locals = New Dictionary(Of String, Object)
         For i = 0 To node.Arguments.Length - 1
           Dim parameter = node.Function.Parameters(i)
-          Dim value = EvaluateExpression(node.Arguments(i))
-          Debug.Assert(value IsNot Nothing)
-          locals.Add(parameter.Name, value)
+          Dim argument = node.Arguments(i)
+          If parameter.IsByRef AndAlso TypeOf argument.Syntax Is IdentifierExpressionSyntax Then
+            locals.Add(parameter.Name, New ByRefVariable(GetVariableNameFromSyntax(argument.Syntax)))
+          Else
+            Dim value = EvaluateExpression(argument)
+            Debug.Assert(value IsNot Nothing)
+            locals.Add(parameter.Name, value)
+          End If
         Next
         m_locals.Push(locals)
         Dim statement = m_functions(node.Function)
@@ -1547,7 +1576,11 @@ Namespace Global.QB.CodeAnalysis
         m_globals(variable.Name) = value
       Else
         Dim locals = m_locals.Peek
-        locals(variable.Name) = value
+        If locals.ContainsKey(variable.Name) AndAlso TypeOf locals(variable.Name) Is ByRefVariable Then
+          m_globals(DirectCast(locals(variable.Name), ByRefVariable).Name) = value
+        Else
+          locals(variable.Name) = value
+        End If
       End If
     End Sub
 

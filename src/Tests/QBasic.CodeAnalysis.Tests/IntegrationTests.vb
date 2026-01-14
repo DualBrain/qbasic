@@ -1,9 +1,5 @@
-Imports System.Diagnostics
-Imports System.IO
-
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
-Imports QB.CodeAnalysis.Text
 
 Imports Xunit
 
@@ -199,6 +195,27 @@ LET result = area!
 
       Assert.Equal($"{50.0}", $"{variables("result")}")
     End Sub
+
+    <Fact>
+    Public Sub ExecutesProgramWithSubroutine4()
+      Dim text = "
+x = 1 ' initialize x to 1
+call add (x, 5) ' should result in x increasing by 5
+call add ((x), 5) ' should result in x remaining 6 since we passed x byval
+
+sub add(a, b)
+  a = a + b ' add b to a
+end sub
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+
+      Dim result = compilation.Evaluate(variables)
+
+      Assert.Equal($"{6}", $"{variables("x")}")
+    End Sub
+
 
     <Fact>
     Public Sub ExecutesProgramWithFunction1()

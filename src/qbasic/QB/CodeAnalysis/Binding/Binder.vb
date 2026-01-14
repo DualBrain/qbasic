@@ -310,6 +310,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       For Each parameterSyntax In syntax.Parameters
         Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
         Else
@@ -318,7 +319,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Dim type = If(BindAsClause(syntax.AsClause), TypeSymbol.Nothing)
+      Dim type = BindAsClause(syntax.AsClause)
+      If type Is Nothing Then type = TypeSymbol.Single
 
       Dim func As New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), type, syntax)
       'If func.Declaration.Identifier.Text IsNot Nothing AndAlso
@@ -338,6 +340,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       For Each parameterSyntax In syntax.Parameters
         Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
         Else
@@ -367,6 +370,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       For Each parameterSyntax In syntax.Parameters
         Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
         Else
@@ -375,7 +379,18 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Dim type = If(BindAsClause(syntax.Parameters.First.AsClause), TypeSymbol.Nothing)
+      Dim type As TypeSymbol = Nothing
+      Dim identifierText = syntax.Identifier.Text
+      If identifierText.Length > 0 Then
+        Select Case identifierText.Last
+          Case "%"c : type = TypeSymbol.Integer
+          Case "&"c : type = TypeSymbol.Long
+          Case "!"c : type = TypeSymbol.Single
+          Case "#"c : type = TypeSymbol.Double
+          Case "$"c : type = TypeSymbol.String
+        End Select
+      End If
+      If type Is Nothing Then type = TypeSymbol.Single
 
       Dim func As New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), type, syntax)
       'If func.Declaration.Identifier.Text IsNot Nothing AndAlso
@@ -395,6 +410,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       For Each parameterSyntax In syntax.Parameters
         Dim parameterName = parameterSyntax.Identifier.Identifier.Text
         Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
         Else
@@ -403,7 +419,18 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Dim type = If(BindAsClause(syntax.Parameters.First.AsClause), TypeSymbol.Nothing)
+      Dim type As TypeSymbol = Nothing
+      Dim identifierText = syntax.Identifier.Identifier.Text
+      If identifierText.Length > 0 Then
+        Select Case identifierText.Last
+          Case "%"c : type = TypeSymbol.Integer
+          Case "&"c : type = TypeSymbol.Long
+          Case "!"c : type = TypeSymbol.Single
+          Case "#"c : type = TypeSymbol.Double
+          Case "$"c : type = TypeSymbol.String
+        End Select
+      End If
+      If type Is Nothing Then type = TypeSymbol.Single
 
       Dim func As New FunctionSymbol(syntax.Identifier.Identifier.Text, parameters.ToImmutable(), type, syntax)
       'If func.Declaration.Identifier.Text IsNot Nothing AndAlso

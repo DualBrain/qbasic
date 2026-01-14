@@ -147,7 +147,25 @@ NEXT i
     End Sub
 
     <Fact>
-    Public Sub ExecutesProgramWithSubroutine()
+    Public Sub ExecutesProgramWithSubroutine1()
+      Dim text = "
+SUB CalculateArea(l, w)
+  area = l * w
+END SUB
+CALL CalculateArea(10, 5)
+LET result = area
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+
+      Dim result = compilation.Evaluate(variables)
+
+      Assert.Equal($"{50.0}", $"{variables("result")}")
+    End Sub
+
+    <Fact>
+    Public Sub ExecutesProgramWithSubroutine2()
       Dim text = "
 SUB CalculateArea(l AS SINGLE, w AS SINGLE)
   area = l * w
@@ -165,12 +183,64 @@ LET result = area
     End Sub
 
     <Fact>
-    Public Sub ExecutesProgramWithFunction()
+    Public Sub ExecutesProgramWithSubroutine3()
+      Dim text = "
+SUB CalculateArea(l!, w!)
+  area! = l! * w!
+END SUB
+CALL CalculateArea(10, 5)
+LET result = area!
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+
+      Dim result = compilation.Evaluate(variables)
+
+      Assert.Equal($"{50.0}", $"{variables("result")}")
+    End Sub
+
+    <Fact>
+    Public Sub ExecutesProgramWithFunction1()
+      Dim text = "
+FUNCTION Square(x)
+  Square = x * x
+END FUNCTION
+LET result = Square(4)
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+
+      Dim result = compilation.Evaluate(variables)
+
+      Assert.Equal($"{16.0}", $"{variables("result")}")
+    End Sub
+
+    <Fact>
+    Public Sub ExecutesProgramWithFunction2()
       Dim text = "
 FUNCTION Square(x AS SINGLE) AS SINGLE
   Square = x * x
 END FUNCTION
 LET result = Square(4)
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+
+      Dim result = compilation.Evaluate(variables)
+
+      Assert.Equal($"{16.0}", $"{variables("result")}")
+    End Sub
+
+    <Fact>
+    Public Sub ExecutesProgramWithFunction3()
+      Dim text = "
+FUNCTION Square!(x!)
+  Square! = x! * x!
+END FUNCTION
+LET result = Square!(4)
 "
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim compilation As Compilation = Compilation.Create(syntaxTree)

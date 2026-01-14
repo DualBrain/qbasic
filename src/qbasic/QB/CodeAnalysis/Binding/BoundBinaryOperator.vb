@@ -42,7 +42,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     ' 02 EQV
     ' 01 IMP
 
-    Private Shared ReadOnly s_operators As New List(Of BoundBinaryOperator)
+    'Private Shared ReadOnly s_operators As New List(Of BoundBinaryOperator)
 
     'Private Shared ReadOnly m_operators As BoundBinaryOperator() =
     '  {New BoundBinaryOperator(SyntaxKind.HatToken, BoundBinaryOperatorKind.Raise, TypeSymbol.Integer),
@@ -223,7 +223,9 @@ Namespace Global.QB.CodeAnalysis.Binding
     '   New BoundBinaryOperator(SyntaxKind.ImpKeyword, BoundBinaryOperatorKind.LogicalImp, TypeSymbol.Integer, TypeSymbol.Boolean),
     '   New BoundBinaryOperator(SyntaxKind.ImpKeyword, BoundBinaryOperatorKind.BitwiseImp, TypeSymbol.Boolean)}
 
-    Private Shared Sub Initialize()
+    Private Shared Function Initialize() As List(Of BoundBinaryOperator)
+
+      Dim operators As New List(Of BoundBinaryOperator)
 
       '' ^
 
@@ -264,21 +266,21 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim leftIndex = 0
         For leftIndex = 0 To list.Count - 1
           Dim leftSide = list(leftIndex)
-          s_operators.Add(New BoundBinaryOperator(token, operation, leftSide))
+          operators.Add(New BoundBinaryOperator(token, operation, leftSide))
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
             Dim resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
-            s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, resultType))
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, resultType))
           Next
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
             Dim resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
-            s_operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, resultType))
+            operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, resultType))
           Next
         Next
       Next
 
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.String))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, TypeSymbol.String))
 
       list.Add(TypeSymbol.String)
       list.Add(TypeSymbol.Boolean)
@@ -296,15 +298,15 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim leftIndex = 0
         For leftIndex = 0 To list.Count - 1
           Dim leftSide = list(leftIndex)
-          s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, TypeSymbol.Integer))
-          s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, leftSide, TypeSymbol.Integer))
+          operators.Add(New BoundBinaryOperator(token, operation, leftSide, TypeSymbol.Integer))
+          operators.Add(New BoundBinaryOperator(token, operation, leftSide, leftSide, TypeSymbol.Integer))
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, If(leftSide Is TypeSymbol.Integer AndAlso rightSide Is TypeSymbol.Double, TypeSymbol.Double, If(leftSide Is TypeSymbol.Integer AndAlso rightSide Is TypeSymbol.Single, TypeSymbol.Single, If(list.IndexOf(leftSide) < list.IndexOf(rightSide), leftSide, rightSide)))))
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, If(leftSide Is TypeSymbol.Integer AndAlso rightSide Is TypeSymbol.Double, TypeSymbol.Double, If(leftSide Is TypeSymbol.Integer AndAlso rightSide Is TypeSymbol.Single, TypeSymbol.Single, If(list.IndexOf(leftSide) < list.IndexOf(rightSide), leftSide, rightSide)))))
           Next
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            s_operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, TypeSymbol.Integer))
+            operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, TypeSymbol.Integer))
           Next
         Next
       Next
@@ -328,14 +330,14 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim leftIndex = 0
         For leftIndex = 0 To list.Count - 1
           Dim leftSide = list(leftIndex)
-          s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, TypeSymbol.Integer))
+          operators.Add(New BoundBinaryOperator(token, operation, leftSide, TypeSymbol.Integer))
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, TypeSymbol.Integer))
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, TypeSymbol.Integer))
           Next
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            s_operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, TypeSymbol.Integer))
+            operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, TypeSymbol.Integer))
           Next
         Next
       Next
@@ -355,16 +357,16 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim leftIndex = 0
         For leftIndex = 0 To list.Count - 1
           Dim leftSide = list(leftIndex)
-          s_operators.Add(New BoundBinaryOperator(token, operation, leftSide))
+          operators.Add(New BoundBinaryOperator(token, operation, leftSide))
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
             Dim resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
-            s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, resultType))
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, resultType))
           Next
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
             Dim resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
-            s_operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, resultType))
+            operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, resultType))
           Next
         Next
       Next
@@ -384,51 +386,61 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim leftIndex = 0
         For leftIndex = 0 To list.Count - 1
           Dim leftSide = list(leftIndex)
-          s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, TypeSymbol.Integer))
+          operators.Add(New BoundBinaryOperator(token, operation, leftSide, TypeSymbol.Integer))
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            s_operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, TypeSymbol.Integer))
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, TypeSymbol.Integer))
           Next
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            s_operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, TypeSymbol.Integer))
+            operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, TypeSymbol.Integer))
           Next
         Next
       Next
 
       ' AND OR XOR (Logical)
 
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.AndKeyword, BoundBinaryOperatorKind.LogicalAnd, TypeSymbol.Boolean))
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.OrKeyword, BoundBinaryOperatorKind.LogicalOr, TypeSymbol.Boolean))
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.XorKeyword, BoundBinaryOperatorKind.LogicalXor, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.AndKeyword, BoundBinaryOperatorKind.LogicalAnd, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.OrKeyword, BoundBinaryOperatorKind.LogicalOr, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.XorKeyword, BoundBinaryOperatorKind.LogicalXor, TypeSymbol.Boolean))
 
       ' EQV IMP
 
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.EqvKeyword, BoundBinaryOperatorKind.BitwiseEqv, TypeSymbol.Integer, TypeSymbol.Boolean))
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.EqvKeyword, BoundBinaryOperatorKind.LogicalEqv, TypeSymbol.Boolean))
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.ImpKeyword, BoundBinaryOperatorKind.LogicalImp, TypeSymbol.Integer, TypeSymbol.Boolean))
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.ImpKeyword, BoundBinaryOperatorKind.BitwiseImp, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.EqvKeyword, BoundBinaryOperatorKind.BitwiseEqv, TypeSymbol.Integer, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.EqvKeyword, BoundBinaryOperatorKind.LogicalEqv, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.ImpKeyword, BoundBinaryOperatorKind.LogicalImp, TypeSymbol.Integer, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.ImpKeyword, BoundBinaryOperatorKind.BitwiseImp, TypeSymbol.Boolean))
 
       ' AndAlso OrElse
 
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.AndAlsoKeyword, BoundBinaryOperatorKind.LogicalAndAlso, TypeSymbol.Boolean))
-      s_operators.Add(New BoundBinaryOperator(SyntaxKind.OrElseKeyword, BoundBinaryOperatorKind.LogicalOrElse, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.AndAlsoKeyword, BoundBinaryOperatorKind.LogicalAndAlso, TypeSymbol.Boolean))
+      operators.Add(New BoundBinaryOperator(SyntaxKind.OrElseKeyword, BoundBinaryOperatorKind.LogicalOrElse, TypeSymbol.Boolean))
 
-    End Sub
+      Return operators
 
+    End Function
+
+    'TODO: Moved from s_operators (shared variable and 'one-time' initialization)
+    '      to "just in time" initialization due to running tests failing due to
+    '      either s_operators being nothing or the array was changed runtime errors.
     Public Shared Function Bind(SyntaxKind As SyntaxKind, leftType As TypeSymbol, rightType As TypeSymbol) As BoundBinaryOperator
 
-      If s_operators.Count = 0 Then
-        Initialize()
-      End If
+      'If s_operators.Count = 0 Then
+      Dim operators = Initialize()
+      'End If
 
-      For Each op In s_operators
-        If op.SyntaxKind = SyntaxKind AndAlso op.LeftType Is leftType AndAlso op.RightType Is rightType Then
-          Return op
-        End If
-      Next
+      Return (From op In operators
+              Where op.SyntaxKind = SyntaxKind AndAlso
+                    op.LeftType Is leftType AndAlso
+                    op.RightType Is rightType).FirstOrDefault
 
-      Return Nothing
+      'For Each op In s_operators
+      '  If op.SyntaxKind = SyntaxKind AndAlso op.LeftType Is leftType AndAlso op.RightType Is rightType Then
+      '    Return op
+      '  End If
+      'Next
+
+      'Return Nothing
 
     End Function
 

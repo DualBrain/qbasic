@@ -39,6 +39,7 @@ Friend Module Program
     Dim showSyntaxTree As Boolean = False
     Dim showMethods As Boolean = False
     Dim stdoutMode As Boolean = False
+    Dim dumpGlobals As Boolean = False
     Dim showHelp As Boolean = False
 
     For Each arg In args
@@ -50,6 +51,8 @@ Friend Module Program
             showMethods = True
           Case "--stdout", "-s"
             stdoutMode = True
+          Case "--dump-globals", "-d"
+            dumpGlobals = True
           Case "--help", "-h"
             showHelp = True
           Case Else
@@ -85,7 +88,7 @@ Friend Module Program
       HandleAnalysisMode(filename, showSyntaxTree, showMethods)
       Return False ' Exit after showing analysis
     ElseIf filename IsNot Nothing AndAlso stdoutMode Then
-      HandleRunMode(filename, stdoutMode)
+      HandleRunMode(filename, stdoutMode, dumpGlobals)
       Return False ' Exit after running program
     ElseIf filename IsNot Nothing Then
       ' Load file into IDE
@@ -167,7 +170,8 @@ Friend Module Program
     Next
   End Sub
 
-  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean)
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean)
+    Dim interpreter As QB.Interpreter = Nothing
     Try
       Dim sourceText = File.ReadAllText(filename)
       If Not stdoutMode Then
@@ -180,11 +184,17 @@ Friend Module Program
       QBLib.Video.StdoutMode = stdoutMode
 
       ' Create interpreter and run the program
-      Dim interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText)
+      interpreter = New QB.Interpreter()
+      interpreter.Run(sourceText, dumpGlobals)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")
+      If dumpGlobals AndAlso interpreter IsNot Nothing Then
+        Console.WriteLine("Global variables:")
+        For Each kv In interpreter.Variables
+          Console.WriteLine($"{kv.Key} = {kv.Value}")
+        Next
+      End If
     End Try
   End Sub
 

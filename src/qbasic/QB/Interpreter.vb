@@ -10,6 +10,12 @@ Namespace Global.QB
     Private m_previous As Compilation = Nothing
     Private ReadOnly m_variables As New Dictionary(Of String, Object)
 
+    Public ReadOnly Property Variables As Dictionary(Of String, Object)
+      Get
+        Return m_variables
+      End Get
+    End Property
+
     Sub New()
 
     End Sub
@@ -26,7 +32,7 @@ Namespace Global.QB
       compilation.EmitTree(Console.Out)
     End Sub
 
-    Sub Run(text As String)
+    Sub Run(text As String, Optional dumpGlobals As Boolean = False)
 
       Dim tree = SyntaxTree.Parse(text)
       Dim compilation = QB.CodeAnalysis.Compilation.CreateScript(m_previous, tree)
@@ -55,6 +61,13 @@ Namespace Global.QB
 
         m_previous = compilation
 
+      End If
+
+      If dumpGlobals Then
+        Console.WriteLine("Global variables:")
+        For Each kv In m_variables
+          Console.WriteLine($"{kv.Key} = {kv.Value}")
+        Next
       End If
     End Sub
 

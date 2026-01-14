@@ -111,6 +111,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Private Function ParseMember() As MemberSyntax
       If Current.Kind = SyntaxKind.FunctionKeyword Then Return ParseFunctionDeclaration()
       If Current.Kind = SyntaxKind.DefKeyword AndAlso Peek(1).Text?.ToLower?.StartsWith("fn") Then Return ParseDefFnDeclaration()
+      If Current.Kind = SyntaxKind.SubKeyword Then Return ParseSubStatement()
       Return ParseGlobalStatement()
     End Function
 
@@ -233,7 +234,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.StaticKeyword : Return ParseStaticStatement()
         Case SyntaxKind.StopKeyword : Return ParseStopStatement()
         Case SyntaxKind.StrigKeyword : Return ParseStrigStatement()
-        Case SyntaxKind.SubKeyword : Return ParseSubStatement()
+
         Case SyntaxKind.SwapKeyword : Return ParseSwapStatement()
         Case SyntaxKind.SystemKeyword : Return ParseSystemStatement()
         Case SyntaxKind.TimeKeyword : Return ParseTimeStatement()

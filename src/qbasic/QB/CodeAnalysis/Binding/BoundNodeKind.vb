@@ -51,6 +51,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     RmDirStatement
     ScreenStatement
     StopStatement
+    SubStatement
     SystemStatement
     SwapStatement
     VariableDeclaration

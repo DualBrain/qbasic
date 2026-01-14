@@ -1,7 +1,7 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Friend Class SubStatementSyntax
-    Inherits StatementSyntax
+    Inherits MemberSyntax
 
     Public Sub New(tree As SyntaxTree, subKeyword As SyntaxToken, identifier As SyntaxToken, openParenToken As SyntaxToken, parameters As SeparatedSyntaxList(Of ParameterSyntax), closeParenToken As SyntaxToken, staticKeyword As SyntaxToken, statements As BlockStatementSyntax, endKeyword As SyntaxToken, endSubKeyword As SyntaxToken)
       MyBase.New(tree)

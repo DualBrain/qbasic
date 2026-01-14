@@ -50,6 +50,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         binder.BindFunctionDeclaration(func)
       Next
 
+      Dim subDeclarations = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of SubStatementSyntax)
+
+      For Each subStmt In subDeclarations
+        binder.BindSubDeclaration(subStmt)
+      Next
+
       Dim defDeclarations = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of DefDeclarationSyntax)
 
       For Each func In defDeclarations
@@ -323,6 +329,35 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Sub
 
+    Private Function BindSubDeclaration(syntax As SubStatementSyntax) As FunctionSymbol
+
+      Dim parameters = ImmutableArray.CreateBuilder(Of ParameterSymbol)()
+
+      Dim seenParameterNames As New HashSet(Of String)
+
+      For Each parameterSyntax In syntax.Parameters
+        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
+        Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+        If Not seenParameterNames.Add(parameterName) Then
+          Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
+        Else
+          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count)
+          parameters.Add(parameter)
+        End If
+      Next
+
+      Dim type = TypeSymbol.Nothing ' SUB returns nothing
+
+      Dim func As New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), type, syntax)
+      If syntax.Identifier.Text IsNot Nothing AndAlso
+         Not m_scope.TryDeclareFunction(func) Then
+        Diagnostics.ReportSymbolAlreadyDeclared(syntax.Identifier.Location, func.Name)
+      End If
+
+      Return func
+
+    End Function
+
     Private Sub BindDefDeclaration(syntax As DefDeclarationSyntax)
 
       Dim parameters = ImmutableArray.CreateBuilder(Of ParameterSymbol)()
@@ -519,7 +554,9 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
+        Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
+        Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
       End Select
@@ -607,11 +644,13 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim boundArguments = ImmutableArray.CreateBuilder(Of BoundExpression)()
 
       Dim parameters = New List(Of TypeSymbol)
-      For Each argument In syntax.Arguments
-        Dim boundArgument = BindExpression(argument)
-        boundArguments.Add(boundArgument)
-        parameters.Add(boundArgument.Type)
-      Next
+      If syntax.Arguments IsNot Nothing Then
+        For Each argument In syntax.Arguments
+          Dim boundArgument = BindExpression(argument)
+          boundArguments.Add(boundArgument)
+          parameters.Add(boundArgument.Type)
+        Next
+      End If
 
       Dim symbol = m_scope.TryLookupFunction(syntax.Identifier.Text, parameters)
       If symbol IsNot Nothing Then
@@ -621,7 +660,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           Return New BoundErrorExpression
         End If
 
-        If syntax.Arguments.Count <> func.Parameters.Length Then
+        If If(syntax.Arguments?.Count, 0) <> func.Parameters.Length Then
           Dim span As TextSpan
           If syntax.Arguments.Count > func.Parameters.Length Then
             Dim firstExceedingNode As SyntaxNode
@@ -640,12 +679,14 @@ Namespace Global.QB.CodeAnalysis.Binding
           Return New BoundErrorExpression
         End If
 
-        For i = 0 To syntax.Arguments.Count - 1
-          Dim argumentLocation = syntax.Arguments(i).Location
-          Dim argument = boundArguments(i)
-          Dim parameter = func.Parameters(i)
-          boundArguments(i) = BindConversion(argumentLocation, argument, parameter.Type)
-        Next
+        If syntax.Arguments IsNot Nothing Then
+          For i = 0 To syntax.Arguments.Count - 1
+            Dim argumentLocation = syntax.Arguments(i).Location
+            Dim argument = boundArguments(i)
+            Dim parameter = func.Parameters(i)
+            boundArguments(i) = BindConversion(argumentLocation, argument, parameter.Type)
+          Next
+        End If
 
         Return New BoundCallExpression(func, boundArguments.ToImmutable())
       End If
@@ -1575,7 +1616,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindCallStatement(syntax As CallStatementSyntax) As BoundStatement
       Dim callSyntax = New CallExpressionSyntax(syntax.SyntaxTree, syntax.Identifier, syntax.OpenParen, syntax.Expressions, syntax.CloseParen)
-      Dim boundCall = CType(BindExpression(callSyntax), BoundCallExpression)
+      Dim boundCall = CType(BindExpression(callSyntax, True), BoundCallExpression)
       Return New BoundCallStatement(boundCall)
     End Function
 

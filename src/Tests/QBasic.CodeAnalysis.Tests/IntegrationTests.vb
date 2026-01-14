@@ -152,7 +152,7 @@ NEXT i
 SUB CalculateArea(l AS SINGLE, w AS SINGLE)
   area = l * w
 END SUB
-CalculateArea(10, 5)
+CALL CalculateArea(10, 5)
 LET result = area
 "
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)

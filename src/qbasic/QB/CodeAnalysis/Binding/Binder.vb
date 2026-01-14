@@ -579,9 +579,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
-        Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
-        Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
-        Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
+         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
+         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
+         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
+         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
@@ -1008,11 +1009,11 @@ Namespace Global.QB.CodeAnalysis.Binding
                 Case "!"c : type = TypeSymbol.Single
                 Case "#"c : type = TypeSymbol.Double
                 Case "$"c : type = TypeSymbol.String
-                Case Else
-                  'TODO: This needs to be set based on current DEFINT, etc.
-                  type = TypeSymbol.Single
-                  'TODO: Infer????
-                  'type = boundExpression.Type
+                 Case Else
+                   'TODO: This needs to be set based on current DEFINT, etc.
+                   'type = TypeSymbol.Single
+                   'TODO: Infer????
+                   type = boundExpression.Type
               End Select
               variable = BindVariableDeclaration(identifier.Identifier, False, type)
             End If
@@ -1162,11 +1163,28 @@ Namespace Global.QB.CodeAnalysis.Binding
         ' reported error so we can just return an error expression.
         Return New BoundErrorExpression
       End If
-      Dim symbol = m_scope.TryLookupSymbol(name)
-      Dim variable As VariableSymbol = Nothing
-      If TypeOf symbol Is VariableSymbol Then
-        variable = CType(symbol, VariableSymbol)
-      ElseIf symbol Is Nothing Then
+       Dim symbol = m_scope.TryLookupSymbol(name)
+       Dim variable As VariableSymbol = Nothing
+       If TypeOf symbol Is VariableSymbol Then
+         variable = CType(symbol, VariableSymbol)
+       ElseIf symbol Is Nothing Then
+         ' Check for known 0-parameter functions
+         If name.ToLower = "rnd" Then
+           Dim func = BuiltinFunctions.Rnd1
+           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+         ElseIf name.ToLower = "timer" Then
+           Dim func = BuiltinFunctions.Timer
+           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+         Else
+           ' Check for user-defined 0-parameter functions
+           Dim funcSymbol = m_scope.TryLookupFunction(name, New List(Of TypeSymbol)())
+           If funcSymbol IsNot Nothing AndAlso TypeOf funcSymbol Is FunctionSymbol Then
+             Dim func = CType(funcSymbol, FunctionSymbol)
+           If func.Parameters.Length = 0 Then
+             Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+           End If
+           End If
+         End If
         If syntax.OpenParen IsNot Nothing Then
           ' Implicit array - declare in current compilation's global scope
           Dim arrayType = TypeSymbol.Single
@@ -1317,10 +1335,14 @@ Namespace Global.QB.CodeAnalysis.Binding
         m_arrayModeDynamic = False
       End If
 
-      Return New BoundRemStatement()
-    End Function
+       Return New BoundRemStatement()
+     End Function
 
-    Private Shared Function BindReturnGosubStatement(syntax As ReturnGosubStatementSyntax) As BoundStatement
+     Private Shared Function BindDefTypeStatement(syntax As DefTypeStatementSyntax) As BoundStatement
+       Return New BoundRemStatement()
+     End Function
+
+     Private Shared Function BindReturnGosubStatement(syntax As ReturnGosubStatementSyntax) As BoundStatement
       Dim value = syntax.TargetToken?.Text
       If value IsNot Nothing AndAlso IsNumeric(value) Then
         value = $"{GOTO_LABEL_PREFIX}{value}"

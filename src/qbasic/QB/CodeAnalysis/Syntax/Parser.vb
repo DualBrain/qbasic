@@ -3752,12 +3752,15 @@ repeat:
     End Function
 
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
-      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
-         Peek(1).Kind = SyntaxKind.OpenParenToken Then
-        Return ParseCallExpression()
-      End If
-      Return ParseNameExpression()
-    End Function
+       If Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "rnd" OrElse Current.Text.ToLower = "timer") Then
+         Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
+         Return New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
+       ElseIf (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
+          Peek(1).Kind = SyntaxKind.OpenParenToken Then
+         Return ParseCallExpression()
+       End If
+       Return ParseNameExpression()
+     End Function
 
     Private Function ParseNameExpression() As ExpressionSyntax
       Dim token = MatchIdentifierOrKeyword()

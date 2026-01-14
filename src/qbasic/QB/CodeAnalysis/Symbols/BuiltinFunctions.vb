@@ -56,7 +56,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Stick As New FunctionSymbol("stick", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Strig As New FunctionSymbol("strig", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Tan As New FunctionSymbol("tan", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)
-    Public ReadOnly Timer As New FunctionSymbol("timer", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
+    Public ReadOnly Timer As New FunctionSymbol("timer", ImmutableArray(Of ParameterSymbol).Empty, If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly UBound As New FunctionSymbol("ubound", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.Long)
     Public ReadOnly Val As New FunctionSymbol("val", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
     Public ReadOnly VarPtr1 As New FunctionSymbol("varptr", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)

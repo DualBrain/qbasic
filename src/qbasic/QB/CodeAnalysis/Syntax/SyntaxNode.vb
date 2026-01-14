@@ -1,4 +1,4 @@
-﻿Imports System.Reflection
+Imports System.Reflection
 
 Imports QB.CodeAnalysis.Text
 
@@ -303,7 +303,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         "PEEK", "PLAY", "PI", "PMAP", "POINT", "POWERTWO", "POS",
         "RGBTOINT", "RIGHT$", "RND", "RTRIM$",
         "SCREEN", "SCRH", "SCRW", "SEEK", "SGN", "SIN", "SPACE$", "SPC", "SQR", "STICK", "STR$", "STRIG", "STRING$",
-        "TAB", "TAN", "TAU", "TIME$", "TIMER",
+        "TAB", "TAN", "TAU", "TIME$",
         "UBOUND", "UCASE$",
         "VAL", "VARPTR", "VARPTR$", "VARSEG"}
 

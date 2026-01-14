@@ -1421,8 +1421,10 @@ Namespace Global.QB.CodeAnalysis
         'If m_random Is Nothing Then m_random = New Random(g_seed)
         ' Return a new random number between 0 and 1...
         g_lastRndResult = g_random.NextSingle()
-        Return g_lastRndResult
-      ElseIf node.[Function] Is BuiltinFunctions.Rnd2 Then
+         Return g_lastRndResult
+       ElseIf node.[Function] Is BuiltinFunctions.Timer Then
+         Return CSng(DateTime.Now.TimeOfDay.TotalSeconds)
+       ElseIf node.[Function] Is BuiltinFunctions.Rnd2 Then
         ' NOTES:
         '   PRINT RND(1) in QBasic 1.1 always results in .7055475 if RANDOMIZE is not called prior.
         '   According to documentation, RND is initially set to utilize seed of 0 if RANDOMIZE is never called.

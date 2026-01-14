@@ -1,9 +1,13 @@
-PRINT "START"
-SUB CalculateArea()
-  area = 10 * 5
-END SUB
-CALL CalculateArea()
-PRINT area
-LET result = area
-PRINT result
-PRINT "DONE"
+print "START"
+
+ PRINT RND
+
+print "RND test:"
+for i = 1 to 5
+  print int(rnd * 10);
+next
+print
+
+print "TIMER:"; timer
+
+print "DONE"

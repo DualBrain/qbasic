@@ -8,6 +8,47 @@ Namespace QBasic.CodeAnalysis.Tests
   Public Class EvaluatorTests
 
     <Fact>
+    Public Sub EvaluatesDefXxxVariableDeclarations()
+    
+      Dim text = "
+DEFINT I
+DEFLNG L
+DEFSNG S
+DEFDBL D
+
+I = 1
+L = 60000
+S = 5.5
+D = 10000.9
+
+' Additional tests for DEFLNG
+DEFLNG X-Z
+x = 123456789
+y& = 987654321
+z = 42
+
+' Test overflow for Long
+' l = 2147483648  ' This should cause overflow if assigned without &
+
+' Test range
+DEFLNG A-C
+b = -2147483648
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("I")}")    
+      Assert.Equal($"{60000}", $"{variables("L")}")    
+      Assert.Equal($"{5.5}", $"{variables("S")}")    
+      Assert.Equal($"{10000.9}", $"{variables("D")}")    
+       Assert.Equal($"{123456790}", $"{variables("x")}")    
+       Assert.Equal($"{987654321}", $"{variables("y&")}")    
+       Assert.Equal($"{42}", $"{variables("z")}")    
+       Assert.Equal($"-2.1474836E+09", $"{variables("b")}")
+    End Sub
+
+    <Fact>
     Public Sub EvaluatesSimpleAssignment()
       ' Exactly replicate the working ExecutesSimpleProgram test
       Dim text = "x = 10

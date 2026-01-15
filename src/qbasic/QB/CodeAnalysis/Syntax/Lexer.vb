@@ -356,25 +356,26 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Else
           m_value = value
         End If
-       Else
-         Dim asLong = (Current = "&")
-         If Current = "%"c OrElse Current = "&" Then
-           text &= Current : m_position += 1
-         End If
-         Dim value As Integer
-         Dim valueLong As Long
-         If asLong OrElse Not Integer.TryParse(text, value) Then
-           If Not Long.TryParse(text, valueLong) Then
-             Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
-             m_diagnostics.ReportInvalidNumber(location, text, If(asLong, TypeSymbol.Long, TypeSymbol.Integer))
-           Else
-             asLong = True
-             m_value = valueLong
-           End If
-         Else
-           m_value = value
-         End If
-       End If
+        Else
+          Dim asLong = (Current = "&"c)
+          Dim hasIntegerSuffix = (Current = "%"c)
+          If hasIntegerSuffix OrElse asLong Then
+            m_position += 1 ' Skip the type suffix character
+          End If
+          Dim value As Integer
+          Dim valueLong As Long
+          If asLong OrElse Not Integer.TryParse(text, value) Then
+            If Not Long.TryParse(text, valueLong) Then
+              Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+              m_diagnostics.ReportInvalidNumber(location, text, If(asLong, TypeSymbol.Long, TypeSymbol.Integer))
+            Else
+              asLong = True
+              m_value = valueLong
+            End If
+          Else
+            m_value = value
+          End If
+        End If
 
       m_kind = SyntaxKind.NumberToken
 

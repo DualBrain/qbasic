@@ -1,6 +1,4 @@
-Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
-Imports QB.CodeAnalysis.Text
 
 Imports Xunit
 
@@ -9,8 +7,86 @@ Namespace QBasic.CodeAnalysis.Tests
   Public Class ParserTests
 
     <Fact>
-    Public Sub ParsesNumberExpression()
+    Public Sub ParsesNumberLine()
       Dim text = "123"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
+
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      ' For now, just check it parses without errors
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesNumberExpression1()
+      Dim text = "LET X = 123"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
+
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      ' For now, just check it parses without errors
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesNumberDefaultExpression()
+      Dim text = "LET X = 123"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
+
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      ' For now, just check it parses without errors
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesNumberIntegerExpression()
+      Dim text = "LET X = 123%"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
+
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      ' For now, just check it parses without errors
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesNumberSingleExpression()
+      Dim text = "LET X = 123!"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
+
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      ' For now, just check it parses without errors
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesNumberLongExpression()
+      Dim text = "LET X& = 123&"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
+
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      ' For now, just check it parses without errors
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesNumberDoubleExpression()
+      Dim text = "LET X# = 123#"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = syntaxTree.Root
 

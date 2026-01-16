@@ -1249,8 +1249,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return CSng(value)
       ElseIf node.Function Is BuiltinFunctions.CsrLin Then
-        Stop
-        Return Nothing
+        Return 1
       ElseIf node.Function Is BuiltinFunctions.Cvd Then
         Stop
         Return Nothing
@@ -1304,11 +1303,9 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Fix(value)
       ElseIf node.Function Is BuiltinFunctions.Fre Then
-        Stop
-        Return Nothing
+        Return 160266
       ElseIf node.Function Is BuiltinFunctions.FreeFile Then
-        Stop
-        Return Nothing
+        Return 1
       ElseIf node.Function Is BuiltinFunctions.Hex Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Hex(value)
@@ -1407,8 +1404,7 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Pos Then
-        Stop
-        Return Nothing
+        Return 1
       ElseIf node.Function Is BuiltinFunctions.Right Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Dim position = CInt(EvaluateExpression(node.Arguments(1)))

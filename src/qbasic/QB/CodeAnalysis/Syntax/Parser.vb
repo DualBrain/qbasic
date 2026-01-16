@@ -188,9 +188,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.IoCtlKeyword : Return ParseIoCtlStatement()
         Case SyntaxKind.KeyKeyword : Return ParseKeyStatement()
         Case SyntaxKind.KillKeyword : Return ParseKillStatement()
-         Case SyntaxKind.Label : Return ParseLabelStatement()
-         Case SyntaxKind.NumberToken : Return ParseLabelStatement()
-         Case SyntaxKind.LetKeyword : Return ParseLetStatement()
+        Case SyntaxKind.Label : Return ParseLabelStatement()
+        Case SyntaxKind.NumberToken : Return ParseLabelStatement()
+        Case SyntaxKind.LetKeyword : Return ParseLetStatement()
         Case SyntaxKind.LineKeyword : Return ParseLineStatement()
         Case SyntaxKind.LocateKeyword : Return ParseLocateStatement()
         Case SyntaxKind.LockKeyword : Return ParseLockStatement()
@@ -2290,34 +2290,34 @@ repeat:
                                                 target)
         Case Else ' Expression
 
-           Dim expression = ParseExpression()
-           Select Case Current.Kind
-             Case SyntaxKind.GotoKeyword
-               Dim gotoKeyword = MatchToken(SyntaxKind.GotoKeyword)
-               Dim targets = New List(Of SyntaxToken)
-               Do
-                 targets.Add(MatchToken(SyntaxKind.NumberToken))
-                 If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
-                 targets.Add(MatchToken(SyntaxKind.CommaToken))
-               Loop
-               Return New OnGotoStatementSyntax(m_syntaxTree,
+          Dim expression = ParseExpression()
+          Select Case Current.Kind
+            Case SyntaxKind.GotoKeyword
+              Dim gotoKeyword = MatchToken(SyntaxKind.GotoKeyword)
+              Dim targets = New List(Of SyntaxToken)
+              Do
+                targets.Add(MatchToken(SyntaxKind.NumberToken))
+                If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
+                targets.Add(MatchToken(SyntaxKind.CommaToken))
+              Loop
+              Return New OnGotoStatementSyntax(m_syntaxTree,
+                                               onKeyword,
+                                               expression,
+                                               gotoKeyword,
+                                               targets)
+            Case SyntaxKind.GosubKeyword
+              Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+              Dim targets = New List(Of SyntaxToken)
+              Do
+                targets.Add(MatchToken(SyntaxKind.IdentifierToken))
+                If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
+                targets.Add(MatchToken(SyntaxKind.CommaToken))
+              Loop
+              Return New OnGosubStatementSyntax(m_syntaxTree,
                                                 onKeyword,
                                                 expression,
-                                                gotoKeyword,
+                                                gosubKeyword,
                                                 targets)
-             Case SyntaxKind.GosubKeyword
-               Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
-               Dim targets = New List(Of SyntaxToken)
-               Do
-                 targets.Add(MatchToken(SyntaxKind.IdentifierToken))
-                 If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
-                 targets.Add(MatchToken(SyntaxKind.CommaToken))
-               Loop
-               Return New OnGosubStatementSyntax(m_syntaxTree,
-                                                 onKeyword,
-                                                 expression,
-                                                 gosubKeyword,
-                                                 targets)
             Case Else
               Throw New InvalidOperationException("Unexpected syntax kind?")
           End Select
@@ -3752,15 +3752,18 @@ repeat:
     End Function
 
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
-       If Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "rnd" OrElse Current.Text.ToLower = "timer") Then
-         Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
-         Return New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
-       ElseIf (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
+      If Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "csrlin" OrElse
+                                                            Current.Text.ToLower = "freefile" OrElse
+                                                            Current.Text.ToLower = "rnd" OrElse
+                                                            Current.Text.ToLower = "timer") Then
+        Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
+        Return New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
+      ElseIf (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
-         Return ParseCallExpression()
-       End If
-       Return ParseNameExpression()
-     End Function
+        Return ParseCallExpression()
+      End If
+      Return ParseNameExpression()
+    End Function
 
     Private Function ParseNameExpression() As ExpressionSyntax
       Dim token = MatchIdentifierOrKeyword()
@@ -3910,7 +3913,7 @@ repeat:
       ' In QBasic, certain functions can be called without parentheses
       ' These are typically functions that don't require parameters or have default behavior
       Select Case name?.ToUpper()
-        Case "RND", "TIMER"
+        Case "CSRLIN", "FREEFILE", "RND", "TIMER"
           Return True
         Case Else
           Return False

@@ -540,7 +540,7 @@ LET result$ = a$ + ""..."""
     End Sub
 
     <Fact>
-    Public Sub EvaluatesBeepClsRemStatements()
+    Public Sub EvaluatesBeepStatement()
       ' Test BEEP statement
       Dim beepTest = "BEEP"
       Dim beepTree As SyntaxTree = SyntaxTree.Parse(beepTest)
@@ -548,7 +548,10 @@ LET result$ = a$ + ""..."""
       Dim beepVars As New Dictionary(Of String, Object)()
       Dim beepResult = beepComp.Evaluate(beepVars)
       Assert.Empty(beepTree.Diagnostics)
+    End Sub
 
+    <Fact>
+    Public Sub EvaluatesClsStatement()
       ' Test CLS statement
       Dim clsTest = "CLS"
       Dim clsTree As SyntaxTree = SyntaxTree.Parse(clsTest)
@@ -556,14 +559,16 @@ LET result$ = a$ + ""..."""
       Dim clsVars As New Dictionary(Of String, Object)()
       Dim clsResult = clsComp.Evaluate(clsVars)
       Assert.Empty(clsTree.Diagnostics)
+    End Sub
 
+    <Fact>
+    Public Sub EvaluatesRemStatement()
       ' Test REM statements (single line and apostrophe)
       Dim remTestCases = New String() {
           "REM This is a remark",
           "' This is also a remark",
-          "PRINT ""Hello"" ' Inline remark"
+          "LET x = 1 ' Inline remark"
       }
-
       For Each remTest In remTestCases
         Dim remTree As SyntaxTree = SyntaxTree.Parse(remTest)
         Dim remComp As Compilation = Compilation.Create(remTree)

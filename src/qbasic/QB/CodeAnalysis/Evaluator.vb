@@ -472,7 +472,9 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
           Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
           Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
+          Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
           Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
+          Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
         End Select
@@ -498,6 +500,22 @@ Namespace Global.QB.CodeAnalysis
           Throw New Exception("Out of DATA")
         End If
       Next
+    End Sub
+
+    Private Sub EvaluateDateStatement(node As BoundDateStatement)
+      ' DATE$ = stringexpression$ - sets the system date
+      ' In a real implementation, this would set the system date
+      ' For now, we'll just ignore it as setting system date requires admin privileges
+      Dim dateString = CStr(EvaluateExpression(node.Expression))
+      ' TODO: Implement actual date setting if needed
+    End Sub
+
+    Private Sub EvaluateTimeStatement(node As BoundTimeStatement)
+      ' TIME$ = stringexpression$ - sets the system time
+      ' In a real implementation, this would set the system time
+      ' For now, we'll just ignore it as setting system time requires admin privileges
+      Dim timeString = CStr(EvaluateExpression(node.Expression))
+      ' TODO: Implement actual time setting if needed
     End Sub
 
     Private Sub EvaluateMidStatement(node As BoundMidStatement)
@@ -1269,8 +1287,7 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Date Then
-        Stop
-        Return Nothing
+        Return DateTime.Now.ToString("MM-dd-yyyy")
       ElseIf node.Function Is BuiltinFunctions.Environ Then
         Stop
         Return Nothing
@@ -1417,10 +1434,10 @@ Namespace Global.QB.CodeAnalysis
         'If m_random Is Nothing Then m_random = New Random(g_seed)
         ' Return a new random number between 0 and 1...
         g_lastRndResult = g_random.NextSingle()
-         Return g_lastRndResult
-       ElseIf node.[Function] Is BuiltinFunctions.Timer Then
-         Return CSng(DateTime.Now.TimeOfDay.TotalSeconds)
-       ElseIf node.[Function] Is BuiltinFunctions.Rnd2 Then
+        Return g_lastRndResult
+      ElseIf node.[Function] Is BuiltinFunctions.Timer Then
+        Return CSng(DateTime.Now.TimeOfDay.TotalSeconds)
+      ElseIf node.[Function] Is BuiltinFunctions.Rnd2 Then
         ' NOTES:
         '   PRINT RND(1) in QBasic 1.1 always results in .7055475 if RANDOMIZE is not called prior.
         '   According to documentation, RND is initially set to utilize seed of 0 if RANDOMIZE is never called.
@@ -1478,8 +1495,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Tan(value)
       ElseIf node.Function Is BuiltinFunctions.Time Then
-        Stop
-        Return Nothing
+        Return DateTime.Now.ToString("HH:mm:ss")
       ElseIf node.Function Is BuiltinFunctions.Timer Then
         Stop
         Return Nothing

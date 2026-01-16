@@ -3751,12 +3751,18 @@ repeat:
       End Select
     End Function
 
+    ' DEFINATELY getting here to evaluate that some words are actually
+    ' needing to be parsed/identified as functions without parameters (or open/close parentheses).
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
-      If Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "csrlin" OrElse
+      If (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "csrlin" OrElse
+                                                            Current.Text.ToLower = "date$" OrElse
                                                             Current.Text.ToLower = "freefile" OrElse
                                                             Current.Text.ToLower = "rnd" OrElse
-                                                            Current.Text.ToLower = "timer") Then
-        Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
+                                                            Current.Text.ToLower = "time$" OrElse
+                                                            Current.Text.ToLower = "timer")) OrElse
+         Current.Kind = SyntaxKind.DateKeyword OrElse
+         Current.Kind = SyntaxKind.TimeKeyword Then
+        Dim identifier = MatchToken(Current.Kind)
         Return New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
@@ -3901,6 +3907,7 @@ repeat:
       End If
 
       ' Check if this is a function that can be called without parentheses
+      ' NOTE: Not esure if we are ever reaching this check...
       If IsFunctionWithoutParentheses(identifierToken.Text) Then
         Return New CallExpressionSyntax(m_syntaxTree, identifierToken, Nothing, New SeparatedSyntaxList(Of ExpressionSyntax)(ImmutableArray.Create(Of SyntaxNode)()), Nothing)
       End If
@@ -3909,11 +3916,13 @@ repeat:
 
     End Function
 
+    ' Doesn't seem to be the place where this is actually handled...
+    ' See: ParseNameOrCallExpression <-- seems to be where it is actually handled.
     Private Function IsFunctionWithoutParentheses(name As String) As Boolean
       ' In QBasic, certain functions can be called without parentheses
       ' These are typically functions that don't require parameters or have default behavior
       Select Case name?.ToUpper()
-        Case "CSRLIN", "FREEFILE", "RND", "TIMER"
+        Case "CSRLIN", "DATE$", "FREEFILE", "RND", "TIME$", "TIMER"
           Return True
         Case Else
           Return False

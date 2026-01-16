@@ -56,11 +56,13 @@ Namespace Global.QB.CodeAnalysis.Binding
     SwapStatement
     VariableDeclaration
      DataStatement
-     DimStatement
-     EraseStatement
-     ReadStatement
-     RedimStatement
-     WhileStatement
+      DateStatement
+      DimStatement
+      EraseStatement
+      ReadStatement
+      RedimStatement
+      TimeStatement
+      WhileStatement
 
      ' Expressions
      ArrayAccessExpression

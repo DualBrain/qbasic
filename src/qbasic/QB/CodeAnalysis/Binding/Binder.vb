@@ -580,7 +580,9 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
+        Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
+        Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
@@ -1172,11 +1174,17 @@ Namespace Global.QB.CodeAnalysis.Binding
         If name.ToLower = "csrlin" Then
           Dim func = BuiltinFunctions.CsrLin
           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+        ElseIf name.ToLower = "date$" Then
+          Dim func = BuiltinFunctions.Date
+          Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
         ElseIf name.ToLower = "freefile" Then
           Dim func = BuiltinFunctions.FreeFile
           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
         ElseIf name.ToLower = "rnd" Then
           Dim func = BuiltinFunctions.Rnd1
+          Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+        ElseIf name.ToLower = "time$" Then
+          Dim func = BuiltinFunctions.Time
           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
         ElseIf name.ToLower = "timer" Then
           Dim func = BuiltinFunctions.Timer
@@ -1889,6 +1897,16 @@ Namespace Global.QB.CodeAnalysis.Binding
         i += 1
       End While
       Return New BoundReadStatement(variables.ToImmutable())
+    End Function
+
+    Private Function BindDateStatement(syntax As DateStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression)
+      Return New BoundDateStatement(expression)
+    End Function
+
+    Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression)
+      Return New BoundTimeStatement(expression)
     End Function
 
   End Class

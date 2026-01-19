@@ -1296,8 +1296,21 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Date Then
         Return DateTime.Now.ToString("MM-dd-yyyy")
       ElseIf node.Function Is BuiltinFunctions.Environ Then
-        Stop
-        Return Nothing
+        Dim thing = EvaluateExpression(node.Arguments(0))
+        If TypeOf thing Is String Then
+          Dim varName = CStr(EvaluateExpression(node.Arguments(0)))
+          Dim envValue = Environment.GetEnvironmentVariable(varName)
+          Return If(envValue IsNot Nothing, envValue, "")
+        Else
+          Dim index = CInt(EvaluateExpression(node.Arguments(0)))
+          Dim envVars = Environment.GetEnvironmentVariables()
+          If index >= 1 AndAlso index <= envVars.Count Then
+            Dim entry = envVars.Cast(Of DictionaryEntry).ElementAt(index - 1)
+            Return $"{entry.Key}={entry.Value}"
+          Else
+            Return ""
+          End If
+        End If
       ElseIf node.Function Is BuiltinFunctions.Eof Then
         Stop
         Return Nothing

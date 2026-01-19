@@ -1328,6 +1328,129 @@ END SELECT
        Assert.Equal(4, CInt(variables("result")))
      End Sub
 
-   End Class
+     <Fact>
+     Public Sub EvaluatesDoWhileLoop()
+       Dim text = "
+counter = 0
+DO WHILE counter < 3
+  counter = counter + 1
+LOOP
+result = counter
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(3, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesDoUntilLoop()
+       Dim text = "
+counter = 3
+DO UNTIL counter = 0
+  counter = counter - 1
+LOOP
+result = counter
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(0, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesDoLoopWhile()
+       Dim text = "
+counter = 0
+DO
+  counter = counter + 1
+LOOP WHILE counter < 3
+result = counter
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(3, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesDoLoopUntil()
+       Dim text = "
+counter = 3
+DO
+  counter = counter - 1
+LOOP UNTIL counter = 0
+result = counter
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(0, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesDoWhileWithFalseCondition()
+       Dim text = "
+executed = 0
+DO WHILE 1 = 2  ' Always false
+  executed = 1
+LOOP
+result = executed
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(0, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesDoUntilWithTrueCondition()
+       Dim text = "
+executed = 0
+DO UNTIL 1 = 1  ' Always true
+  executed = executed + 1
+  IF executed > 5 THEN EXIT DO ' Prevent infinite loop
+LOOP
+result = executed
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+        Assert.Equal(0, CInt(variables("result"))) ' Should skip loop when condition is initially true
+     End Sub
+
+    <Fact>
+    Public Sub EvaluatesDoUntilWithStringEvalCondition()
+      Dim text = "
+key$ = """"
+count = 0
+DO
+  count = count + 1
+  IF count > 10 THEN key$ = CHR$(27)
+LOOP UNTIL key$ = CHR$(27) ' ESC key
+result = count
+"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      Assert.Equal(11, CInt(variables("result")))
+
+    End Sub
+
+  End Class
 
  End Namespace

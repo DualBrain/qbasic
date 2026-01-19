@@ -207,69 +207,138 @@ Namespace Global.QB.CodeAnalysis.Lowering
     End Function
 
     Protected Overrides Function RewriteDoUntilStatement(node As BoundDoUntilStatement) As BoundStatement
+      ' Lower DO UNTIL statements to goto/label constructs
+      If node.AtBeginning Then
+        ' DO UNTIL condition ... LOOP
+        ' Check condition first, execute body only if condition is false
 
-      ' do [until *expression*]
-      '   *statements*
-      ' loop [until *expression*]
-      '
-      ' ------->
-      '
-      ' body:
-      '   *statements*
-      ' continue:
-      ' gotoTrue *expression* body
-      ' exit:
+        ' do [until *expression*]
+        ' ------->
+        ' check:
+        ' gotoTrue *expression* exit  (if condition true, exit)
+        ' body:
+        '   *statements*
+        ' continue:
+        ' loop [until *expression*]
+        ' goto check
 
-      Dim bodyLabel = GenerateLabel()
-      Dim bodyLabelStatement = New BoundLabelStatement(bodyLabel)
-      Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
-      Dim gotoTrue = New BoundConditionalGotoStatement(bodyLabel, node.Expression)
-      Dim exitLabelStatement = New BoundLabelStatement(node.ExitLabel)
+        Dim checkLabel = GenerateLabel()
+        Dim bodyLabel = GenerateLabel()
+        Dim checkLabelStatement = New BoundLabelStatement(checkLabel)
+        Dim bodyLabelStatement = New BoundLabelStatement(bodyLabel)
+        Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
+        ' If condition is true, goto exit (skip body)
+        Dim gotoExitIfTrue = New BoundConditionalGotoStatement(node.ExitLabel, node.Expression, True)
+        Dim gotoCheck = New BoundGotoStatement(checkLabel)
+        Dim exitLabelStatement = New BoundLabelStatement(node.ExitLabel)
 
-      Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
-        bodyLabelStatement,
-        node.Statements,
-        continueLabelStatement,
-        gotoTrue,
-        exitLabelStatement))
+        Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
+          checkLabelStatement,
+          gotoExitIfTrue,
+          bodyLabelStatement,
+          node.Statements,
+          continueLabelStatement,
+          gotoCheck,
+          exitLabelStatement))
 
-      Return RewriteStatement(result)
+        Return RewriteStatement(result)
+      Else
+        ' DO ... LOOP UNTIL condition
+        ' Execute body first, then check condition
 
+        ' do [until *expression*]
+        ' ------->
+        ' body:
+        '   *statements*
+        ' loop [until *expression*]
+        ' continue:
+        ' gotoFalse *expression* body  (goto body if expression is false)
+        ' exit:
+
+        Dim bodyLabel = GenerateLabel()
+        Dim bodyLabelStatement = New BoundLabelStatement(bodyLabel)
+        Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
+        ' For UNTIL, goto body if condition is FALSE
+        Dim gotoIfFalse = New BoundConditionalGotoStatement(bodyLabel, node.Expression, False)
+        Dim exitLabelStatement = New BoundLabelStatement(node.ExitLabel)
+
+        Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
+          bodyLabelStatement,
+          node.Statements,
+          continueLabelStatement,
+          gotoIfFalse,
+          exitLabelStatement))
+
+        Return RewriteStatement(result)
+      End If
     End Function
 
     Protected Overrides Function RewriteDoWhileStatement(node As BoundDoWhileStatement) As BoundStatement
 
-      ' do [while *expression*]
-      '   *statements*
-      ' loop [while *expression*]
+      If node.AtBeginning Then
+        ' DO WHILE condition ... LOOP
+        ' Check condition first, execute body only if condition is true
 
-      ' do [until *expression*]
-      '   *statements*
-      ' loop [until *expression*]
-      '
-      ' ------->
-      '
-      ' body:
-      '   *statements*
-      ' check:
-      ' continue:
-      ' gotoTrue *expression* body
-      ' break:
+        ' do [until *expression*]
+        ' ------->
+        ' check:
+        ' gotoFalse *expression* exit  (if condition false, exit)
+        ' body:
+        '   *statements*
+        ' loop [until *expression*]
+        '
+        ' continue:
+        ' goto check
 
-      Dim bodyLabel = GenerateLabel()
-      Dim bodyLabelStatement = New BoundLabelStatement(bodyLabel)
-      Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
-      Dim gotoTrue = New BoundConditionalGotoStatement(bodyLabel, node.Expression)
-      Dim exitLabelStatement = New BoundLabelStatement(node.ExitLabel)
+        Dim checkLabel = GenerateLabel()
+        Dim bodyLabel = GenerateLabel()
+        Dim checkLabelStatement = New BoundLabelStatement(checkLabel)
+        Dim bodyLabelStatement = New BoundLabelStatement(bodyLabel)
+        Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
+        ' If condition is false, goto exit (skip body)
+        Dim gotoExitIfFalse = New BoundConditionalGotoStatement(node.ExitLabel, node.Expression, False)
+        Dim gotoCheck = New BoundGotoStatement(checkLabel)
+        Dim exitLabelStatement = New BoundLabelStatement(node.ExitLabel)
 
-      Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
-        bodyLabelStatement,
-        node.Statements,
-        continueLabelStatement,
-        gotoTrue,
-        exitLabelStatement))
+        Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
+          checkLabelStatement,
+          gotoExitIfFalse,
+          bodyLabelStatement,
+          node.Statements,
+          continueLabelStatement,
+          gotoCheck,
+          exitLabelStatement))
 
-      Return RewriteStatement(result)
+        Return RewriteStatement(result)
+      Else
+        ' DO ... LOOP WHILE condition
+        ' Execute body first, then check condition
+
+        ' do [until *expression*]
+        ' ------->
+        ' body:
+        '   *statements*
+        ' loop [until *expression*]
+        ' continue:
+        ' gotoTrue *expression* body  (goto body if expression is true)
+        ' exit:
+
+        Dim bodyLabel = GenerateLabel()
+        Dim bodyLabelStatement = New BoundLabelStatement(bodyLabel)
+        Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
+        ' For WHILE, goto body if condition is TRUE
+        Dim gotoIfTrue = New BoundConditionalGotoStatement(bodyLabel, node.Expression, True)
+        Dim exitLabelStatement = New BoundLabelStatement(node.ExitLabel)
+
+        Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
+          bodyLabelStatement,
+          node.Statements,
+          continueLabelStatement,
+          gotoIfTrue,
+          exitLabelStatement))
+
+        Return RewriteStatement(result)
+      End If
 
     End Function
 

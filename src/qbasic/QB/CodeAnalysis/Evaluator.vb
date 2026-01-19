@@ -228,12 +228,18 @@ Namespace Global.QB.CodeAnalysis
             If labelToIndex.TryGetValue(gs.Label, value) Then
               index = value
             Else
+              Dim found = False
               For Each entry In labelToIndex.Keys
                 If entry.Name = gs.Label.Name Then
                   index = labelToIndex(entry)
+                  found = True
                   Exit For
                 End If
               Next
+              If Not found Then
+                Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
+                index += 1
+              End If
             End If
             'index = labelToIndex(gs.Label)
 
@@ -486,6 +492,8 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
           Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
           Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
+          Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
+          Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement)) : index += 1
           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
         End Select
@@ -590,6 +598,55 @@ Namespace Global.QB.CodeAnalysis
       ' If no case matched and there's an ELSE clause, execute it
       If node.ElseStatement IsNot Nothing Then
         EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement))
+      End If
+    End Sub
+
+    Private Sub EvaluateDoWhileStatement(node As BoundDoWhileStatement)
+      If node.AtBeginning Then
+        ' DO WHILE condition ... LOOP
+        Do
+          Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+          If Not conditionValue Then Exit Do
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+        Loop
+      Else
+        ' DO ... LOOP WHILE condition
+        Do
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+          Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+          If Not conditionValue Then Exit Do
+        Loop
+      End If
+    End Sub
+
+    Private Sub EvaluateDoUntilStatement(node As BoundDoUntilStatement)
+      If node.AtBeginning Then
+        ' DO UNTIL condition ... LOOP
+        Console.WriteLine("DEBUG: DO UNTIL AtBeginning = True")
+        Dim iterations = 0
+        Do
+          iterations += 1
+          If iterations > 10 Then
+            Console.WriteLine("DEBUG: Too many iterations, exiting")
+            Exit Do
+          End If
+          Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+          Console.WriteLine("DEBUG: Condition = " & CStr(conditionValue))
+          If conditionValue Then
+            Console.WriteLine("DEBUG: Exiting loop")
+            Exit Do
+          End If
+          Console.WriteLine("DEBUG: Executing body")
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+        Loop
+        Console.WriteLine("DEBUG: Loop finished")
+      Else
+        ' DO ... LOOP UNTIL condition
+        Do
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+          Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+          If conditionValue Then Exit Do
+        Loop
       End If
     End Sub
 
@@ -1226,25 +1283,35 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
         Case BoundBinaryOperatorKind.Equal
-          Return If(Equals(left, right), -1, 0)
+          ' Use numeric comparison for QBasic compatibility
+          Try
+            Dim leftNum = CDbl(left)
+            Dim rightNum = CDbl(right)
+            Return If(leftNum = rightNum, -1, 0)
+          Catch ex As Exception
+            Return If(Equals(left, right), -1, 0)
+          End Try
         Case BoundBinaryOperatorKind.NotEqual
-          Return If(Not Equals(left, right), -1, 0)
+          ' Use numeric comparison for QBasic compatibility
+          Try
+            Dim leftNum = CDbl(left)
+            Dim rightNum = CDbl(right)
+            Return If(leftNum <> rightNum, -1, 0)
+          Catch ex As Exception
+            Return If(Not Equals(left, right), -1, 0)
+          End Try
 
         Case BoundBinaryOperatorKind.GreaterThan
-          Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
-            Case TypeSymbol.Type.Decimal : Return If(CDec(left) > CDec(right), -1, 0)
-            Case TypeSymbol.Type.Double : Return If(CDbl(left) > CDbl(right), -1, 0)
-            Case TypeSymbol.Type.Single : Return If(CSng(left) > CSng(right), -1, 0)
-            Case TypeSymbol.Type.ULong64 : Return If(CULng(left) > CULng(right), -1, 0)
-            Case TypeSymbol.Type.Long64 : Return If(CLng(left) > CLng(right), -1, 0)
-            Case TypeSymbol.Type.ULong : Return If(CUInt(left) > CUInt(right), -1, 0)
-            Case TypeSymbol.Type.Long : Return If(CInt(left) > CInt(right), -1, 0)
-            Case TypeSymbol.Type.UInteger : Return If(CUShort(left) > CUShort(right), -1, 0)
-            Case TypeSymbol.Type.Integer : Return If(CShort(left) > CShort(right), -1, 0)
-            Case TypeSymbol.Type.SByte : Return If(CSByte(left) > CSByte(right), -1, 0)
-            Case TypeSymbol.Type.Byte : Return If(CByte(left) > CByte(right), -1, 0)
-            Case TypeSymbol.Type.String : Return If(CStr(left) > CStr(right), -1, 0)
-          End Select
+          ' Use numeric comparison for QBasic compatibility
+          ' Use numeric comparison for QBasic compatibility
+          Try
+            Dim leftNum = CDbl(left)
+            Dim rightNum = CDbl(right)
+            Return If(leftNum > rightNum, -1, 0)
+          Catch ex As Exception
+            ' Fallback to type-specific comparison
+            Return If(CDbl(left) > CDbl(right), -1, 0)
+          End Try
 
         Case BoundBinaryOperatorKind.GreaterThanEqual
           Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)

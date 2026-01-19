@@ -535,6 +535,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       If isGlobal Then
       End If
       Select Case syntax.Kind
+        Case SyntaxKind.BeepStatement : Return BindBeepStatement(CType(syntax, BeepStatementSyntax))
         Case SyntaxKind.BlockStatement : Return BindBlockStatement(CType(syntax, BlockStatementSyntax))
         Case SyntaxKind.ChDirStatement : Return BindChDirStatement(CType(syntax, ChDirStatementSyntax))
         Case SyntaxKind.CircleStatement : Return BindCircleStatement(CType(syntax, CircleStatementSyntax))
@@ -565,6 +566,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
+        Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
         Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
@@ -737,6 +739,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Function
 
+    Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
+      Dim offset = BindExpression(syntax.Offset)
+      Dim value = BindExpression(syntax.Value)
+      Return New BoundPokeStatement(offset, value)
+    End Function
+
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
       Return New BoundChDirStatement(path)
@@ -833,6 +841,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
       Dim atBeginning = syntax.WhileClause Is Nothing OrElse syntax.WhileClause.AtBeginning
       Return New BoundDoWhileStatement(statements, expression, atBeginning, exitLabel, continueLabel)
+    End Function
+
+    Private Shared Function BindBeepStatement(syntax As BeepStatementSyntax) As BoundStatement
+      Return New BoundBeepStatement()
     End Function
 
     Private Shared Function BindEndStatement(syntax As EndStatementSyntax) As BoundStatement

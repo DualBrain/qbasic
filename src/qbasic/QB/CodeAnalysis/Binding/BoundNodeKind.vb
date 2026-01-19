@@ -9,6 +9,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     TabFunction
 
     ' Statements
+    BeepStatement
     BlockStatement
     CallStatement
     ChDirStatement
@@ -43,6 +44,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     NopStatement
     OptionStatement
     PrintStatement
+    PokeStatement
     PsetStatement
     PresetStatement
     RemStatement

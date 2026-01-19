@@ -127,6 +127,12 @@ Namespace Global.QB.CodeAnalysis
 
         Dim s = body.Statements(index)
         Select Case s.Kind
+          Case BoundNodeKind.BeepStatement
+            ' TODO: Implement BEEP sound
+            index += 1
+          Case BoundNodeKind.PokeStatement
+            ' TODO: Implement POKE memory write
+            index += 1
           Case BoundNodeKind.ChDirStatement
             Dim chdir = CType(s, BoundChDirStatement)
             Dim value = CStr(EvaluateExpression(chdir.Expression))
@@ -1211,8 +1217,9 @@ Namespace Global.QB.CodeAnalysis
             Case TypeSymbol.Type.Boolean : Return (CBool(left) Xor CBool(right))
           End Select
 
-        Case BoundBinaryOperatorKind.BitwiseEqv : Return CBool(left) = CBool(right)
-        Case BoundBinaryOperatorKind.BitwiseImp : Return CBool(left) AndAlso Not CBool(right)
+        Case BoundBinaryOperatorKind.LogicalImp : Return CInt(Not CBool(left) Or CBool(right))
+        Case BoundBinaryOperatorKind.BitwiseEqv : Return CInt(CBool(left) = CBool(right))
+        Case BoundBinaryOperatorKind.BitwiseImp : Return CInt(CBool(left) AndAlso Not CBool(right))
 
         Case Else
           Throw New Exception($"Unexpected binary operator {node.Op.Kind}")
@@ -1408,6 +1415,8 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Oct Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Oct(value)
+      ElseIf node.Function Is BuiltinFunctions.Peek Then
+        Return 0
       ElseIf node.Function Is BuiltinFunctions.Pen Then
         Stop
         Return Nothing
@@ -1443,8 +1452,12 @@ Namespace Global.QB.CodeAnalysis
         '   According to documentation, RND is initially set to utilize seed of 0 if RANDOMIZE is never called.
         '   Allowed range on RANDOMIZE is -32768 to 32767; however, it does appear that pretty much any number is allowed?
         Dim opt = CInt(EvaluateExpression(node.Arguments(0)))
-        'If m_random Is Nothing Then m_random = New Random(g_seed)
-        If opt = 0 Then
+        If opt < 0 Then
+          ' Reseed with negative value
+          g_random = New Random(opt)
+          g_lastRndResult = g_random.NextSingle()
+          Return g_lastRndResult
+        ElseIf opt = 0 Then
           ' Return last result...
           Return CSng(If(g_lastRndResult, 0))
         Else

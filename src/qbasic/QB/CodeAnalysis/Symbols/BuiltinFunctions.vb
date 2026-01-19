@@ -43,6 +43,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Lof As New FunctionSymbol("lof", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Log As New FunctionSymbol("log", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)
     Public ReadOnly Lpos As New FunctionSymbol("lpos", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
+    Public ReadOnly Peek As New FunctionSymbol("peek", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Integer)
     Public ReadOnly Pen As New FunctionSymbol("pen", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Play As New FunctionSymbol("play", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Pmap As New FunctionSymbol("pmap", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))

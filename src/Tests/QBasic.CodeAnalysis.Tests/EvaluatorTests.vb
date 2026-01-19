@@ -347,14 +347,24 @@ LET result$ = a$ + ""..."""
     <Fact>
     Public Sub EvaluatesRndFunction()
       ' Test RND with positive values (next random)
+      Dim text0 = "LET result = RND"
+      Dim syntaxTree0 As SyntaxTree = SyntaxTree.Parse(text0)
+      Dim compilation0 As Compilation = Compilation.Create(syntaxTree0)
+      Dim variables0 = New Dictionary(Of String, Object)()
+      Dim result0 = compilation0.Evaluate(variables0)
+      ' RND should return a value between 0 and 1
+      Dim rndValue0 = CDbl(variables0("result"))
+      Assert.True(rndValue0 >= 0.0 And rndValue0 < 1.0)
+
+      ' Test RND with positive values (next random)
       Dim text1 = "LET result = RND(1)"
       Dim syntaxTree1 As SyntaxTree = SyntaxTree.Parse(text1)
       Dim compilation1 As Compilation = Compilation.Create(syntaxTree1)
       Dim variables1 = New Dictionary(Of String, Object)()
       Dim result1 = compilation1.Evaluate(variables1)
       ' RND should return a value between 0 and 1
-      Dim rndValue = CDbl(variables1("result"))
-      Assert.True(rndValue >= 0.0 And rndValue < 1.0)
+      Dim rndValue1 = CDbl(variables1("result"))
+      Assert.True(rndValue1 >= 0.0 And rndValue1 < 1.0)
 
       ' Test RND with zero (should return last generated number)
       Dim text2 = "LET first = RND(1)" & vbCrLf & "LET second = RND(0)"

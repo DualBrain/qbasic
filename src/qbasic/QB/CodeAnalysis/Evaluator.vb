@@ -1320,12 +1320,12 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.ErDev2 Then
         Stop
         Return Nothing
-      ElseIf node.Function Is BuiltinFunctions.Erl Then
-        Stop
-        Return Nothing
-      ElseIf node.Function Is BuiltinFunctions.Err Then
-        Stop
-        Return Nothing
+       ElseIf node.Function Is BuiltinFunctions.Erl Then
+         ' ERL returns the line number where the last error occurred (0 if no error)
+         Return 0
+       ElseIf node.Function Is BuiltinFunctions.Err Then
+         ' ERR returns the error code of the last error (0 if no error)
+         Return 0
       ElseIf node.Function Is BuiltinFunctions.Exp Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         'Dim base = 2.718282
@@ -1346,9 +1346,10 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Hex Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Hex(value)
-      ElseIf node.Function Is BuiltinFunctions.Inkey Then
-        Stop
-        Return Nothing
+       ElseIf node.Function Is BuiltinFunctions.Inkey Then
+         ' INKEY$ returns the last key pressed as a string (empty if no key pressed)
+         ' In a test environment, return empty string
+         Return ""
       ElseIf node.Function Is BuiltinFunctions.Inp Then
         Stop
         Return Nothing

@@ -1,4 +1,7 @@
 Imports QB.CodeAnalysis
+Imports System.IO
+Imports System.Diagnostics
+
 Imports QB.CodeAnalysis.Syntax
 
 Imports Xunit

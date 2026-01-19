@@ -1024,6 +1024,48 @@ LET result = CVS(bin$)"
     End Sub
 
     <Fact>
+    Public Sub EvaluatesCommandFunctionWithArguments()
+      ' Test COMMAND$ function with different argument scenarios
+
+      ' Test with no arguments (should return empty string)
+      Dim commandTest1 = "LET result$ = COMMAND$"
+      Dim commandTree1 As SyntaxTree = SyntaxTree.Parse(commandTest1)
+      Dim commandComp1 As Compilation = Compilation.Create(commandTree1)
+      Dim commandVars1 As New Dictionary(Of String, Object)()
+      Dim commandResult1 = commandComp1.Evaluate(commandVars1, Nothing)
+      Assert.IsType(GetType(String), commandVars1("result$"))
+      Assert.Equal("", CStr(commandVars1("result$")))
+
+      ' Test with single argument
+      Dim commandVars2 As New Dictionary(Of String, Object)()
+      Dim args2 As String() = {"single"}
+      Dim commandResult2 = commandComp1.Evaluate(commandVars2, args2)
+      Assert.IsType(GetType(String), commandVars2("result$"))
+      Assert.Equal("single", CStr(commandVars2("result$")))
+
+      ' Test with multiple arguments
+      Dim commandVars3 As New Dictionary(Of String, Object)()
+      Dim args3 As String() = {"arg1", "arg2", "arg3"}
+      Dim commandResult3 = commandComp1.Evaluate(commandVars3, args3)
+      Assert.IsType(GetType(String), commandVars3("result$"))
+      Assert.Equal("arg1 arg2 arg3", CStr(commandVars3("result$")))
+
+      ' Test with arguments containing spaces
+      Dim commandVars4 As New Dictionary(Of String, Object)()
+      Dim args4 As String() = {"hello", "world with spaces", "final"}
+      Dim commandResult4 = commandComp1.Evaluate(commandVars4, args4)
+      Assert.IsType(GetType(String), commandVars4("result$"))
+      Assert.Equal("hello world with spaces final", CStr(commandVars4("result$")))
+
+      ' Test with empty array
+      Dim commandVars5 As New Dictionary(Of String, Object)()
+      Dim args5 As String() = Array.Empty(Of String)()
+      Dim commandResult5 = commandComp1.Evaluate(commandVars5, args5)
+      Assert.IsType(GetType(String), commandVars5("result$"))
+      Assert.Equal("", CStr(commandVars5("result$")))
+    End Sub
+
+    <Fact>
     Public Sub EvaluatesLogicalOperatorsExtended()
       ' Test IMP operator (implication)
       Dim impTestCases = New(String, Integer)() {

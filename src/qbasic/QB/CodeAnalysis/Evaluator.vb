@@ -14,6 +14,7 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_globals As Dictionary(Of String, Object)
     Private ReadOnly m_globalVariables As ImmutableArray(Of VariableSymbol)
     Private ReadOnly m_functions As New Dictionary(Of FunctionSymbol, BoundBlockStatement)
+    Private ReadOnly m_commandLineArgs As String()
     Private ReadOnly m_locals As New Stack(Of Dictionary(Of String, Object))
 
     Private ReadOnly m_container As New Stack(Of String)
@@ -52,7 +53,7 @@ Namespace Global.QB.CodeAnalysis
       End Get
     End Property
 
-    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol))
+    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), Optional commandLineArgs As String() = Nothing)
 
       m_program = program
       m_globals = New Dictionary(Of String, Object)
@@ -60,6 +61,7 @@ Namespace Global.QB.CodeAnalysis
         m_globals(kv.Key.Name) = kv.Value
       Next
       m_globalVariables = globalVariables
+      m_commandLineArgs = If(commandLineArgs, Array.Empty(Of String)())
       m_locals.Push(New Dictionary(Of String, Object))
 
       Dim current = program
@@ -1360,8 +1362,12 @@ Namespace Global.QB.CodeAnalysis
        ElseIf node.[Function] Is BuiltinFunctions.Input Then
          Return Console.ReadLine()
        ElseIf node.Function Is BuiltinFunctions.Command Then
-         ' COMMAND$ returns command line arguments (empty string in test environment)
-         Return ""
+         ' COMMAND$ returns command line arguments as space-separated string
+         If m_commandLineArgs IsNot Nothing AndAlso m_commandLineArgs.Length > 0 Then
+           Return String.Join(" "c, m_commandLineArgs)
+         Else
+           Return ""
+         End If
       ElseIf node.Function Is BuiltinFunctions.Instr1 Then
         Dim string1 = CStr(EvaluateExpression(node.Arguments(0)))
         Dim string2 = CStr(EvaluateExpression(node.Arguments(1)))

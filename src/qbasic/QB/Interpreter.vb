@@ -32,7 +32,7 @@ Namespace Global.QB
       compilation.EmitTree(Console.Out)
     End Sub
 
-    Sub Run(text As String, Optional dumpGlobals As Boolean = False)
+    Sub Run(text As String, Optional dumpGlobals As Boolean = False, Optional commandLineArgs As String() = Nothing)
 
       Dim tree = SyntaxTree.Parse(text)
       Dim compilation = QB.CodeAnalysis.Compilation.CreateScript(m_previous, tree)
@@ -40,7 +40,7 @@ Namespace Global.QB
       'If m_showTree Then tree.Root.WriteTo(Console.Out)
       'If m_showProgram Then compilation.EmitTree(Console.Out)
 
-      Dim result = compilation.Evaluate(m_variables)
+      Dim result = compilation.Evaluate(m_variables, commandLineArgs)
       Console.Out.WriteDiagnostics(result.Diagnostics)
 
       If Not result.Diagnostics.HasErrors Then

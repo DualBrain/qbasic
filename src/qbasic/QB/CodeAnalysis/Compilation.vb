@@ -154,7 +154,7 @@ Namespace Global.QB.CodeAnalysis
     '  Return New EvaluationResult(ImmutableArray(Of Diagnostic).Empty, value)
     'End Function
 
-    Public Function Evaluate(variables As Dictionary(Of String, Object)) As EvaluationResult
+    Public Function Evaluate(variables As Dictionary(Of String, Object), Optional commandLineArgs As String() = Nothing) As EvaluationResult
 
       If GlobalScope.Diagnostics.Any Then
         Dim bag = New DiagnosticBag
@@ -177,7 +177,7 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables)
+      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, commandLineArgs)
       Dim value As Object = Nothing
       Try
         value = evaluator.Evaluate

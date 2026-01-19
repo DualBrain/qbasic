@@ -19,8 +19,9 @@ Imports VbPixelGameEngine
 Friend Module Program
 
   Sub Main(args As String())
+    Dim commandLineArgs As String() = Nothing
     If args.Length > 0 Then
-      If Not HandleCommandLineArguments(args) Then
+      If Not HandleCommandLineArguments(args, commandLineArgs) Then
         ' Command line processing failed or showed help/error, exit
         Return
       End If
@@ -34,15 +35,20 @@ Friend Module Program
     End If
   End Sub
 
-  Private Function HandleCommandLineArguments(args As String()) As Boolean
+  Private Function HandleCommandLineArguments(args As String(), ByRef commandLineArgs As String()) As Boolean
     Dim filename As String = Nothing
     Dim showSyntaxTree As Boolean = False
     Dim showMethods As Boolean = False
     Dim stdoutMode As Boolean = False
     Dim dumpGlobals As Boolean = False
     Dim showHelp As Boolean = False
+    Dim programArgs As New List(Of String)()
 
-    For Each arg In args
+    Dim fileArgIndex = -1
+
+    ' First pass: find the .bas file and validate options
+    For i = 0 To args.Length - 1
+      Dim arg = args(i)
       If arg.StartsWith("--") OrElse arg.StartsWith("-") Then
         Select Case arg.ToLower()
           Case "--syntax-tree", "-t"
@@ -67,12 +73,35 @@ Friend Module Program
           Return False
         End If
         filename = arg
+        fileArgIndex = i
       Else
-        Console.WriteLine($"Unknown argument: {arg}")
-        ShowUsage()
-        Return False
+        ' Check if this could be a program argument (only allowed after .bas file)
+        If filename Is Nothing Then
+          Console.WriteLine($"Unknown argument: {arg}")
+          ShowUsage()
+          Return False
+        End If
+        ' This is a program argument that comes after the file
       End If
     Next
+
+    ' Second pass: collect program arguments (everything after the .bas file)
+    If fileArgIndex >= 0 Then
+      For j = fileArgIndex + 1 To args.Length - 1
+        ' Skip options that might come after the file
+        Dim arg = args(j)
+        If Not ((arg.StartsWith("--") OrElse arg.StartsWith("-")) AndAlso
+                (arg.ToLower() = "--syntax-tree" OrElse arg.ToLower() = "-t" OrElse
+                 arg.ToLower() = "--methods" OrElse arg.ToLower() = "-m" OrElse
+                 arg.ToLower() = "--stdout" OrElse arg.ToLower() = "-s" OrElse
+                 arg.ToLower() = "--dump-globals" OrElse arg.ToLower() = "-d" OrElse
+                 arg.ToLower() = "--help" OrElse arg.ToLower() = "-h")) Then
+          programArgs.Add(arg)
+        End If
+      Next
+    End If
+
+    commandLineArgs = programArgs.ToArray()
 
     If showHelp Then
       ShowUsage()
@@ -88,7 +117,7 @@ Friend Module Program
       HandleAnalysisMode(filename, showSyntaxTree, showMethods)
       Return False ' Exit after showing analysis
     ElseIf filename IsNot Nothing AndAlso stdoutMode Then
-      HandleRunMode(filename, stdoutMode, dumpGlobals)
+      HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs)
       Return False ' Exit after running program
     ElseIf filename IsNot Nothing Then
       ' Load file into IDE
@@ -170,7 +199,7 @@ Friend Module Program
     Next
   End Sub
 
-  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean)
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String())
     Dim interpreter As QB.Interpreter = Nothing
     Try
       Dim sourceText = File.ReadAllText(filename)
@@ -185,7 +214,7 @@ Friend Module Program
 
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText, dumpGlobals)
+      interpreter.Run(sourceText, dumpGlobals, commandLineArgs)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")

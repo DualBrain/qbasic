@@ -940,8 +940,8 @@ LET result = CVI(bin$)"
       Assert.Equal(12345, CInt(roundTripVars("result")))
 
       ' MKS$/CVS round trip
-      Dim singleRoundTripTest = "
-LET bin$ = MKS$(3.14!)
+       Dim singleRoundTripTest = "
+LET bin$ = MKS$(3.14)
 LET result = CVS(bin$)"
       Dim singleRoundTripTree As SyntaxTree = SyntaxTree.Parse(singleRoundTripTest)
       Dim singleRoundTripComp As Compilation = Compilation.Create(singleRoundTripTree)

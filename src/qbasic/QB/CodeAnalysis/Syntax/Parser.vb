@@ -3759,7 +3759,8 @@ repeat:
       If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
         Return ParseCallExpression()
-       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "csrlin" OrElse
+       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
+                                                                 Current.Text.ToLower = "csrlin" OrElse
                                                                  Current.Text.ToLower = "date$" OrElse
                                                                  Current.Text.ToLower = "erl" OrElse
                                                                  Current.Text.ToLower = "err" OrElse

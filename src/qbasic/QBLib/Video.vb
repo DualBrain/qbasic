@@ -815,6 +815,10 @@ Namespace Global.QBLib
       Next
     End Sub
 
+    Friend Shared Sub KeyPush(key As ConsoleKey) 'System.Windows.Forms.KeyEventArgs)
+      s_keys.Push(key)
+    End Sub
+
     Private Shared Sub Me_KeyDown(sender As Object, e As EventArgs) 'System.Windows.Forms.KeyEventArgs)
       'm_keys.Push(e.KeyCode) : e.Handled = True : e.SuppressKeyPress = True
     End Sub
@@ -1879,92 +1883,115 @@ allplotted:
       End If
     End Sub
 
-    'Private Shared m_keys As New Stack(Of Keys)
+    Private Shared ReadOnly s_keys As New Stack(Of ConsoleKey)
 
     Public Shared Function INKEY$()
-      'If m_keys.Count > 0 Then
-      '  Dim key = m_keys.Pop
+      If StdoutMode Then
+        ' Console mode - use Console.KeyAvailable and Console.ReadKey
+        Try
+          If System.Console.KeyAvailable Then
+            Dim cki = System.Console.ReadKey(True)
 
-      '  Dim shift = GetAsyncKeyState(&H10) <> 0
-      '  Dim ctrl = GetAsyncKeyState(&H11) <> 0
-      '  Dim alt = GetAsyncKeyState(&H12) <> 0
+#If Windows Then
+            Dim shift = GetAsyncKeyState(&H10) <> 0
+            Dim ctrl = GetAsyncKeyState(&H11) <> 0
+            Dim alt = GetAsyncKeyState(&H12) <> 0
+#Else
+            Dim shift = False
+            Dim ctrl = False
+            Dim alt = False
+#End If
 
-      '  Dim adder = 0
-      '  If shift Then
-      '    adder = 0
-      '  ElseIf ctrl Then
-      '    adder = 10
-      '  ElseIf alt Then
-      '    adder = 20
-      '  End If
+            Dim adder = 0
+            If shift Then
+              adder = 0
+            ElseIf ctrl Then
+              adder = 10
+            ElseIf alt Then
+              adder = 20
+            End If
 
-      '  Select Case key
-      '    Case Keys.Delete
-      '      Return QBChr(0) & QBChr(83)
-      '    Case Keys.Home
-      '      Return QBChr(0) & QBChr(71)
-      '    Case Keys.Up
-      '      Return QBChr(0) & QBChr(72)
-      '    Case Keys.PageUp
-      '      Return QBChr(0) & QBChr(73)
-      '    Case Keys.End
-      '      Return QBChr(0) & QBChr(79)
-      '    Case Keys.Down
-      '      Return QBChr(0) & QBChr(80)
-      '    Case Keys.PageDown
-      '      Return QBChr(0) & QBChr(81)
+            Select Case cki.Key
+              Case ConsoleKey.Delete
+                Return QBChr(0) & QBChr(83)
+              Case ConsoleKey.Home
+                Return QBChr(0) & QBChr(71)
+              Case ConsoleKey.UpArrow
+                Return QBChr(0) & QBChr(72)
+              Case ConsoleKey.PageUp
+                Return QBChr(0) & QBChr(73)
+              Case ConsoleKey.End
+                Return QBChr(0) & QBChr(79)
+              Case ConsoleKey.DownArrow
+                Return QBChr(0) & QBChr(80)
+              Case ConsoleKey.PageDown
+                Return QBChr(0) & QBChr(81)
 
-      '    Case Keys.Left
-      '      Return QBChr(0) & QBChr(75)
-      '    Case Keys.Right
-      '      Return QBChr(0) & QBChr(77)
+              Case ConsoleKey.LeftArrow
+                Return QBChr(0) & QBChr(75)
+              Case ConsoleKey.RightArrow
+                Return QBChr(0) & QBChr(77)
 
-      '    Case Keys.F1
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(84 + adder), QBChr(59))
-      '    Case Keys.F2
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(85 + adder), QBChr(60))
-      '    Case Keys.F3
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(86 + adder), QBChr(61))
-      '    Case Keys.F4
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(87 + adder), QBChr(62))
-      '    Case Keys.F5
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(88 + adder), QBChr(63))
-      '    Case Keys.F6
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(89 + adder), QBChr(64))
-      '    Case Keys.F7
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(80 + adder), QBChr(65))
-      '    Case Keys.F8
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(91 + adder), QBChr(66))
-      '    Case Keys.F9
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(92 + adder), QBChr(67))
-      '    Case Keys.F10
-      '      Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(93 + adder), QBChr(68))
-      '    Case Keys.F11
-      '      If shift Then
-      '        Return QBChr(0) & QBChr(135)
-      '      ElseIf ctrl Then
-      '        Return QBChr(0) & QBChr(137)
-      '      ElseIf alt Then
-      '        Return QBChr(0) & QBChr(139)
-      '      Else
-      '        Return QBChr(0) & QBChr(133)
-      '      End If
-      '    Case Keys.F12
-      '      If shift Then
-      '        Return QBChr(0) & QBChr(136)
-      '      ElseIf ctrl Then
-      '        Return QBChr(0) & QBChr(138)
-      '      ElseIf alt Then
-      '        Return QBChr(0) & QBChr(140)
-      '      Else
-      '        Return QBChr(0) & QBChr(134)
-      '      End If
-      '    Case Else
-      '      Return ChrW(key)
-      '  End Select
-      'Else
-      Return ""
-      'End If
+              Case ConsoleKey.F1
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(84 + adder), QBChr(59))
+              Case ConsoleKey.F2
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(85 + adder), QBChr(60))
+              Case ConsoleKey.F3
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(86 + adder), QBChr(61))
+              Case ConsoleKey.F4
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(87 + adder), QBChr(62))
+              Case ConsoleKey.F5
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(88 + adder), QBChr(63))
+              Case ConsoleKey.F6
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(89 + adder), QBChr(64))
+              Case ConsoleKey.F7
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(80 + adder), QBChr(65))
+              Case ConsoleKey.F8
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(91 + adder), QBChr(66))
+              Case ConsoleKey.F9
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(92 + adder), QBChr(67))
+              Case ConsoleKey.F10
+                Return QBChr(0) & If(shift OrElse ctrl OrElse alt, QBChr(93 + adder), QBChr(68))
+              Case ConsoleKey.F11
+                If shift Then
+                  Return QBChr(0) & QBChr(135)
+                ElseIf ctrl Then
+                  Return QBChr(0) & QBChr(137)
+                ElseIf alt Then
+                  Return QBChr(0) & QBChr(139)
+                Else
+                  Return QBChr(0) & QBChr(133)
+                End If
+              Case ConsoleKey.F12
+                If shift Then
+                  Return QBChr(0) & QBChr(136)
+                ElseIf ctrl Then
+                  Return QBChr(0) & QBChr(138)
+                ElseIf alt Then
+                  Return QBChr(0) & QBChr(140)
+                Else
+                  Return QBChr(0) & QBChr(134)
+                End If
+              Case Else
+                Return cki.KeyChar
+            End Select
+          Else
+            Return ""
+          End If
+        Catch ex As InvalidOperationException
+          ' Console is not available or input is redirected
+          ' In CI/testing environments, return empty string to avoid hanging
+          Return ""
+        End Try
+      Else
+        ' GUI mode - check for key presses in vbPixelGameEngine
+        ' For now, return empty string (TODO: implement GUI key detection)
+        If s_keys.Count > 0 Then
+          Dim key = s_keys.Pop
+          Return Chr(key)
+        End If
+        Return ""
+      End If
     End Function
 
 #Region "SLEEP"

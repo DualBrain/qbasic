@@ -762,6 +762,12 @@ Tip: These topics are also available from the Help menu.
 
         If m_runner.IsAlive Then
           ' need to feed the keys into the runner
+          If keys IsNot Nothing Then
+            For index = keys.Count - 1 To 0 Step -1
+              QBLib.Video.KeyPush(keys(index))
+              keys.RemoveAt(index)
+            Next
+          End If
           m_scrn0 = Nothing
           m_scrn = Nothing
           m_buffer = Nothing

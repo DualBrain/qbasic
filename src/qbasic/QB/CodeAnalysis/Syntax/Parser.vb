@@ -3701,7 +3701,7 @@ repeat:
         If precedence = 0 OrElse precedence <= parentPrecedence Then Exit Do
         Dim operatorToken = NextToken()
         Dim right = ParseBinaryExpression(precedence, allowAssignment)
-        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment AndAlso (TypeOf left Is IdentifierSyntax OrElse TypeOf left Is CallExpressionSyntax) Then
+        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment AndAlso TypeOf left Is IdentifierSyntax Then
           ' For assignment, parse the right side with lowest precedence and no nested assignments
           right = ParseBinaryExpression(0, False)
           left = New AssignmentExpressionSyntax(m_syntaxTree, left, operatorToken, right)

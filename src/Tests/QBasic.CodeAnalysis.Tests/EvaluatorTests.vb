@@ -1009,6 +1009,23 @@ LET result = CVS(bin$)"
       Dim environNumResult = environNumComp.Evaluate(environNumVars)
       ' ENVIRON$ with number should return a string
       Assert.IsType(GetType(String), environNumVars("result$"))
+
+      ' Test ENVIRON statement (setting environment variables)
+      Dim environSetTest = "ENVIRON ""QBTEST_VAR=test_value"""
+      Dim environSetTree As SyntaxTree = SyntaxTree.Parse(environSetTest)
+      Dim environSetComp As Compilation = Compilation.Create(environSetTree)
+      Dim environSetVars As New Dictionary(Of String, Object)()
+      Dim environSetResult = environSetComp.Evaluate(environSetVars)
+
+      ' Now read it back
+      Dim environReadTest = "LET result$ = ENVIRON$(""QBTEST_VAR"")"
+      Dim environReadTree As SyntaxTree = SyntaxTree.Parse(environReadTest)
+      Dim environReadComp As Compilation = Compilation.Create(environReadTree)
+      Dim environReadVars As New Dictionary(Of String, Object)()
+      Dim environReadResult = environReadComp.Evaluate(environReadVars)
+
+      Assert.IsType(GetType(String), environReadVars("result$"))
+      Assert.Equal("test_value", CStr(environReadVars("result$")))
     End Sub
 
     <Fact>

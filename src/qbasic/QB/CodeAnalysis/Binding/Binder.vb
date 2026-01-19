@@ -581,7 +581,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
-        Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
+         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
+         Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
         Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
@@ -863,6 +864,11 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim exitLabel = m_loopStack.Peek().ExitLabel
       Return New BoundGotoStatement(exitLabel)
 
+    End Function
+
+    Private Function BindEnvironStatement(syntax As EnvironStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression, TypeSymbol.String)
+      Return New BoundEnvironStatement(expression)
     End Function
 
     Private Function BindExpressionStatement(syntax As ExpressionStatementSyntax) As BoundStatement

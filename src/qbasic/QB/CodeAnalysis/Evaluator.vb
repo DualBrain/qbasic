@@ -476,6 +476,7 @@ Namespace Global.QB.CodeAnalysis
 
           Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
           Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
+          Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
           Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
           Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
           Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
@@ -803,6 +804,20 @@ Namespace Global.QB.CodeAnalysis
           End If
         End If
       Next
+    End Sub
+
+    Private Sub EvaluateEnvironStatement(node As BoundEnvironStatement)
+      ' ENVIRON statement sets environment variables
+      ' Format: ENVIRON "VARNAME=value"
+      Dim envString = CStr(EvaluateExpression(node.Expression))
+
+      ' Parse the VARNAME=value format
+      Dim equalsIndex = envString.IndexOf("="c)
+      If equalsIndex > 0 Then
+        Dim varName = envString.Substring(0, equalsIndex)
+        Dim varValue = envString.Substring(equalsIndex + 1)
+        Environment.SetEnvironmentVariable(varName, varValue)
+      End If
     End Sub
 
     Private Sub EvaluateCallStatement(node As BoundCallStatement)

@@ -60,11 +60,12 @@ Namespace Global.QB.CodeAnalysis.Binding
      DataStatement
       DateStatement
       DimStatement
-      EraseStatement
-      ReadStatement
-      RedimStatement
-      TimeStatement
-      WhileStatement
+     EnvironStatement
+     EraseStatement
+     ReadStatement
+     RedimStatement
+     TimeStatement
+     WhileStatement
 
      ' Expressions
      ArrayAccessExpression

@@ -1183,7 +1183,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
 
       Dim openParen As SyntaxToken = Nothing
-      Dim parameters As SeparatedSyntaxList(Of ParameterSyntax) = Nothing
+      Dim parameters As SeparatedSyntaxList(Of ParameterSyntax) = New SeparatedSyntaxList(Of ParameterSyntax)(ImmutableArray.Create(Of SyntaxNode)())
       Dim closeParen As SyntaxToken = Nothing
 
       If Current.Kind = SyntaxKind.OpenParenToken Then
@@ -1221,18 +1221,20 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' END DEF
 
       Dim defKeyword = MatchToken(SyntaxKind.DefKeyword)
-      Dim identifier = ParseIdentifier() 'MatchToken(SyntaxKind.IdentifierToken)
+      Dim identifierToken = MatchToken(SyntaxKind.IdentifierToken)
+      Dim identifier = New IdentifierSyntax(m_syntaxTree, identifierToken, Nothing, New SeparatedSyntaxList(Of ExpressionSyntax)(ImmutableArray.Create(Of SyntaxNode)()), Nothing)
       'TODO: Are the first two characters FN?  If not, error!
       Dim openParenToken As SyntaxToken = Nothing
-      Dim parameters As SeparatedSyntaxList(Of ParameterSyntax) = Nothing
+      Dim parameters As SeparatedSyntaxList(Of ParameterSyntax) = New SeparatedSyntaxList(Of ParameterSyntax)(ImmutableArray.Create(Of SyntaxNode)())
       Dim closeParenToken As SyntaxToken = Nothing
+
       If Current.Kind = SyntaxKind.OpenParenToken Then
         openParenToken = MatchToken(SyntaxKind.OpenParenToken)
         If Current.Kind <> SyntaxKind.CloseParenToken Then parameters = ParseParameterList()
         closeParenToken = MatchToken(SyntaxKind.CloseParenToken)
       End If
 
-      Dim value = identifier?.Identifier?.Text
+      Dim value = identifierToken.Text
       If Not value?.StartsWith("fn", StringComparison.InvariantCultureIgnoreCase) Then
         m_diagnostics.ReportInvalidFunctionName(Current.Location, value)
       End If
@@ -1248,7 +1250,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Dim statements = ParseBlockStatement(False)
         Dim endKeyword = MatchToken(SyntaxKind.EndKeyword)
         Dim endDefKeyword = MatchToken(SyntaxKind.DefKeyword)
-        Return New DefDeclarationSyntax(m_syntaxTree, defKeyword, identifier.Identifier, openParenToken, parameters, closeParenToken, statements, endKeyword, endDefKeyword)
+        Return New DefDeclarationSyntax(m_syntaxTree, defKeyword, identifierToken, openParenToken, parameters, closeParenToken, statements, endKeyword, endDefKeyword)
       End If
 
     End Function
@@ -3880,7 +3882,7 @@ repeat:
     Private Function ParseIdentifier() As IdentifierSyntax
       Dim identifierToken = NextToken()
       Dim openParen As SyntaxToken = Nothing
-      Dim arguments As SeparatedSyntaxList(Of ExpressionSyntax) = Nothing
+      Dim arguments As SeparatedSyntaxList(Of ExpressionSyntax) = New SeparatedSyntaxList(Of ExpressionSyntax)(ImmutableArray.Create(Of SyntaxNode)())
       Dim closeParen As SyntaxToken = Nothing
       If Current.Kind = SyntaxKind.OpenParenToken Then
         openParen = MatchToken(SyntaxKind.OpenParenToken)

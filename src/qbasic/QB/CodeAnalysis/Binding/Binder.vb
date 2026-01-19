@@ -656,7 +656,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindCallExpression(syntax As CallExpressionSyntax) As BoundExpression
 
-      ' First check if this is array access (identifier with parentheses)
+      ' First check if this is a built-in function that takes an array as first argument
+      If syntax.Identifier.Text.ToUpper() = "LBOUND" Or syntax.Identifier.Text.ToUpper() = "UBOUND" Then
+        Return BindBoundFunction(syntax)
+      End If
+
+      ' Then check if this is array access (identifier with parentheses)
       Dim variableSymbol = m_scope.TryLookupVariable(syntax.Identifier.Text)
       If variableSymbol IsNot Nothing AndAlso Not variableSymbol.IsArray AndAlso syntax.Arguments.Count = 1 Then
         ' Redeclare scalar as array

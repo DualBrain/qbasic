@@ -11,7 +11,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
     <Fact>
     Public Sub EvaluatesDefXxxVariableDeclarations()
-    
+
       Dim text = "
 DEFINT I
 DEFLNG L
@@ -40,14 +40,14 @@ b = -2147483648
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      Assert.Equal($"{1}", $"{variables("I")}")    
-      Assert.Equal($"{60000}", $"{variables("L")}")    
-      Assert.Equal($"{5.5}", $"{variables("S")}")    
-      Assert.Equal($"{10000.9}", $"{variables("D")}")    
-       Assert.Equal($"{123456790}", $"{variables("x")}")    
-       Assert.Equal($"{987654321}", $"{variables("y&")}")    
-       Assert.Equal($"{42}", $"{variables("z")}")    
-       Assert.Equal($"-2.1474836E+09", $"{variables("b")}")
+      Assert.Equal($"{1}", $"{variables("I")}")
+      Assert.Equal($"{60000}", $"{variables("L")}")
+      Assert.Equal($"{5.5}", $"{variables("S")}")
+      Assert.Equal($"{10000.9}", $"{variables("D")}")
+      Assert.Equal($"{123456790}", $"{variables("x")}")
+      Assert.Equal($"{987654321}", $"{variables("y&")}")
+      Assert.Equal($"{42}", $"{variables("z")}")
+      Assert.Equal($"-2.1474836E+09", $"{variables("b")}")
     End Sub
 
     <Fact>
@@ -940,7 +940,7 @@ LET result = CVI(bin$)"
       Assert.Equal(12345, CInt(roundTripVars("result")))
 
       ' MKS$/CVS round trip
-       Dim singleRoundTripTest = "
+      Dim singleRoundTripTest = "
 LET bin$ = MKS$(3.14)
 LET result = CVS(bin$)"
       Dim singleRoundTripTree As SyntaxTree = SyntaxTree.Parse(singleRoundTripTest)
@@ -1138,12 +1138,71 @@ LET result = CVS(bin$)"
       Dim pokeComp As Compilation = Compilation.Create(pokeTree)
       Dim pokeVars As New Dictionary(Of String, Object)()
       Dim pokeResult = pokeComp.Evaluate(pokeVars)
-       Assert.Empty(pokeTree.Diagnostics)
-     End Sub
+      Assert.Empty(pokeTree.Diagnostics)
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseBasic()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesLBoundUBoundFunctions()
+      ' Test LBOUND function with arrays
+      Dim lboundTestCases = New(String, Long)() {
+          ("DIM arr(1 TO 5) : LET result = LBOUND(arr)", 1L),
+          ("DIM arr(0 TO 10) : LET result = LBOUND(arr)", 0L),
+          ("DIM arr(-5 TO 5) : LET result = LBOUND(arr)", -5L),
+          ("DIM arr(10 TO 20) : LET result = LBOUND(arr)", 10L)
+      }
+
+      For Each testCase In lboundTestCases
+        Dim inputText As String = testCase.Item1
+        Dim expectedResult As Long = testCase.Item2
+        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
+        Dim comp As Compilation = Compilation.Create(tree)
+        Dim vars As New Dictionary(Of String, Object)()
+        Dim evalResult = comp.Evaluate(vars)
+        Assert.Equal(expectedResult, CLng(vars("result")))
+      Next
+
+      ' Test UBOUND function with arrays
+      Dim uboundTestCases = New(String, Long)() {
+          ("DIM arr(1 TO 5) : LET result = UBOUND(arr)", 5L),
+          ("DIM arr(0 TO 10) : LET result = UBOUND(arr)", 10L),
+          ("DIM arr(-5 TO 5) : LET result = UBOUND(arr)", 5L),
+          ("DIM arr(10 TO 20) : LET result = UBOUND(arr)", 20L)
+      }
+
+      For Each testCase In uboundTestCases
+        Dim inputText As String = testCase.Item1
+        Dim expectedResult As Long = testCase.Item2
+        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
+        Dim comp As Compilation = Compilation.Create(tree)
+        Dim vars As New Dictionary(Of String, Object)()
+        Dim evalResult = comp.Evaluate(vars)
+        Assert.Equal(expectedResult, CLng(vars("result")))
+      Next
+
+      ' Test LBOUND/UBOUND on non-array variables (TODO: implement this)
+
+      ' Test with REDIM arrays
+      Dim redimTest = "
+ DIM arr(1 TO 3)
+ LET result1 = LBOUND(arr)
+ LET result2 = UBOUND(arr)
+ REDIM arr(5 TO 8)
+ LET result3 = LBOUND(arr)
+ LET result4 = UBOUND(arr)
+ "
+      Dim redimTree As SyntaxTree = SyntaxTree.Parse(redimTest)
+      Dim redimComp As Compilation = Compilation.Create(redimTree)
+      Dim redimVars As New Dictionary(Of String, Object)()
+      Dim redimResult = redimComp.Evaluate(redimVars)
+      Assert.Equal(1L, CLng(redimVars("result1")))
+      Assert.Equal(3L, CLng(redimVars("result2")))
+      Assert.Equal(5L, CLng(redimVars("result3")))
+      Assert.Equal(8L, CLng(redimVars("result4")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesSelectCaseBasic()
+      Dim text = "
 SELECT CASE 2
   CASE 1
     result = 10
@@ -1153,17 +1212,17 @@ SELECT CASE 2
     result = 30
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(20, CInt(variables("result")))
-     End Sub
+      Assert.Equal(20, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithMultipleValues()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithMultipleValues()
+      Dim text = "
 SELECT CASE 5
   CASE 1, 2, 3
     result = 100
@@ -1173,17 +1232,17 @@ SELECT CASE 5
     result = 300
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(200, CInt(variables("result")))
-     End Sub
+      Assert.Equal(200, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithRanges()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithRanges()
+      Dim text = "
 SELECT CASE 75
   CASE 0 TO 59
     result$ = ""Fail""
@@ -1193,17 +1252,17 @@ SELECT CASE 75
     result$ = ""Excellent""
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal("Pass", CStr(variables("result$")))
-     End Sub
+      Assert.Equal("Pass", CStr(variables("result$")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithIsComparisons()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithIsComparisons()
+      Dim text = "
 SELECT CASE 25
   CASE IS < 13
     result$ = ""Child""
@@ -1215,17 +1274,17 @@ SELECT CASE 25
     result$ = ""Adult""
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal("Adult", CStr(variables("result$")))
-     End Sub
+      Assert.Equal("Adult", CStr(variables("result$")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithCaseElse()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithCaseElse()
+      Dim text = "
 SELECT CASE 99
   CASE 1
     result = 1
@@ -1235,17 +1294,17 @@ SELECT CASE 99
     result = 999
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(999, CInt(variables("result")))
-     End Sub
+      Assert.Equal(999, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithStringTest()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithStringTest()
+      Dim text = "
 SELECT CASE ""Jane""
   CASE ""John""
     result$ = ""Male""
@@ -1255,17 +1314,17 @@ SELECT CASE ""Jane""
     result$ = ""Unknown""
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal("Female", CStr(variables("result$")))
-     End Sub
+      Assert.Equal("Female", CStr(variables("result$")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseExitsAfterFirstMatch()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseExitsAfterFirstMatch()
+      Dim text = "
 SELECT CASE 2
   CASE 1, 2, 3
     result = result + 10
@@ -1275,19 +1334,19 @@ SELECT CASE 2
     result = result + 30
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       variables("result") = 0
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      variables("result") = 0
+      Dim result = compilation.Evaluate(variables)
 
-       ' Should only match first case (CASE 1, 2, 3) and add 10, not continue to CASE 2, 4, 6
-       Assert.Equal(10, CInt(variables("result")))
-     End Sub
+      ' Should only match first case (CASE 1, 2, 3) and add 10, not continue to CASE 2, 4, 6
+      Assert.Equal(10, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithVariableTest()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithVariableTest()
+      Dim text = "
 x = 42
 SELECT CASE x
   CASE 1 TO 40
@@ -1298,17 +1357,17 @@ SELECT CASE x
     result$ = ""High""
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal("Medium", CStr(variables("result$")))
-     End Sub
+      Assert.Equal("Medium", CStr(variables("result$")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSelectCaseWithIsEqualComparison()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSelectCaseWithIsEqualComparison()
+      Dim text = "
 SELECT CASE 4
   CASE IS = 1
     result = 1
@@ -1320,102 +1379,102 @@ SELECT CASE 4
     result = 999
 END SELECT
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(4, CInt(variables("result")))
-     End Sub
+      Assert.Equal(4, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesDoWhileLoop()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesDoWhileLoop()
+      Dim text = "
 counter = 0
 DO WHILE counter < 3
   counter = counter + 1
 LOOP
 result = counter
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(3, CInt(variables("result")))
-     End Sub
+      Assert.Equal(3, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesDoUntilLoop()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesDoUntilLoop()
+      Dim text = "
 counter = 3
 DO UNTIL counter = 0
   counter = counter - 1
 LOOP
 result = counter
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(0, CInt(variables("result")))
-     End Sub
+      Assert.Equal(0, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesDoLoopWhile()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesDoLoopWhile()
+      Dim text = "
 counter = 0
 DO
   counter = counter + 1
 LOOP WHILE counter < 3
 result = counter
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(3, CInt(variables("result")))
-     End Sub
+      Assert.Equal(3, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesDoLoopUntil()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesDoLoopUntil()
+      Dim text = "
 counter = 3
 DO
   counter = counter - 1
 LOOP UNTIL counter = 0
 result = counter
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(0, CInt(variables("result")))
-     End Sub
+      Assert.Equal(0, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesDoWhileWithFalseCondition()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesDoWhileWithFalseCondition()
+      Dim text = "
 executed = 0
 DO WHILE 1 = 2  ' Always false
   executed = 1
 LOOP
 result = executed
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(0, CInt(variables("result")))
-     End Sub
+      Assert.Equal(0, CInt(variables("result")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesDoUntilWithTrueCondition()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesDoUntilWithTrueCondition()
+      Dim text = "
 executed = 0
 DO UNTIL 1 = 1  ' Always true
   executed = executed + 1
@@ -1423,13 +1482,13 @@ DO UNTIL 1 = 1  ' Always true
 LOOP
 result = executed
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-        Assert.Equal(0, CInt(variables("result"))) ' Should skip loop when condition is initially true
-     End Sub
+      Assert.Equal(0, CInt(variables("result"))) ' Should skip loop when condition is initially true
+    End Sub
 
     <Fact>
     Public Sub EvaluatesDoUntilWithStringEvalCondition()
@@ -1453,4 +1512,4 @@ result = count
 
   End Class
 
- End Namespace
+End Namespace

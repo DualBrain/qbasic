@@ -1570,9 +1570,6 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.IoCtl Then
         Stop
         Return Nothing
-      ElseIf node.Function Is BuiltinFunctions.LBound Then
-        Stop
-        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.LCase Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return value?.ToLower
@@ -1729,8 +1726,19 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.UBound Then
-        Stop
-        Return Nothing
+        Dim arg = node.Arguments(0)
+        If TypeOf arg Is BoundVariableExpression Then
+          Dim varExpr = CType(arg, BoundVariableExpression)
+          If varExpr.Variable.IsArray Then
+            Return EvaluateExpression(varExpr.Variable.Upper)
+          Else
+            ' UBOUND called on non-array variable - return -1 (QBasic behavior)
+            Return -1L
+          End If
+        Else
+          ' Invalid argument type
+          Return -1L
+        End If
       ElseIf node.Function Is BuiltinFunctions.UCase Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return value?.ToUpper

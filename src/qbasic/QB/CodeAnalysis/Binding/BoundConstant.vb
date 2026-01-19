@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Binding
+Namespace Global.QB.CodeAnalysis.Binding
 
   Friend NotInheritable Class BoundConstant
 

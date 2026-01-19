@@ -109,6 +109,8 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) * CByte(r))
           End Select
         Case BoundBinaryOperatorKind.Division
+          ' Don't fold division by zero - it should be evaluated at runtime to trigger error handling
+          If CDbl(r) = 0 Then Return Nothing
           Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) / CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) / CDbl(r))
@@ -123,6 +125,8 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) / CByte(r))
           End Select
         Case BoundBinaryOperatorKind.IntegerDivision
+          ' Don't fold integer division by zero
+          If CDbl(r) = 0 Then Return Nothing
           Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CLng(l) \ CLng(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CLng(l) \ CLng(r))

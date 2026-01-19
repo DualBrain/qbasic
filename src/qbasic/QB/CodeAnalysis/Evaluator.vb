@@ -27,7 +27,12 @@ Namespace Global.QB.CodeAnalysis
     Private m_erl As Integer = 0 ' Line number where error occurred (ERL)
     Private m_errorHandlerTarget As String = Nothing ' Target label for ON ERROR GOTO
     Private m_errorResumeNext As Boolean = False ' ON ERROR RESUME NEXT mode
-    Private m_errorOccurred As Boolean = False ' Flag indicating if we're in error recovery
+    Private m_errorPending As Boolean = False ' Flag indicating if an error occurred and needs handling
+    Private m_errorResumeIndex As Integer = -1 ' Index to resume execution after error handling
+
+    Private Const GOTO_LABEL_PREFIX As String = "$LABEL"
+
+
 
     'Private m_random As Random
 
@@ -55,31 +60,56 @@ Namespace Global.QB.CodeAnalysis
       End Sub
     End Class
 
+    ' Exception for RESUME operations that need to jump
+    Private Class ResumeException
+      Inherits Exception
+
+      Public Property TargetIndex As Integer
+
+      Public Sub New(targetIndex As Integer)
+        Me.TargetIndex = targetIndex
+      End Sub
+    End Class
+
     ' Error handling methods
     Private Sub SetError(errorCode As Integer, Optional lineNumber As Integer = 0)
       m_err = errorCode
       m_erl = lineNumber
-      m_errorOccurred = True
+      m_errorPending = True
     End Sub
 
     Private Sub ClearError()
       m_err = 0
       m_erl = 0
-      m_errorOccurred = False
+      m_errorPending = False
+      m_errorResumeIndex = -1
     End Sub
 
-    Private Function HandleError() As Boolean
+    Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of BoundLabel, Integer)) As Boolean
+      m_errorResumeIndex = index ' Save current index for RESUME
+
       If m_errorResumeNext Then
-        ' ON ERROR RESUME NEXT - continue execution
+        ' ON ERROR RESUME NEXT - continue with next statement
         ClearError()
+        index += 1 ' Skip current statement
         Return True
       ElseIf m_errorHandlerTarget IsNot Nothing Then
-        ' ON ERROR GOTO - for now, just clear error and continue
-        ' TODO: Implement proper jumping to error handler
-        ClearError()
-        Return True
+        ' ON ERROR GOTO - jump to error handler
+        Dim targetLabel = New BoundLabel(m_errorHandlerTarget)
+        If labelToIndex.ContainsKey(targetLabel) Then
+          ClearError() ' Clear error before jumping
+          index = labelToIndex(targetLabel)
+          Return True
+        Else
+          ' Label not found, treat as fatal error
+          Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
+        End If
+      Else
+        ' No error handler, fatal error
+        Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
       End If
-      Return False ' No error handler, program should terminate
+
+      Return False
     End Function
 
     Private Function GetErrorMessage(errorCode As Integer) As String
@@ -227,15 +257,23 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-      Dim index = 0
-      While index < body.Statements.Length
+       Dim index = 0
+       While index < body.Statements.Length
 
-        If QBasic.Common.s_cancelToken.IsCancellationRequested Then
-          Exit While
-        End If
+         If QBasic.Common.s_cancelToken.IsCancellationRequested Then
+           Exit While
+         End If
 
-        Dim s = body.Statements(index)
-        Select Case s.Kind
+         ' Check for pending errors before executing next statement
+         If m_errorPending Then
+           If HandlePendingError(index, labelToIndex) Then
+             Continue While ' Skip to next iteration with updated index
+           End If
+         End If
+
+         Dim s = body.Statements(index)
+         Try
+           Select Case s.Kind
           Case BoundNodeKind.BeepStatement
             ' TODO: Implement BEEP sound
             index += 1
@@ -606,10 +644,23 @@ Namespace Global.QB.CodeAnalysis
            Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
            Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
           Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement)) : index += 1
-          Case Else
-            Throw New Exception($"Unexpected kind {s.Kind}")
-        End Select
-      End While
+           Case Else
+             Throw New Exception($"Unexpected kind {s.Kind}")
+         End Select
+         Catch ex As ResumeException
+           ' Handle RESUME jumping
+           ClearError()
+           index = ex.TargetIndex
+           Continue While
+         Catch ex As QBasicRuntimeException
+           ' Handle runtime errors - set error and handle it
+           If m_err = 0 Then ' Only set if not already set
+             SetError(11) ' Generic error
+           End If
+           ' Error will be handled on next iteration
+           Continue While
+         End Try
+       End While
 
       Return m_lastValue
 
@@ -651,9 +702,14 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateOnErrorGotoStatement(node As BoundOnErrorGotoStatement)
       ' Set error handler target
-      ' For now, assume target is a label name
       Dim targetValue = EvaluateExpression(node.Target)
-      m_errorHandlerTarget = CStr(targetValue)
+      If IsNumeric(targetValue) Then
+        ' Line number - convert to label format
+        m_errorHandlerTarget = GOTO_LABEL_PREFIX & CStr(targetValue)
+      Else
+        ' Label name
+        m_errorHandlerTarget = CStr(targetValue)
+      End If
       m_errorResumeNext = False
     End Sub
 
@@ -664,32 +720,37 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateResumeStatement(node As BoundResumeStatement)
-      If Not m_errorOccurred Then
+      If Not m_errorPending AndAlso m_errorResumeIndex = -1 Then
         Throw New QBasicRuntimeException("RESUME without error")
       End If
 
-      ClearError()
-
-      ' TODO: Implement proper RESUME with jumping
-      ' For now, just continue execution
+      ' For RESUME with label, we'd need to implement jumping to specific labels
+      ' For now, implement basic RESUME (return to error location)
+      If m_errorResumeIndex >= 0 Then
+        ' This will be handled by returning a special value to the main loop
+        Throw New ResumeException(m_errorResumeIndex)
+      Else
+        ClearError()
+      End If
     End Sub
 
     Private Sub EvaluateResumeNextStatement(node As BoundResumeNextStatement)
-      If Not m_errorOccurred Then
+      If Not m_errorPending AndAlso m_errorResumeIndex = -1 Then
         Throw New QBasicRuntimeException("RESUME without error")
       End If
 
-      ClearError()
-      ' RESUME NEXT - continue with next statement (already happening)
+      ' RESUME NEXT - continue with statement after the error
+      If m_errorResumeIndex >= 0 Then
+        Throw New ResumeException(m_errorResumeIndex + 1)
+      Else
+        ClearError()
+      End If
     End Sub
 
     Private Sub EvaluateErrorStatement(node As BoundErrorStatement)
       Dim errorCode = CInt(EvaluateExpression(node.Expression))
       SetError(errorCode)
-      ' Trigger error handling
-      If Not HandleError() Then
-        Throw New QBasicRuntimeException($"Error {errorCode}: {GetErrorMessage(errorCode)}")
-      End If
+      ' Error will be handled by the main evaluation loop
     End Sub
 
     Private Sub EvaluateSelectCaseStatement(node As BoundSelectCaseStatement)
@@ -867,16 +928,11 @@ Namespace Global.QB.CodeAnalysis
             Dim column = CInt(EvaluateExpression(tabFunc.Expression))
             ' TODO: Implement TAB function - for now just print
             QBLib.Video.PRINT("TAB(" & column & ")", False)
-          Case Else
-            ' Regular expression to print
-            Dim value = EvaluateExpression(CType(item, BoundExpression))
-            Dim str As String
-            If TypeOf value Is BoundConstant Then
-              str = CStr(CType(value, BoundConstant).Value)
-            Else
-              str = CStr(value)
-            End If
-            QBLib.Video.PRINT(str, False)
+           Case Else
+             ' Regular expression to print
+             Dim value = EvaluateExpression(CType(item, BoundExpression))
+             QBLib.Video.PRINT(CStr(value), False)
+             QBLib.Video.PRINT(CStr(value), False)
         End Select
       Next
       ' Add newline at end unless last item was semicolon
@@ -887,13 +943,7 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)
       Dim value = EvaluateExpression(node.Expression)
-      Dim str As String '= ""
-      If TypeOf value Is BoundConstant Then
-        str = CStr(CType(value, BoundConstant).Value)
-      Else
-        str = CStr(value)
-      End If
-      QBLib.Video.PRINT(str, node.NoCr) ': QBLib.Video.PRINT(" "c, True)
+      QBLib.Video.PRINT(value.ToString(), node.NoCr) ': QBLib.Video.PRINT(" "c, True)
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)
@@ -1174,11 +1224,12 @@ Namespace Global.QB.CodeAnalysis
       End If
 
       Select Case node.Kind
-         'Case BoundNodeKind.LiteralExpression : Return EvaluateLiteralExpression(CType(node, BoundLiteralExpression))
-        Case BoundNodeKind.ArrayAccessExpression : Return EvaluateArrayAccessExpression(CType(node, BoundArrayAccessExpression))
-        Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
-        Case BoundNodeKind.AssignmentExpression : Return EvaluateAssignmentExpression(CType(node, BoundAssignmentExpression))
-        Case BoundNodeKind.BinaryExpression : Return EvaluateBinaryExpression(CType(node, BoundBinaryExpression))
+
+      Case BoundNodeKind.ArrayAccessExpression : Return EvaluateArrayAccessExpression(CType(node, BoundArrayAccessExpression))
+       Case BoundNodeKind.AssignmentExpression : Return EvaluateAssignmentExpression(CType(node, BoundAssignmentExpression))
+       Case BoundNodeKind.BinaryExpression : Return EvaluateBinaryExpression(CType(node, BoundBinaryExpression))
+       Case BoundNodeKind.LiteralExpression : Return EvaluateLiteralExpression(CType(node, BoundLiteralExpression))
+       Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
         Case BoundNodeKind.UnaryExpression : Return EvaluateUnaryExpression(CType(node, BoundUnaryExpression))
         Case BoundNodeKind.ParenExpression : Return EvaluateParenExpression(CType(node, BoundParenExpression))
         Case BoundNodeKind.BoundFunctionExpression : Return EvaluateBoundFunctionExpression(CType(node, BoundBoundFunctionExpression))
@@ -1197,6 +1248,10 @@ Namespace Global.QB.CodeAnalysis
       Catch ex As OverflowException
         Throw New Exception("Numeric literal is too large.")
       End Try
+    End Function
+
+    Private Function EvaluateLiteralExpression(node As BoundLiteralExpression) As Object
+      Return node.Value
     End Function
 
     Private Function EvaluateVariableExpression(node As BoundVariableExpression) As Object
@@ -1364,6 +1419,11 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
         Case BoundBinaryOperatorKind.Division
+          ' Check for division by zero
+          If CDbl(right) = 0 Then
+            SetError(11) ' Division by zero
+            Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
+          End If
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.Decimal : Return (CDec(CDec(left) / CDec(right)))
             Case TypeSymbol.Type.Double : Return (CDbl(CDbl(left) / CDbl(right)))
@@ -1379,6 +1439,11 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
         Case BoundBinaryOperatorKind.IntegerDivision
+          ' Check for division by zero
+          If CDbl(right) = 0 Then
+            SetError(11) ' Division by zero
+            Return 0 ' Return 0 for integer division by zero
+          End If
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.Single : Return CInt(left) \ CInt(right)
             Case TypeSymbol.Type.ULong64 : Return (CULng(left) \ CULng(right))

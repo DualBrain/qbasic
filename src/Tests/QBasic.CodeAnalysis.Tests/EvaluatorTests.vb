@@ -1,6 +1,8 @@
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
 
+Imports QBLib
+
 Imports Xunit
 
 Namespace QBasic.CodeAnalysis.Tests
@@ -541,14 +543,20 @@ LET result$ = a$ + ""..."""
           "PRINT SPC(5); ""Spaced"""
       }
 
-      For Each testCase In printTestCases
-        Dim tree As SyntaxTree = SyntaxTree.Parse(testCase)
-        Dim comp As Compilation = Compilation.Create(tree)
-        Dim vars As New Dictionary(Of String, Object)()
-        ' Just verify it parses and evaluates without errors
-        Dim evalResult = comp.Evaluate(vars)
-        Assert.Empty(tree.Diagnostics)
-      Next
+      Dim originalStdoutMode = Video.StdoutMode
+      Try
+        Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+        For Each testCase In printTestCases
+          Dim tree As SyntaxTree = SyntaxTree.Parse(testCase)
+          Dim comp As Compilation = Compilation.Create(tree)
+          Dim vars As New Dictionary(Of String, Object)()
+          ' Just verify it parses and evaluates without errors
+          Dim evalResult = comp.Evaluate(vars)
+          Assert.Empty(tree.Diagnostics)
+        Next
+      Finally
+        Video.StdoutMode = originalStdoutMode ' Restore original mode
+      End Try
     End Sub
 
     <Fact>
@@ -565,12 +573,18 @@ LET result$ = a$ + ""..."""
     <Fact>
     Public Sub EvaluatesClsStatement()
       ' Test CLS statement
-      Dim clsTest = "CLS"
-      Dim clsTree As SyntaxTree = SyntaxTree.Parse(clsTest)
-      Dim clsComp As Compilation = Compilation.Create(clsTree)
-      Dim clsVars As New Dictionary(Of String, Object)()
-      Dim clsResult = clsComp.Evaluate(clsVars)
-      Assert.Empty(clsTree.Diagnostics)
+      Dim originalStdoutMode = Video.StdoutMode
+      Try
+        Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+        Dim clsTest = "CLS"
+        Dim clsTree As SyntaxTree = SyntaxTree.Parse(clsTest)
+        Dim clsComp As Compilation = Compilation.Create(clsTree)
+        Dim clsVars As New Dictionary(Of String, Object)()
+        Dim clsResult = clsComp.Evaluate(clsVars)
+        Assert.Empty(clsTree.Diagnostics)
+      Finally
+        Video.StdoutMode = originalStdoutMode ' Restore original mode
+      End Try
     End Sub
 
     <Fact>
@@ -952,21 +966,28 @@ LET result = CVS(bin$)"
 
     <Fact>
     Public Sub EvaluatesPrintFormattingFunctions()
-      ' Test TAB function in PRINT statements
-      Dim tabTest = "PRINT TAB(10); ""Hello"""
-      Dim tabTree As SyntaxTree = SyntaxTree.Parse(tabTest)
-      Dim tabComp As Compilation = Compilation.Create(tabTree)
-      Dim tabVars As New Dictionary(Of String, Object)()
-      Dim tabResult = tabComp.Evaluate(tabVars)
-      Assert.Empty(tabTree.Diagnostics)
+      Dim originalStdoutMode = Video.StdoutMode
+      Try
+        Video.StdoutMode = True ' Run in stdout mode like --stdout flag
 
-      ' Test SPC function in PRINT statements
-      Dim spcTest = "PRINT SPC(5); ""World"""
-      Dim spcTree As SyntaxTree = SyntaxTree.Parse(spcTest)
-      Dim spcComp As Compilation = Compilation.Create(spcTree)
-      Dim spcVars As New Dictionary(Of String, Object)()
-      Dim spcResult = spcComp.Evaluate(spcVars)
-      Assert.Empty(spcTree.Diagnostics)
+        ' Test TAB function in PRINT statements
+        Dim tabTest = "PRINT TAB(10); ""Hello"""
+        Dim tabTree As SyntaxTree = SyntaxTree.Parse(tabTest)
+        Dim tabComp As Compilation = Compilation.Create(tabTree)
+        Dim tabVars As New Dictionary(Of String, Object)()
+        Dim tabResult = tabComp.Evaluate(tabVars)
+        Assert.Empty(tabTree.Diagnostics)
+
+        ' Test SPC function in PRINT statements
+        Dim spcTest = "PRINT SPC(5); ""World"""
+        Dim spcTree As SyntaxTree = SyntaxTree.Parse(spcTest)
+        Dim spcComp As Compilation = Compilation.Create(spcTree)
+        Dim spcVars As New Dictionary(Of String, Object)()
+        Dim spcResult = spcComp.Evaluate(spcVars)
+        Assert.Empty(spcTree.Diagnostics)
+      Finally
+        Video.StdoutMode = originalStdoutMode ' Restore original mode
+      End Try
     End Sub
 
     <Fact>

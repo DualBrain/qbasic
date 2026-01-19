@@ -841,7 +841,7 @@ Namespace Global.QBLib
     End Sub
 
     Friend Shared m_cursorVisible As Boolean = True
-    Friend Shared StdoutMode As Boolean = False
+    Public Shared StdoutMode As Boolean = False
     Private Shared m_cursorStart As Integer = 6
     Public Shared ReadOnly Property CursorStart As Integer
       Get
@@ -2038,6 +2038,20 @@ allplotted:
     End Function
 
     Private Shared Sub WriteCharacter(ascii As Byte, Optional noScroll As Boolean = False)
+      If StdoutMode Then
+        ' In stdout mode, output directly to console
+        Console.Write(ChrW(ascii))
+        m_cursorCol += 1
+        If m_cursorCol > m_textColumns Then
+          If m_cursorRow + 1 > m_textRows Then
+            If Not noScroll Then ShiftViewUp()
+          Else
+            m_cursorRow += 1
+          End If
+          m_cursorCol = 1
+        End If
+        Return
+      End If
 
       Dim cr = m_cursorRow - 1
       Dim cc = m_cursorCol - 1

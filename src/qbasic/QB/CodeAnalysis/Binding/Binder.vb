@@ -508,7 +508,12 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Shared Function BindErrorStatement() As BoundStatement
-      Return New BoundExpressionStatement(New BoundErrorExpression)
+      Return New BoundErrorStatement(New BoundErrorExpression)
+    End Function
+
+    Private Function BindErrorStatement(syntax As ErrorStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression)
+      Return New BoundErrorStatement(expression)
     End Function
 
     Private Function BindGlobalStatement(syntax As StatementSyntax) As BoundStatement
@@ -564,16 +569,19 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.LocateStatement : Return BindLocateStatement(CType(syntax, LocateStatementSyntax))
         Case SyntaxKind.MidStatement : Return BindMidStatement(CType(syntax, MidStatementSyntax))
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
-        Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
-        Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
+         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
+         Case SyntaxKind.OnErrorGotoStatement : Return BindOnErrorGotoStatement(CType(syntax, OnErrorGotoStatementSyntax))
+         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
         Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
         Case SyntaxKind.ReturnGosubStatement : Return BindReturnGosubStatement(CType(syntax, ReturnGosubStatementSyntax))
-        Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
-        Case SyntaxKind.RmDirStatement : Return BindRmDirStatement(CType(syntax, RmDirStatementSyntax))
+         Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
+         Case SyntaxKind.ResumeStatement : Return BindResumeStatement(CType(syntax, ResumeStatementSyntax))
+         Case SyntaxKind.ResumeNextStatement : Return BindResumeNextStatement(CType(syntax, ResumeNextStatementSyntax))
+         Case SyntaxKind.RmDirStatement : Return BindRmDirStatement(CType(syntax, RmDirStatementSyntax))
         Case SyntaxKind.ScreenKeyword : Return BindScreenStatement(CType(syntax, ScreenStatementSyntax))
         Case SyntaxKind.SingleLineIfStatement : Return BindSingleLineIfStatement(CType(syntax, SingleLineIfStatementSyntax))
         Case SyntaxKind.StopStatement : Return BindStopStatement(CType(syntax, StopStatementSyntax))
@@ -582,8 +590,9 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
-        Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
-        Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
+         Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
+         Case SyntaxKind.ErrorStatement : Return BindErrorStatement(CType(syntax, ErrorStatementSyntax))
+         Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
@@ -1782,10 +1791,37 @@ Namespace Global.QB.CodeAnalysis.Binding
         dimension = New BoundLiteralExpression(1)
       End If
 
-      Return New BoundBoundFunctionExpression(arrayVariable, dimension, isLbound)
+       Return New BoundBoundFunctionExpression(arrayVariable, dimension, isLbound)
+     End Function
+
+    Private Function BindOnErrorGotoStatement(syntax As OnErrorGotoStatementSyntax) As BoundStatement
+      ' Check if target is the literal 0 (disable error handling)
+      If TypeOf syntax.Target Is LiteralExpressionSyntax AndAlso
+         CInt(DirectCast(syntax.Target, LiteralExpressionSyntax).Value) = 0 Then
+        Return New BoundOnErrorGotoZeroStatement()
+      Else
+        ' ON ERROR GOTO target (label or line number)
+        Dim targetExpr = BindExpression(syntax.Target)
+        Return New BoundOnErrorGotoStatement(targetExpr)
+      End If
     End Function
 
-    Private Function BindVariableReference(identifierToken As SyntaxToken) As VariableSymbol
+    Private Function BindResumeStatement(syntax As ResumeStatementSyntax) As BoundStatement
+      If syntax.OptionalLine IsNot Nothing Then
+        ' RESUME label/line
+        Dim lineExpr = BindExpression(syntax.OptionalLine)
+        Return New BoundResumeStatement(lineExpr)
+      Else
+        ' RESUME (resume at error line)
+        Return New BoundResumeStatement(Nothing)
+      End If
+    End Function
+
+     Private Function BindResumeNextStatement(syntax As ResumeNextStatementSyntax) As BoundStatement
+       Return New BoundResumeNextStatement()
+     End Function
+
+     Private Function BindVariableReference(identifierToken As SyntaxToken) As VariableSymbol
 
       Dim name = identifierToken.Text
       Dim s = m_scope.TryLookupSymbol(name)

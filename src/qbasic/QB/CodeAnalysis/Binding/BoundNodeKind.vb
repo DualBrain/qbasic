@@ -38,19 +38,23 @@ Namespace Global.QB.CodeAnalysis.Binding
     LetStatement
     LineStatement
     LocateStatement
-    MidStatement
-    MkDirStatement
-    NameStatement
-    NopStatement
-    OptionStatement
+     MidStatement
+     MkDirStatement
+     NameStatement
+     NopStatement
+     OnErrorGotoStatement
+     OnErrorGotoZeroStatement
+     OptionStatement
     PrintStatement
     PokeStatement
     PsetStatement
     PresetStatement
     RemStatement
-    ReturnGosubStatement
-    ReturnStatement
-    RmDirStatement
+     ResumeStatement
+     ResumeNextStatement
+     ReturnGosubStatement
+     ReturnStatement
+     RmDirStatement
     ScreenStatement
     StopStatement
     SubStatement
@@ -62,6 +66,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       DimStatement
      EnvironStatement
      EraseStatement
+     ErrorStatement
      ReadStatement
      RedimStatement
      TimeStatement

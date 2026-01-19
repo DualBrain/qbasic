@@ -22,6 +22,13 @@ Namespace Global.QB.CodeAnalysis
     ' Track current array bounds (updated by REDIM)
     Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Lower As Integer, Upper As Integer))
 
+    ' Error handling state
+    Private m_err As Integer = 0 ' Current error code (ERR)
+    Private m_erl As Integer = 0 ' Line number where error occurred (ERL)
+    Private m_errorHandlerTarget As String = Nothing ' Target label for ON ERROR GOTO
+    Private m_errorResumeNext As Boolean = False ' ON ERROR RESUME NEXT mode
+    Private m_errorOccurred As Boolean = False ' Flag indicating if we're in error recovery
+
     'Private m_random As Random
 
     'TODO: Need to make this scoped.
@@ -38,6 +45,106 @@ Namespace Global.QB.CodeAnalysis
         Me.Name = name
       End Sub
     End Class
+
+    ' Custom exception for QBasic runtime errors
+    Public Class QBasicRuntimeException
+      Inherits Exception
+
+      Public Sub New(message As String)
+        MyBase.New(message)
+      End Sub
+    End Class
+
+    ' Error handling methods
+    Private Sub SetError(errorCode As Integer, Optional lineNumber As Integer = 0)
+      m_err = errorCode
+      m_erl = lineNumber
+      m_errorOccurred = True
+    End Sub
+
+    Private Sub ClearError()
+      m_err = 0
+      m_erl = 0
+      m_errorOccurred = False
+    End Sub
+
+    Private Function HandleError() As Boolean
+      If m_errorResumeNext Then
+        ' ON ERROR RESUME NEXT - continue execution
+        ClearError()
+        Return True
+      ElseIf m_errorHandlerTarget IsNot Nothing Then
+        ' ON ERROR GOTO - for now, just clear error and continue
+        ' TODO: Implement proper jumping to error handler
+        ClearError()
+        Return True
+      End If
+      Return False ' No error handler, program should terminate
+    End Function
+
+    Private Function GetErrorMessage(errorCode As Integer) As String
+      Select Case errorCode
+        Case 1 : Return "NEXT without FOR"
+        Case 2 : Return "Syntax error"
+        Case 3 : Return "RETURN without GOSUB"
+        Case 4 : Return "Out of DATA"
+        Case 5 : Return "Illegal function call"
+        Case 6 : Return "Overflow"
+        Case 7 : Return "Out of memory"
+        Case 8 : Return "Undefined line number"
+        Case 9 : Return "Subscript out of range"
+        Case 10 : Return "Duplicate Definition"
+        Case 11 : Return "Division by zero"
+        Case 12 : Return "Illegal direct"
+        Case 13 : Return "Type mismatch"
+        Case 14 : Return "Out of string space"
+        Case 15 : Return "String too long"
+        Case 16 : Return "String formula too complex"
+        Case 17 : Return "Can't continue"
+        Case 18 : Return "Undefined user function"
+        Case 19 : Return "No RESUME"
+        Case 20 : Return "RESUME without error"
+        Case 21 : Return "Unprintable error"
+        Case 22 : Return "Missing operand"
+        Case 23 : Return "Line buffer overflow"
+        Case 24 : Return "Device Timeout"
+        Case 25 : Return "Device Fault"
+        Case 26 : Return "FOR Without NEXT"
+        Case 27 : Return "Out of Paper"
+        Case 28 : Return "Unprintable error"
+        Case 29 : Return "WHILE without WEND"
+        Case 30 : Return "WEND without WHILE"
+        Case 31 To 49 : Return "Unprintable error"
+        Case 50 : Return "FIELD overflow"
+        Case 51 : Return "Internal error"
+        Case 52 : Return "Bad file number"
+        Case 53 : Return "File not found"
+        Case 54 : Return "Bad file mode"
+        Case 55 : Return "File already open"
+        Case 56 : Return "Unprintable error"
+        Case 57 : Return "Device I/O Error"
+        Case 58 : Return "File already exists"
+        Case 59 : Return "Unprintable error"
+        Case 60 : Return "Unprintable error"
+        Case 61 : Return "Disk full"
+        Case 62 : Return "Input past end"
+        Case 63 : Return "Bad record number"
+        Case 64 : Return "Bad filename"
+        Case 65 : Return "Unprintable error"
+        Case 66 : Return "Direct statement in file"
+        Case 67 : Return "Too many files"
+        Case 68 : Return "Device Unavailable"
+        Case 69 : Return "Communication buffer overflow"
+        Case 70 : Return "Permission Denied"
+        Case 71 : Return "Disk not Ready"
+        Case 72 : Return "Disk media error"
+        Case 73 : Return "Advanced Feature"
+        Case 74 : Return "Rename across disks"
+        Case 75 : Return "Path/File Access Error"
+        Case 76 : Return "Path not found"
+        Case Else : Return $"Undefined error {errorCode}"
+      End Select
+    End Function
 
     Private Function GetVariableNameFromSyntax(syntax As ExpressionSyntax) As String
       If TypeOf syntax Is IdentifierExpressionSyntax Then
@@ -485,14 +592,19 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
           Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
           Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
-          Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
-          Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
-          Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
-          Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
+           Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
+           Case BoundNodeKind.ResumeStatement : EvaluateResumeStatement(CType(s, BoundResumeStatement)) : index += 1
+           Case BoundNodeKind.ResumeNextStatement : EvaluateResumeNextStatement(CType(s, BoundResumeNextStatement)) : index += 1
+           Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
+           Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
+           Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
+           Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement)) : index += 1
           Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
           Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
-          Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
-          Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
+           Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
+           Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
+           Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
+           Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
           Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement)) : index += 1
           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
@@ -535,6 +647,49 @@ Namespace Global.QB.CodeAnalysis
       ' For now, we'll just ignore it as setting system time requires admin privileges
       Dim timeString = CStr(EvaluateExpression(node.Expression))
       ' TODO: Implement actual time setting if needed
+     End Sub
+
+    Private Sub EvaluateOnErrorGotoStatement(node As BoundOnErrorGotoStatement)
+      ' Set error handler target
+      ' For now, assume target is a label name
+      Dim targetValue = EvaluateExpression(node.Target)
+      m_errorHandlerTarget = CStr(targetValue)
+      m_errorResumeNext = False
+    End Sub
+
+    Private Sub EvaluateOnErrorGotoZeroStatement(node As BoundOnErrorGotoZeroStatement)
+      ' Disable error handling
+      m_errorHandlerTarget = Nothing
+      m_errorResumeNext = False
+    End Sub
+
+    Private Sub EvaluateResumeStatement(node As BoundResumeStatement)
+      If Not m_errorOccurred Then
+        Throw New QBasicRuntimeException("RESUME without error")
+      End If
+
+      ClearError()
+
+      ' TODO: Implement proper RESUME with jumping
+      ' For now, just continue execution
+    End Sub
+
+    Private Sub EvaluateResumeNextStatement(node As BoundResumeNextStatement)
+      If Not m_errorOccurred Then
+        Throw New QBasicRuntimeException("RESUME without error")
+      End If
+
+      ClearError()
+      ' RESUME NEXT - continue with next statement (already happening)
+    End Sub
+
+    Private Sub EvaluateErrorStatement(node As BoundErrorStatement)
+      Dim errorCode = CInt(EvaluateExpression(node.Expression))
+      SetError(errorCode)
+      ' Trigger error handling
+      If Not HandleError() Then
+        Throw New QBasicRuntimeException($"Error {errorCode}: {GetErrorMessage(errorCode)}")
+      End If
     End Sub
 
     Private Sub EvaluateSelectCaseStatement(node As BoundSelectCaseStatement)
@@ -1513,12 +1668,12 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.ErDev2 Then
         Stop
         Return Nothing
-      ElseIf node.Function Is BuiltinFunctions.Erl Then
-        ' ERL returns the line number where the last error occurred (0 if no error)
-        Return 0
-      ElseIf node.Function Is BuiltinFunctions.Err Then
-        ' ERR returns the error code of the last error (0 if no error)
-        Return 0
+       ElseIf node.Function Is BuiltinFunctions.Erl Then
+         ' ERL returns the line number where the last error occurred (0 if no error)
+         Return m_erl
+       ElseIf node.Function Is BuiltinFunctions.Err Then
+         ' ERR returns the error code of the last error (0 if no error)
+         Return m_err
       ElseIf node.Function Is BuiltinFunctions.Exp Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         'Dim base = 2.718282

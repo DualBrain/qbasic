@@ -1201,6 +1201,67 @@ LET result = CVS(bin$)"
     End Sub
 
     <Fact>
+    Public Sub EvaluatesErrorHandling()
+      ' Test ERR and ERL functions return 0 when no error
+      Dim noErrorTest = "LET errVal = ERR : LET erlVal = ERL"
+      Dim noErrorTree As SyntaxTree = SyntaxTree.Parse(noErrorTest)
+      Dim noErrorComp As Compilation = Compilation.Create(noErrorTree)
+      Dim noErrorVars As New Dictionary(Of String, Object)()
+      Dim noErrorResult = noErrorComp.Evaluate(noErrorVars)
+      Assert.Equal(0L, CLng(noErrorVars("errVal")))
+      Assert.Equal(0L, CLng(noErrorVars("erlVal")))
+
+      ' Test ERROR statement throws exception with correct error code
+      Dim errorTest = "ERROR 5"
+      Dim errorTree As SyntaxTree = SyntaxTree.Parse(errorTest)
+      Dim errorComp As Compilation = Compilation.Create(errorTree)
+      Dim errorVars As New Dictionary(Of String, Object)()
+      Dim ex As Exception = Nothing
+      Try
+        errorComp.Evaluate(errorVars)
+      Catch e As Exception
+        ex = e
+      End Try
+      Assert.NotNull(ex)
+      Assert.Contains("Error 5: Illegal function call", ex.Message)
+
+      ' Test various error codes
+      Dim errorCodes = New Integer() {2, 6, 7, 11, 13}
+      Dim expectedMessages = New String() {
+           "Syntax error",
+           "Overflow",
+           "Out of memory",
+           "Division by zero",
+           "Type mismatch"
+       }
+
+      For i = 0 To errorCodes.Length - 1
+        Dim errorCodeTest = $"ERROR {errorCodes(i)}"
+        Dim errorCodeTree As SyntaxTree = SyntaxTree.Parse(errorCodeTest)
+        Dim errorCodeComp As Compilation = Compilation.Create(errorCodeTree)
+        Dim errorCodeVars As New Dictionary(Of String, Object)()
+        Dim errorEx As Exception = Nothing
+        Try
+          errorCodeComp.Evaluate(errorCodeVars)
+        Catch e As Exception
+          errorEx = e
+        End Try
+        Assert.NotNull(errorEx)
+        Assert.Contains($"Error {errorCodes(i)}: {expectedMessages(i)}", errorEx.Message)
+      Next
+
+      ' Test ON ERROR GOTO statement (basic parsing and execution)
+      Dim onErrorTest = "ON ERROR GOTO 100"
+      Dim onErrorTree As SyntaxTree = SyntaxTree.Parse(onErrorTest)
+      Dim onErrorComp As Compilation = Compilation.Create(onErrorTree)
+      Dim onErrorVars As New Dictionary(Of String, Object)()
+      ' This should execute without error (ON ERROR statement itself doesn't cause errors)
+      Dim onErrorResult = onErrorComp.Evaluate(onErrorVars)
+
+      ' Note: RESUME statement testing requires more complex error handling setup
+    End Sub
+
+    <Fact>
     Public Sub EvaluatesSelectCaseBasic()
       Dim text = "
 SELECT CASE 2

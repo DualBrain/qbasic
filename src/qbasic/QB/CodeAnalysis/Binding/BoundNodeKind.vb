@@ -65,9 +65,12 @@ Namespace Global.QB.CodeAnalysis.Binding
      ReadStatement
      RedimStatement
      TimeStatement
-     WhileStatement
+      WhileStatement
+      SelectCaseStatement
+      CaseStatement
+      CaseMatchStatement
 
-     ' Expressions
+      ' Expressions
      ArrayAccessExpression
      BinaryExpression
      AssignmentExpression

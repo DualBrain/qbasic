@@ -581,11 +581,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
-         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
-         Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
+        Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
+        Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
         Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
+        Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
@@ -1925,6 +1926,36 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression)
       Return New BoundTimeStatement(expression)
+    End Function
+
+    Private Function BindSelectCaseStatement(syntax As SelectCaseStatementSyntax) As BoundStatement
+      Dim test = BindExpression(syntax.Test)
+
+      Dim cases = ImmutableArray.CreateBuilder(Of BoundCaseStatement)()
+      For Each caseClause In syntax.Cases
+        Dim matches = ImmutableArray.CreateBuilder(Of BoundCaseMatchStatement)()
+        For Each matchExpr In caseClause.Matches
+          If TypeOf matchExpr Is CaseMatchExpressionSyntax Then
+            Dim caseMatch = CType(matchExpr, CaseMatchExpressionSyntax)
+            matches.Add(New BoundCaseMatchStatement(CaseMatchType.Value, CType(0, SyntaxKind), BindExpression(caseMatch.Expression), Nothing))
+          ElseIf TypeOf matchExpr Is CaseMatchRangeExpressionSyntax Then
+            Dim caseRange = CType(matchExpr, CaseMatchRangeExpressionSyntax)
+            matches.Add(New BoundCaseMatchStatement(CaseMatchType.Range, CType(0, SyntaxKind), BindExpression(caseRange.Start), BindExpression(caseRange.End)))
+          ElseIf TypeOf matchExpr Is CaseIsMatchExpressionSyntax Then
+            Dim caseIs = CType(matchExpr, CaseIsMatchExpressionSyntax)
+            matches.Add(New BoundCaseMatchStatement(CaseMatchType.IsComparison, caseIs.Comparison.Kind, BindExpression(caseIs.Expression), Nothing))
+          End If
+        Next
+        Dim statement = BindStatement(caseClause.Statement)
+        cases.Add(New BoundCaseStatement(matches.ToImmutable(), statement))
+      Next
+
+      Dim elseStatement As BoundStatement = Nothing
+      If syntax.CaseElseClause IsNot Nothing Then
+        elseStatement = BindStatement(syntax.CaseElseClause.Statement)
+      End If
+
+      Return New BoundSelectCaseStatement(test, cases.ToImmutable(), elseStatement)
     End Function
 
   End Class

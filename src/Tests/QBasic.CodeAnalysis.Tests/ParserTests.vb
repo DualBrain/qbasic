@@ -384,6 +384,70 @@ Namespace QBasic.CodeAnalysis.Tests
     End Sub
 
     <Fact>
+    Public Sub ParsesSelectCaseWithMultipleValues()
+      Dim text = "SELECT CASE x" & vbCrLf &
+                "  CASE 1, 2, 3" & vbCrLf &
+                "    PRINT ""Small""" & vbCrLf &
+                "  CASE 4, 5, 6" & vbCrLf &
+                "    PRINT ""Medium""" & vbCrLf &
+                "END SELECT"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+
+      Assert.NotNull(syntaxTree.Root)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesSelectCaseWithRanges()
+      Dim text = "SELECT CASE score" & vbCrLf &
+                "  CASE 0 TO 59" & vbCrLf &
+                "    PRINT ""Fail""" & vbCrLf &
+                "  CASE 60 TO 79" & vbCrLf &
+                "    PRINT ""Pass""" & vbCrLf &
+                "  CASE 80 TO 100" & vbCrLf &
+                "    PRINT ""Excellent""" & vbCrLf &
+                "END SELECT"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+
+      Assert.NotNull(syntaxTree.Root)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesSelectCaseWithIsComparisons()
+      Dim text = "SELECT CASE age" & vbCrLf &
+                "  CASE IS < 13" & vbCrLf &
+                "    PRINT ""Child""" & vbCrLf &
+                "  CASE IS < 20" & vbCrLf &
+                "    PRINT ""Teenager""" & vbCrLf &
+                "  CASE IS >= 65" & vbCrLf &
+                "    PRINT ""Senior""" & vbCrLf &
+                "  CASE ELSE" & vbCrLf &
+                "    PRINT ""Adult""" & vbCrLf &
+                "END SELECT"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+
+      Assert.NotNull(syntaxTree.Root)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
+    Public Sub ParsesSelectCaseWithStringTest()
+      Dim text = "SELECT CASE name$" & vbCrLf &
+                "  CASE ""John""" & vbCrLf &
+                "    PRINT ""Hello John""" & vbCrLf &
+                "  CASE ""Jane"", ""Mary""" & vbCrLf &
+                "    PRINT ""Hello Lady""" & vbCrLf &
+                "  CASE ELSE" & vbCrLf &
+                "    PRINT ""Hello Stranger""" & vbCrLf &
+                "END SELECT"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+
+      Assert.NotNull(syntaxTree.Root)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
+
+    <Fact>
     Public Sub ParsesDoWhileLoop()
       Dim text = "DO WHILE x < 10" & vbCrLf &
                 "  x = x + 1" & vbCrLf &

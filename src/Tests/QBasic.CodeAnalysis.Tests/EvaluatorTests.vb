@@ -1138,9 +1138,196 @@ LET result = CVS(bin$)"
       Dim pokeComp As Compilation = Compilation.Create(pokeTree)
       Dim pokeVars As New Dictionary(Of String, Object)()
       Dim pokeResult = pokeComp.Evaluate(pokeVars)
-      Assert.Empty(pokeTree.Diagnostics)
-    End Sub
+       Assert.Empty(pokeTree.Diagnostics)
+     End Sub
 
-  End Class
+     <Fact>
+     Public Sub EvaluatesSelectCaseBasic()
+       Dim text = "
+SELECT CASE 2
+  CASE 1
+    result = 10
+  CASE 2
+    result = 20
+  CASE 3
+    result = 30
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
 
-End Namespace
+       Assert.Equal(20, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithMultipleValues()
+       Dim text = "
+SELECT CASE 5
+  CASE 1, 2, 3
+    result = 100
+  CASE 4, 5, 6
+    result = 200
+  CASE 7, 8, 9
+    result = 300
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(200, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithRanges()
+       Dim text = "
+SELECT CASE 75
+  CASE 0 TO 59
+    result$ = ""Fail""
+  CASE 60 TO 79
+    result$ = ""Pass""
+  CASE 80 TO 100
+    result$ = ""Excellent""
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal("Pass", CStr(variables("result$")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithIsComparisons()
+       Dim text = "
+SELECT CASE 25
+  CASE IS < 13
+    result$ = ""Child""
+  CASE IS < 20
+    result$ = ""Teenager""
+  CASE IS >= 65
+    result$ = ""Senior""
+  CASE ELSE
+    result$ = ""Adult""
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal("Adult", CStr(variables("result$")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithCaseElse()
+       Dim text = "
+SELECT CASE 99
+  CASE 1
+    result = 1
+  CASE 2
+    result = 2
+  CASE ELSE
+    result = 999
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(999, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithStringTest()
+       Dim text = "
+SELECT CASE ""Jane""
+  CASE ""John""
+    result$ = ""Male""
+  CASE ""Jane"", ""Mary""
+    result$ = ""Female""
+  CASE ELSE
+    result$ = ""Unknown""
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal("Female", CStr(variables("result$")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseExitsAfterFirstMatch()
+       Dim text = "
+SELECT CASE 2
+  CASE 1, 2, 3
+    result = result + 10
+  CASE 2, 4, 6
+    result = result + 20
+  CASE 3, 6, 9
+    result = result + 30
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       variables("result") = 0
+       Dim result = compilation.Evaluate(variables)
+
+       ' Should only match first case (CASE 1, 2, 3) and add 10, not continue to CASE 2, 4, 6
+       Assert.Equal(10, CInt(variables("result")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithVariableTest()
+       Dim text = "
+x = 42
+SELECT CASE x
+  CASE 1 TO 40
+    result$ = ""Low""
+  CASE 41 TO 80
+    result$ = ""Medium""
+  CASE 81 TO 100
+    result$ = ""High""
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal("Medium", CStr(variables("result$")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSelectCaseWithIsEqualComparison()
+       Dim text = "
+SELECT CASE 4
+  CASE IS = 1
+    result = 1
+  CASE IS = 2
+    result = 2
+  CASE IS = 4
+    result = 4
+  CASE ELSE
+    result = 999
+END SELECT
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(4, CInt(variables("result")))
+     End Sub
+
+   End Class
+
+ End Namespace

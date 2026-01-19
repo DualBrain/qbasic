@@ -239,6 +239,7 @@ Namespace Global.QB.CodeAnalysis
 
           Case BoundNodeKind.HandleCommaStatement : EvaluateHandleCommaStatement(CType(s, BoundHandleCommaStatement)) : index += 1
           Case BoundNodeKind.HandlePrintLineStatement : EvaluateHandlePrintLineStatement(CType(s, BoundHandlePrintLineStatement)) : index += 1
+          Case BoundNodeKind.PrintStatement : EvaluatePrintStatement(CType(s, BoundPrintStatement)) : index += 1
           Case BoundNodeKind.HandlePrintStatement : EvaluateHandlePrintStatement(CType(s, BoundHandlePrintStatement)) : index += 1
           Case BoundNodeKind.HandleSpcStatement : EvaluateHandleSpcStatement(CType(s, BoundHandleSpcStatement)) : index += 1
           Case BoundNodeKind.HandleTabStatement : EvaluateHandleTabStatement(CType(s, BoundHandleTabStatement)) : index += 1
@@ -484,6 +485,7 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
           Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
           Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
+          Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
           Case Else
             Throw New Exception($"Unexpected kind {s.Kind}")
         End Select
@@ -527,6 +529,70 @@ Namespace Global.QB.CodeAnalysis
       ' TODO: Implement actual time setting if needed
     End Sub
 
+    Private Sub EvaluateSelectCaseStatement(node As BoundSelectCaseStatement)
+      Dim testValue As Object = EvaluateExpression(node.Test)
+
+      ' Check each case
+      For Each caseStmt In node.Cases
+        For Each match In caseStmt.Matches
+          Dim isMatch = False
+          Select Case match.MatchType
+            Case CaseMatchType.Value
+              ' Direct value comparison - use numeric comparison for compatibility
+              Dim matchValue As Object = EvaluateExpression(match.Expression)
+              Try
+                ' Try numeric comparison first
+                Dim testNum = CDbl(testValue)
+                Dim matchNum = CDbl(matchValue)
+                isMatch = (testNum = matchNum)
+              Catch ex As Exception
+                ' Fall back to object comparison
+                isMatch = Object.Equals(testValue, matchValue)
+              End Try
+            Case CaseMatchType.Range
+              ' Range comparison: start <= testValue <= end
+              Dim startValue As Object = EvaluateExpression(match.Expression)
+              Dim endValue As Object = EvaluateExpression(match.ExpressionTo)
+              ' For simplicity, assume numeric comparison for ranges
+              Dim testNum = CDbl(testValue)
+              Dim startNum = CDbl(startValue)
+              Dim endNum = CDbl(endValue)
+              isMatch = (testNum >= startNum AndAlso testNum <= endNum)
+            Case CaseMatchType.IsComparison
+              ' IS comparison: testValue IS comparison expression
+              Dim compareValue As Object = EvaluateExpression(match.Expression)
+              ' For simplicity, assume numeric comparison for IS comparisons
+              Dim testNum = CDbl(testValue)
+              Dim compareNum = CDbl(compareValue)
+              Select Case match.Comparison
+                Case SyntaxKind.EqualToken
+                  isMatch = (testNum = compareNum)
+                Case SyntaxKind.LessThanToken
+                  isMatch = (testNum < compareNum)
+                Case SyntaxKind.LessThanEqualToken
+                  isMatch = (testNum <= compareNum)
+                Case SyntaxKind.GreaterThanToken
+                  isMatch = (testNum > compareNum)
+                Case SyntaxKind.GreaterThanEqualToken
+                  isMatch = (testNum >= compareNum)
+                Case SyntaxKind.LessThanGreaterThanToken
+                  isMatch = (testNum <> compareNum)
+              End Select
+          End Select
+
+          If isMatch Then
+            EvaluateStatement(CType(caseStmt.Statement, BoundBlockStatement))
+            Return ' Exit after first matching case
+          End If
+        Next
+      Next
+
+      ' If no case matched and there's an ELSE clause, execute it
+      If node.ElseStatement IsNot Nothing Then
+        EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement))
+      End If
+    End Sub
+
     Private Sub EvaluateMidStatement(node As BoundMidStatement)
       Dim positionValue = CInt(EvaluateExpression(node.PositionExpression))
       Dim lengthValue = CInt(If(node.LengthExpression Is Nothing, Integer.MaxValue, EvaluateExpression(node.LengthExpression)))
@@ -566,6 +632,45 @@ Namespace Global.QB.CodeAnalysis
       If node IsNot Nothing Then
       End If
       QBLib.Video.PRINT()
+    End Sub
+
+    Private Sub EvaluatePrintStatement(node As BoundPrintStatement)
+      For Each item In node.Nodes
+        Select Case item.Kind
+          Case BoundNodeKind.Symbol
+            Dim symbol = CType(item, BoundSymbol)
+            If symbol.Value = ";" Then
+              ' Semicolon suppresses newline
+            ElseIf symbol.Value = "," Then
+              ' Comma advances to next print zone
+              QBLib.Video.PRINT("        ", False) ' Print 8 spaces for tab
+            End If
+          Case BoundNodeKind.SpcFunction
+            Dim spcFunc = CType(item, BoundSpcFunction)
+            Dim count = CInt(EvaluateExpression(spcFunc.Expression))
+            ' TODO: Implement SPC function - for now just print spaces
+            QBLib.Video.PRINT(New String(" "c, count), False)
+          Case BoundNodeKind.TabFunction
+            Dim tabFunc = CType(item, BoundTabFunction)
+            Dim column = CInt(EvaluateExpression(tabFunc.Expression))
+            ' TODO: Implement TAB function - for now just print
+            QBLib.Video.PRINT("TAB(" & column & ")", False)
+          Case Else
+            ' Regular expression to print
+            Dim value = EvaluateExpression(CType(item, BoundExpression))
+            Dim str As String
+            If TypeOf value Is BoundConstant Then
+              str = CStr(CType(value, BoundConstant).Value)
+            Else
+              str = CStr(value)
+            End If
+            QBLib.Video.PRINT(str, False)
+        End Select
+      Next
+      ' Add newline at end unless last item was semicolon
+      If node.Nodes.Length = 0 OrElse Not (node.Nodes.Last.Kind = BoundNodeKind.Symbol AndAlso CType(node.Nodes.Last, BoundSymbol).Value = ";") Then
+        QBLib.Video.PRINT("", True)
+      End If
     End Sub
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)

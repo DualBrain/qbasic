@@ -347,6 +347,35 @@ Friend Class QBasic
   Private Shared Function SendMessage(hWnd As IntPtr, Msg As UInteger, wParam As UInteger, lParam As IntPtr) As IntPtr
   End Function
 
+  <DllImport("user32.dll")>
+  Private Shared Function SetWindowLongPtr(hWnd As IntPtr, nIndex As Integer, dwNewLong As IntPtr) As IntPtr
+  End Function
+
+  <DllImport("user32.dll")>
+  Private Shared Function GetWindowLongPtr(hWnd As IntPtr, nIndex As Integer) As IntPtr
+  End Function
+
+  <DllImport("user32.dll")>
+  Private Shared Function CallWindowProc(lpPrevWndFunc As IntPtr, hWnd As IntPtr, msg As UInteger, wParam As IntPtr, lParam As IntPtr) As IntPtr
+  End Function
+
+  <DllImport("user32.dll")>
+  Private Shared Function SetCursor(hCursor As IntPtr) As IntPtr
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XOpenDisplay(display_name As String) As IntPtr
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XDefineCursor(display As IntPtr, w As IntPtr, cursor As IntPtr) As Integer
+  End Function
+
+  Private Delegate Function WndProcDelegate(hWnd As IntPtr, msg As UInteger, wParam As IntPtr, lParam As IntPtr) As IntPtr
+
+  Private m_originalWndProc As IntPtr
+  Private m_newWndProcDelegate As WndProcDelegate
+
   Protected Overrides Function OnUserCreate() As Boolean
 
     Dim w As Integer, h As Integer
@@ -498,8 +527,34 @@ Friend Class QBasic
     '                              1000,
     '                              "en-US")
 
+    If OperatingSystem.IsWindows() Then
+      Const GWLP_WNDPROC As Integer = -4
+      m_newWndProcDelegate = AddressOf NewWndProc
+      m_originalWndProc = GetWindowLongPtr(m_hWnd, GWLP_WNDPROC)
+      SetWindowLongPtr(m_hWnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(m_newWndProcDelegate))
+    ElseIf OperatingSystem.IsLinux() Then
+      ' TODO: still not working (at least not on WSL; haven't tested as yet on dedicated Linux box).
+      '       not even sure if it is the *right* approach or not...
+      Dim display As IntPtr = XOpenDisplay(Nothing)
+      If display <> IntPtr.Zero Then
+        XDefineCursor(display, m_hWnd, IntPtr.Zero) ' Set cursor to None (invisible)
+      End If
+    End If
+
     Return True
 
+  End Function
+
+  Private Function NewWndProc(hWnd As IntPtr, msg As UInteger, wParam As IntPtr, lParam As IntPtr) As IntPtr
+    Const WM_SETCURSOR As UInteger = &H20
+    Const HTCLIENT As Integer = 1
+    If msg = WM_SETCURSOR Then
+      If (lParam.ToInt32() And &HFFFF) = HTCLIENT Then
+        SetCursor(IntPtr.Zero)
+        Return New IntPtr(1) ' TRUE to halt further processing
+      End If
+    End If
+    Return CallWindowProc(m_originalWndProc, hWnd, msg, wParam, lParam)
   End Function
 
   Private Sub DrawScreen()

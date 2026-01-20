@@ -243,41 +243,43 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-      Dim func = If(m_program.MainFunction, m_program.ScriptFunction)
-      If func Is Nothing Then
-        Return Nothing
-      Else
-        Dim body = m_functions(func)
-        m_container.Push(func.Name)
-        Dim result = EvaluateStatement(body)
-        m_container.Pop()
-        Return result
-      End If
+       Dim func = If(m_program.MainFunction, m_program.ScriptFunction)
+       If func Is Nothing Then
+         Return Nothing
+       Else
+         Dim body = m_functions(func)
+         m_container.Push(func.Name)
+         Dim result = EvaluateStatement(body, Nothing)
+         m_container.Pop()
+         Return result
+       End If
     End Function
 
-    Private Function EvaluateStatement(body As BoundBlockStatement) As Object
+    Private Function EvaluateStatement(body As BoundBlockStatement, Optional labelToIndex As Dictionary(Of String, Integer) = Nothing) As Object
 
-      Dim labelToIndex = New Dictionary(Of String, Integer)
+       Dim localLabelToIndex = If(labelToIndex IsNot Nothing, labelToIndex, New Dictionary(Of String, Integer))
 
-      For i = 0 To body.Statements.Length - 1
-        If TypeOf body.Statements(i) Is BoundLabelStatement Then
-          labelToIndex.Add(CType(body.Statements(i), BoundLabelStatement).Label.Name, i + 1)
-        End If
-      Next
+       If labelToIndex Is Nothing Then
+         For i = 0 To body.Statements.Length - 1
+           If TypeOf body.Statements(i) Is BoundLabelStatement Then
+             localLabelToIndex.Add(CType(body.Statements(i), BoundLabelStatement).Label.Name, i + 1)
+           End If
+         Next
+       End If
 
-      Dim index = 0
+       Dim index = 0
       While index < body.Statements.Length
 
         If QBasic.Common.s_cancelToken.IsCancellationRequested Then
           Exit While
         End If
 
-        ' Check for pending errors before executing next statement
-        If m_errorPending Then
-          If HandlePendingError(index, labelToIndex) Then
-            Continue While ' Skip to next iteration with updated index
-          End If
-        End If
+         ' Check for pending errors before executing next statement
+         If m_errorPending Then
+           If HandlePendingError(index, localLabelToIndex) Then
+             Continue While ' Skip to next iteration with updated index
+           End If
+         End If
 
         'Console.WriteLine($"DEBUG: About to execute index {index}")
         Try
@@ -364,38 +366,38 @@ Namespace Global.QB.CodeAnalysis
                 Case Else
               End Select
               index += 1
-            Case BoundNodeKind.ConditionalGotoStatement
-              Dim cgs = CType(s, BoundConditionalGotoStatement)
-              Dim condition = CBool(EvaluateExpression(cgs.Condition))
-              If condition = cgs.JumpIfTrue Then
-                index = labelToIndex(cgs.Label.Name)
-              Else
-                index += 1
-              End If
+             Case BoundNodeKind.ConditionalGotoStatement
+               Dim cgs = CType(s, BoundConditionalGotoStatement)
+               Dim condition = CBool(EvaluateExpression(cgs.Condition))
+               If condition = cgs.JumpIfTrue Then
+                 index = localLabelToIndex(cgs.Label.Name)
+               Else
+                 index += 1
+               End If
             Case BoundNodeKind.EndStatement
               index = body.Statements.Length
             Case BoundNodeKind.ExpressionStatement : EvaluateExpressionStatement(CType(s, BoundExpressionStatement)) : index += 1
 
-            Case BoundNodeKind.GosubStatement
-              Dim gs = CType(s, BoundGosubStatement)
-              Dim value As Integer = Nothing
-              If labelToIndex.TryGetValue(gs.Label.Name, value) Then
-                m_gosubStack.Push(index + 1)
-                index = value
-              Else
-                'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
-                index += 1
-              End If
+             Case BoundNodeKind.GosubStatement
+               Dim gs = CType(s, BoundGosubStatement)
+               Dim value As Integer = Nothing
+               If localLabelToIndex.TryGetValue(gs.Label.Name, value) Then
+                 m_gosubStack.Push(index + 1)
+                 index = value
+               Else
+                 'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
+                 index += 1
+               End If
 
-            Case BoundNodeKind.GotoStatement
-              Dim gs = CType(s, BoundGotoStatement)
-              Dim value As Integer = Nothing
-              If labelToIndex.TryGetValue(gs.Label.Name, value) Then
-                index = value
-              Else
-                'Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
-                index += 1
-              End If
+             Case BoundNodeKind.GotoStatement
+               Dim gs = CType(s, BoundGotoStatement)
+               Dim value As Integer = Nothing
+               If localLabelToIndex.TryGetValue(gs.Label.Name, value) Then
+                 index = value
+               Else
+                 'Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
+                 index += 1
+               End If
             'index = labelToIndex(gs.Label)
 
             Case BoundNodeKind.HandleCommaStatement : EvaluateHandleCommaStatement(CType(s, BoundHandleCommaStatement)) : index += 1
@@ -404,7 +406,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.HandlePrintStatement : EvaluateHandlePrintStatement(CType(s, BoundHandlePrintStatement)) : index += 1
             Case BoundNodeKind.HandleSpcStatement : EvaluateHandleSpcStatement(CType(s, BoundHandleSpcStatement)) : index += 1
             Case BoundNodeKind.HandleTabStatement : EvaluateHandleTabStatement(CType(s, BoundHandleTabStatement)) : index += 1
-            Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement)) : index += 1
+             Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement), localLabelToIndex) : index += 1
 
             Case BoundNodeKind.InputStatement
 
@@ -571,19 +573,19 @@ Namespace Global.QB.CodeAnalysis
 
             Case BoundNodeKind.RemStatement : index += 1
 
-            Case BoundNodeKind.ReturnGosubStatement
-              Dim rg = CType(s, BoundReturnGosubStatement)
+             Case BoundNodeKind.ReturnGosubStatement
+               Dim rg = CType(s, BoundReturnGosubStatement)
 
-              Dim value As Integer = Nothing
-              If rg.Label Is Nothing Then
-                If m_gosubStack.Count > 0 Then
-                  index = m_gosubStack.Pop
-                End If
-              ElseIf labelToIndex.TryGetValue(rg.Label.Name, value) Then
-                index = value
-              Else
-                'Console.WriteLine("ERROR: ReturnGosubStatement label " & rg.Label.Name & " not found")
-              End If
+               Dim value As Integer = Nothing
+               If rg.Label Is Nothing Then
+                 If m_gosubStack.Count > 0 Then
+                   index = m_gosubStack.Pop
+                 End If
+               ElseIf localLabelToIndex.TryGetValue(rg.Label.Name, value) Then
+                 index = value
+               Else
+                 'Console.WriteLine("ERROR: ReturnGosubStatement label " & rg.Label.Name & " not found")
+               End If
 
             Case BoundNodeKind.ReturnStatement
               'TODO: Need to determine if this is a 
@@ -646,11 +648,11 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
-            Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
-            Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
-            Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement)) : index += 1
-            Case BoundNodeKind.ForStatement : EvaluateForStatement(CType(s, BoundForStatement)) : index += 1
-            Case BoundNodeKind.WhileStatement : EvaluateWhileStatement(CType(s, BoundWhileStatement)) : index += 1
+             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
+             Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement), localLabelToIndex) : index += 1
+             Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement), localLabelToIndex) : index += 1
+             Case BoundNodeKind.ForStatement : EvaluateForStatement(CType(s, BoundForStatement), localLabelToIndex) : index += 1
+             Case BoundNodeKind.WhileStatement : EvaluateWhileStatement(CType(s, BoundWhileStatement), localLabelToIndex) : index += 1
             Case Else
               Throw New Exception($"Unexpected kind {s.Kind}")
           End Select
@@ -677,38 +679,37 @@ Namespace Global.QB.CodeAnalysis
 
     End Function
 
-    Private Sub EvaluateForStatement(node As BoundForStatement)
-      Dim lower As Integer = CInt(EvaluateExpression(node.LowerBound))
-      Dim upper As Integer = CInt(EvaluateExpression(node.UpperBound))
-      Dim stepValue As Integer = If(node.Stepper Is Nothing, 1, CInt(EvaluateExpression(node.Stepper)))
-      Dim variable = node.Variable
-      Dim locals = m_locals.Peek()
-      locals(variable.Name) = CObj(lower)
-      While True
-        Dim condition = New BoundBinaryExpression(
-          New BoundVariableExpression(variable),
-          BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
-          New BoundLiteralExpression(CObj(upper)))
-        Dim condResult = EvaluateExpression(condition)
-        If DirectCast(condResult, Boolean) Then
-          Dim bodyBlock = CType(node.Body, BoundBlockStatement)
-          EvaluateStatement(bodyBlock)
-        Else
-          Exit While
-        End If
-        Dim increment = New BoundBinaryExpression(
-          New BoundVariableExpression(variable),
-          BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
-          New BoundLiteralExpression(CObj(stepValue)))
-        locals(variable.Name) = EvaluateExpression(increment)
-      End While
-    End Sub
+    Private Sub EvaluateForStatement(node As BoundForStatement, labelToIndex As Dictionary(Of String, Integer))
+       Dim lower As Integer = CInt(EvaluateExpression(node.LowerBound))
+       Dim upper As Integer = CInt(EvaluateExpression(node.UpperBound))
+       Dim stepValue As Integer = If(node.Stepper Is Nothing, 1, CInt(EvaluateExpression(node.Stepper)))
+       Dim variable = node.Variable
+       Assign(variable, CObj(lower))
+       While True
+         Dim condition = New BoundBinaryExpression(
+           New BoundVariableExpression(variable),
+           BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+           New BoundLiteralExpression(CObj(upper)))
+         Dim condResult = EvaluateExpression(condition)
+         If DirectCast(condResult, Boolean) Then
+           Dim bodyBlock = CType(node.Body, BoundBlockStatement)
+            EvaluateStatement(bodyBlock, labelToIndex)
+         Else
+           Exit While
+         End If
+         Dim increment = New BoundBinaryExpression(
+           New BoundVariableExpression(variable),
+           BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
+           New BoundLiteralExpression(CObj(stepValue)))
+         Assign(variable, EvaluateExpression(increment))
+       End While
+     End Sub
 
-    Private Sub EvaluateWhileStatement(node As BoundWhileStatement)
+    Private Sub EvaluateWhileStatement(node As BoundWhileStatement, labelToIndex As Dictionary(Of String, Integer))
       Dim exprResult = EvaluateExpression(node.Expression)
       While DirectCast(exprResult, Boolean)
         Dim bodyBlock = CType(node.Statements, BoundBlockStatement)
-        EvaluateStatement(bodyBlock)
+        EvaluateStatement(bodyBlock, labelToIndex)
         exprResult = EvaluateExpression(node.Expression)
       End While
     End Sub
@@ -804,7 +805,7 @@ Namespace Global.QB.CodeAnalysis
       ' Error will be handled by the main evaluation loop
     End Sub
 
-    Private Sub EvaluateSelectCaseStatement(node As BoundSelectCaseStatement)
+    Private Sub EvaluateSelectCaseStatement(node As BoundSelectCaseStatement, labelToIndex As Dictionary(Of String, Integer))
       Dim testValue As Object = EvaluateExpression(node.Test)
 
       ' Check each case
@@ -856,7 +857,7 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
           If isMatch Then
-            EvaluateStatement(CType(caseStmt.Statement, BoundBlockStatement))
+             EvaluateStatement(CType(caseStmt.Statement, BoundBlockStatement), labelToIndex)
             Return ' Exit after first matching case
           End If
         Next
@@ -868,25 +869,25 @@ Namespace Global.QB.CodeAnalysis
       End If
     End Sub
 
-    Private Sub EvaluateDoWhileStatement(node As BoundDoWhileStatement)
+    Private Sub EvaluateDoWhileStatement(node As BoundDoWhileStatement, labelToIndex As Dictionary(Of String, Integer))
       If node.AtBeginning Then
         ' DO WHILE condition ... LOOP
         Do
           Dim conditionValue = CBool(EvaluateExpression(node.Expression))
           If Not conditionValue Then Exit Do
-          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
         Loop
       Else
         ' DO ... LOOP WHILE condition
         Do
-          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
           Dim conditionValue = CBool(EvaluateExpression(node.Expression))
           If Not conditionValue Then Exit Do
         Loop
       End If
     End Sub
 
-    Private Sub EvaluateDoUntilStatement(node As BoundDoUntilStatement)
+    Private Sub EvaluateDoUntilStatement(node As BoundDoUntilStatement, labelToIndex As Dictionary(Of String, Integer))
       If node.AtBeginning Then
         ' DO UNTIL condition ... LOOP
         Console.WriteLine("DEBUG: DO UNTIL AtBeginning = True")
@@ -904,13 +905,13 @@ Namespace Global.QB.CodeAnalysis
             Exit Do
           End If
           Console.WriteLine("DEBUG: Executing body")
-          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
         Loop
         Console.WriteLine("DEBUG: Loop finished")
       Else
         ' DO ... LOOP UNTIL condition
         Do
-          EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
           Dim conditionValue = CBool(EvaluateExpression(node.Expression))
           If conditionValue Then Exit Do
         Loop
@@ -1039,10 +1040,10 @@ Namespace Global.QB.CodeAnalysis
       QBLib.Video.PRINT(str, True)
     End Sub
 
-    Private Sub EvaluateIfStatement(node As BoundIfStatement)
+    Private Sub EvaluateIfStatement(node As BoundIfStatement, labelToIndex As Dictionary(Of String, Integer))
       Dim conditionValue = CBool(EvaluateExpression(node.Expression))
       If conditionValue Then
-        EvaluateStatement(CType(node.Statements, BoundBlockStatement))
+         EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
       Else
         Dim executed = False
         For Each elseIfClause In node.ElseIfStatements
@@ -1055,7 +1056,7 @@ Namespace Global.QB.CodeAnalysis
           End If
         Next
         If Not executed AndAlso node.ElseStatement IsNot Nothing Then
-          EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement))
+          EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement), labelToIndex)
         End If
       End If
     End Sub
@@ -2059,7 +2060,7 @@ Namespace Global.QB.CodeAnalysis
         m_locals.Push(locals)
         Dim statement = m_functions(node.Function)
         m_container.Push(node.Function.Name)
-        Dim result = EvaluateStatement(statement)
+        Dim result = EvaluateStatement(statement, Nothing)
         m_container.Pop()
         m_locals.Pop()
         Return result

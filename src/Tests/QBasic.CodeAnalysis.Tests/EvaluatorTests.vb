@@ -1591,8 +1591,84 @@ result = count
 
       Assert.Equal(11, CInt(variables("result")))
 
-    End Sub
+     End Sub
 
-  End Class
+     <Fact>
+     Public Sub EvaluatesGotoAcrossLoopBoundaries()
+       Dim text = "
+c = 0
+for x = 1 to 10
+  for y = 1 to 10
+    for z = 1 to 10
+      if z > 1 then goto skip
+      c = c + 1
+    next
+skip:
+  next
+next
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(100, CInt(variables("c")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesSimpleForLoop()
+       Dim text = "
+total = 0
+for i = 1 to 5
+  total = total + 1
+next i
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       Assert.Equal(5, CInt(variables("total")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesNestedForLoops()
+       Dim text = "
+total = 0
+for i = 1 to 2
+  for j = 1 to 2
+    for k = 1 to 2
+      total = total + 1
+    next k
+  next j
+next i
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       ' 2 * 2 * 2 = 8 iterations
+       Assert.Equal(8, CInt(variables("total")))
+     End Sub
+
+     <Fact>
+     Public Sub EvaluatesForLoop()
+       Dim text = "
+sum = 0
+for x = 2 to 6
+  sum = sum + x
+next x
+"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim compilation As Compilation = Compilation.Create(syntaxTree)
+       Dim variables = New Dictionary(Of String, Object)()
+       Dim result = compilation.Evaluate(variables)
+
+       ' 2+3+4+5+6 = 20
+       Assert.Equal(20, CInt(variables("sum")))
+     End Sub
+
+   End Class
 
 End Namespace

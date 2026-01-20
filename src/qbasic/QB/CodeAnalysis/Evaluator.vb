@@ -916,18 +916,18 @@ Namespace Global.QB.CodeAnalysis
             Dim count = CInt(EvaluateExpression(spcFunc.Expression))
             ' TODO: Implement SPC function - for now just print spaces
             QBLib.Video.PRINT(New String(" "c, count), False)
-           Case BoundNodeKind.TabFunction
-             Dim tabFunc = CType(item, BoundTabFunction)
-             Dim column = CInt(EvaluateExpression(tabFunc.Expression))
-             ' TODO: Implement TAB function - for now just print
-             QBLib.Video.PRINT("TAB(" & column & ")", False)
-           Case BoundNodeKind.LiteralExpression
-             Dim literal = CType(item, BoundLiteralExpression)
-             QBLib.Video.PRINT(CStr(literal.Value), False)
-            Case Else
-              ' Regular expression to print
-              Dim value = EvaluateExpression(CType(item, BoundExpression))
-              QBLib.Video.PRINT(CStr(value), False)
+          Case BoundNodeKind.TabFunction
+            Dim tabFunc = CType(item, BoundTabFunction)
+            Dim column = CInt(EvaluateExpression(tabFunc.Expression))
+            ' TODO: Implement TAB function - for now just print
+            QBLib.Video.PRINT("TAB(" & column & ")", False)
+          Case BoundNodeKind.LiteralExpression
+            Dim literal = CType(item, BoundLiteralExpression)
+            QBLib.Video.PRINT(CStr(literal.Value), False)
+          Case Else
+            ' Regular expression to print
+            Dim value = EvaluateExpression(CType(item, BoundExpression))
+            QBLib.Video.PRINT(CStr(value), False)
         End Select
       Next
       ' Add newline at end unless last item was semicolon
@@ -938,7 +938,12 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)
       Dim value = EvaluateExpression(node.Expression)
-      QBLib.Video.PRINT(value.ToString(), node.NoCr) ': QBLib.Video.PRINT(" "c, True)
+      Dim str = value.ToString()
+      If TypeOf value IsNot String AndAlso
+         Not str.StartsWith("-"c) Then
+        QBLib.Video.PRINT(" ", True) ': QBLib.Video.PRINT(" "c, True)
+      End If
+      QBLib.Video.PRINT(str, node.NoCr) ': QBLib.Video.PRINT(" "c, True)
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)

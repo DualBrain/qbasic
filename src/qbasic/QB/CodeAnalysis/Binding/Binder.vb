@@ -596,10 +596,11 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
-        Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
-        Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
-        Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
-        Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
+         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
+         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
+         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
+         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
+         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
       End Select
@@ -755,11 +756,17 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Function
 
-    Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
-      Dim offset = BindExpression(syntax.Offset)
-      Dim value = BindExpression(syntax.Value)
-      Return New BoundPokeStatement(offset, value)
-    End Function
+     Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
+       Dim offset = BindExpression(syntax.Offset)
+       Dim value = BindExpression(syntax.Value)
+       Return New BoundPokeStatement(offset, value)
+     End Function
+
+     Private Function BindOutStatement(syntax As OutStatementSyntax) As BoundStatement
+       Dim port = BindExpression(syntax.Port)
+       Dim data = BindExpression(syntax.Data)
+       Return New BoundOutStatement(port, data)
+     End Function
 
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)

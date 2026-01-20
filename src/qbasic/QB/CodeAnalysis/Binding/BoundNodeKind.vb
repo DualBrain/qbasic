@@ -45,9 +45,10 @@ Namespace Global.QB.CodeAnalysis.Binding
      OnErrorGotoStatement
      OnErrorGotoZeroStatement
      OptionStatement
-    PrintStatement
-    PokeStatement
-    PsetStatement
+     PrintStatement
+     PokeStatement
+     OutStatement
+     PsetStatement
     PresetStatement
     RemStatement
      ResumeStatement

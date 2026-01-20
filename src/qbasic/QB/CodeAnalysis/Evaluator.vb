@@ -286,10 +286,26 @@ Namespace Global.QB.CodeAnalysis
           Case BoundNodeKind.BeepStatement
             ' TODO: Implement BEEP sound
             index += 1
-          Case BoundNodeKind.PokeStatement
-            ' TODO: Implement POKE memory write
-            index += 1
-          Case BoundNodeKind.ChDirStatement
+           Case BoundNodeKind.PokeStatement
+             ' TODO: Implement POKE memory write
+             index += 1
+           Case BoundNodeKind.OutStatement
+             Dim outStmt = CType(s, BoundOutStatement)
+             Dim portValue = EvaluateExpression(outStmt.Port)
+             Dim port As Integer
+             If TypeOf portValue Is Double Then
+               port = CInt(CDbl(portValue))
+             ElseIf TypeOf portValue Is Integer Then
+               port = CInt(portValue)
+             Else
+               port = CInt(portValue)
+             End If
+             If port < 0 Or port > 65535 Then
+               Throw New QBasicRuntimeException("Overflow")
+             End If
+             ' Data is ignored, just throw error
+             Throw New QBasicRuntimeException("Advanced feature unavailable")
+           Case BoundNodeKind.ChDirStatement
             Dim chdir = CType(s, BoundChDirStatement)
             Dim value = CStr(EvaluateExpression(chdir.Expression))
             System.IO.Directory.SetCurrentDirectory(value)
@@ -641,13 +657,17 @@ Namespace Global.QB.CodeAnalysis
             ClearError()
             index = ex.TargetIndex
             Continue While
-         Catch ex As QBasicRuntimeException
-           ' Handle runtime errors - set error and handle it
-           If m_err = 0 Then ' Only set if not already set
-             SetError(11) ' Generic error
-           End If
-           ' Error will be handled on next iteration
-           Continue While
+          Catch ex As QBasicRuntimeException
+            ' Handle runtime errors - set error and handle it
+            If m_err = 0 Then ' Only set if not already set
+              Select Case ex.Message
+                Case "Overflow" : SetError(6)
+                Case "Advanced feature unavailable" : SetError(73)
+                Case Else : SetError(11) ' Generic error
+              End Select
+            End If
+            ' Error will be handled on next iteration
+            Continue While
          End Try
        End While
 
@@ -1762,9 +1782,20 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Inkey Then
         ' INKEY$ returns the last key pressed as a string (empty if no key pressed)
         Return QBLib.Video.INKEY$()
-      ElseIf node.Function Is BuiltinFunctions.Inp Then
-        Stop
-        Return Nothing
+       ElseIf node.Function Is BuiltinFunctions.Inp Then
+         Dim portValue = EvaluateExpression(node.Arguments(0))
+         Dim port As Integer
+         If TypeOf portValue Is Double Then
+           port = CInt(CDbl(portValue))
+         ElseIf TypeOf portValue Is Integer Then
+           port = CInt(portValue)
+         Else
+           port = CInt(portValue)
+         End If
+         If port < 0 Or port > 65535 Then
+           Throw New QBasicRuntimeException("Overflow")
+         End If
+         Throw New QBasicRuntimeException("Advanced feature unavailable")
       ElseIf node.[Function] Is BuiltinFunctions.Input Then
         Return Console.ReadLine()
       ElseIf node.Function Is BuiltinFunctions.Command Then

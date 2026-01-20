@@ -132,25 +132,25 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.NotNull(root)
       Assert.IsType(GetType(CompilationUnitSyntax), root)
       Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
-       Assert.Single(compilationUnit.Members)
-       Assert.Empty(syntaxTree.Diagnostics)
-     End Sub
+      Assert.Single(compilationUnit.Members)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
 
-     <Fact>
-     Public Sub ParsesInpFunctionCall()
-       Dim text = "LET X = INP(97)"
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim root = syntaxTree.Root
+    <Fact>
+    Public Sub ParsesInpFunctionCall()
+      Dim text = "LET X = INP(97)"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
 
-       Assert.NotNull(root)
-       Assert.IsType(GetType(CompilationUnitSyntax), root)
-       Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
-       Assert.Single(compilationUnit.Members)
-       Assert.Empty(syntaxTree.Diagnostics)
-     End Sub
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      Assert.Single(compilationUnit.Members)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
 
-     <Fact>
-     Public Sub ParsesComplexExpression()
+    <Fact>
+    Public Sub ParsesComplexExpression()
       Dim text = "LET A = 1 + 2 * 3 - 4"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = syntaxTree.Root
@@ -226,25 +226,25 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.Single(compilationUnit.Members)
       Assert.IsType(GetType(GlobalStatementSyntax), compilationUnit.Members(0))
       Dim globalStmt = DirectCast(compilationUnit.Members(0), GlobalStatementSyntax)
-       Assert.IsType(GetType(LetStatementSyntax), globalStmt.Statement)
-       Assert.Empty(syntaxTree.Diagnostics)
-     End Sub
+      Assert.IsType(GetType(LetStatementSyntax), globalStmt.Statement)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
 
-     <Fact>
-     Public Sub ParsesOutStatement()
-       Dim text = "OUT 97, 3"
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim root = syntaxTree.Root
+    <Fact>
+    Public Sub ParsesOutStatement()
+      Dim text = "OUT 97, 3"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim root = syntaxTree.Root
 
-       Assert.NotNull(root)
-       Assert.IsType(GetType(CompilationUnitSyntax), root)
-       Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
-       Assert.Single(compilationUnit.Members)
-       Assert.Empty(syntaxTree.Diagnostics)
-     End Sub
+      Assert.NotNull(root)
+      Assert.IsType(GetType(CompilationUnitSyntax), root)
+      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+      Assert.Single(compilationUnit.Members)
+      Assert.Empty(syntaxTree.Diagnostics)
+    End Sub
 
-     <Fact>
-     Public Sub ParsesIfStatement()
+    <Fact>
+    Public Sub ParsesIfStatement()
       Dim text = "IF x > 0 THEN PRINT ""Positive"""
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim root = syntaxTree.Root

@@ -96,16 +96,16 @@ Namespace Global.QB.CodeAnalysis.Syntax
           Case ChrW(0)
             done = True
 
-           Case "'"c
-             ReadSingleLineComment()
-           Case "_"c
-             If LookAhead = ChrW(10) OrElse LookAhead = ChrW(13) OrElse LookAhead = ChrW(0) Then
-               m_kind = SyntaxKind.LineContinuationTrivia
-               m_position += 1
-             Else
-               done = True
-             End If
-           Case ChrW(10), ChrW(13)
+          Case "'"c
+            ReadSingleLineComment()
+          Case "_"c
+            If LookAhead = ChrW(10) OrElse LookAhead = ChrW(13) OrElse LookAhead = ChrW(0) Then
+              m_kind = SyntaxKind.LineContinuationTrivia
+              m_position += 1
+            Else
+              done = True
+            End If
+          Case ChrW(10), ChrW(13)
             If Not leading Then done = True
             ReadLineBreak()
           Case " "c, ChrW(9) ' Short-circuit whitespace checking (common).
@@ -277,12 +277,12 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       While Not done
         Select Case Current
-           Case ChrW(0), ChrW(13), ChrW(10)
-             'TODO: Determine if we want to allow unterminated string literals???
-             'Dim span = New TextSpan(m_start, 1)
-             'Dim location = New TextLocation(m_text, span)
-             'Diagnostics.ReportUnterminatedString(location)
-             done = True
+          Case ChrW(0), ChrW(13), ChrW(10)
+            'TODO: Determine if we want to allow unterminated string literals???
+            'Dim span = New TextSpan(m_start, 1)
+            'Dim location = New TextLocation(m_text, span)
+            'Diagnostics.ReportUnterminatedString(location)
+            done = True
           Case """"c
             If LookAhead = """"c Then
               sb.Append(Current)
@@ -318,30 +318,30 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' C - Char
 
       Dim decimalCount = 0
-       While Char.IsDigit(Current) OrElse
-             Current = "."c
-         If Current = "."c Then decimalCount += 1
-         If decimalCount > 1 Then Exit While
-         m_position += 1
-       End While
+      While Char.IsDigit(Current) OrElse
+            Current = "."c
+        If Current = "."c Then decimalCount += 1
+        If decimalCount > 1 Then Exit While
+        m_position += 1
+      End While
 
-       ' Handle exponent
-       If Current = "E"c OrElse Current = "e"c Then
-         m_position += 1
-         If Current = "+"c OrElse Current = "-"c Then
-           m_position += 1
-         End If
-         While Char.IsDigit(Current)
-           m_position += 1
-         End While
-       End If
+      ' Handle exponent
+      If Current = "E"c OrElse Current = "e"c Then
+        m_position += 1
+        If Current = "+"c OrElse Current = "-"c Then
+          m_position += 1
+        End If
+        While Char.IsDigit(Current)
+          m_position += 1
+        End While
+      End If
 
-       Dim length = m_position - m_start
-       Dim text = m_text.ToString(m_start, length)
-       If text.Contains("."c) OrElse
-          text.Contains("E"c) OrElse text.Contains("e"c) OrElse
-          Current = "#"c OrElse
-          Current = "!"c Then
+      Dim length = m_position - m_start
+      Dim text = m_text.ToString(m_start, length)
+      If text.Contains("."c) OrElse
+         text.Contains("E"c) OrElse text.Contains("e"c) OrElse
+         Current = "#"c OrElse
+         Current = "!"c Then
         Dim value As Double
         If Not Double.TryParse(text, value) Then
           Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
@@ -356,26 +356,26 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Else
           m_value = value
         End If
-        Else
-          Dim asLong = (Current = "&"c)
-          Dim hasIntegerSuffix = (Current = "%"c)
-          If hasIntegerSuffix OrElse asLong Then
-            m_position += 1 ' Skip the type suffix character
-          End If
-          Dim value As Integer
-          Dim valueLong As Long
-          If asLong OrElse Not Integer.TryParse(text, value) Then
-            If Not Long.TryParse(text, valueLong) Then
-              Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
-              m_diagnostics.ReportInvalidNumber(location, text, If(asLong, TypeSymbol.Long, TypeSymbol.Integer))
-            Else
-              asLong = True
-              m_value = valueLong
-            End If
-          Else
-            m_value = value
-          End If
+      Else
+        Dim asLong = (Current = "&"c)
+        Dim hasIntegerSuffix = (Current = "%"c)
+        If hasIntegerSuffix OrElse asLong Then
+          m_position += 1 ' Skip the type suffix character
         End If
+        Dim value As Integer
+        Dim valueLong As Long
+        If asLong OrElse Not Integer.TryParse(text, value) Then
+          If Not Long.TryParse(text, valueLong) Then
+            Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+            m_diagnostics.ReportInvalidNumber(location, text, If(asLong, TypeSymbol.Long, TypeSymbol.Integer))
+          Else
+            asLong = True
+            m_value = valueLong
+          End If
+        Else
+          m_value = value
+        End If
+      End If
 
       m_kind = SyntaxKind.NumberToken
 

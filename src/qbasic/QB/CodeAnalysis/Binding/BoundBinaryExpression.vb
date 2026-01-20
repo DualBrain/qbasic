@@ -2,16 +2,16 @@ Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis.Binding
 
-   Friend NotInheritable Class BoundBinaryExpression
-     Inherits BoundExpression
+  Friend NotInheritable Class BoundBinaryExpression
+    Inherits BoundExpression
 
-     Public Sub New(left As BoundExpression, op As BoundBinaryOperator, right As BoundExpression, Optional syntax As Syntax.ExpressionSyntax = Nothing)
-       MyBase.New(syntax)
-       Me.Left = left
-       Me.Op = op
-       Me.Right = right
-       ConstantValue = ConstantFolding.Fold(left, op, right)
-     End Sub
+    Public Sub New(left As BoundExpression, op As BoundBinaryOperator, right As BoundExpression, Optional syntax As Syntax.ExpressionSyntax = Nothing)
+      MyBase.New(syntax)
+      Me.Left = left
+      Me.Op = op
+      Me.Right = right
+      ConstantValue = ConstantFolding.Fold(left, op, right)
+    End Sub
 
     Public Overrides ReadOnly Property Kind As BoundNodeKind = BoundNodeKind.BinaryExpression
     Public Overrides ReadOnly Property Type As TypeSymbol

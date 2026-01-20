@@ -328,15 +328,15 @@ Namespace QBasic.CodeAnalysis.Tests
     <InlineData("GOSUB", SyntaxKind.GosubKeyword)>
     <InlineData("GOTO", SyntaxKind.GotoKeyword)>
     <InlineData("IF", SyntaxKind.IfKeyword)>
-     <InlineData("INPUT", SyntaxKind.InputKeyword)>
-     <InlineData("LET", SyntaxKind.LetKeyword)>
+    <InlineData("INPUT", SyntaxKind.InputKeyword)>
+    <InlineData("LET", SyntaxKind.LetKeyword)>
     <InlineData("LOOP", SyntaxKind.LoopKeyword)>
     <InlineData("MOD", SyntaxKind.ModKeyword)>
     <InlineData("NEXT", SyntaxKind.NextKeyword)>
     <InlineData("NOT", SyntaxKind.NotKeyword)>
-     <InlineData("OR", SyntaxKind.OrKeyword)>
-     <InlineData("OUT", SyntaxKind.OutKeyword)>
-     <InlineData("PRINT", SyntaxKind.PrintKeyword)>
+    <InlineData("OR", SyntaxKind.OrKeyword)>
+    <InlineData("OUT", SyntaxKind.OutKeyword)>
+    <InlineData("PRINT", SyntaxKind.PrintKeyword)>
     <InlineData("READ", SyntaxKind.ReadKeyword)>
     <InlineData("REM", SyntaxKind.RemKeyword)>
     <InlineData("RETURN", SyntaxKind.ReturnKeyword)>

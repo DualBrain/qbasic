@@ -2,15 +2,15 @@ Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis.Binding
 
-   Friend NotInheritable Class BoundUnaryExpression
-     Inherits BoundExpression
+  Friend NotInheritable Class BoundUnaryExpression
+    Inherits BoundExpression
 
-     Public Sub New(op As BoundUnaryOperator, operand As BoundExpression, Optional syntax As Syntax.ExpressionSyntax = Nothing)
-       MyBase.New(syntax)
-       Me.Op = op
-       Me.Operand = operand
-       ConstantValue = ConstantFolding.ComputeConstant(op, operand)
-     End Sub
+    Public Sub New(op As BoundUnaryOperator, operand As BoundExpression, Optional syntax As Syntax.ExpressionSyntax = Nothing)
+      MyBase.New(syntax)
+      Me.Op = op
+      Me.Operand = operand
+      ConstantValue = ConstantFolding.ComputeConstant(op, operand)
+    End Sub
 
     Public Overrides ReadOnly Property Kind As BoundNodeKind = BoundNodeKind.UnaryExpression
     Public Overrides ReadOnly Property Type As TypeSymbol

@@ -1,6 +1,6 @@
 Namespace Global.QB.CodeAnalysis.Symbols
 
-   Public NotInheritable Class ParameterSymbol
+  Public NotInheritable Class ParameterSymbol
     Inherits LocalVariableSymbol
 
     Sub New(name As String, type As TypeSymbol)

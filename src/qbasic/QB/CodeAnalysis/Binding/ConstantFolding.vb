@@ -268,8 +268,8 @@ Namespace Global.QB.CodeAnalysis.Binding
             Case TypeSymbol.Type.Integer : Return New BoundConstant(CShort(l) Mod CShort(r))
             Case TypeSymbol.Type.SByte : Return New BoundConstant(CSByte(l) Mod CSByte(r))
             Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) Mod CByte(r))
-             Case Else
-           End Select
+            Case Else
+          End Select
         Case BoundBinaryOperatorKind.LogicalImp
           Return New BoundConstant(CInt(Not CBool(l) Or CBool(r)))
         Case BoundBinaryOperatorKind.BitwiseEqv

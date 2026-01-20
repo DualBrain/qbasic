@@ -2,14 +2,14 @@ Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis.Binding
 
-   Friend NotInheritable Class BoundVariableExpression
-     Inherits BoundExpression
+  Friend NotInheritable Class BoundVariableExpression
+    Inherits BoundExpression
 
-     Public Sub New(variable As VariableSymbol, Optional syntax As Syntax.ExpressionSyntax = Nothing)
-       MyBase.New(syntax)
-       Me.Variable = variable
-       Me.Type = variable.Type
-     End Sub
+    Public Sub New(variable As VariableSymbol, Optional syntax As Syntax.ExpressionSyntax = Nothing)
+      MyBase.New(syntax)
+      Me.Variable = variable
+      Me.Type = variable.Type
+    End Sub
 
     Public Overrides ReadOnly Property Type As TypeSymbol
     Public Overrides ReadOnly Property Kind As BoundNodeKind = BoundNodeKind.VariableExpression

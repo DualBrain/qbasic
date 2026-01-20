@@ -1591,11 +1591,11 @@ result = count
 
       Assert.Equal(11, CInt(variables("result")))
 
-     End Sub
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesGotoAcrossLoopBoundaries()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesGotoAcrossLoopBoundaries()
+      Dim text = "
 c = 0
 for x = 1 to 10
   for y = 1 to 10
@@ -1607,33 +1607,33 @@ skip:
   next
 next
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(100, CInt(variables("c")))
-     End Sub
+      Assert.Equal(100, CInt(variables("c")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesSimpleForLoop()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesSimpleForLoop()
+      Dim text = "
 total = 0
 for i = 1 to 5
   total = total + 1
 next i
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       Assert.Equal(5, CInt(variables("total")))
-     End Sub
+      Assert.Equal(5, CInt(variables("total")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesNestedForLoops()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesNestedForLoops()
+      Dim text = "
 total = 0
 for i = 1 to 2
   for j = 1 to 2
@@ -1643,32 +1643,32 @@ for i = 1 to 2
   next j
 next i
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       ' 2 * 2 * 2 = 8 iterations
-       Assert.Equal(8, CInt(variables("total")))
-     End Sub
+      ' 2 * 2 * 2 = 8 iterations
+      Assert.Equal(8, CInt(variables("total")))
+    End Sub
 
-     <Fact>
-     Public Sub EvaluatesForLoop()
-       Dim text = "
+    <Fact>
+    Public Sub EvaluatesForLoop()
+      Dim text = "
 sum = 0
 for x = 2 to 6
   sum = sum + x
 next x
 "
-       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-       Dim compilation As Compilation = Compilation.Create(syntaxTree)
-       Dim variables = New Dictionary(Of String, Object)()
-       Dim result = compilation.Evaluate(variables)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
 
-       ' 2+3+4+5+6 = 20
-       Assert.Equal(20, CInt(variables("sum")))
-     End Sub
+      ' 2+3+4+5+6 = 20
+      Assert.Equal(20, CInt(variables("sum")))
+    End Sub
 
-   End Class
+  End Class
 
 End Namespace

@@ -85,22 +85,32 @@ Namespace Global.QB.CodeAnalysis
       m_errorResumeIndex = -1
     End Sub
 
-    Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of BoundLabel, Integer)) As Boolean
+    Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
       m_errorResumeIndex = index ' Save current index for RESUME
+
+      'Console.WriteLine($"DEBUG: HandlePendingError - m_errorResumeNext={m_errorResumeNext}, m_errorHandlerTarget={m_errorHandlerTarget}")
 
       If m_errorResumeNext Then
         ' ON ERROR RESUME NEXT - continue with next statement
+        'Console.WriteLine("DEBUG: Resuming next")
         ClearError()
         index += 1 ' Skip current statement
         Return True
       ElseIf m_errorHandlerTarget IsNot Nothing Then
         ' ON ERROR GOTO - jump to error handler
-        Dim targetLabel = New BoundLabel(m_errorHandlerTarget)
-        If labelToIndex.ContainsKey(targetLabel) Then
-          ClearError() ' Clear error before jumping
-          index = labelToIndex(targetLabel)
+        'Console.WriteLine($"DEBUG: Looking for label '{m_errorHandlerTarget}'")
+        'Console.WriteLine($"DEBUG: labelToIndex has {labelToIndex.Count} entries")
+        'For Each kv In labelToIndex
+        'Console.WriteLine($"DEBUG: Label: {kv.Key} at {kv.Value}")
+        'Next
+        If labelToIndex.ContainsKey(m_errorHandlerTarget) Then
+          'Console.WriteLine($"DEBUG: Found label, jumping to {labelToIndex(m_errorHandlerTarget)}")
+          ' Clear pending error flag so handler can execute normally
+          m_errorPending = False
+          index = labelToIndex(m_errorHandlerTarget)
           Return True
         Else
+          'Console.WriteLine("DEBUG: Label not found")
           ' Label not found, treat as fatal error
           Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
         End If
@@ -213,8 +223,6 @@ Namespace Global.QB.CodeAnalysis
 
     End Sub
 
-
-
     Public Function Evaluate() As Object
 
       ' Initialize global variables
@@ -249,11 +257,11 @@ Namespace Global.QB.CodeAnalysis
 
     Private Function EvaluateStatement(body As BoundBlockStatement) As Object
 
-      Dim labelToIndex = New Dictionary(Of BoundLabel, Integer)
+      Dim labelToIndex = New Dictionary(Of String, Integer)
 
       For i = 0 To body.Statements.Length - 1
         If TypeOf body.Statements(i) Is BoundLabelStatement Then
-          labelToIndex.Add(CType(body.Statements(i), BoundLabelStatement).Label, i + 1)
+          labelToIndex.Add(CType(body.Statements(i), BoundLabelStatement).Label.Name, i + 1)
         End If
       Next
 
@@ -271,8 +279,9 @@ Namespace Global.QB.CodeAnalysis
            End If
          End If
 
-         Dim s = body.Statements(index)
-         Try
+        'Console.WriteLine($"DEBUG: About to execute index {index}")
+        Try
+            Dim s = body.Statements(index)
            Select Case s.Kind
           Case BoundNodeKind.BeepStatement
             ' TODO: Implement BEEP sound
@@ -339,11 +348,11 @@ Namespace Global.QB.CodeAnalysis
               Case Else
             End Select
             index += 1
-          Case BoundNodeKind.ConditionalGotoStatement
+           Case BoundNodeKind.ConditionalGotoStatement
             Dim cgs = CType(s, BoundConditionalGotoStatement)
             Dim condition = CBool(EvaluateExpression(cgs.Condition))
             If condition = cgs.JumpIfTrue Then
-              index = labelToIndex(cgs.Label)
+              index = labelToIndex(cgs.Label.Name)
             Else
               index += 1
             End If
@@ -351,40 +360,25 @@ Namespace Global.QB.CodeAnalysis
             index = body.Statements.Length
           Case BoundNodeKind.ExpressionStatement : EvaluateExpressionStatement(CType(s, BoundExpressionStatement)) : index += 1
 
-          Case BoundNodeKind.GosubStatement
+           Case BoundNodeKind.GosubStatement
             Dim gs = CType(s, BoundGosubStatement)
             Dim value As Integer = Nothing
-            If labelToIndex.TryGetValue(gs.Label, value) Then
+            If labelToIndex.TryGetValue(gs.Label.Name, value) Then
               m_gosubStack.Push(index + 1)
               index = value
             Else
-              For Each entry In labelToIndex.Keys
-                If entry.Name = gs.Label.Name Then
-                  m_gosubStack.Push(index + 1)
-                  index = labelToIndex(entry)
-                  Exit For
-                End If
-              Next
+                'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
+                index += 1
             End If
 
-          Case BoundNodeKind.GotoStatement
+           Case BoundNodeKind.GotoStatement
             Dim gs = CType(s, BoundGotoStatement)
             Dim value As Integer = Nothing
-            If labelToIndex.TryGetValue(gs.Label, value) Then
+            If labelToIndex.TryGetValue(gs.Label.Name, value) Then
               index = value
             Else
-              Dim found = False
-              For Each entry In labelToIndex.Keys
-                If entry.Name = gs.Label.Name Then
-                  index = labelToIndex(entry)
-                  found = True
-                  Exit For
-                End If
-              Next
-              If Not found Then
-                Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
+                'Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
                 index += 1
-              End If
             End If
             'index = labelToIndex(gs.Label)
 
@@ -569,16 +563,11 @@ Namespace Global.QB.CodeAnalysis
               If m_gosubStack.Count > 0 Then
                 index = m_gosubStack.Pop
               End If
-            ElseIf labelToIndex.TryGetValue(rg.Label, value) Then
+            ElseIf labelToIndex.TryGetValue(rg.Label.Name, value) Then
               index = value
             Else
-              For Each entry In labelToIndex.Keys
-                If entry.Name = rg.Label.Name Then
-                  index = labelToIndex(entry)
-                  Exit For
-                End If
-              Next
-            End If
+                'Console.WriteLine("ERROR: ReturnGosubStatement label " & rg.Label.Name & " not found")
+              End If
 
           Case BoundNodeKind.ReturnStatement
             'TODO: Need to determine if this is a 
@@ -647,11 +636,11 @@ Namespace Global.QB.CodeAnalysis
            Case Else
              Throw New Exception($"Unexpected kind {s.Kind}")
          End Select
-         Catch ex As ResumeException
-           ' Handle RESUME jumping
-           ClearError()
-           index = ex.TargetIndex
-           Continue While
+          Catch ex As ResumeException
+            ' Handle RESUME jumping
+            ClearError()
+            index = ex.TargetIndex
+            Continue While
          Catch ex As QBasicRuntimeException
            ' Handle runtime errors - set error and handle it
            If m_err = 0 Then ' Only set if not already set
@@ -702,15 +691,23 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateOnErrorGotoStatement(node As BoundOnErrorGotoStatement)
       ' Set error handler target
-      Dim targetValue = EvaluateExpression(node.Target)
-      If IsNumeric(targetValue) Then
-        ' Line number - convert to label format
-        m_errorHandlerTarget = GOTO_LABEL_PREFIX & CStr(targetValue)
+      If TypeOf node.Target Is BoundVariableExpression Then
+        ' Target is a label/variable name
+        Dim varExpr = CType(node.Target, BoundVariableExpression)
+        m_errorHandlerTarget = varExpr.Variable.Name
       Else
-        ' Label name
-        m_errorHandlerTarget = CStr(targetValue)
+        ' Target is an expression (line number)
+        Dim targetValue = EvaluateExpression(node.Target)
+        If IsNumeric(targetValue) Then
+          ' Line number - convert to label format
+          m_errorHandlerTarget = GOTO_LABEL_PREFIX & CStr(targetValue)
+        Else
+          ' Label name
+          m_errorHandlerTarget = CStr(targetValue)
+        End If
       End If
       m_errorResumeNext = False
+      'Console.WriteLine($"DEBUG: Set error handler target to '{m_errorHandlerTarget}'")
     End Sub
 
     Private Sub EvaluateOnErrorGotoZeroStatement(node As BoundOnErrorGotoZeroStatement)
@@ -729,8 +726,6 @@ Namespace Global.QB.CodeAnalysis
       If m_errorResumeIndex >= 0 Then
         ' This will be handled by returning a special value to the main loop
         Throw New ResumeException(m_errorResumeIndex)
-      Else
-        ClearError()
       End If
     End Sub
 
@@ -742,8 +737,6 @@ Namespace Global.QB.CodeAnalysis
       ' RESUME NEXT - continue with statement after the error
       If m_errorResumeIndex >= 0 Then
         Throw New ResumeException(m_errorResumeIndex + 1)
-      Else
-        ClearError()
       End If
     End Sub
 
@@ -923,16 +916,18 @@ Namespace Global.QB.CodeAnalysis
             Dim count = CInt(EvaluateExpression(spcFunc.Expression))
             ' TODO: Implement SPC function - for now just print spaces
             QBLib.Video.PRINT(New String(" "c, count), False)
-          Case BoundNodeKind.TabFunction
-            Dim tabFunc = CType(item, BoundTabFunction)
-            Dim column = CInt(EvaluateExpression(tabFunc.Expression))
-            ' TODO: Implement TAB function - for now just print
-            QBLib.Video.PRINT("TAB(" & column & ")", False)
-           Case Else
-             ' Regular expression to print
-             Dim value = EvaluateExpression(CType(item, BoundExpression))
-             QBLib.Video.PRINT(CStr(value), False)
-             QBLib.Video.PRINT(CStr(value), False)
+           Case BoundNodeKind.TabFunction
+             Dim tabFunc = CType(item, BoundTabFunction)
+             Dim column = CInt(EvaluateExpression(tabFunc.Expression))
+             ' TODO: Implement TAB function - for now just print
+             QBLib.Video.PRINT("TAB(" & column & ")", False)
+           Case BoundNodeKind.LiteralExpression
+             Dim literal = CType(item, BoundLiteralExpression)
+             QBLib.Video.PRINT(CStr(literal.Value), False)
+            Case Else
+              ' Regular expression to print
+              Dim value = EvaluateExpression(CType(item, BoundExpression))
+              QBLib.Video.PRINT(CStr(value), False)
         End Select
       Next
       ' Add newline at end unless last item was semicolon

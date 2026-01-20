@@ -1258,7 +1258,29 @@ LET result = CVS(bin$)"
       ' This should execute without error (ON ERROR statement itself doesn't cause errors)
       Dim onErrorResult = onErrorComp.Evaluate(onErrorVars)
 
-      ' Note: RESUME statement testing requires more complex error handling setup
+      ' Test RESUME NEXT with error handling
+      Dim resumeNextTest = "CLS" & vbCrLf &
+                            "ON ERROR GOTO HANDLER" & vbCrLf &
+                            "PRINT ""Attempt...""" & vbCrLf &
+                            "PRINT 1/0" & vbCrLf &
+                            "PRINT ""Done.""" & vbCrLf &
+                            "END" & vbCrLf &
+                            vbCrLf &
+                            "HANDLER:" & vbCrLf &
+                            "   PRINT ""ERROR PROCESSING AT LINE""; ERL" & vbCrLf &
+                            "   PRINT ""ERROR NUMBER""; ERR" & vbCrLf &
+                            "   RESUME NEXT"
+      Dim originalStdoutMode = Video.StdoutMode
+      Try
+        Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+        Dim resumeTree As SyntaxTree = SyntaxTree.Parse(resumeNextTest)
+        Dim resumeComp As Compilation = Compilation.Create(resumeTree)
+        Dim resumeVars As New Dictionary(Of String, Object)()
+        Dim resumeResult = resumeComp.Evaluate(resumeVars)
+        ' RESUME NEXT test completes without error
+      Finally
+        Video.StdoutMode = originalStdoutMode ' Restore original mode
+      End Try
     End Sub
 
     <Fact>

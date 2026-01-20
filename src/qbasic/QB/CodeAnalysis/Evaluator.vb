@@ -265,415 +265,453 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-       Dim index = 0
-       While index < body.Statements.Length
+      Dim index = 0
+      While index < body.Statements.Length
 
-         If QBasic.Common.s_cancelToken.IsCancellationRequested Then
-           Exit While
-         End If
+        If QBasic.Common.s_cancelToken.IsCancellationRequested Then
+          Exit While
+        End If
 
-         ' Check for pending errors before executing next statement
-         If m_errorPending Then
-           If HandlePendingError(index, labelToIndex) Then
-             Continue While ' Skip to next iteration with updated index
-           End If
-         End If
+        ' Check for pending errors before executing next statement
+        If m_errorPending Then
+          If HandlePendingError(index, labelToIndex) Then
+            Continue While ' Skip to next iteration with updated index
+          End If
+        End If
 
         'Console.WriteLine($"DEBUG: About to execute index {index}")
         Try
-            Dim s = body.Statements(index)
-           Select Case s.Kind
-          Case BoundNodeKind.BeepStatement
-            ' TODO: Implement BEEP sound
-            index += 1
-           Case BoundNodeKind.PokeStatement
-             ' TODO: Implement POKE memory write
-             index += 1
-           Case BoundNodeKind.OutStatement
-             Dim outStmt = CType(s, BoundOutStatement)
-             Dim portValue = EvaluateExpression(outStmt.Port)
-             Dim port As Integer
-             If TypeOf portValue Is Double Then
-               port = CInt(CDbl(portValue))
-             ElseIf TypeOf portValue Is Integer Then
-               port = CInt(portValue)
-             Else
-               port = CInt(portValue)
-             End If
-             If port < 0 Or port > 65535 Then
-               Throw New QBasicRuntimeException("Overflow")
-             End If
-             ' Data is ignored, just throw error
-             Throw New QBasicRuntimeException("Advanced feature unavailable")
-           Case BoundNodeKind.ChDirStatement
-            Dim chdir = CType(s, BoundChDirStatement)
-            Dim value = CStr(EvaluateExpression(chdir.Expression))
-            System.IO.Directory.SetCurrentDirectory(value)
-            index += 1
-          Case BoundNodeKind.CircleStatement
-            Dim circle = CType(s, BoundCircleStatement)
-            Dim x = CInt(EvaluateExpression(circle.X))
-            Dim y = CInt(EvaluateExpression(circle.Y))
-            Dim radius = CSng(EvaluateExpression(circle.Radius))
-            Dim color = If(circle.Color IsNot Nothing, CInt(EvaluateExpression(circle.Color)), New Integer?)
-            Dim start = If(circle.Start IsNot Nothing, CDbl(EvaluateExpression(circle.Start)), New Double?)
-            Dim [end] = If(circle.End IsNot Nothing, CDbl(EvaluateExpression(circle.End)), New Double?)
-            Dim aspect = If(circle.Aspect IsNot Nothing, CDbl(EvaluateExpression(circle.Aspect)), New Double?)
-            QBLib.Video.CIRCLE(x, y, radius, color, start, [end], aspect)
-            index += 1
-          Case BoundNodeKind.ClearStatement
-            index += 1
-          Case BoundNodeKind.ClsStatement
-            Debug.WriteLine("CLS")
-            Dim cs = CType(s, BoundClsStatement)
-            Dim value = If(cs.Expression Is Nothing, 0, CInt(EvaluateExpression(cs.Expression)))
-            If value < 0 OrElse value > 2 Then
-              ' error condition
-              QBLib.Video.PRINT("CLS parameter out-of-range.")
-            Else
-              Select Case value
-                Case 0 ' Clears the screen of all text and graphics
-                  QBLib.Video.CLS()
-                Case 1 ' Clears only the graphics viewport
-                  'TODO: Revisit after SCREEN, WIDTH, VIEW.
-                  QBLib.Video.CLS()
-                Case 2 ' Clears only the text window
-                  'TODO: Revisit after SCREEN, WIDTH, VIEW.
-                  QBLib.Video.CLS()
-              End Select
-            End If
-            index += 1
-          Case BoundNodeKind.ColorStatement
-            Dim cs = CType(s, BoundColorStatement)
-            Dim expression1 = If(cs.Expression1 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression1)))
-            Dim expression2 = If(cs.Expression2 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression2)))
-            Dim expression3 = If(cs.Expression3 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression3)))
-            Select Case QBLib.Video.ScreenMode
-              Case 0 'COLOR [foreground%] [,[background%] [,border%]]	Screen mode 0 (text only)
-                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
-                If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
-                If expression3 > -1 AndAlso expression3 < 16 Then QBLib.Video.m_borderColor = expression3
-              Case 1 'COLOR [background%] [,palette%]	Screen mode 1
-                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_bgColor = expression1
-                If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_paletteIndex = expression2
-              Case 4, 12, 13 'COLOR [foreground%]	Screen modes 4, 12, 13
-                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.COLOR(expression1)
-              Case 7, 8, 9, 10 'COLOR [foreground%] [,background&]	Screen modes 7-10
-                If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
-                If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
-              Case Else
-            End Select
-            index += 1
-           Case BoundNodeKind.ConditionalGotoStatement
-            Dim cgs = CType(s, BoundConditionalGotoStatement)
-            Dim condition = CBool(EvaluateExpression(cgs.Condition))
-            If condition = cgs.JumpIfTrue Then
-              index = labelToIndex(cgs.Label.Name)
-            Else
+          Dim s = body.Statements(index)
+          Select Case s.Kind
+            Case BoundNodeKind.BeepStatement
+              ' TODO: Implement BEEP sound
               index += 1
-            End If
-          Case BoundNodeKind.EndStatement
-            index = body.Statements.Length
-          Case BoundNodeKind.ExpressionStatement : EvaluateExpressionStatement(CType(s, BoundExpressionStatement)) : index += 1
+            Case BoundNodeKind.PokeStatement
+              ' TODO: Implement POKE memory write
+              index += 1
+            Case BoundNodeKind.OutStatement
+              Dim outStmt = CType(s, BoundOutStatement)
+              Dim portValue = EvaluateExpression(outStmt.Port)
+              Dim port As Integer
+              If TypeOf portValue Is Double Then
+                port = CInt(CDbl(portValue))
+              ElseIf TypeOf portValue Is Integer Then
+                port = CInt(portValue)
+              Else
+                port = CInt(portValue)
+              End If
+              If port < 0 Or port > 65535 Then
+                Throw New QBasicRuntimeException("Overflow")
+              End If
+              ' Data is ignored, just throw error
+              Throw New QBasicRuntimeException("Advanced feature unavailable")
+            Case BoundNodeKind.ChDirStatement
+              Dim chdir = CType(s, BoundChDirStatement)
+              Dim value = CStr(EvaluateExpression(chdir.Expression))
+              System.IO.Directory.SetCurrentDirectory(value)
+              index += 1
+            Case BoundNodeKind.CircleStatement
+              Dim circle = CType(s, BoundCircleStatement)
+              Dim x = CInt(EvaluateExpression(circle.X))
+              Dim y = CInt(EvaluateExpression(circle.Y))
+              Dim radius = CSng(EvaluateExpression(circle.Radius))
+              Dim color = If(circle.Color IsNot Nothing, CInt(EvaluateExpression(circle.Color)), New Integer?)
+              Dim start = If(circle.Start IsNot Nothing, CDbl(EvaluateExpression(circle.Start)), New Double?)
+              Dim [end] = If(circle.End IsNot Nothing, CDbl(EvaluateExpression(circle.End)), New Double?)
+              Dim aspect = If(circle.Aspect IsNot Nothing, CDbl(EvaluateExpression(circle.Aspect)), New Double?)
+              QBLib.Video.CIRCLE(x, y, radius, color, start, [end], aspect)
+              index += 1
+            Case BoundNodeKind.ClearStatement
+              index += 1
+            Case BoundNodeKind.ClsStatement
+              Debug.WriteLine("CLS")
+              Dim cs = CType(s, BoundClsStatement)
+              Dim value = If(cs.Expression Is Nothing, 0, CInt(EvaluateExpression(cs.Expression)))
+              If value < 0 OrElse value > 2 Then
+                ' error condition
+                QBLib.Video.PRINT("CLS parameter out-of-range.")
+              Else
+                Select Case value
+                  Case 0 ' Clears the screen of all text and graphics
+                    QBLib.Video.CLS()
+                  Case 1 ' Clears only the graphics viewport
+                    'TODO: Revisit after SCREEN, WIDTH, VIEW.
+                    QBLib.Video.CLS()
+                  Case 2 ' Clears only the text window
+                    'TODO: Revisit after SCREEN, WIDTH, VIEW.
+                    QBLib.Video.CLS()
+                End Select
+              End If
+              index += 1
+            Case BoundNodeKind.ColorStatement
+              Dim cs = CType(s, BoundColorStatement)
+              Dim expression1 = If(cs.Expression1 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression1)))
+              Dim expression2 = If(cs.Expression2 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression2)))
+              Dim expression3 = If(cs.Expression3 Is Nothing, -1, CInt(EvaluateExpression(cs.Expression3)))
+              Select Case QBLib.Video.ScreenMode
+                Case 0 'COLOR [foreground%] [,[background%] [,border%]]	Screen mode 0 (text only)
+                  If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
+                  If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
+                  If expression3 > -1 AndAlso expression3 < 16 Then QBLib.Video.m_borderColor = expression3
+                Case 1 'COLOR [background%] [,palette%]	Screen mode 1
+                  If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_bgColor = expression1
+                  If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_paletteIndex = expression2
+                Case 4, 12, 13 'COLOR [foreground%]	Screen modes 4, 12, 13
+                  If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.COLOR(expression1)
+                Case 7, 8, 9, 10 'COLOR [foreground%] [,background&]	Screen modes 7-10
+                  If expression1 > -1 AndAlso expression1 < 16 Then QBLib.Video.m_fgColor = expression1
+                  If expression2 > -1 AndAlso expression2 < 16 Then QBLib.Video.m_bgColor = expression2
+                Case Else
+              End Select
+              index += 1
+            Case BoundNodeKind.ConditionalGotoStatement
+              Dim cgs = CType(s, BoundConditionalGotoStatement)
+              Dim condition = CBool(EvaluateExpression(cgs.Condition))
+              If condition = cgs.JumpIfTrue Then
+                index = labelToIndex(cgs.Label.Name)
+              Else
+                index += 1
+              End If
+            Case BoundNodeKind.EndStatement
+              index = body.Statements.Length
+            Case BoundNodeKind.ExpressionStatement : EvaluateExpressionStatement(CType(s, BoundExpressionStatement)) : index += 1
 
-           Case BoundNodeKind.GosubStatement
-            Dim gs = CType(s, BoundGosubStatement)
-            Dim value As Integer = Nothing
-            If labelToIndex.TryGetValue(gs.Label.Name, value) Then
-              m_gosubStack.Push(index + 1)
-              index = value
-            Else
+            Case BoundNodeKind.GosubStatement
+              Dim gs = CType(s, BoundGosubStatement)
+              Dim value As Integer = Nothing
+              If labelToIndex.TryGetValue(gs.Label.Name, value) Then
+                m_gosubStack.Push(index + 1)
+                index = value
+              Else
                 'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
                 index += 1
-            End If
+              End If
 
-           Case BoundNodeKind.GotoStatement
-            Dim gs = CType(s, BoundGotoStatement)
-            Dim value As Integer = Nothing
-            If labelToIndex.TryGetValue(gs.Label.Name, value) Then
-              index = value
-            Else
+            Case BoundNodeKind.GotoStatement
+              Dim gs = CType(s, BoundGotoStatement)
+              Dim value As Integer = Nothing
+              If labelToIndex.TryGetValue(gs.Label.Name, value) Then
+                index = value
+              Else
                 'Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
                 index += 1
-            End If
+              End If
             'index = labelToIndex(gs.Label)
 
-          Case BoundNodeKind.HandleCommaStatement : EvaluateHandleCommaStatement(CType(s, BoundHandleCommaStatement)) : index += 1
-          Case BoundNodeKind.HandlePrintLineStatement : EvaluateHandlePrintLineStatement(CType(s, BoundHandlePrintLineStatement)) : index += 1
-          Case BoundNodeKind.PrintStatement : EvaluatePrintStatement(CType(s, BoundPrintStatement)) : index += 1
-          Case BoundNodeKind.HandlePrintStatement : EvaluateHandlePrintStatement(CType(s, BoundHandlePrintStatement)) : index += 1
-          Case BoundNodeKind.HandleSpcStatement : EvaluateHandleSpcStatement(CType(s, BoundHandleSpcStatement)) : index += 1
-          Case BoundNodeKind.HandleTabStatement : EvaluateHandleTabStatement(CType(s, BoundHandleTabStatement)) : index += 1
-          Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement)) : index += 1
+            Case BoundNodeKind.HandleCommaStatement : EvaluateHandleCommaStatement(CType(s, BoundHandleCommaStatement)) : index += 1
+            Case BoundNodeKind.HandlePrintLineStatement : EvaluateHandlePrintLineStatement(CType(s, BoundHandlePrintLineStatement)) : index += 1
+            Case BoundNodeKind.PrintStatement : EvaluatePrintStatement(CType(s, BoundPrintStatement)) : index += 1
+            Case BoundNodeKind.HandlePrintStatement : EvaluateHandlePrintStatement(CType(s, BoundHandlePrintStatement)) : index += 1
+            Case BoundNodeKind.HandleSpcStatement : EvaluateHandleSpcStatement(CType(s, BoundHandleSpcStatement)) : index += 1
+            Case BoundNodeKind.HandleTabStatement : EvaluateHandleTabStatement(CType(s, BoundHandleTabStatement)) : index += 1
+            Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement)) : index += 1
 
-          Case BoundNodeKind.InputStatement
+            Case BoundNodeKind.InputStatement
 
-            Dim input = CType(s, BoundInputStatement)
-            Dim suppressCr = input.SuppressCr
-            Dim suppressQuestionMark = input.SuppressQuestionMark
-            Dim prompt As String = Nothing
-            If input.PromptExpression IsNot Nothing Then
-              Dim value = CStr(EvaluateExpression(input.PromptExpression))
-              prompt = value
-            End If
-            Do
-              If Not String.IsNullOrEmpty(prompt) Then
-                QBLib.Video.PRINT(prompt, True)
+              Dim input = CType(s, BoundInputStatement)
+              Dim suppressCr = input.SuppressCr
+              Dim suppressQuestionMark = input.SuppressQuestionMark
+              Dim prompt As String = Nothing
+              If input.PromptExpression IsNot Nothing Then
+                Dim value = CStr(EvaluateExpression(input.PromptExpression))
+                prompt = value
               End If
-              If Not suppressQuestionMark Then
-                QBLib.Video.PRINT("? ", True)
-              End If
-              Dim potential = QBLib.Video.InputAsync("").GetAwaiter.GetResult
-              Dim potentials = Split(potential, ",")
-              If potentials.Length = input.Variables.Length Then
-                For i = 0 To input.Variables.Length - 1
-                  Dim value = potentials(i)
-                  If input.Variables(i).Type Is TypeSymbol.Double OrElse
-                     input.Variables(i).Type Is TypeSymbol.Single OrElse
-                     input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
-                     input.Variables(i).Type Is TypeSymbol.Long64 OrElse
-                     input.Variables(i).Type Is TypeSymbol.ULong OrElse
-                     input.Variables(i).Type Is TypeSymbol.Long OrElse
-                     input.Variables(i).Type Is TypeSymbol.UInteger OrElse
-                     input.Variables(i).Type Is TypeSymbol.Integer OrElse
-                     input.Variables(i).Type Is TypeSymbol.SByte OrElse
-                     input.Variables(i).Type Is TypeSymbol.Byte Then
-                    If IsNumeric(value) Then
-                      If value.Contains("."c) Then
-                        If input.Variables(i).Type Is TypeSymbol.Single OrElse
-                       input.Variables(i).Type Is TypeSymbol.Double Then
-                          Assign(input.Variables(i), value)
+              Do
+                If Not String.IsNullOrEmpty(prompt) Then
+                  QBLib.Video.PRINT(prompt, True)
+                End If
+                If Not suppressQuestionMark Then
+                  QBLib.Video.PRINT("? ", True)
+                End If
+                Dim potential = QBLib.Video.InputAsync("").GetAwaiter.GetResult
+                Dim potentials = Split(potential, ",")
+                If potentials.Length = input.Variables.Length Then
+                  For i = 0 To input.Variables.Length - 1
+                    Dim value = potentials(i)
+                    If input.Variables(i).Type Is TypeSymbol.Double OrElse
+                       input.Variables(i).Type Is TypeSymbol.Single OrElse
+                       input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
+                       input.Variables(i).Type Is TypeSymbol.Long64 OrElse
+                       input.Variables(i).Type Is TypeSymbol.ULong OrElse
+                       input.Variables(i).Type Is TypeSymbol.Long OrElse
+                       input.Variables(i).Type Is TypeSymbol.UInteger OrElse
+                       input.Variables(i).Type Is TypeSymbol.Integer OrElse
+                       input.Variables(i).Type Is TypeSymbol.SByte OrElse
+                       input.Variables(i).Type Is TypeSymbol.Byte Then
+                      If IsNumeric(value) Then
+                        If value.Contains("."c) Then
+                          If input.Variables(i).Type Is TypeSymbol.Single OrElse
+                         input.Variables(i).Type Is TypeSymbol.Double Then
+                            Assign(input.Variables(i), value)
+                          Else
+                            QBLib.Video.PRINT() : Continue Do
+                          End If
                         Else
-                          QBLib.Video.PRINT() : Continue Do
+                          'TODO: Check in-range for values/types.
+                          Assign(input.Variables(i), value)
                         End If
                       Else
-                        'TODO: Check in-range for values/types.
-                        Assign(input.Variables(i), value)
+                        QBLib.Video.PRINT() : Continue Do
                       End If
                     Else
-                      QBLib.Video.PRINT() : Continue Do
+                      Assign(input.Variables(i), value)
                     End If
-                  Else
-                    Assign(input.Variables(i), value)
-                  End If
-                Next
-                'If Not suppressCr Then Console.WriteLine()
-                'TODO: If suppressCr is True, need to move the cursor back????
-                Exit Do
+                  Next
+                  'If Not suppressCr Then Console.WriteLine()
+                  'TODO: If suppressCr is True, need to move the cursor back????
+                  Exit Do
+                Else
+                  QBLib.Video.PRINT()
+                End If
+              Loop
+
+              index += 1
+
+            Case BoundNodeKind.KillStatement
+              Dim kill = CType(s, BoundKillStatement)
+              Dim value = CStr(EvaluateExpression(kill.Expression))
+              If System.IO.Directory.Exists(value) Then
+                System.IO.Directory.Delete(value)
               Else
-                QBLib.Video.PRINT()
+                System.IO.File.Delete(value)
               End If
-            Loop
-
-            index += 1
-
-          Case BoundNodeKind.KillStatement
-            Dim kill = CType(s, BoundKillStatement)
-            Dim value = CStr(EvaluateExpression(kill.Expression))
-            If System.IO.Directory.Exists(value) Then
-              System.IO.Directory.Delete(value)
-            Else
-              System.IO.File.Delete(value)
-            End If
-            index += 1
-          Case BoundNodeKind.LabelStatement : index += 1
-          Case BoundNodeKind.MidStatement : EvaluateMidStatement(CType(s, BoundMidStatement)) : index += 1
-          Case BoundNodeKind.MkDirStatement
-            Dim mkdir = CType(s, BoundMkDirStatement)
-            Dim value = CStr(EvaluateExpression(mkdir.Expression))
-            System.IO.Directory.CreateDirectory(value)
-            index += 1
-          Case BoundNodeKind.NameStatement
-            Dim name = CType(s, BoundNameStatement)
-            Dim originalPath = CStr(EvaluateExpression(name.OriginalPath))
-            Dim destinationPath = CStr(EvaluateExpression(name.DestinationPath))
-            If System.IO.Directory.Exists(originalPath) Then
-              System.IO.Directory.Move(originalPath, destinationPath)
-            Else
-              System.IO.File.Move(originalPath, destinationPath)
-            End If
-            index += 1
-          Case BoundNodeKind.NopStatement : index += 1
-          Case BoundNodeKind.LetStatement
-            Dim temp = CType(s, BoundLetStatement)
-            Dim variableName = temp.Variable.Name
-            Dim functionName = m_container.Peek()
-            If String.Compare(functionName, variableName, True) = 0 Then
-              m_lastValue = EvaluateExpression(temp.Expression)
-            Else
-              EvaluateLetStatement(CType(s, BoundLetStatement))
-            End If
-            index += 1
+              index += 1
+            Case BoundNodeKind.LabelStatement : index += 1
+            Case BoundNodeKind.MidStatement : EvaluateMidStatement(CType(s, BoundMidStatement)) : index += 1
+            Case BoundNodeKind.MkDirStatement
+              Dim mkdir = CType(s, BoundMkDirStatement)
+              Dim value = CStr(EvaluateExpression(mkdir.Expression))
+              System.IO.Directory.CreateDirectory(value)
+              index += 1
+            Case BoundNodeKind.NameStatement
+              Dim name = CType(s, BoundNameStatement)
+              Dim originalPath = CStr(EvaluateExpression(name.OriginalPath))
+              Dim destinationPath = CStr(EvaluateExpression(name.DestinationPath))
+              If System.IO.Directory.Exists(originalPath) Then
+                System.IO.Directory.Move(originalPath, destinationPath)
+              Else
+                System.IO.File.Move(originalPath, destinationPath)
+              End If
+              index += 1
+            Case BoundNodeKind.NopStatement : index += 1
+            Case BoundNodeKind.LetStatement
+              Dim temp = CType(s, BoundLetStatement)
+              Dim variableName = temp.Variable.Name
+              Dim functionName = m_container.Peek()
+              If String.Compare(functionName, variableName, True) = 0 Then
+                m_lastValue = EvaluateExpression(temp.Expression)
+              Else
+                EvaluateLetStatement(CType(s, BoundLetStatement))
+              End If
+              index += 1
 
             'EvaluateLetStatement(CType(s, BoundLetStatement)) : index += 1
 
-          Case BoundNodeKind.LineStatement
+            Case BoundNodeKind.LineStatement
 
-            Dim ls = CType(s, BoundLineStatement)
-            Dim step1 = ls.Step1
-            Dim x1 = If(ls.X1 IsNot Nothing, CInt(EvaluateExpression(ls.X1)), New Integer?)
-            Dim y1 = If(ls.Y1 IsNot Nothing, CInt(EvaluateExpression(ls.Y1)), New Integer?)
-            Dim step2 = ls.Step2
-            Dim x2 = CInt(EvaluateExpression(ls.X2))
-            Dim y2 = CInt(EvaluateExpression(ls.Y2))
-            Dim attribute = If(ls.Attribute IsNot Nothing, CInt(EvaluateExpression(ls.Attribute)), New Integer?)
-            Dim mode = CType(ls.Mode, LineOption)
-            Dim style = If(ls.Style IsNot Nothing, CInt(EvaluateExpression(ls.Style)), New Integer?)
+              Dim ls = CType(s, BoundLineStatement)
+              Dim step1 = ls.Step1
+              Dim x1 = If(ls.X1 IsNot Nothing, CInt(EvaluateExpression(ls.X1)), New Integer?)
+              Dim y1 = If(ls.Y1 IsNot Nothing, CInt(EvaluateExpression(ls.Y1)), New Integer?)
+              Dim step2 = ls.Step2
+              Dim x2 = CInt(EvaluateExpression(ls.X2))
+              Dim y2 = CInt(EvaluateExpression(ls.Y2))
+              Dim attribute = If(ls.Attribute IsNot Nothing, CInt(EvaluateExpression(ls.Attribute)), New Integer?)
+              Dim mode = CType(ls.Mode, LineOption)
+              Dim style = If(ls.Style IsNot Nothing, CInt(EvaluateExpression(ls.Style)), New Integer?)
 
-            QBLib.Video.LINE(step1, x1, y1, step2, x2, y2, attribute, mode)
+              QBLib.Video.LINE(step1, x1, y1, step2, x2, y2, attribute, mode)
 
-            index += 1
+              index += 1
 
-          Case BoundNodeKind.LocateStatement
+            Case BoundNodeKind.LocateStatement
 
-            Dim ls = CType(s, BoundLocateStatement)
-            Dim row = If(ls.Row Is Nothing, -1, CInt(EvaluateExpression(ls.Row)))
-            Dim col = If(ls.Col Is Nothing, -1, CInt(EvaluateExpression(ls.Col)))
-            Dim visible = If(ls.Visible Is Nothing, -1, CInt(EvaluateExpression(ls.Visible)))
-            Dim scanStart = If(ls.ScanStart Is Nothing, -1, CInt(EvaluateExpression(ls.ScanStart)))
-            Dim scanStop = If(ls.Scanstop Is Nothing, -1, CInt(EvaluateExpression(ls.Scanstop)))
+              Dim ls = CType(s, BoundLocateStatement)
+              Dim row = If(ls.Row Is Nothing, -1, CInt(EvaluateExpression(ls.Row)))
+              Dim col = If(ls.Col Is Nothing, -1, CInt(EvaluateExpression(ls.Col)))
+              Dim visible = If(ls.Visible Is Nothing, -1, CInt(EvaluateExpression(ls.Visible)))
+              Dim scanStart = If(ls.ScanStart Is Nothing, -1, CInt(EvaluateExpression(ls.ScanStart)))
+              Dim scanStop = If(ls.Scanstop Is Nothing, -1, CInt(EvaluateExpression(ls.Scanstop)))
 
-            QBLib.Video.LOCATE(row, col, visible, scanStart, scanStop)
+              QBLib.Video.LOCATE(row, col, visible, scanStart, scanStop)
 
-            index += 1
+              index += 1
 
-          Case BoundNodeKind.OptionStatement
-            'TODO: Need to handle with Arrays.
-            'TODO: Also need to track that no other invalid
-            '      statements have executed (pretty much all
-            '      other statements are *invalid* in this
-            '      context.)
-            index += 1
+            Case BoundNodeKind.OptionStatement
+              'TODO: Need to handle with Arrays.
+              'TODO: Also need to track that no other invalid
+              '      statements have executed (pretty much all
+              '      other statements are *invalid* in this
+              '      context.)
+              index += 1
 
-          Case BoundNodeKind.PsetStatement
-            Dim psetStmt = CType(s, BoundPsetStatement)
-            Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
-            Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
-            If psetStmt.Color Is Nothing Then
-              QBLib.Video.PSET(psetStmt.Step, x, y)
-            Else
-              Dim c = CInt(EvaluateExpression(psetStmt.Color))
-              QBLib.Video.PSET(psetStmt.Step, x, y, c)
-            End If
-            index += 1
-
-          Case BoundNodeKind.PresetStatement
-            Dim psetStmt = CType(s, BoundPresetStatement)
-            Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
-            Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
-            If psetStmt.Color Is Nothing Then
-              QBLib.Video.PRESET(psetStmt.Step, x, y)
-            Else
-              Dim c = CInt(EvaluateExpression(psetStmt.Color))
-              QBLib.Video.PRESET(psetStmt.Step, x, y, c)
-            End If
-            index += 1
-
-          Case BoundNodeKind.RemStatement : index += 1
-
-          Case BoundNodeKind.ReturnGosubStatement
-            Dim rg = CType(s, BoundReturnGosubStatement)
-
-            Dim value As Integer = Nothing
-            If rg.Label Is Nothing Then
-              If m_gosubStack.Count > 0 Then
-                index = m_gosubStack.Pop
+            Case BoundNodeKind.PsetStatement
+              Dim psetStmt = CType(s, BoundPsetStatement)
+              Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
+              Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
+              If psetStmt.Color Is Nothing Then
+                QBLib.Video.PSET(psetStmt.Step, x, y)
+              Else
+                Dim c = CInt(EvaluateExpression(psetStmt.Color))
+                QBLib.Video.PSET(psetStmt.Step, x, y, c)
               End If
-            ElseIf labelToIndex.TryGetValue(rg.Label.Name, value) Then
-              index = value
-            Else
+              index += 1
+
+            Case BoundNodeKind.PresetStatement
+              Dim psetStmt = CType(s, BoundPresetStatement)
+              Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
+              Dim y = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.Y))))
+              If psetStmt.Color Is Nothing Then
+                QBLib.Video.PRESET(psetStmt.Step, x, y)
+              Else
+                Dim c = CInt(EvaluateExpression(psetStmt.Color))
+                QBLib.Video.PRESET(psetStmt.Step, x, y, c)
+              End If
+              index += 1
+
+            Case BoundNodeKind.RemStatement : index += 1
+
+            Case BoundNodeKind.ReturnGosubStatement
+              Dim rg = CType(s, BoundReturnGosubStatement)
+
+              Dim value As Integer = Nothing
+              If rg.Label Is Nothing Then
+                If m_gosubStack.Count > 0 Then
+                  index = m_gosubStack.Pop
+                End If
+              ElseIf labelToIndex.TryGetValue(rg.Label.Name, value) Then
+                index = value
+              Else
                 'Console.WriteLine("ERROR: ReturnGosubStatement label " & rg.Label.Name & " not found")
               End If
 
-          Case BoundNodeKind.ReturnStatement
-            'TODO: Need to determine if this is a 
-            '      value Return or a Return related
-            '      to a Gosub.
-            Dim rs = CType(s, BoundReturnStatement)
-            m_lastValue = If(rs.Expression Is Nothing, Nothing, EvaluateExpression(rs.Expression))
-            'm_lastValue = If(rs.Expression Is Nothing, m_lastValue, EvaluateExpression(rs.Expression))
-            Return m_lastValue
+            Case BoundNodeKind.ReturnStatement
+              'TODO: Need to determine if this is a 
+              '      value Return or a Return related
+              '      to a Gosub.
+              Dim rs = CType(s, BoundReturnStatement)
+              m_lastValue = If(rs.Expression Is Nothing, Nothing, EvaluateExpression(rs.Expression))
+              'm_lastValue = If(rs.Expression Is Nothing, m_lastValue, EvaluateExpression(rs.Expression))
+              Return m_lastValue
 
-          Case BoundNodeKind.RmDirStatement
-            Dim rmdir = CType(s, BoundRmDirStatement)
-            Dim value = CStr(EvaluateExpression(rmdir.Expression))
-            System.IO.Directory.Delete(value)
-            index += 1
+            Case BoundNodeKind.RmDirStatement
+              Dim rmdir = CType(s, BoundRmDirStatement)
+              Dim value = CStr(EvaluateExpression(rmdir.Expression))
+              System.IO.Directory.Delete(value)
+              index += 1
 
-          Case BoundNodeKind.ScreenStatement
-            Dim screen = CType(s, BoundScreenStatement)
-            Dim mode = If(screen.Mode IsNot Nothing, CInt(EvaluateExpression(screen.Mode)), New Integer?)
-            Dim colorBurst = If(screen.ColorBurst IsNot Nothing, CInt(EvaluateExpression(screen.ColorBurst)), New Integer?)
-            Dim aPage = If(screen.APage IsNot Nothing, CInt(EvaluateExpression(screen.APage)), New Integer?)
-            Dim vPage = If(screen.VPage IsNot Nothing, CInt(EvaluateExpression(screen.VPage)), New Integer?)
-            Dim [erase] = If(screen.Erase IsNot Nothing, CInt(EvaluateExpression(screen.Erase)), New Integer?)
-            QBLib.Video.SCREEN(mode, colorBurst, aPage, vPage, [erase])
-            index += 1
+            Case BoundNodeKind.ScreenStatement
+              Dim screen = CType(s, BoundScreenStatement)
+              Dim mode = If(screen.Mode IsNot Nothing, CInt(EvaluateExpression(screen.Mode)), New Integer?)
+              Dim colorBurst = If(screen.ColorBurst IsNot Nothing, CInt(EvaluateExpression(screen.ColorBurst)), New Integer?)
+              Dim aPage = If(screen.APage IsNot Nothing, CInt(EvaluateExpression(screen.APage)), New Integer?)
+              Dim vPage = If(screen.VPage IsNot Nothing, CInt(EvaluateExpression(screen.VPage)), New Integer?)
+              Dim [erase] = If(screen.Erase IsNot Nothing, CInt(EvaluateExpression(screen.Erase)), New Integer?)
+              QBLib.Video.SCREEN(mode, colorBurst, aPage, vPage, [erase])
+              index += 1
 
-          Case BoundNodeKind.StopStatement
-            index = body.Statements.Length
-          Case BoundNodeKind.SystemStatement
-            index = body.Statements.Length
-            m_lastValue = UInt64.MaxValue
-          Case BoundNodeKind.SwapStatement
-            Dim swap = CType(s, BoundSwapStatement)
-            Dim variable1 = CType(swap.Variable1, BoundVariableExpression)
-            Dim variable2 = CType(swap.Variable2, BoundVariableExpression)
+            Case BoundNodeKind.StopStatement
+              index = body.Statements.Length
+            Case BoundNodeKind.SystemStatement
+              index = body.Statements.Length
+              m_lastValue = UInt64.MaxValue
+            Case BoundNodeKind.SwapStatement
+              Dim swap = CType(s, BoundSwapStatement)
+              Dim variable1 = CType(swap.Variable1, BoundVariableExpression)
+              Dim variable2 = CType(swap.Variable2, BoundVariableExpression)
 
-            Dim hold = m_globals(variable1.Variable.Name)
-            m_globals(variable1.Variable.Name) = m_globals(variable2.Variable.Name)
-            m_globals(variable2.Variable.Name) = hold
+              Dim hold = m_globals(variable1.Variable.Name)
+              m_globals(variable1.Variable.Name) = m_globals(variable2.Variable.Name)
+              m_globals(variable2.Variable.Name) = hold
 
-            'Dim locals = m_locals.Peek
-            'Dim hold = locals(variable1.Variable)
-            'locals(variable1.Variable) = locals(variable2.Variable)
-            'locals(variable2.Variable) = hold
+              'Dim locals = m_locals.Peek
+              'Dim hold = locals(variable1.Variable)
+              'locals(variable1.Variable) = locals(variable2.Variable)
+              'locals(variable2.Variable) = hold
 
-            index += 1
+              index += 1
 
-          Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
-          Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
-          Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
-          Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
-           Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
-           Case BoundNodeKind.ResumeStatement : EvaluateResumeStatement(CType(s, BoundResumeStatement)) : index += 1
-           Case BoundNodeKind.ResumeNextStatement : EvaluateResumeNextStatement(CType(s, BoundResumeNextStatement)) : index += 1
-           Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
-           Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
-           Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
-           Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement)) : index += 1
-          Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
-          Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
-           Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
-           Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
-           Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
-           Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
-          Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement)) : index += 1
-           Case Else
-             Throw New Exception($"Unexpected kind {s.Kind}")
-         End Select
-          Catch ex As ResumeException
-            ' Handle RESUME jumping
-            ClearError()
-            index = ex.TargetIndex
-            Continue While
-          Catch ex As QBasicRuntimeException
-            ' Handle runtime errors - set error and handle it
-            If m_err = 0 Then ' Only set if not already set
-              Select Case ex.Message
-                Case "Overflow" : SetError(6)
-                Case "Advanced feature unavailable" : SetError(73)
-                Case Else : SetError(11) ' Generic error
-              End Select
-            End If
-            ' Error will be handled on next iteration
-            Continue While
-         End Try
-       End While
+            Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
+            Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
+            Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
+            Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
+            Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
+            Case BoundNodeKind.ResumeStatement : EvaluateResumeStatement(CType(s, BoundResumeStatement)) : index += 1
+            Case BoundNodeKind.ResumeNextStatement : EvaluateResumeNextStatement(CType(s, BoundResumeNextStatement)) : index += 1
+            Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
+            Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
+            Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
+            Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement)) : index += 1
+            Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
+            Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
+            Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
+            Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
+            Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement)) : index += 1
+            Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement)) : index += 1
+            Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement)) : index += 1
+            Case BoundNodeKind.ForStatement : EvaluateForStatement(CType(s, BoundForStatement)) : index += 1
+            Case BoundNodeKind.WhileStatement : EvaluateWhileStatement(CType(s, BoundWhileStatement)) : index += 1
+            Case Else
+              Throw New Exception($"Unexpected kind {s.Kind}")
+          End Select
+        Catch ex As ResumeException
+          ' Handle RESUME jumping
+          ClearError()
+          index = ex.TargetIndex
+          Continue While
+        Catch ex As QBasicRuntimeException
+          ' Handle runtime errors - set error and handle it
+          If m_err = 0 Then ' Only set if not already set
+            Select Case ex.Message
+              Case "Overflow" : SetError(6)
+              Case "Advanced feature unavailable" : SetError(73)
+              Case Else : SetError(11) ' Generic error
+            End Select
+          End If
+          ' Error will be handled on next iteration
+          Continue While
+        End Try
+      End While
 
       Return m_lastValue
 
     End Function
+
+    Private Sub EvaluateForStatement(node As BoundForStatement)
+      Dim lower As Integer = CInt(EvaluateExpression(node.LowerBound))
+      Dim upper As Integer = CInt(EvaluateExpression(node.UpperBound))
+      Dim stepValue As Integer = If(node.Stepper Is Nothing, 1, CInt(EvaluateExpression(node.Stepper)))
+      Dim variable = node.Variable
+      Dim locals = m_locals.Peek()
+      locals(variable.Name) = CObj(lower)
+      While True
+        Dim condition = New BoundBinaryExpression(
+          New BoundVariableExpression(variable),
+          BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+          New BoundLiteralExpression(CObj(upper)))
+        Dim condResult = EvaluateExpression(condition)
+        If DirectCast(condResult, Boolean) Then
+          Dim bodyBlock = CType(node.Body, BoundBlockStatement)
+          EvaluateStatement(bodyBlock)
+        Else
+          Exit While
+        End If
+        Dim increment = New BoundBinaryExpression(
+          New BoundVariableExpression(variable),
+          BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
+          New BoundLiteralExpression(CObj(stepValue)))
+        locals(variable.Name) = EvaluateExpression(increment)
+      End While
+    End Sub
+
+    Private Sub EvaluateWhileStatement(node As BoundWhileStatement)
+      Dim exprResult = EvaluateExpression(node.Expression)
+      While DirectCast(exprResult, Boolean)
+        Dim bodyBlock = CType(node.Statements, BoundBlockStatement)
+        EvaluateStatement(bodyBlock)
+        exprResult = EvaluateExpression(node.Expression)
+      End While
+    End Sub
 
     Private Sub EvaluateDataStatement(node As BoundDataStatement)
       For Each value In node.Data
@@ -707,7 +745,7 @@ Namespace Global.QB.CodeAnalysis
       ' For now, we'll just ignore it as setting system time requires admin privileges
       Dim timeString = CStr(EvaluateExpression(node.Expression))
       ' TODO: Implement actual time setting if needed
-     End Sub
+    End Sub
 
     Private Sub EvaluateOnErrorGotoStatement(node As BoundOnErrorGotoStatement)
       ' Set error handler target
@@ -1245,11 +1283,11 @@ Namespace Global.QB.CodeAnalysis
 
       Select Case node.Kind
 
-      Case BoundNodeKind.ArrayAccessExpression : Return EvaluateArrayAccessExpression(CType(node, BoundArrayAccessExpression))
-       Case BoundNodeKind.AssignmentExpression : Return EvaluateAssignmentExpression(CType(node, BoundAssignmentExpression))
-       Case BoundNodeKind.BinaryExpression : Return EvaluateBinaryExpression(CType(node, BoundBinaryExpression))
-       Case BoundNodeKind.LiteralExpression : Return EvaluateLiteralExpression(CType(node, BoundLiteralExpression))
-       Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
+        Case BoundNodeKind.ArrayAccessExpression : Return EvaluateArrayAccessExpression(CType(node, BoundArrayAccessExpression))
+        Case BoundNodeKind.AssignmentExpression : Return EvaluateAssignmentExpression(CType(node, BoundAssignmentExpression))
+        Case BoundNodeKind.BinaryExpression : Return EvaluateBinaryExpression(CType(node, BoundBinaryExpression))
+        Case BoundNodeKind.LiteralExpression : Return EvaluateLiteralExpression(CType(node, BoundLiteralExpression))
+        Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
         Case BoundNodeKind.UnaryExpression : Return EvaluateUnaryExpression(CType(node, BoundUnaryExpression))
         Case BoundNodeKind.ParenExpression : Return EvaluateParenExpression(CType(node, BoundParenExpression))
         Case BoundNodeKind.BoundFunctionExpression : Return EvaluateBoundFunctionExpression(CType(node, BoundBoundFunctionExpression))
@@ -1753,12 +1791,12 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.ErDev2 Then
         Stop
         Return Nothing
-       ElseIf node.Function Is BuiltinFunctions.Erl Then
-         ' ERL returns the line number where the last error occurred (0 if no error)
-         Return m_erl
-       ElseIf node.Function Is BuiltinFunctions.Err Then
-         ' ERR returns the error code of the last error (0 if no error)
-         Return m_err
+      ElseIf node.Function Is BuiltinFunctions.Erl Then
+        ' ERL returns the line number where the last error occurred (0 if no error)
+        Return m_erl
+      ElseIf node.Function Is BuiltinFunctions.Err Then
+        ' ERR returns the error code of the last error (0 if no error)
+        Return m_err
       ElseIf node.Function Is BuiltinFunctions.Exp Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         'Dim base = 2.718282
@@ -1782,20 +1820,20 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Inkey Then
         ' INKEY$ returns the last key pressed as a string (empty if no key pressed)
         Return QBLib.Video.INKEY$()
-       ElseIf node.Function Is BuiltinFunctions.Inp Then
-         Dim portValue = EvaluateExpression(node.Arguments(0))
-         Dim port As Integer
-         If TypeOf portValue Is Double Then
-           port = CInt(CDbl(portValue))
-         ElseIf TypeOf portValue Is Integer Then
-           port = CInt(portValue)
-         Else
-           port = CInt(portValue)
-         End If
-         If port < 0 Or port > 65535 Then
-           Throw New QBasicRuntimeException("Overflow")
-         End If
-         Throw New QBasicRuntimeException("Advanced feature unavailable")
+      ElseIf node.Function Is BuiltinFunctions.Inp Then
+        Dim portValue = EvaluateExpression(node.Arguments(0))
+        Dim port As Integer
+        If TypeOf portValue Is Double Then
+          port = CInt(CDbl(portValue))
+        ElseIf TypeOf portValue Is Integer Then
+          port = CInt(portValue)
+        Else
+          port = CInt(portValue)
+        End If
+        If port < 0 Or port > 65535 Then
+          Throw New QBasicRuntimeException("Overflow")
+        End If
+        Throw New QBasicRuntimeException("Advanced feature unavailable")
       ElseIf node.[Function] Is BuiltinFunctions.Input Then
         Return Console.ReadLine()
       ElseIf node.Function Is BuiltinFunctions.Command Then

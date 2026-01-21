@@ -836,7 +836,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim parseNextArgument = Not IsEndOfStatement()
       While parseNextArgument AndAlso Not IsEndOfStatement()
         Dim pound = TryMatchToken(SyntaxKind.PoundToken)
-        If pound IsNot Nothing Then nodesAndSeparators.Add(pound)
+        ' Pound is optional and ignored for binding
         Dim expression = ParseExpression()
         nodesAndSeparators.Add(expression)
         If Current.Kind = SyntaxKind.CommaToken Then
@@ -3936,7 +3936,7 @@ repeat:
 
         If singleLine Then
           Dim peekLine = m_text.GetLineIndex(Current.Span.Start)
-          If peekLine > beginLine Then
+          If peekLine > beginLine OrElse Current.Kind = SyntaxKind.ElseKeyword Then
             Exit While
           End If
         End If

@@ -1429,8 +1429,8 @@ Namespace Global.QB.CodeAnalysis.Binding
             Dim tab = CType(entry, TabFunctionSyntax)
             Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
             nodes.Add(New BoundTabFunction(expr))
-          Else
-            nodes.Add(BindExpression(CType(entry, ExpressionSyntax), TypeSymbol.Any))
+          ElseIf TypeOf entry Is ExpressionSyntax Then
+            nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
           End If
         Next
         Return New BoundPrintStatement(nodes.ToImmutableArray)

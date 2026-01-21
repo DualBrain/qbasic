@@ -1761,7 +1761,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           End If
           ' Check array size limit
           Dim arraySize = CLng(upperValue) - CLng(lowerValue) + 1
-          If arraySize > 65535 Then
+          If arraySize > 16383 Then
             Diagnostics.ReportArraySizeTooLarge(identifier.Location, arraySize)
           End If
         Catch ex As OverflowException

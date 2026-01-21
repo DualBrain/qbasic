@@ -32,8 +32,6 @@ Namespace Global.QB.CodeAnalysis
 
     Private Const GOTO_LABEL_PREFIX As String = "$LABEL"
 
-
-
     'Private m_random As Random
 
     'TODO: Need to make this scoped.
@@ -129,148 +127,6 @@ Namespace Global.QB.CodeAnalysis
       End If
 
       Return False
-    End Function
-
-    Friend Enum ErrorCode
-      None = 0
-      NextWithoutFor = 1
-      Syntax = 2
-      ReturnWithoutGosub = 3
-      OutOfData = 4
-      IllegalFunctionCall = 5
-      Overflow = 6
-      OutOfMemory = 7
-      UndefinedLineNumber = 8
-      SubscriptOutOfRange = 9
-      DuplicateDefinition = 10
-      DivisionByZero = 11
-      IllegalDirect = 12
-      TypeMismatch = 13
-      OutOfStringSpace = 14
-      StringTooLong = 15
-      StringFormulaTooComplex = 16
-      CanNotContinue = 17
-      UndefinedUserFunction = 18
-      NoResume = 19
-      ResumeWithoutError = 20
-      Unprintable21 = 21
-      MissingOperand = 22
-      LineBufferOverflow = 23
-      DeviceTimeout = 24
-      DeviceFault = 25
-      ForWithoutNext = 26
-      OutOfPaper = 27
-      Unprintable28 = 28
-      WhileWithoutWend = 29
-      WendWithoutWHILE = 30
-      Unprintable31 = 31
-      Unprintable32 = 32
-      Unprintable33 = 33
-      Unprintable34 = 34
-      Unprintable35 = 35
-      Unprintable36 = 36
-      Unprintable37 = 37
-      Unprintable38 = 38
-      Unprintable39 = 39
-      Unprintable40 = 40
-      Unprintable41 = 41
-      Unprintable42 = 42
-      Unprintable43 = 43
-      Unprintable44 = 44
-      Unprintable45 = 45
-      Unprintable46 = 46
-      Unprintable47 = 47
-      Unprintable48 = 48
-      Unprintable49 = 49
-      FieldOverflow = 50
-      Internal = 51
-      BadFileNumber = 52
-      FileNotFound = 53
-      BadFileMode = 54
-      FileAlreadyOpen = 55
-      Unprintable56 = 56
-      DeviceIO = 57
-      FileAlreadyExists = 58
-      Unprintable59 = 59
-      Unprintable60 = 60
-      DiskFull = 61
-      InputPastEnd = 62
-      BadRecordNumber = 63
-      BadFilename = 64
-      Unprintable65 = 65
-      DirectStatementInFile = 66
-      TooManyFiles = 67
-      DeviceUnavailable = 68
-      CommunicationBufferOverflow = 69
-      PermissionDenied = 70
-      DiskNotReady = 71
-      DiskMedia = 72
-      AdvancedFeature = 73
-      RenameAcrossDisks = 74
-      PathFileAccess = 75
-      PathNotFound = 76
-    End Enum
-
-    Private Shared Function GetErrorMessage(errorCode As Integer) As String
-      Return GetErrorMessage(CType(errorCode, ErrorCode))
-    End Function
-
-    Friend Shared Function GetErrorMessage(errorCode As ErrorCode) As String
-      Select Case errorCode
-        Case ErrorCode.None : Return "Undefined"
-        Case ErrorCode.NextWithoutFor : Return "NEXT without FOR"
-        Case ErrorCode.Syntax : Return "Syntax error"
-        Case ErrorCode.ReturnWithoutGosub : Return "RETURN without GOSUB"
-        Case ErrorCode.OutOfData : Return "Out of DATA"
-        Case ErrorCode.IllegalFunctionCall : Return "Illegal function call"
-        Case ErrorCode.Overflow : Return "Overflow"
-        Case ErrorCode.OutOfMemory : Return "Out of memory"
-        Case ErrorCode.UndefinedLineNumber : Return "Undefined line number"
-        Case ErrorCode.SubscriptOutOfRange : Return "Subscript out of range"
-        Case ErrorCode.DuplicateDefinition : Return "Duplicate Definition"
-        Case ErrorCode.DivisionByZero : Return "Division by zero"
-        Case ErrorCode.IllegalDirect : Return "Illegal direct"
-        Case ErrorCode.TypeMismatch : Return "Type mismatch"
-        Case ErrorCode.OutOfStringSpace : Return "Out of string space"
-        Case ErrorCode.StringTooLong : Return "String too long"
-        Case ErrorCode.StringFormulaTooComplex : Return "String formula too complex"
-        Case ErrorCode.CanNotContinue : Return "Can't continue"
-        Case ErrorCode.UndefinedUserFunction : Return "Undefined user function"
-        Case ErrorCode.NoResume : Return "No RESUME"
-        Case ErrorCode.ResumeWithoutError : Return "RESUME without error"
-        Case ErrorCode.MissingOperand : Return "Missing operand"
-        Case ErrorCode.LineBufferOverflow : Return "Line buffer overflow"
-        Case ErrorCode.DeviceTimeout : Return "Device Timeout"
-        Case ErrorCode.DeviceFault : Return "Device Fault"
-        Case ErrorCode.ForWithoutNext : Return "FOR Without NEXT"
-        Case ErrorCode.OutOfPaper : Return "Out of Paper"
-        Case ErrorCode.WhileWithoutWend : Return "WHILE without WEND"
-        Case ErrorCode.WendWithoutWHILE : Return "WEND without WHILE"
-        Case ErrorCode.FieldOverflow : Return "FIELD overflow"
-        Case ErrorCode.Internal : Return "Internal error"
-        Case ErrorCode.BadFileNumber : Return "Bad file number"
-        Case ErrorCode.FileNotFound : Return "File not found"
-        Case ErrorCode.BadFileMode : Return "Bad file mode"
-        Case ErrorCode.FileAlreadyOpen : Return "File already open"
-        Case ErrorCode.DeviceIO : Return "Device I/O Error"
-        Case ErrorCode.FileAlreadyExists : Return "File already exists"
-        Case ErrorCode.DiskFull : Return "Disk full"
-        Case ErrorCode.InputPastEnd : Return "Input past end"
-        Case ErrorCode.BadRecordNumber : Return "Bad record number"
-        Case ErrorCode.BadFilename : Return "Bad filename"
-        Case ErrorCode.DirectStatementInFile : Return "Direct statement in file"
-        Case ErrorCode.TooManyFiles : Return "Too many files"
-        Case ErrorCode.DeviceUnavailable : Return "Device Unavailable"
-        Case ErrorCode.CommunicationBufferOverflow : Return "Communication buffer overflow"
-        Case ErrorCode.PermissionDenied : Return "Permission Denied"
-        Case ErrorCode.DiskNotReady : Return "Disk not Ready"
-        Case ErrorCode.DiskMedia : Return "Disk media error"
-        Case ErrorCode.AdvancedFeature : Return "Advanced Feature"
-        Case ErrorCode.RenameAcrossDisks : Return "Rename across disks"
-        Case ErrorCode.PathFileAccess : Return "Path/File Access Error"
-        Case ErrorCode.PathNotFound : Return "Path not found"
-        Case Else : Return $"Unprintable error {errorCode}"
-      End Select
     End Function
 
     Private Function GetVariableNameFromSyntax(syntax As ExpressionSyntax) As String
@@ -1231,18 +1087,22 @@ Namespace Global.QB.CodeAnalysis
             lowerInt = Convert.ToInt32(lower)
             upperInt = Convert.ToInt32(upper)
           Catch ex As OverflowException
-            Throw New Exception("Array bounds are out of valid range (-32768 to 32767).")
+            Throw New QBasicRuntimeException(ErrorCode.Overflow)
+            'Throw New Exception("Array bounds are out of valid range (-32768 to 32767).")
           End Try
           If upperInt < lowerInt Then
-            Throw New Exception($"Array bounds are invalid: {lowerInt} to {upperInt}. Lower bound must be less than or equal to upper bound.")
+            'Throw New Exception($"Array bounds are invalid: {lowerInt} to {upperInt}. Lower bound must be less than or equal to upper bound.")
+            Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
           End If
           ' Check for reasonable array size (QBasic had memory limits)
           Dim arraySize = CLng(upperInt) - CLng(lowerInt) + 1 ' Use Long to avoid overflow
-          If arraySize > 65535 Then
-            Throw New Exception($"Array size {arraySize} is too large. Maximum allowed is 65535 elements.")
+          If arraySize > 16383 Then
+            'Throw New Exception($"Array size {arraySize} is too large. Maximum allowed is 16383 elements.")
+            Throw New QBasicRuntimeException(ErrorCode.Overflow)
           End If
           If arraySize <= 0 Then
-            Throw New Exception($"Invalid array size {arraySize}. Array must have at least 1 element.")
+            'Throw New Exception($"Invalid array size {arraySize}. Array must have at least 1 element.")
+            Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
           End If
           Dim newSize = CInt(arraySize)
           ' Get existing list

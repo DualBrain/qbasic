@@ -1846,7 +1846,11 @@ Namespace Global.QB.CodeAnalysis
         Return Math.Atan(value)
       ElseIf node.Function Is BuiltinFunctions.Chr Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
-        Return Microsoft.VisualBasic.Strings.Chr(value)
+        If value.Between(0, 255) Then
+          Return Microsoft.VisualBasic.Strings.Chr(value)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
       ElseIf node.Function Is BuiltinFunctions.CDbl Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return value

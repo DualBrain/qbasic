@@ -1,6 +1,5 @@
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
-Imports QB.CodeAnalysis.Text
 
 Imports QBLib
 
@@ -140,7 +139,7 @@ Handler:
     End Sub
 
     <Fact>
-    Public Sub TestError4_OutOfDATA()
+    Public Sub TestError04_OutOfDATA()
       ' 4 Out of DATA: A READ statement is executed when there are no DATA statements with unread data remaining in the program.
 
       Dim text = "
@@ -163,99 +162,113 @@ handler:
       Assert.Equal("Error 4", vars("output$"))
     End Sub
 
-    '    <Fact>
-    '    Public Sub TestError5_IllegalFunctionCall_ArrayBoundsInvalid()
-    '      ' 5 Illegal function call: An out-of-range parameter is passed to a math or string function. An illegal function call error may also occur as the result of: a negative or unreasonably large subscript, etc.
+    <Fact>
+    Public Sub TestError05_IllegalFunctionCall_ArrayBoundsInvalid()
+      ' 5 Illegal function call: An out-of-range parameter is passed to a math or string function. An illegal function call error may also occur as the result of: a negative or unreasonably large subscript, etc.
 
-    '      Dim text = "
-    'ON ERROR GOTO handler
-    'DIM A(-1 TO 10)
-    'END
-    'handler:
-    'output$ = ""Error"" + STR$(ERR)
-    'RESUME NEXT
-    '    "
+      Dim text = "
+ON ERROR GOTO handler
+A$ = CHR$(-1)
+END
 
-    '      Dim evalResult = Evaluate(text)
-    '      Dim result = evalResult.Result
-    '      Dim vars = evalResult.Variables
-    '      Assert.Equal("Error 5", vars("OUTPUT$"))
-    '    End Sub
+handler:
+  output$ = ""Error"" + STR$(ERR)
+  RESUME NEXT
+"
 
-    '    <Fact>
-    '    Public Sub TestError7_OutOfMemory_ArrayTooLarge()
-    '      ' 7 Out of memory: A program is too large, has too many FOR loops, GOSUBs, variables, or expressions that are too complicated. Use the CLEAR statement to set aside more stack space or memory area.
+      Dim evalResult = Evaluate(text)
+      Dim result = evalResult.Result
+      Dim vars = evalResult.Variables
+      Assert.Equal("Error 5", vars("output$"))
 
-    '      Dim text = "
-    'ON ERROR GOTO handler
-    'DIM A(65536)
-    'END
-    'handler:
-    'output$ = ""Error"" + STR$(ERR)
-    'RESUME NEXT
-    '"
+    End Sub
 
-    '      Dim evalResult = Evaluate(text)
-    '      Dim result = evalResult.Result
-    '      Dim vars = evalResult.Variables
-    '      Assert.Equal("Error 7", vars("OUTPUT$"))
-    '    End Sub
+    <Fact>
+    Public Sub TestError06_Overflow_ArrayTooLarge()
+      ' 6 Overflow: The result of a calculation is too large to be represented in GW-BASIC's number format. If underflow occurs, the result is zero, and execution continues without an error.
 
-    '    <Fact>
-    '    Public Sub TestError9_SubscriptOutOfRange()
-    '      ' 9 Subscript out of range: An array element is referenced either with a subscript that is outside the dimensions of the array, or with the wrong number of subscripts.
+      Dim text = "
+ON ERROR GOTO handler
+DIM A(65536)
+END
 
-    '      Dim text = "
-    'ON ERROR GOTO handler
-    'DIM A(10)
-    'A(11) = 1
-    'END
-    'handler:
-    'output$ = ""Error"" + STR$(ERR)
-    'RESUME NEXT
-    '"
+handler:
+  output$ = ""Error"" + STR$(ERR)
+  RESUME NEXT
+"
 
-    '      Dim evalResult = Evaluate(text)
-    '      Dim result = evalResult.Result
-    '      Dim vars = evalResult.Variables
-    '      Assert.Equal("Error 9", vars("OUTPUT$"))
-    '    End Sub
+      Dim evalResult = Evaluate(text)
+      Dim result = evalResult.Result
+      Dim vars = evalResult.Variables
+      Assert.Equal("Error 6", vars("output$"))
 
-    '    <Fact>
-    '    Public Sub TestError13_TypeMismatch_VariableNotArray()
-    '      ' 13 Type mismatch: A string variable name is assigned a numeric value or vice versa; a function that expects a numeric argument is given a string argument or vice versa.
+    End Sub
 
-    '      Dim text = "
-    'ON ERROR GOTO handler
-    'X = 1
-    'X(1) = 2
-    'END
-    'handler:
-    'output$ = ""Error"" + STR$(ERR)
-    'RESUME NEXT
-    '"
+    <Fact>
+    Public Sub TestError09_SubscriptOutOfRange()
+      ' 9 Subscript out of range: An array element is referenced either with a subscript that is outside the dimensions of the array, or with the wrong number of subscripts.
 
-    '      Dim evalResult = Evaluate(text)
-    '      Dim result = evalResult.Result
-    '      Dim vars = evalResult.Variables
-    '      Assert.Equal("Error 13", vars("OUTPUT$"))
-    '    End Sub
+      Dim text = "
+ON ERROR GOTO handler
+DIM A(10)
+A(11) = 1
+END
 
-    '    <Fact>
-    '    Public Sub TestVariableAssignment()
-    '      Dim text = "output$ = ""test"""
-    '      Dim evalResult = Evaluate(text)
-    '      Dim result = evalResult.Result
-    '      Dim vars = evalResult.Variables
-    '      If result.Diagnostics.Count > 0 Then
-    '        Assert.Fail("Diagnostics: " & String.Join(", ", result.Diagnostics.Select(Function(d) d.Message)))
-    '      End If
-    '      Console.WriteLine("Vars count: " & vars.Count)
-    '      For Each kv In vars
-    '        Console.WriteLine("Key: '" & kv.Key & "', Value: '" & kv.Value.ToString & "'")
-    '      Next
-    '      Assert.Equal("test", vars("OUTPUT$"))
-    '    End Sub
+handler:
+  output$ = ""Error"" + STR$(ERR)
+  RESUME NEXT
+"
+
+      Dim evalResult = Evaluate(text)
+      Dim result = evalResult.Result
+      Dim vars = evalResult.Variables
+      Assert.Equal("Error 9", vars("output$"))
+
+    End Sub
+
+    <Fact>
+    Public Sub TestError13_TypeMismatch_NumEqualString()
+      ' 13 Type mismatch: A string variable name is assigned a numeric value or vice versa; a function that expects a numeric argument is given a string argument or vice versa.
+
+      Dim text = "
+ON ERROR GOTO handler
+X = 1
+X = ""2""
+END
+
+handler:
+  output$ = ""Error"" + STR$(ERR)
+  RESUME NEXT
+"
+
+      Dim evalResult = Evaluate(text)
+      Dim result = evalResult.Result
+      Dim vars = evalResult.Variables
+      Assert.Equal("Error 13", vars("output$"))
+
+    End Sub
+
+    <Fact>
+    Public Sub TestError13_TypeMismatch_StringEqualNum()
+      ' 13 Type mismatch: A string variable name is assigned a numeric value or vice versa; a function that expects a numeric argument is given a string argument or vice versa.
+
+      Dim text = "
+ON ERROR GOTO handler
+X$ = ""1""
+X$ = 2
+END
+
+handler:
+  output$ = ""Error"" + STR$(ERR)
+  RESUME NEXT
+"
+
+      Dim evalResult = Evaluate(text)
+      Dim result = evalResult.Result
+      Dim vars = evalResult.Variables
+      Assert.Equal("Error 13", vars("output$"))
+
+    End Sub
 
   End Class
 

@@ -79,9 +79,9 @@ RETURN"
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      Dim slept = If(variables.ContainsKey("slept"), CDbl(variables("slept")), 0)
+      Dim v = If(variables.ContainsKey("slept"), CDbl(variables("slept")), 0)
       ' Timer event should interrupt SLEEP after ~1 second
-      Assert.True(slept >= 0.8 And slept <= 1.5, $"Expected slept to be ~1 second, but was {slept}")
+      Assert.Equal(1, v, 0.2) ' Allow timing variations
     End Sub
 
     <Fact>

@@ -1938,7 +1938,7 @@ Namespace Global.QB.CodeAnalysis
         g_lastRndResult = g_random.NextSingle()
         Return g_lastRndResult
       ElseIf node.[Function] Is BuiltinFunctions.Timer Then
-        Return CSng(DateTime.Now.TimeOfDay.TotalSeconds)
+        Return CSng($"{DateTime.Now.TimeOfDay.TotalSeconds:F2}")
       ElseIf node.[Function] Is BuiltinFunctions.Rnd2 Then
         ' NOTES:
         '   PRINT RND(1) in QBasic 1.1 always results in .7055475 if RANDOMIZE is not called prior.
@@ -2002,9 +2002,6 @@ Namespace Global.QB.CodeAnalysis
         Return Math.Tan(value)
       ElseIf node.Function Is BuiltinFunctions.Time Then
         Return DateTime.Now.ToString("HH:mm:ss")
-      ElseIf node.Function Is BuiltinFunctions.Timer Then
-        Stop
-        Return Nothing
       ElseIf node.Function Is BuiltinFunctions.UBound Then
         Dim arg = node.Arguments(0)
         If TypeOf arg Is BoundVariableExpression Then

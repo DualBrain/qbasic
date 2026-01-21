@@ -3766,17 +3766,18 @@ repeat:
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
         Return ParseCallExpression()
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
-                                                                Current.Text.ToLower = "csrlin" OrElse
-                                                                Current.Text.ToLower = "date$" OrElse
-                                                                Current.Text.ToLower = "erl" OrElse
-                                                                Current.Text.ToLower = "err" OrElse
-                                                                Current.Text.ToLower = "freefile" OrElse
-                                                                Current.Text.ToLower = "inkey$" OrElse
-                                                                Current.Text.ToLower = "rnd" OrElse
-                                                                Current.Text.ToLower = "time$" OrElse
-                                                                Current.Text.ToLower = "timer")) OrElse
-         Current.Kind = SyntaxKind.DateKeyword OrElse
-         Current.Kind = SyntaxKind.TimeKeyword Then
+                                                                 Current.Text.ToLower = "csrlin" OrElse
+                                                                 Current.Text.ToLower = "date$" OrElse
+                                                                 Current.Text.ToLower = "erl" OrElse
+                                                                 Current.Text.ToLower = "err" OrElse
+                                                                 Current.Text.ToLower = "freefile" OrElse
+                                                                 Current.Text.ToLower = "inkey$" OrElse
+                                                                 Current.Text.ToLower = "rnd" OrElse
+                                                                 Current.Text.ToLower = "time$" OrElse
+                                                                 Current.Text.ToLower = "timer")) OrElse
+          Current.Kind = SyntaxKind.DateKeyword OrElse
+          Current.Kind = SyntaxKind.TimeKeyword OrElse
+          Current.Kind = SyntaxKind.TimerKeyword Then
         Dim identifier = MatchToken(Current.Kind)
         Return New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
       End If

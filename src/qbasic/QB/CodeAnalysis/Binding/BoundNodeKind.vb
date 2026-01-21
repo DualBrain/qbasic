@@ -49,12 +49,16 @@ Namespace Global.QB.CodeAnalysis.Binding
     OnKeyGosubStatement
     OnStrigGosubStatement
     OnPlayGosubStatement
-    OnPenGosubStatement
-    ComStatement
-    KeyEventStatement
-    StrigStatement
-    PlayEventStatement
-    PenStatement
+     OnPenGosubStatement
+     ComStatement
+     KeyEventStatement
+     StrigStatement
+     PlayEventStatement
+     PenStatement
+     OpenStatement
+     CloseStatement
+     LineInputFileStatement
+     PrintFileStatement
     OptionStatement
     PrintStatement
     PokeStatement

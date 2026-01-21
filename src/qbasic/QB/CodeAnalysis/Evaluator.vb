@@ -5,6 +5,7 @@ Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib
+Imports System.IO
 
 Namespace Global.QB.CodeAnalysis
 
@@ -63,6 +64,13 @@ Namespace Global.QB.CodeAnalysis
     ' PEN event state
     Private m_penHandlerTarget As Object = Nothing ' Target for ON PEN GOSUB
     Private m_penState As TimerState = TimerState.Off ' Current PEN state
+
+    ' File I/O state
+    Private ReadOnly m_openFiles As New Dictionary(Of Integer, FileStream) ' File number to FileStream mapping
+    Private ReadOnly m_fileModes As New Dictionary(Of Integer, String) ' File number to access mode mapping
+    Private ReadOnly m_textReaders As New Dictionary(Of Integer, StreamReader) ' File number to StreamReader mapping for INPUT files
+    Private ReadOnly m_textWriters As New Dictionary(Of Integer, StreamWriter) ' File number to StreamWriter mapping for OUTPUT/APPEND files
+
     'Private m_labelToIndex As Dictionary(Of String, Integer) = Nothing ' Label to m_currentIndex mapping
     'Private m_currentIndex As Integer = 0 ' Current statement m_currentIndex being executed
 
@@ -660,6 +668,10 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.StrigStatement : EvaluateStrigStatement(CType(s, BoundStrigStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.PlayEventStatement : EvaluatePlayEventStatement(CType(s, BoundPlayEventStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.PenStatement : EvaluatePenStatement(CType(s, BoundPenStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.OpenStatement : EvaluateOpenStatement(CType(s, BoundOpenStatement)) : index += 1
+            Case BoundNodeKind.CloseStatement : EvaluateCloseStatement(CType(s, BoundCloseStatement)) : index += 1
+            Case BoundNodeKind.LineInputFileStatement : EvaluateLineInputFileStatement(CType(s, BoundLineInputFileStatement)) : index += 1
+            Case BoundNodeKind.PrintFileStatement : EvaluatePrintFileStatement(CType(s, BoundPrintFileStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
@@ -697,6 +709,12 @@ Namespace Global.QB.CodeAnalysis
               m_err = ErrorCode.DivisionByZero
             ElseIf ex.GetType() = GetType(IndexOutOfRangeException) Then
               m_err = ErrorCode.SubscriptOutOfRange
+            ElseIf ex.GetType() = GetType(IOException) Then
+              m_err = ErrorCode.BadFileMode
+            ElseIf ex.GetType() = GetType(ArgumentException) Then
+              m_err = ErrorCode.BadFileMode
+            ElseIf ex.GetType = GetType(ObjectDisposedException) Then
+              m_err = ErrorCode.BadFileMode
             Else
               m_err = ErrorCode.Internal
             End If
@@ -2248,8 +2266,13 @@ Namespace Global.QB.CodeAnalysis
           End If
         End If
       ElseIf node.Function Is BuiltinFunctions.Eof Then
-        Stop
-        Return Nothing
+        Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
+        If m_openFiles.ContainsKey(fileNumber) Then
+          Dim stream = m_openFiles(fileNumber)
+          Return stream.Position >= stream.Length
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+        End If
       ElseIf node.Function Is BuiltinFunctions.ErDev1 Then
         Stop
         Return Nothing
@@ -2278,7 +2301,13 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Fre Then
         Return 160266
       ElseIf node.Function Is BuiltinFunctions.FreeFile Then
-        Return 1
+        ' Find the next available file number (1-255)
+        For i = 1 To 255
+          If Not m_openFiles.ContainsKey(i) Then
+            Return i
+          End If
+        Next
+        Throw New QBasicRuntimeException(ErrorCode.TooManyFiles)
       ElseIf node.Function Is BuiltinFunctions.Hex Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Hex(value)
@@ -2335,11 +2364,33 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Len(value)
       ElseIf node.Function Is BuiltinFunctions.Loc Then
-        Stop
-        Return Nothing
+        Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
+        If m_openFiles.ContainsKey(fileNumber) Then
+          Dim stream = m_openFiles(fileNumber)
+          Dim mode = m_fileModes(fileNumber)
+          Select Case mode.ToUpper()
+            Case "BINARY"
+              Return CLng(stream.Position)
+            Case "RANDOM"
+              ' For random files, return record number (assuming 128-byte records)
+              Return CLng(stream.Position \ 128) + 1
+            Case "INPUT", "OUTPUT", "APPEND"
+              ' For sequential files, return offset divided by 128
+              Return CLng(stream.Position \ 128)
+            Case Else
+              Return CLng(stream.Position)
+          End Select
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Lof Then
-        Stop
-        Return Nothing
+        Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
+        If m_openFiles.ContainsKey(fileNumber) Then
+          Dim stream = m_openFiles(fileNumber)
+          Return CLng(stream.Length)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Log Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Log(value)
@@ -2610,6 +2661,143 @@ Namespace Global.QB.CodeAnalysis
         Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
         tuple.Item1(tuple.Item2) = value
       End If
+    End Sub
+
+    Private Sub EvaluateOpenStatement(node As BoundOpenStatement)
+      Dim fileName = CStr(EvaluateExpression(node.File))
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+
+      ' Check if file number is already in use
+      If m_openFiles.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.FileAlreadyOpen)
+      End If
+
+      ' Determine access mode
+      Dim mode As FileMode = FileMode.OpenOrCreate
+      Dim access As FileAccess = FileAccess.ReadWrite
+      Dim modeString = If(node.Mode IsNot Nothing, CStr(EvaluateExpression(node.Mode)), "RANDOM")
+
+      Select Case modeString.ToUpper()
+        Case "INPUT"
+          access = FileAccess.Read
+          mode = FileMode.Open
+        Case "OUTPUT"
+          access = FileAccess.Write
+          mode = FileMode.Create
+        Case "APPEND"
+          access = FileAccess.Write
+          mode = FileMode.Append
+        Case "BINARY"
+          access = FileAccess.ReadWrite
+          mode = FileMode.OpenOrCreate
+        Case "RANDOM"
+          access = FileAccess.ReadWrite
+          mode = FileMode.OpenOrCreate
+        Case Else
+          Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
+      End Select
+
+      ' For COM ports, handle differently (not implemented yet)
+      If fileName.ToUpper().StartsWith("COM") Then
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+      End If
+
+      Try
+        Dim stream = New FileStream(fileName, mode, access)
+        m_openFiles.Add(fileNumber, stream)
+        m_fileModes.Add(fileNumber, modeString.ToUpper())
+
+        ' For INPUT files, create a StreamReader
+        If modeString.ToUpper() = "INPUT" Then
+          m_textReaders.Add(fileNumber, New StreamReader(stream, leaveOpen:=True))
+        End If
+      Catch ex As Exception
+        Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
+      End Try
+    End Sub
+
+    Private Sub EvaluateCloseStatement(node As BoundCloseStatement)
+      For Each fileNumberExpr In node.FileNumbers
+        Dim fileNumber = CInt(EvaluateExpression(fileNumberExpr))
+        If m_openFiles.ContainsKey(fileNumber) Then
+          m_openFiles(fileNumber).Close()
+          m_openFiles.Remove(fileNumber)
+          m_fileModes.Remove(fileNumber)
+          If m_textReaders.ContainsKey(fileNumber) Then
+            'm_textReaders(fileNumber).Dispose()
+            m_textReaders.Remove(fileNumber)
+          End If
+          If m_textWriters.ContainsKey(fileNumber) Then
+            'm_textWriters(fileNumber).Dispose()
+            m_textWriters.Remove(fileNumber)
+          End If
+        End If
+      Next
+
+      ' If no file numbers specified, close all files
+      If node.FileNumbers.Length = 0 Then
+        For Each kvp In m_openFiles
+          kvp.Value.Close()
+        Next
+        m_openFiles.Clear()
+        m_fileModes.Clear()
+        'For Each kvp In m_textReaders
+        '  kvp.Value.Dispose()
+        'Next
+        m_textReaders.Clear()
+        'For Each kvp In m_textWriters
+        '  kvp.Value.Dispose()
+        'Next
+        m_textWriters.Clear()
+      End If
+    End Sub
+
+    Private Sub EvaluateLineInputFileStatement(node As BoundLineInputFileStatement)
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+      If Not m_openFiles.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+      End If
+
+      If Not m_textReaders.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
+      End If
+
+      Dim reader = m_textReaders(fileNumber)
+      Dim line = reader.ReadLine()
+      If line Is Nothing Then
+        Throw New QBasicRuntimeException(ErrorCode.InputPastEnd)
+      End If
+      Assign(node.Variable, line)
+    End Sub
+
+    Private Sub EvaluatePrintFileStatement(node As BoundPrintFileStatement)
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+      If Not m_openFiles.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+      End If
+
+      ' Create writer if it doesn't exist
+      If Not m_textWriters.ContainsKey(fileNumber) Then
+        Dim stream = m_openFiles(fileNumber)
+        Try
+          m_textWriters.Add(fileNumber, New StreamWriter(stream, leaveOpen:=True))
+        Catch ex As Exception
+          Throw New QBasicRuntimeException(ErrorCode.Internal)
+        End Try
+      End If
+
+      Dim writer = m_textWriters(fileNumber)
+      For Each boundNode In node.Nodes
+        If TypeOf boundNode Is BoundExpression Then
+          Dim value = EvaluateExpression(DirectCast(boundNode, BoundExpression))
+          writer.Write(CStr(value))
+          writer.Flush()
+        End If
+        ' TODO: Handle separators like ; and , for formatting
+      Next
+      ' For simplicity, always add newline for now
+      writer.WriteLine()
+      writer.Flush()
     End Sub
 
   End Class

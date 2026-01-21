@@ -566,10 +566,11 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.LabelStatement : Return BindLabelStatement(CType(syntax, LabelStatementSyntax))
         Case SyntaxKind.LetStatement : Return BindLetStatement(CType(syntax, LetStatementSyntax))
         Case SyntaxKind.LineStatement : Return BindLineStatement(CType(syntax, LineStatementSyntax))
+        Case SyntaxKind.LineInputFileStatement : Return BindLineInputFileStatement(CType(syntax, LineInputFileStatementSyntax))
         Case SyntaxKind.LocateStatement : Return BindLocateStatement(CType(syntax, LocateStatementSyntax))
         Case SyntaxKind.MidStatement : Return BindMidStatement(CType(syntax, MidStatementSyntax))
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
-         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
+        Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
         Case SyntaxKind.OnErrorGotoStatement : Return BindOnErrorGotoStatement(CType(syntax, OnErrorGotoStatementSyntax))
         Case SyntaxKind.OnTimerGosubStatement : Return BindOnTimerGosubStatement(CType(syntax, OnTimerGosubStatementSyntax))
         Case SyntaxKind.OnComGosubStatement : Return BindOnComGosubStatement(CType(syntax, OnComGosubStatementSyntax))
@@ -577,6 +578,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OnStrigGosubStatement : Return BindOnStrigGosubStatement(CType(syntax, OnStrigGosubStatementSyntax))
         Case SyntaxKind.OnPlayGosubStatement : Return BindOnPlayGosubStatement(CType(syntax, OnPlayGosubStatementSyntax))
         Case SyntaxKind.OnPenGosubStatement : Return BindOnPenGosubStatement(CType(syntax, OnPenGosubStatementSyntax))
+        Case SyntaxKind.OpenStatement : Return BindOpenStatement(CType(syntax, OpenStatementSyntax))
+        Case SyntaxKind.CloseStatement : Return BindCloseStatement(CType(syntax, CloseStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
@@ -1373,27 +1376,64 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindPrintStatement(syntax As PrintStatementSyntax) As BoundStatement
 
-      Dim nodes = New List(Of BoundNode)
+      Dim fileNumber As BoundExpression = Nothing
+      If syntax.FileNumber IsNot Nothing Then
+        fileNumber = BindExpression(syntax.FileNumber)
+      End If
 
-      For Each entry In syntax.Nodes
-        If entry.Kind = SyntaxKind.SemicolonToken Then
-          nodes.Add(New BoundSymbol(";"c))
-        ElseIf entry.Kind = SyntaxKind.CommaToken Then
-          nodes.Add(New BoundSymbol(","c))
-        ElseIf entry.Kind = SyntaxKind.SpcFunction Then
-          Dim spc = CType(entry, SpcFunctionSyntax)
-          Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
-          nodes.Add(New BoundSpcFunction(expr))
-        ElseIf entry.Kind = SyntaxKind.TabFunction Then
-          Dim tab = CType(entry, TabFunctionSyntax)
-          Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
-          nodes.Add(New BoundTabFunction(expr))
-        Else
-          nodes.Add(BindExpression(CType(entry, ExpressionSyntax), TypeSymbol.Any))
-        End If
-      Next
+      Dim format As BoundExpression = Nothing
+      If syntax.Usingformat IsNot Nothing Then
+        format = BindExpression(syntax.Usingformat)
+      End If
 
-      Return New BoundPrintStatement(nodes.ToImmutableArray)
+      If fileNumber IsNot Nothing Then
+        ' For file print, skip the file number part (pound, fileNumber expr, comma) and collect remaining nodes
+        Dim nodes = New List(Of BoundNode)
+        Dim skipCount = 3 ' #, expression, comma
+        Dim index = 0
+        For Each entry In syntax.Nodes
+          If index >= skipCount Then
+            If entry.Kind = SyntaxKind.SemicolonToken Then
+              nodes.Add(New BoundSymbol(";"c))
+            ElseIf entry.Kind = SyntaxKind.CommaToken Then
+              nodes.Add(New BoundSymbol(","c))
+            ElseIf entry.Kind = SyntaxKind.SpcFunction Then
+              Dim spc = CType(entry, SpcFunctionSyntax)
+              Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
+              nodes.Add(New BoundSpcFunction(expr))
+            ElseIf entry.Kind = SyntaxKind.TabFunction Then
+              Dim tab = CType(entry, TabFunctionSyntax)
+              Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
+              nodes.Add(New BoundTabFunction(expr))
+            ElseIf TypeOf entry Is ExpressionSyntax Then
+              nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
+            End If
+          End If
+          index += 1
+        Next
+        Return New BoundPrintFileStatement(fileNumber, format, nodes.ToImmutableArray())
+      Else
+        ' For screen print, keep the original behavior
+        Dim nodes = New List(Of BoundNode)
+        For Each entry In syntax.Nodes
+          If entry.Kind = SyntaxKind.SemicolonToken Then
+            nodes.Add(New BoundSymbol(";"c))
+          ElseIf entry.Kind = SyntaxKind.CommaToken Then
+            nodes.Add(New BoundSymbol(","c))
+          ElseIf entry.Kind = SyntaxKind.SpcFunction Then
+            Dim spc = CType(entry, SpcFunctionSyntax)
+            Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
+            nodes.Add(New BoundSpcFunction(expr))
+          ElseIf entry.Kind = SyntaxKind.TabFunction Then
+            Dim tab = CType(entry, TabFunctionSyntax)
+            Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
+            nodes.Add(New BoundTabFunction(expr))
+          Else
+            nodes.Add(BindExpression(CType(entry, ExpressionSyntax), TypeSymbol.Any))
+          End If
+        Next
+        Return New BoundPrintStatement(nodes.ToImmutableArray)
+      End If
 
     End Function
 
@@ -1872,6 +1912,32 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindOnPenGosubStatement(syntax As OnPenGosubStatementSyntax) As BoundStatement
       Dim target = BindExpression(syntax.Target)
       Return New BoundOnPenGosubStatement(target)
+    End Function
+
+    Private Function BindOpenStatement(syntax As OpenStatementSyntax) As BoundStatement
+      Dim file = BindExpression(syntax.File)
+      Dim mode = If(syntax.ModeKeyword IsNot Nothing, New BoundLiteralExpression(syntax.ModeKeyword.Text), Nothing)
+      Dim access = syntax.Access.Select(Function(a) BindExpression(DirectCast(a, ExpressionSyntax))).ToImmutableArray()
+      Dim lock = syntax.Lock.Select(Function(l) BindExpression(DirectCast(l, ExpressionSyntax))).ToImmutableArray()
+      Dim fileNumber = BindExpression(syntax.FileNumber)
+      Dim recLen = If(syntax.RecLen IsNot Nothing, BindExpression(syntax.RecLen), Nothing)
+      Return New BoundOpenStatement(file, mode, access, lock, fileNumber, recLen)
+    End Function
+
+    Private Function BindCloseStatement(syntax As CloseStatementSyntax) As BoundStatement
+      Dim fileNumbers As ImmutableArray(Of BoundExpression)
+      If syntax.Expressions IsNot Nothing Then
+        fileNumbers = syntax.Expressions.Select(Function(fn) BindExpression(fn)).ToImmutableArray()
+      Else
+        fileNumbers = ImmutableArray(Of BoundExpression).Empty
+      End If
+      Return New BoundCloseStatement(fileNumbers)
+    End Function
+
+    Private Function BindLineInputFileStatement(syntax As LineInputFileStatementSyntax) As BoundStatement
+      Dim fileNumber = BindExpression(syntax.FileNumber)
+      Dim variable = BindExpression(syntax.Identifier)
+      Return New BoundLineInputFileStatement(fileNumber, variable)
     End Function
 
     Private Function BindResumeStatement(syntax As ResumeStatementSyntax) As BoundStatement

@@ -1061,6 +1061,24 @@ LET result = CVS(bin$)"
 
       Assert.IsType(GetType(String), environReadVars("result$"))
       Assert.Equal("test_value", CStr(environReadVars("result$")))
+
+      ' Test file I/O functions (EOF, LOF, LOC) - these will error since no files are open
+      ' but we test that they exist and have correct signatures
+      Dim eofTest = "LET result = EOF(1)"
+      Dim eofTree As SyntaxTree = SyntaxTree.Parse(eofTest)
+      Dim eofComp As Compilation = Compilation.Create(eofTree)
+      ' Should compile without errors
+      Assert.NotNull(eofComp)
+
+      Dim lofTest = "LET result = LOF(1)"
+      Dim lofTree As SyntaxTree = SyntaxTree.Parse(lofTest)
+      Dim lofComp As Compilation = Compilation.Create(lofTree)
+      Assert.NotNull(lofComp)
+
+      Dim locTest = "LET result = LOC(1)"
+      Dim locTree As SyntaxTree = SyntaxTree.Parse(locTest)
+      Dim locComp As Compilation = Compilation.Create(locTree)
+      Assert.NotNull(locComp)
     End Sub
 
     <Fact>

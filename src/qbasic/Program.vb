@@ -363,6 +363,20 @@ Friend Class QBasic
   Private Shared Function SetCursor(hCursor As IntPtr) As IntPtr
   End Function
 
+  <DllImport("user32.dll")>
+  Private Shared Function GetCursorPos(ByRef lpPoint As POINT) As Boolean
+  End Function
+
+  <DllImport("user32.dll")>
+  Private Shared Function ScreenToClient(hWnd As IntPtr, ByRef lpPoint As POINT) As Boolean
+  End Function
+
+  <StructLayout(LayoutKind.Sequential)>
+  Private Structure POINT
+    Public x As Integer
+    Public y As Integer
+  End Structure
+
   <DllImport("libX11.so")>
   Private Shared Function XOpenDisplay(display_name As String) As IntPtr
   End Function
@@ -371,10 +385,109 @@ Friend Class QBasic
   Private Shared Function XDefineCursor(display As IntPtr, w As IntPtr, cursor As IntPtr) As Integer
   End Function
 
+  <DllImport("libX11.so")>
+  Private Shared Function XRootWindow(display As IntPtr, screen_number As Integer) As IntPtr
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XCreatePixmap(display As IntPtr, d As IntPtr, width As UInteger, height As UInteger, depth As UInteger) As IntPtr
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XCreatePixmapCursor(display As IntPtr, source As IntPtr, mask As IntPtr, ByRef foreground_color As XColor, ByRef background_color As XColor, x As UInteger, y As UInteger) As IntPtr
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XFreePixmap(display As IntPtr, pixmap As IntPtr) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XFreeCursor(display As IntPtr, cursor As IntPtr) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XDefaultScreen(display As IntPtr) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XFlush(display As IntPtr) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XDefaultRootWindow(display As IntPtr) As IntPtr
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XQueryTree(display As IntPtr, w As IntPtr, ByRef root_return As IntPtr, ByRef parent_return As IntPtr, ByRef children_return As IntPtr, ByRef nchildren_return As UInteger) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XFetchName(display As IntPtr, w As IntPtr, ByRef window_name_return As IntPtr) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XFree(data As IntPtr) As Integer
+  End Function
+
+  <DllImport("libX11.so")>
+  Private Shared Function XGetWMName(display As IntPtr, w As IntPtr, ByRef text_prop_return As XTextProperty) As Integer
+  End Function
+
+  <StructLayout(LayoutKind.Sequential)>
+  Private Structure XTextProperty
+    Public value As IntPtr
+    Public encoding As IntPtr
+    Public format As Integer
+    Public nitems As ULong
+  End Structure
+
+  <StructLayout(LayoutKind.Sequential)>
+  Private Structure XColor
+    Public pixel As ULong
+    Public red As UShort
+    Public green As UShort
+    Public blue As UShort
+    Public flags As SByte
+    Public pad As SByte
+  End Structure
+
+  Private Function FindWindowByName(display As IntPtr, window As IntPtr, name As String) As IntPtr
+    Dim textProp As XTextProperty
+    If XGetWMName(display, window, textProp) <> 0 AndAlso textProp.value <> IntPtr.Zero Then
+      Dim windowName = Marshal.PtrToStringAnsi(textProp.value)
+      XFree(textProp.value)
+      If windowName IsNot Nothing AndAlso windowName.Contains("QBasic") Then
+        Return window
+      End If
+    End If
+    ' Recurse on children
+    Dim dummy As IntPtr
+    Dim children As IntPtr
+    Dim nchildren As UInteger
+    XQueryTree(display, window, dummy, dummy, children, nchildren)
+    If children <> IntPtr.Zero Then
+      For i = 0 To nchildren - 1
+        Dim child = Marshal.ReadIntPtr(new IntPtr(children.ToInt64() + CLng(i) * Marshal.SizeOf(GetType(IntPtr))))
+        Dim found = FindWindowByName(display, child, name)
+        If found <> IntPtr.Zero Then
+          XFree(children)
+          Return found
+        End If
+      Next
+      XFree(children)
+    End If
+    Return IntPtr.Zero
+  End Function
+
   Private Delegate Function WndProcDelegate(hWnd As IntPtr, msg As UInteger, wParam As IntPtr, lParam As IntPtr) As IntPtr
 
   Private m_originalWndProc As IntPtr
   Private m_newWndProcDelegate As WndProcDelegate
+  Private m_invisibleCursor As IntPtr
+  Private m_display As IntPtr
+  Private m_pixmap As IntPtr
+  Private m_x11Window As IntPtr
+  Private m_frameCount As Integer
 
   Protected Overrides Function OnUserCreate() As Boolean
 
@@ -532,13 +645,6 @@ Friend Class QBasic
       m_newWndProcDelegate = AddressOf NewWndProc
       m_originalWndProc = GetWindowLongPtr(m_hWnd, GWLP_WNDPROC)
       SetWindowLongPtr(m_hWnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(m_newWndProcDelegate))
-    ElseIf OperatingSystem.IsLinux() Then
-      ' TODO: still not working (at least not on WSL; haven't tested as yet on dedicated Linux box).
-      '       not even sure if it is the *right* approach or not...
-      Dim display As IntPtr = XOpenDisplay(Nothing)
-      If display <> IntPtr.Zero Then
-        XDefineCursor(display, m_hWnd, IntPtr.Zero) ' Set cursor to None (invisible)
-      End If
     End If
 
     Return True
@@ -550,8 +656,19 @@ Friend Class QBasic
     Const HTCLIENT As Integer = 1
     If msg = WM_SETCURSOR Then
       If (lParam.ToInt32() And &HFFFF) = HTCLIENT Then
-        SetCursor(IntPtr.Zero)
-        Return New IntPtr(1) ' TRUE to halt further processing
+        Dim pt As POINT
+        GetCursorPos(pt)
+        ScreenToClient(hWnd, pt)
+        Dim mr = (pt.y \ m_textH) + 1
+        Dim overContent = False
+        If Document1.Visible AndAlso mr >= Document1.EditorTop AndAlso mr <= Document1.EditorTop + Document1.EditorHeight - 1 Then overContent = True
+        If Document2.Visible AndAlso mr >= Document2.EditorTop AndAlso mr <= Document2.EditorTop + Document2.EditorHeight - 1 Then overContent = True
+        If m_immediate.Visible AndAlso mr >= m_immediate.EditorTop AndAlso mr <= m_immediate.EditorTop + m_immediate.EditorHeight - 1 Then overContent = True
+        If m_help.Visible AndAlso mr >= m_help.EditorTop AndAlso mr <= m_help.EditorTop + m_help.EditorHeight - 1 Then overContent = True
+        If overContent Then
+          SetCursor(IntPtr.Zero)
+          Return New IntPtr(1)
+        End If
       End If
     End If
     Return CallWindowProc(m_originalWndProc, hWnd, msg, wParam, lParam)
@@ -606,6 +723,25 @@ Friend Class QBasic
 
   Protected Overrides Function OnUserUpdate(elapsedTime As Single) As Boolean
 
+    m_frameCount += 1
+    If OperatingSystem.IsLinux() AndAlso m_frameCount = 10 AndAlso m_x11Window = IntPtr.Zero Then
+      m_display = XOpenDisplay(Nothing)
+      If m_display <> IntPtr.Zero Then
+        Dim root As IntPtr = XDefaultRootWindow(m_display)
+        m_x11Window = FindWindowByName(m_display, root, "QBasic")
+        Console.WriteLine($"X11 window found: {m_x11Window <> IntPtr.Zero}")
+        If m_x11Window <> IntPtr.Zero Then
+          Dim screen = XDefaultScreen(m_display)
+          Dim root2 = XRootWindow(m_display, screen)
+          m_pixmap = XCreatePixmap(m_display, root2, 1, 1, 1)
+          Dim color As XColor
+          m_invisibleCursor = XCreatePixmapCursor(m_display, m_pixmap, m_pixmap, color, color, 0, 0)
+          XDefineCursor(m_display, m_x11Window, m_invisibleCursor)
+          XFlush(m_display)
+        End If
+      End If
+    End If
+
     m_t += elapsedTime
 
     Dim cursorVisible = True
@@ -620,6 +756,8 @@ Friend Class QBasic
     Dim mButton = mButton1.Pressed
     Dim mr = (mMouseY \ m_textH) + 1
     Dim mc = (mMouseX \ m_textW) + 1
+
+
 
     Dim isAlt = GetKey(Key.ALT).Held OrElse GetKey(Key.ALT).Pressed
     Dim isShift = GetKey(Key.SHIFT).Held OrElse GetKey(Key.SHIFT).Pressed

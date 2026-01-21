@@ -363,6 +363,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     OnErrorGotoStatement
     OnGotoStatement
     OnGosubStatement
+    OnTimerGosubStatement
     OpenStatement
     OptionStatement
     OutStatement

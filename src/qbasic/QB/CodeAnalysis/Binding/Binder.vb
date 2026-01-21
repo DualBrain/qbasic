@@ -571,6 +571,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
          Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
          Case SyntaxKind.OnErrorGotoStatement : Return BindOnErrorGotoStatement(CType(syntax, OnErrorGotoStatementSyntax))
+         Case SyntaxKind.OnTimerGosubStatement : Return BindOnTimerGosubStatement(CType(syntax, OnTimerGosubStatementSyntax))
          Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
@@ -1816,17 +1817,23 @@ Namespace Global.QB.CodeAnalysis.Binding
        Return New BoundBoundFunctionExpression(arrayVariable, dimension, isLbound)
      End Function
 
-    Private Function BindOnErrorGotoStatement(syntax As OnErrorGotoStatementSyntax) As BoundStatement
-      ' Check if target is the literal 0 (disable error handling)
-      If TypeOf syntax.Target Is LiteralExpressionSyntax AndAlso
-         CInt(DirectCast(syntax.Target, LiteralExpressionSyntax).Value) = 0 Then
-        Return New BoundOnErrorGotoZeroStatement()
-      Else
-        ' ON ERROR GOTO target (label or line number)
-        Dim targetExpr = BindExpression(syntax.Target)
-        Return New BoundOnErrorGotoStatement(targetExpr)
-      End If
-    End Function
+     Private Function BindOnErrorGotoStatement(syntax As OnErrorGotoStatementSyntax) As BoundStatement
+       ' Check if target is the literal 0 (disable error handling)
+       If TypeOf syntax.Target Is LiteralExpressionSyntax AndAlso
+          CInt(DirectCast(syntax.Target, LiteralExpressionSyntax).Value) = 0 Then
+         Return New BoundOnErrorGotoZeroStatement()
+       Else
+         ' ON ERROR GOTO target (label or line number)
+         Dim targetExpr = BindExpression(syntax.Target)
+         Return New BoundOnErrorGotoStatement(targetExpr)
+       End If
+     End Function
+
+     Private Function BindOnTimerGosubStatement(syntax As OnTimerGosubStatementSyntax) As BoundStatement
+       Dim interval = BindExpression(syntax.Interval)
+       Dim target = BindExpression(syntax.Target)
+       Return New BoundOnTimerGosubStatement(interval, target)
+     End Function
 
     Private Function BindResumeStatement(syntax As ResumeStatementSyntax) As BoundStatement
       If syntax.OptionalLine IsNot Nothing Then
@@ -2000,8 +2007,8 @@ Namespace Global.QB.CodeAnalysis.Binding
      End Function
 
      Private Function BindTimerStatement(syntax As TimerStatementSyntax) As BoundStatement
-      Return New BoundNopStatement()
-    End Function
+       Return New BoundTimerStatement(syntax.Verb.Kind)
+     End Function
 
     Private Function BindSelectCaseStatement(syntax As SelectCaseStatementSyntax) As BoundStatement
       Dim test = BindExpression(syntax.Test)

@@ -44,6 +44,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     NopStatement
     OnErrorGotoStatement
     OnErrorGotoZeroStatement
+    OnTimerGosubStatement
     OptionStatement
     PrintStatement
     PokeStatement
@@ -72,6 +73,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     RedimStatement
     SleepStatement
     TimeStatement
+    TimerStatement
     WhileStatement
     SelectCaseStatement
     CaseStatement

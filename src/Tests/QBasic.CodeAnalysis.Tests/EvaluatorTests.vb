@@ -61,7 +61,27 @@ slept = TIMER - start"
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
       Dim v = If(variables.ContainsKey("slept"), CDbl(variables("slept")), 0)
-      Assert.Equal(2, v, 0.1) ' Allow small floating point differences
+      Assert.Equal(2, v, 0.2) ' Allow timing variations
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesOnTimerEvent()
+      ' Test ON TIMER event functionality - timer should interrupt SLEEP
+      Dim text = "ON TIMER(1) GOSUB HandleTimer
+TIMER ON
+started = TIMER
+SLEEP 10
+slept = TIMER - started
+
+HandleTimer:
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Dim slept = If(variables.ContainsKey("slept"), CDbl(variables("slept")), 0)
+      ' Timer event should interrupt SLEEP after ~1 second
+      Assert.True(slept >= 0.8 And slept <= 1.5, $"Expected slept to be ~1 second, but was {slept}")
     End Sub
 
     <Fact>

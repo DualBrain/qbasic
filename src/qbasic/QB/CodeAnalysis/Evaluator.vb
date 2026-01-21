@@ -5,9 +5,14 @@ Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib
-Imports System.Threading
 
 Namespace Global.QB.CodeAnalysis
+
+  Friend Enum TimerState
+    Off
+    [Stop]
+    [On]
+  End Enum
 
   Friend NotInheritable Class Evaluator
 
@@ -30,6 +35,15 @@ Namespace Global.QB.CodeAnalysis
     Private m_errorResumeNext As Boolean = False ' ON ERROR RESUME NEXT mode
     Private m_errorPending As Boolean = False ' Flag indicating if an error occurred and needs handling
     Private m_errorResumeIndex As Integer = -1 ' Index to resume execution after error handling
+
+    ' Timer event state
+    Private m_timerHandlerTarget As Object = Nothing ' Target for ON TIMER GOSUB (label or line number)
+    Private m_timerInterval As Double = 0 ' Timer interval in seconds
+    Private m_timerState As TimerState = TimerState.Off ' Current timer state
+    Private m_timerNextTrigger As DateTime = DateTime.MinValue ' Next trigger time
+    Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
+    'Private m_labelToIndex As Dictionary(Of String, Integer) = Nothing ' Label to m_currentIndex mapping
+    'Private m_currentIndex As Integer = 0 ' Current statement m_currentIndex being executed
 
     Private Const GOTO_LABEL_PREFIX As String = "$LABEL"
 
@@ -202,6 +216,7 @@ Namespace Global.QB.CodeAnalysis
     Private Function EvaluateStatement(body As BoundBlockStatement, Optional labelToIndex As Dictionary(Of String, Integer) = Nothing) As Object
 
       Dim localLabelToIndex = If(labelToIndex IsNot Nothing, labelToIndex, New Dictionary(Of String, Integer))
+      'm_labelToIndex = localLabelToIndex
 
       If labelToIndex Is Nothing Then
         For i = 0 To body.Statements.Length - 1
@@ -210,8 +225,11 @@ Namespace Global.QB.CodeAnalysis
             Dim label = CType(s, BoundLabelStatement).Label.Name
             If IsNumeric(label) Then
               localLabelToIndex.Add(GOTO_LABEL_PREFIX & label, i)
+              '' Line numbers are handled differently
+              'localLabelToIndex(GOTO_LABEL_PREFIX & label) = i
             Else
               localLabelToIndex.Add(label, i)
+              'localLabelToIndex(label) = i
             End If
           ElseIf TypeOf s Is BoundBlockStatement Then
             Dim block = CType(s, BoundBlockStatement)
@@ -236,10 +254,14 @@ Namespace Global.QB.CodeAnalysis
           End If
         End If
 
-        'Console.WriteLine($"DEBUG: About to execute index {index}")
+        ' Check for timer events before executing next statement
+        If CheckTimerEvent(index, localLabelToIndex) Then
+          Continue While ' Timer event triggered, restart loop
+        End If
+
+        Dim s = body.Statements(index)
+        Debug.WriteLine($"{index}:{s.Kind}")
         Try
-          Dim s = body.Statements(index)
-          Debug.WriteLine($"{index}:{s.Kind}")
           Select Case s.Kind
             Case BoundNodeKind.BeepStatement
               ' TODO: Implement BEEP sound
@@ -602,7 +624,9 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement)) : index += 1
             Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
-            Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement)) : index += 1
+            Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.OnTimerGosubStatement : EvaluateOnTimerGosubStatement(CType(s, BoundOnTimerGosubStatement)) : index += 1
+            Case BoundNodeKind.TimerStatement : EvaluateTimerStatement(CType(s, BoundTimerStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
@@ -727,7 +751,107 @@ Namespace Global.QB.CodeAnalysis
       ' TODO: Implement actual time setting if needed
     End Sub
 
-    Private Sub EvaluateSleepStatement(node As BoundSleepStatement)
+    Private Sub EvaluateOnTimerGosubStatement(node As BoundOnTimerGosubStatement)
+      ' ON TIMER(interval) GOSUB target - sets up timer event handler
+      ' Interval must be 1-86400 seconds
+      Dim intervalValue = EvaluateExpression(node.Interval)
+      If TypeOf intervalValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim interval As Double = CDbl(intervalValue)
+      If interval < 1 Or interval > 86400 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      ' Set the timer handler and interval
+      ' For ON TIMER GOSUB, the target is a label, not an expression to evaluate
+      If TypeOf node.Target Is BoundVariableExpression Then
+        m_timerHandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name.ToLower()
+      Else
+        ' Fallback: try to evaluate as string
+        m_timerHandlerTarget = CStr(EvaluateExpression(node.Target)).ToLower()
+      End If
+      m_timerInterval = interval
+
+      ' Timer remains OFF until TIMER ON is executed
+      m_timerState = TimerState.Off
+      m_timerEventPending = False
+
+
+    End Sub
+
+    Private Sub EvaluateTimerStatement(node As BoundTimerStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' TIMER ON/OFF/STOP - controls timer event state
+      Select Case node.VerbKind
+        Case SyntaxKind.OnKeyword
+          If m_timerHandlerTarget Is Nothing Then
+            ' No handler set up yet
+            Return
+          End If
+          m_timerState = TimerState.On
+          ' Schedule next trigger
+          If m_timerEventPending Then
+            ' Event was pending from STOP state, trigger immediately
+            m_timerEventPending = False
+            TriggerTimerEvent(currentIndex, labelToIndex)
+          Else
+            ' Start fresh timer
+            m_timerNextTrigger = DateTime.Now.AddSeconds(m_timerInterval)
+          End If
+
+        Case SyntaxKind.OffKeyword
+          m_timerState = TimerState.Off
+          m_timerEventPending = False
+          ' Clear handler
+          m_timerHandlerTarget = Nothing
+          m_timerInterval = 0
+
+
+        Case SyntaxKind.StopKeyword
+          m_timerState = TimerState.Stop
+          ' Event remains pending if it was about to trigger
+
+      End Select
+    End Sub
+
+    Private Sub TriggerTimerEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' Trigger timer event by GOSUBing to handler
+      ' Temporarily disable timer to prevent recursive triggers
+      Dim savedState = m_timerState
+      m_timerState = TimerState.Stop
+
+      ' GOSUB to timer handler
+      Dim handlerLabel = CStr(m_timerHandlerTarget)
+      Dim handlerIndex As Integer = -1
+      If labelToIndex IsNot Nothing AndAlso labelToIndex.TryGetValue(handlerLabel, handlerIndex) Then
+        ' Push current location for RETURN
+        m_gosubStack.Push(currentIndex + 1) ' Push next statement for RETURN
+        ' Jump to handler
+        currentIndex = handlerIndex
+      End If
+
+      ' Schedule next trigger
+      If savedState = TimerState.On Then
+        m_timerNextTrigger = DateTime.Now.AddSeconds(m_timerInterval)
+        m_timerState = TimerState.On
+      Else
+        m_timerState = savedState
+      End If
+    End Sub
+
+    Private Function CheckTimerEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
+      ' Check if timer event should trigger
+      If m_timerState = TimerState.On AndAlso m_timerHandlerTarget IsNot Nothing Then
+        If DateTime.Now >= m_timerNextTrigger Then
+          TriggerTimerEvent(currentIndex, labelToIndex)
+          Return True
+        End If
+      End If
+      Return False
+    End Function
+
+    Private Sub EvaluateSleepStatement(node As BoundSleepStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
       ' SLEEP [seconds] - suspends execution until timeout, keypress, or ON event
       ' Numbers < 1 treated as 0 (infinite wait)
       ' 0 = infinite wait until keypress or ON event
@@ -763,7 +887,7 @@ Namespace Global.QB.CodeAnalysis
         endTime = startTime.AddSeconds(sleepDuration)
       End If
 
-      ' Sleep loop - check for keypress or timeout
+      ' Sleep loop - check for keypress, timer events, or timeout
       Do
         ' Check for keypress (any key including modifiers)
         Dim key = QBLib.Video.INKEY$()
@@ -771,13 +895,17 @@ Namespace Global.QB.CodeAnalysis
           Exit Do ' Key pressed, exit sleep
         End If
 
+        ' Check for timer events
+        If CheckTimerEvent(currentIndex, labelToIndex) Then
+          Exit Do ' Timer event triggered
+        End If
+
         ' Check for timeout (if not infinite)
         If sleepDuration >= 0 AndAlso DateTime.Now >= endTime Then
           Exit Do ' Timeout reached
         End If
 
-        ' TODO: Check for ON events (COM, KEY, PEN, PLAY, STRIG, TIMER)
-        ' For now, we'll skip ON event checking as it's complex
+        ' TODO: Check for other ON events (COM, KEY, PEN, PLAY, STRIG)
 
         ' Small delay to prevent busy waiting
         Threading.Thread.Sleep(10)

@@ -2289,10 +2289,25 @@ repeat:
           Dim gotoKeyword = MatchToken(SyntaxKind.GotoKeyword)
           Dim target = ParseExpression()
           Return New OnErrorGotoStatementSyntax(m_syntaxTree,
-                                                onKeyword,
-                                                errorKeyword,
-                                                gotoKeyword,
-                                                target)
+                                                 onKeyword,
+                                                 errorKeyword,
+                                                 gotoKeyword,
+                                                 target)
+        Case SyntaxKind.TimerKeyword
+          Dim timerKeyword = MatchToken(SyntaxKind.TimerKeyword)
+          Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+          Dim interval = ParseExpression()
+          Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+          Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+          Dim target = ParseExpression()
+          Return New OnTimerGosubStatementSyntax(m_syntaxTree,
+                                                  onKeyword,
+                                                  timerKeyword,
+                                                  openParen,
+                                                  interval,
+                                                  closeParen,
+                                                  gosubKeyword,
+                                                  target)
         Case Else ' Expression
 
           Dim expression = ParseExpression()

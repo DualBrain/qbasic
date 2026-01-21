@@ -5,6 +5,7 @@ Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib
+Imports System.Threading
 
 Namespace Global.QB.CodeAnalysis
 
@@ -601,6 +602,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement)) : index += 1
             Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
+            Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
@@ -723,6 +725,63 @@ Namespace Global.QB.CodeAnalysis
       ' For now, we'll just ignore it as setting system time requires admin privileges
       Dim timeString = CStr(EvaluateExpression(node.Expression))
       ' TODO: Implement actual time setting if needed
+    End Sub
+
+    Private Sub EvaluateSleepStatement(node As BoundSleepStatement)
+      ' SLEEP [seconds] - suspends execution until timeout, keypress, or ON event
+      ' Numbers < 1 treated as 0 (infinite wait)
+      ' 0 = infinite wait until keypress or ON event
+      ' Other values rounded to nearest integer seconds
+
+      Dim seconds As Double = 0
+
+      ' Evaluate the optional seconds parameter
+      If node.Expression IsNot Nothing Then
+        Dim value = EvaluateExpression(node.Expression)
+        If TypeOf value Is String Then
+          Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+        End If
+        seconds = CDbl(value)
+      End If
+
+      ' Determine sleep duration
+      ' Numbers < 1 are treated as 0 (infinite)
+      ' Other values rounded to nearest integer
+      Dim sleepDuration As Double
+      If seconds < 1 Then
+        sleepDuration = -1 ' Infinite wait
+      Else
+        sleepDuration = Math.Round(seconds)
+      End If
+
+      ' Clear keyboard buffer - ignore any keys pressed before SLEEP
+      QBLib.Video.INKEY$() ' Clear any pending key
+
+      Dim startTime = DateTime.Now
+      Dim endTime As DateTime
+      If sleepDuration >= 0 Then
+        endTime = startTime.AddSeconds(sleepDuration)
+      End If
+
+      ' Sleep loop - check for keypress or timeout
+      Do
+        ' Check for keypress (any key including modifiers)
+        Dim key = QBLib.Video.INKEY$()
+        If Not String.IsNullOrEmpty(key) Then
+          Exit Do ' Key pressed, exit sleep
+        End If
+
+        ' Check for timeout (if not infinite)
+        If sleepDuration >= 0 AndAlso DateTime.Now >= endTime Then
+          Exit Do ' Timeout reached
+        End If
+
+        ' TODO: Check for ON events (COM, KEY, PEN, PLAY, STRIG, TIMER)
+        ' For now, we'll skip ON event checking as it's complex
+
+        ' Small delay to prevent busy waiting
+        Threading.Thread.Sleep(10)
+      Loop While True
     End Sub
 
     Private Sub EvaluateOnErrorGotoStatement(node As BoundOnErrorGotoStatement)

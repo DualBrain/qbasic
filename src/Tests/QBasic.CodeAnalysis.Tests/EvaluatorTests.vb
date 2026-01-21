@@ -51,6 +51,20 @@ b = -2147483648
     End Sub
 
     <Fact>
+    Public Sub EvaluatesSleepStatement()
+      ' Exactly replicate the working ExecutesSimpleProgram test
+      Dim text = "start = TIMER
+SLEEP 2
+slept = TIMER - start"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Dim v = If(variables.ContainsKey("slept"), CDbl(variables("slept")), 0)
+      Assert.Equal(2, v, 0.1) ' Allow small floating point differences
+    End Sub
+
+    <Fact>
     Public Sub EvaluatesSimpleAssignment()
       ' Exactly replicate the working ExecutesSimpleProgram test
       Dim text = "x = 10

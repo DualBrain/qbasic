@@ -631,19 +631,32 @@ MySub:
       Assert.Empty(syntaxTree.Diagnostics)
     End Sub
 
-    <Fact>
-    Public Sub ParsesOnGosubStatement()
-      Dim text = "ON choice GOSUB Sub1, Sub2, Sub3"
-      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-      Dim root = syntaxTree.Root
+     <Fact>
+     Public Sub ParsesOnGosubStatement()
+       Dim text = "ON choice GOSUB Sub1, Sub2, Sub3"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim root = syntaxTree.Root
 
-      Assert.NotNull(root)
-      Assert.IsType(GetType(CompilationUnitSyntax), root)
-      Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
-      Assert.Single(compilationUnit.Members)
-      Assert.Empty(syntaxTree.Diagnostics)
-    End Sub
+       Assert.NotNull(root)
+       Assert.IsType(GetType(CompilationUnitSyntax), root)
+       Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+       Assert.Single(compilationUnit.Members)
+       Assert.Empty(syntaxTree.Diagnostics)
+     End Sub
 
-  End Class
+     <Fact>
+     Public Sub ParsesSleepStatement()
+       Dim text = "SLEEP 5"
+       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+       Dim root = syntaxTree.Root
+
+       Assert.NotNull(root)
+       Assert.IsType(GetType(CompilationUnitSyntax), root)
+       Dim compilationUnit = DirectCast(root, CompilationUnitSyntax)
+       Assert.Single(compilationUnit.Members)
+       Assert.Empty(syntaxTree.Diagnostics)
+     End Sub
+
+   End Class
 
 End Namespace

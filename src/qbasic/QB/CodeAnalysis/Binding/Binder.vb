@@ -594,8 +594,9 @@ Namespace Global.QB.CodeAnalysis.Binding
          Case SyntaxKind.ErrorStatement : Return BindErrorStatement(CType(syntax, ErrorStatementSyntax))
          Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
-        Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
-        Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
+         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
+         Case SyntaxKind.SleepStatement : Return BindSleepStatement(CType(syntax, SleepStatementSyntax))
+         Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
          Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
          Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
@@ -1985,12 +1986,20 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundDateStatement(expression)
     End Function
 
-    Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
-      Dim expression = BindExpression(syntax.Expression)
-      Return New BoundTimeStatement(expression)
-    End Function
+     Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
+       Dim expression = BindExpression(syntax.Expression)
+       Return New BoundTimeStatement(expression)
+     End Function
 
-    Private Function BindTimerStatement(syntax As TimerStatementSyntax) As BoundStatement
+     Private Function BindSleepStatement(syntax As SleepStatementSyntax) As BoundStatement
+       Dim expression As BoundExpression = Nothing
+       If syntax.Seconds IsNot Nothing Then
+         expression = BindExpression(syntax.Seconds)
+       End If
+       Return New BoundSleepStatement(expression)
+     End Function
+
+     Private Function BindTimerStatement(syntax As TimerStatementSyntax) As BoundStatement
       Return New BoundNopStatement()
     End Function
 

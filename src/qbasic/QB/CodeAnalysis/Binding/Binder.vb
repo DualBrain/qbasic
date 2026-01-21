@@ -570,19 +570,24 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.MidStatement : Return BindMidStatement(CType(syntax, MidStatementSyntax))
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
          Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
-         Case SyntaxKind.OnErrorGotoStatement : Return BindOnErrorGotoStatement(CType(syntax, OnErrorGotoStatementSyntax))
-         Case SyntaxKind.OnTimerGosubStatement : Return BindOnTimerGosubStatement(CType(syntax, OnTimerGosubStatementSyntax))
-         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
+        Case SyntaxKind.OnErrorGotoStatement : Return BindOnErrorGotoStatement(CType(syntax, OnErrorGotoStatementSyntax))
+        Case SyntaxKind.OnTimerGosubStatement : Return BindOnTimerGosubStatement(CType(syntax, OnTimerGosubStatementSyntax))
+        Case SyntaxKind.OnComGosubStatement : Return BindOnComGosubStatement(CType(syntax, OnComGosubStatementSyntax))
+        Case SyntaxKind.OnKeyGosubStatement : Return BindOnKeyGosubStatement(CType(syntax, OnKeyGosubStatementSyntax))
+        Case SyntaxKind.OnStrigGosubStatement : Return BindOnStrigGosubStatement(CType(syntax, OnStrigGosubStatementSyntax))
+        Case SyntaxKind.OnPlayGosubStatement : Return BindOnPlayGosubStatement(CType(syntax, OnPlayGosubStatementSyntax))
+        Case SyntaxKind.OnPenGosubStatement : Return BindOnPenGosubStatement(CType(syntax, OnPenGosubStatementSyntax))
+        Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
         Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
         Case SyntaxKind.ReturnGosubStatement : Return BindReturnGosubStatement(CType(syntax, ReturnGosubStatementSyntax))
-         Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
-         Case SyntaxKind.ResumeStatement : Return BindResumeStatement(CType(syntax, ResumeStatementSyntax))
-         Case SyntaxKind.ResumeNextStatement : Return BindResumeNextStatement(CType(syntax, ResumeNextStatementSyntax))
-         Case SyntaxKind.RmDirStatement : Return BindRmDirStatement(CType(syntax, RmDirStatementSyntax))
+        Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
+        Case SyntaxKind.ResumeStatement : Return BindResumeStatement(CType(syntax, ResumeStatementSyntax))
+        Case SyntaxKind.ResumeNextStatement : Return BindResumeNextStatement(CType(syntax, ResumeNextStatementSyntax))
+        Case SyntaxKind.RmDirStatement : Return BindRmDirStatement(CType(syntax, RmDirStatementSyntax))
         Case SyntaxKind.ScreenKeyword : Return BindScreenStatement(CType(syntax, ScreenStatementSyntax))
         Case SyntaxKind.SingleLineIfStatement : Return BindSingleLineIfStatement(CType(syntax, SingleLineIfStatementSyntax))
         Case SyntaxKind.StopStatement : Return BindStopStatement(CType(syntax, StopStatementSyntax))
@@ -591,19 +596,24 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
-         Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
-         Case SyntaxKind.ErrorStatement : Return BindErrorStatement(CType(syntax, ErrorStatementSyntax))
-         Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
+        Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
+        Case SyntaxKind.ErrorStatement : Return BindErrorStatement(CType(syntax, ErrorStatementSyntax))
+        Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
-         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
-         Case SyntaxKind.SleepStatement : Return BindSleepStatement(CType(syntax, SleepStatementSyntax))
-         Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
+        Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
+        Case SyntaxKind.SleepStatement : Return BindSleepStatement(CType(syntax, SleepStatementSyntax))
+        Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
+        Case SyntaxKind.ComStatement : Return BindComStatement(CType(syntax, ComStatementSyntax))
+        Case SyntaxKind.KeyEventStatement : Return BindKeyEventStatement(CType(syntax, KeyEventStatementSyntax))
+        Case SyntaxKind.StrigStatement : Return BindStrigStatement(CType(syntax, StrigStatementSyntax))
+        Case SyntaxKind.PlayEventStatement : Return BindPlayEventStatement(CType(syntax, PlayEventStatementSyntax))
+        Case SyntaxKind.PenStatement : Return BindPenStatement(CType(syntax, PenStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
-         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
-         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
-         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
-         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
-         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
+        Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
+        Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
+        Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
+        Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
+        Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
       End Select
@@ -1814,26 +1824,55 @@ Namespace Global.QB.CodeAnalysis.Binding
         dimension = New BoundLiteralExpression(1)
       End If
 
-       Return New BoundBoundFunctionExpression(arrayVariable, dimension, isLbound)
-     End Function
+      Return New BoundBoundFunctionExpression(arrayVariable, dimension, isLbound)
+    End Function
 
-     Private Function BindOnErrorGotoStatement(syntax As OnErrorGotoStatementSyntax) As BoundStatement
-       ' Check if target is the literal 0 (disable error handling)
-       If TypeOf syntax.Target Is LiteralExpressionSyntax AndAlso
+    Private Function BindOnErrorGotoStatement(syntax As OnErrorGotoStatementSyntax) As BoundStatement
+      ' Check if target is the literal 0 (disable error handling)
+      If TypeOf syntax.Target Is LiteralExpressionSyntax AndAlso
           CInt(DirectCast(syntax.Target, LiteralExpressionSyntax).Value) = 0 Then
-         Return New BoundOnErrorGotoZeroStatement()
-       Else
-         ' ON ERROR GOTO target (label or line number)
-         Dim targetExpr = BindExpression(syntax.Target)
-         Return New BoundOnErrorGotoStatement(targetExpr)
-       End If
-     End Function
+        Return New BoundOnErrorGotoZeroStatement()
+      Else
+        ' ON ERROR GOTO target (label or line number)
+        Dim targetExpr = BindExpression(syntax.Target)
+        Return New BoundOnErrorGotoStatement(targetExpr)
+      End If
+    End Function
 
-     Private Function BindOnTimerGosubStatement(syntax As OnTimerGosubStatementSyntax) As BoundStatement
-       Dim interval = BindExpression(syntax.Interval)
-       Dim target = BindExpression(syntax.Target)
-       Return New BoundOnTimerGosubStatement(interval, target)
-     End Function
+    Private Function BindOnTimerGosubStatement(syntax As OnTimerGosubStatementSyntax) As BoundStatement
+      Dim interval = BindExpression(syntax.Interval)
+      Dim target = BindExpression(syntax.Target)
+      Return New BoundOnTimerGosubStatement(interval, target)
+    End Function
+
+    Private Function BindOnComGosubStatement(syntax As OnComGosubStatementSyntax) As BoundStatement
+      Dim channel = BindExpression(syntax.Channel)
+      Dim target = BindExpression(syntax.Target)
+      Return New BoundOnComGosubStatement(channel, target)
+    End Function
+
+    Private Function BindOnKeyGosubStatement(syntax As OnKeyGosubStatementSyntax) As BoundStatement
+      Dim keyNumber = BindExpression(syntax.KeyNumber)
+      Dim target = BindExpression(syntax.Target)
+      Return New BoundOnKeyGosubStatement(keyNumber, target)
+    End Function
+
+    Private Function BindOnStrigGosubStatement(syntax As OnStrigGosubStatementSyntax) As BoundStatement
+      Dim triggerNumber = BindExpression(syntax.TriggerNumber)
+      Dim target = BindExpression(syntax.Target)
+      Return New BoundOnStrigGosubStatement(triggerNumber, target)
+    End Function
+
+    Private Function BindOnPlayGosubStatement(syntax As OnPlayGosubStatementSyntax) As BoundStatement
+      Dim queueSize = BindExpression(syntax.QueueSize)
+      Dim target = BindExpression(syntax.Target)
+      Return New BoundOnPlayGosubStatement(queueSize, target)
+    End Function
+
+    Private Function BindOnPenGosubStatement(syntax As OnPenGosubStatementSyntax) As BoundStatement
+      Dim target = BindExpression(syntax.Target)
+      Return New BoundOnPenGosubStatement(target)
+    End Function
 
     Private Function BindResumeStatement(syntax As ResumeStatementSyntax) As BoundStatement
       If syntax.OptionalLine IsNot Nothing Then
@@ -1846,11 +1885,11 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
     End Function
 
-     Private Function BindResumeNextStatement(syntax As ResumeNextStatementSyntax) As BoundStatement
-       Return New BoundResumeNextStatement()
-     End Function
+    Private Function BindResumeNextStatement(syntax As ResumeNextStatementSyntax) As BoundStatement
+      Return New BoundResumeNextStatement()
+    End Function
 
-     Private Function BindVariableReference(identifierToken As SyntaxToken) As VariableSymbol
+    Private Function BindVariableReference(identifierToken As SyntaxToken) As VariableSymbol
 
       Dim name = identifierToken.Text
       Dim s = m_scope.TryLookupSymbol(name)
@@ -1993,22 +2032,46 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundDateStatement(expression)
     End Function
 
-     Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
-       Dim expression = BindExpression(syntax.Expression)
-       Return New BoundTimeStatement(expression)
-     End Function
+    Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression)
+      Return New BoundTimeStatement(expression)
+    End Function
 
-     Private Function BindSleepStatement(syntax As SleepStatementSyntax) As BoundStatement
-       Dim expression As BoundExpression = Nothing
-       If syntax.Seconds IsNot Nothing Then
-         expression = BindExpression(syntax.Seconds)
-       End If
-       Return New BoundSleepStatement(expression)
-     End Function
+    Private Function BindSleepStatement(syntax As SleepStatementSyntax) As BoundStatement
+      Dim expression As BoundExpression = Nothing
+      If syntax.Seconds IsNot Nothing Then
+        expression = BindExpression(syntax.Seconds)
+      End If
+      Return New BoundSleepStatement(expression)
+    End Function
 
-     Private Function BindTimerStatement(syntax As TimerStatementSyntax) As BoundStatement
-       Return New BoundTimerStatement(syntax.Verb.Kind)
-     End Function
+    Private Function BindTimerStatement(syntax As TimerStatementSyntax) As BoundStatement
+      Return New BoundTimerStatement(syntax.Verb.Kind)
+    End Function
+
+    Private Function BindComStatement(syntax As ComStatementSyntax) As BoundStatement
+      Dim channel = BindExpression(syntax.Channel)
+      Return New BoundComStatement(channel, syntax.Verb.Kind)
+    End Function
+
+    Private Function BindKeyEventStatement(syntax As KeyEventStatementSyntax) As BoundStatement
+      Dim keyNumber = BindExpression(syntax.KeyNumber)
+      Return New BoundKeyEventStatement(keyNumber, syntax.Verb.Kind)
+    End Function
+
+    Private Function BindStrigStatement(syntax As StrigStatementSyntax) As BoundStatement
+      Dim triggerNumber = BindExpression(syntax.TriggerNumber)
+      Return New BoundStrigStatement(triggerNumber, syntax.Verb.Kind)
+    End Function
+
+    Private Function BindPlayEventStatement(syntax As PlayEventStatementSyntax) As BoundStatement
+      Dim queueSize = BindExpression(syntax.QueueSize)
+      Return New BoundPlayEventStatement(queueSize, syntax.Verb.Kind)
+    End Function
+
+    Private Function BindPenStatement(syntax As PenStatementSyntax) As BoundStatement
+      Return New BoundPenStatement(syntax.VerbKeyword.Kind)
+    End Function
 
     Private Function BindSelectCaseStatement(syntax As SelectCaseStatementSyntax) As BoundStatement
       Dim test = BindExpression(syntax.Test)

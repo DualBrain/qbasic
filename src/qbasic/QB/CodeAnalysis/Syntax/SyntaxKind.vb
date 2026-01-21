@@ -364,6 +364,13 @@ Namespace Global.QB.CodeAnalysis.Syntax
     OnGotoStatement
     OnGosubStatement
     OnTimerGosubStatement
+    OnComGosubStatement
+    OnKeyGosubStatement
+    OnStrigGosubStatement
+    OnPlayGosubStatement
+    OnPenGosubStatement
+    KeyEventStatement
+    PlayEventStatement
     OpenStatement
     OptionStatement
     OutStatement

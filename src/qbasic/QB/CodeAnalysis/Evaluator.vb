@@ -42,6 +42,27 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerState As TimerState = TimerState.Off ' Current timer state
     Private m_timerNextTrigger As DateTime = DateTime.MinValue ' Next trigger time
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
+
+    ' COM event state (channels 1-2)
+    Private m_comHandlerTargets As Object() = {Nothing, Nothing} ' Targets for ON COM(n) GOSUB
+    Private m_comStates As TimerState() = {TimerState.Off, TimerState.Off} ' Current COM states
+
+    ' KEY event state (keys 1-20)
+    Private m_keyHandlerTargets As Object() = New Object(20) {} ' Targets for ON KEY(n) GOSUB (1-based, index 0 unused)
+    Private m_keyStates As TimerState() = New TimerState(20) {} ' Current KEY states (1-based, index 0 unused)
+
+    ' STRIG event state (triggers 0,2,4,6)
+    Private m_strigHandlerTargets As Object() = New Object(6) {} ' Targets for ON STRIG(n) GOSUB
+    Private m_strigStates As TimerState() = New TimerState(6) {} ' Current STRIG states
+
+    ' PLAY event state
+    Private m_playHandlerTarget As Object = Nothing ' Target for ON PLAY(n) GOSUB
+    Private m_playQueueSize As Integer = 0 ' Queue size threshold
+    Private m_playState As TimerState = TimerState.Off ' Current PLAY state
+
+    ' PEN event state
+    Private m_penHandlerTarget As Object = Nothing ' Target for ON PEN GOSUB
+    Private m_penState As TimerState = TimerState.Off ' Current PEN state
     'Private m_labelToIndex As Dictionary(Of String, Integer) = Nothing ' Label to m_currentIndex mapping
     'Private m_currentIndex As Integer = 0 ' Current statement m_currentIndex being executed
 
@@ -558,6 +579,8 @@ Namespace Global.QB.CodeAnalysis
               If rg.Label Is Nothing Then
                 If m_gosubStack.Count > 0 Then
                   index = m_gosubStack.Pop
+                Else
+                  Throw New QBasicRuntimeException(ErrorCode.ReturnWithoutGosub)
                 End If
               ElseIf localLabelToIndex.TryGetValue(rg.Label.Name, value) Then
                 index = value
@@ -626,7 +649,17 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
             Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.OnTimerGosubStatement : EvaluateOnTimerGosubStatement(CType(s, BoundOnTimerGosubStatement)) : index += 1
+            Case BoundNodeKind.OnComGosubStatement : EvaluateOnComGosubStatement(CType(s, BoundOnComGosubStatement)) : index += 1
+            Case BoundNodeKind.OnKeyGosubStatement : EvaluateOnKeyGosubStatement(CType(s, BoundOnKeyGosubStatement)) : index += 1
+            Case BoundNodeKind.OnStrigGosubStatement : EvaluateOnStrigGosubStatement(CType(s, BoundOnStrigGosubStatement)) : index += 1
+            Case BoundNodeKind.OnPlayGosubStatement : EvaluateOnPlayGosubStatement(CType(s, BoundOnPlayGosubStatement)) : index += 1
+            Case BoundNodeKind.OnPenGosubStatement : EvaluateOnPenGosubStatement(CType(s, BoundOnPenGosubStatement)) : index += 1
             Case BoundNodeKind.TimerStatement : EvaluateTimerStatement(CType(s, BoundTimerStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.ComStatement : EvaluateComStatement(CType(s, BoundComStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.KeyEventStatement : EvaluateKeyEventStatement(CType(s, BoundKeyEventStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.StrigStatement : EvaluateStrigStatement(CType(s, BoundStrigStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.PlayEventStatement : EvaluatePlayEventStatement(CType(s, BoundPlayEventStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.PenStatement : EvaluatePenStatement(CType(s, BoundPenStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
@@ -767,10 +800,10 @@ Namespace Global.QB.CodeAnalysis
       ' Set the timer handler and interval
       ' For ON TIMER GOSUB, the target is a label, not an expression to evaluate
       If TypeOf node.Target Is BoundVariableExpression Then
-        m_timerHandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name.ToLower()
+        m_timerHandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name
       Else
         ' Fallback: try to evaluate as string
-        m_timerHandlerTarget = CStr(EvaluateExpression(node.Target)).ToLower()
+        m_timerHandlerTarget = CStr(EvaluateExpression(node.Target))
       End If
       m_timerInterval = interval
 
@@ -779,6 +812,118 @@ Namespace Global.QB.CodeAnalysis
       m_timerEventPending = False
 
 
+    End Sub
+
+    Private Sub EvaluateOnComGosubStatement(node As BoundOnComGosubStatement)
+      ' ON COM(channel) GOSUB target - sets up COM event handler
+      ' Channel must be 1 or 2
+      Dim channelValue = EvaluateExpression(node.Channel)
+      If TypeOf channelValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim channel As Integer = CInt(channelValue)
+      If channel < 1 Or channel > 2 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      ' Set the COM handler
+      ' For ON COM GOSUB, the target is a label, not an expression to evaluate
+      If TypeOf node.Target Is BoundVariableExpression Then
+        m_comHandlerTargets(channel - 1) = CType(node.Target, BoundVariableExpression).Variable.Name
+      Else
+        ' Fallback: try to evaluate as string
+        m_comHandlerTargets(channel - 1) = CStr(EvaluateExpression(node.Target))
+      End If
+
+      ' COM remains OFF until COM(channel) ON is executed
+      m_comStates(channel - 1) = TimerState.Off
+    End Sub
+
+    Private Sub EvaluateOnKeyGosubStatement(node As BoundOnKeyGosubStatement)
+      ' ON KEY(keyNumber) GOSUB target - sets up KEY event handler
+      ' Key number must be 1-20
+      Dim keyValue = EvaluateExpression(node.KeyNumber)
+      If TypeOf keyValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim keyNumber As Integer = CInt(keyValue)
+      If keyNumber < 1 Or keyNumber > 20 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      ' Set the KEY handler
+      If TypeOf node.Target Is BoundVariableExpression Then
+        m_keyHandlerTargets(keyNumber) = CType(node.Target, BoundVariableExpression).Variable.Name
+      Else
+        m_keyHandlerTargets(keyNumber) = CStr(EvaluateExpression(node.Target))
+      End If
+
+      ' KEY remains OFF until KEY(keyNumber) ON is executed
+      m_keyStates(keyNumber) = TimerState.Off
+    End Sub
+
+    Private Sub EvaluateOnStrigGosubStatement(node As BoundOnStrigGosubStatement)
+      ' ON STRIG(triggerNumber) GOSUB target - sets up STRIG event handler
+      ' Trigger number must be 0, 2, 4, or 6
+      Dim triggerValue = EvaluateExpression(node.TriggerNumber)
+      If TypeOf triggerValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim triggerNumber As Integer = CInt(triggerValue)
+      If triggerNumber <> 0 AndAlso triggerNumber <> 2 AndAlso triggerNumber <> 4 AndAlso triggerNumber <> 6 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      ' Set the STRIG handler
+      If TypeOf node.Target Is BoundVariableExpression Then
+        m_strigHandlerTargets(triggerNumber) = CType(node.Target, BoundVariableExpression).Variable.Name
+      Else
+        m_strigHandlerTargets(triggerNumber) = CStr(EvaluateExpression(node.Target))
+      End If
+
+      ' STRIG remains OFF until STRIG(triggerNumber) ON is executed
+      m_strigStates(triggerNumber) = TimerState.Off
+    End Sub
+
+    Private Sub EvaluateOnPlayGosubStatement(node As BoundOnPlayGosubStatement)
+      ' ON PLAY(queueSize) GOSUB target - sets up PLAY event handler
+      ' Queue size must be 1-32
+      Dim queueValue = EvaluateExpression(node.QueueSize)
+      If TypeOf queueValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim queueSize As Integer = CInt(queueValue)
+      If queueSize < 1 Or queueSize > 32 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      ' Set the PLAY handler
+      If TypeOf node.Target Is BoundVariableExpression Then
+        m_playHandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name
+      Else
+        m_playHandlerTarget = CStr(EvaluateExpression(node.Target))
+      End If
+      m_playQueueSize = queueSize
+
+      ' PLAY remains OFF until PLAY(queueSize) ON is executed
+      m_playState = TimerState.Off
+    End Sub
+
+    Private Sub EvaluateOnPenGosubStatement(node As BoundOnPenGosubStatement)
+      ' ON PEN GOSUB target - sets up PEN event handler
+      ' Set the PEN handler
+      If TypeOf node.Target Is BoundVariableExpression Then
+        m_penHandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name
+      Else
+        m_penHandlerTarget = CStr(EvaluateExpression(node.Target))
+      End If
+
+      ' PEN remains OFF until PEN ON is executed
+      m_penState = TimerState.Off
     End Sub
 
     Private Sub EvaluateTimerStatement(node As BoundTimerStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
@@ -812,6 +957,148 @@ Namespace Global.QB.CodeAnalysis
           m_timerState = TimerState.Stop
           ' Event remains pending if it was about to trigger
 
+      End Select
+    End Sub
+
+    Private Sub EvaluateComStatement(node As BoundComStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' COM(channel) ON/OFF/STOP - controls COM event state
+      Dim channelValue = EvaluateExpression(node.Channel)
+      If TypeOf channelValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim channel As Integer = CInt(channelValue)
+      If channel < 1 Or channel > 2 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      Dim channelIndex = channel - 1
+      Select Case node.VerbKind
+        Case SyntaxKind.OnKeyword
+          If m_comHandlerTargets(channelIndex) Is Nothing Then
+            ' No handler set up yet
+            Return
+          End If
+          m_comStates(channelIndex) = TimerState.On
+
+        Case SyntaxKind.OffKeyword
+          m_comStates(channelIndex) = TimerState.Off
+          ' Clear handler
+          m_comHandlerTargets(channelIndex) = Nothing
+
+        Case SyntaxKind.StopKeyword
+          m_comStates(channelIndex) = TimerState.Stop
+      End Select
+    End Sub
+
+    Private Sub EvaluateKeyEventStatement(node As BoundKeyEventStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' KEY(keyNumber) ON/OFF/STOP - controls KEY event state
+      Dim keyValue = EvaluateExpression(node.KeyNumber)
+      If TypeOf keyValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim keyNumber As Integer = CInt(keyValue)
+      If keyNumber < 1 Or keyNumber > 20 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      Select Case node.VerbKind
+        Case SyntaxKind.OnKeyword
+          If m_keyHandlerTargets(keyNumber) Is Nothing Then
+            ' No handler set up yet
+            Return
+          End If
+          m_keyStates(keyNumber) = TimerState.On
+
+        Case SyntaxKind.OffKeyword
+          m_keyStates(keyNumber) = TimerState.Off
+          ' Clear handler
+          m_keyHandlerTargets(keyNumber) = Nothing
+
+        Case SyntaxKind.StopKeyword
+          m_keyStates(keyNumber) = TimerState.Stop
+      End Select
+    End Sub
+
+    Private Sub EvaluateStrigStatement(node As BoundStrigStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' STRIG(triggerNumber) ON/OFF/STOP - controls STRIG event state
+      Dim triggerValue = EvaluateExpression(node.TriggerNumber)
+      If TypeOf triggerValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim triggerNumber As Integer = CInt(triggerValue)
+      If triggerNumber <> 0 AndAlso triggerNumber <> 2 AndAlso triggerNumber <> 4 AndAlso triggerNumber <> 6 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      Select Case node.VerbKind
+        Case SyntaxKind.OnKeyword
+          If m_strigHandlerTargets(triggerNumber) Is Nothing Then
+            ' No handler set up yet
+            Return
+          End If
+          m_strigStates(triggerNumber) = TimerState.On
+
+        Case SyntaxKind.OffKeyword
+          m_strigStates(triggerNumber) = TimerState.Off
+          ' Clear handler
+          m_strigHandlerTargets(triggerNumber) = Nothing
+
+        Case SyntaxKind.StopKeyword
+          m_strigStates(triggerNumber) = TimerState.Stop
+      End Select
+    End Sub
+
+    Private Sub EvaluatePlayEventStatement(node As BoundPlayEventStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' PLAY(queueSize) ON/OFF/STOP - controls PLAY event state
+      Dim queueValue = EvaluateExpression(node.QueueSize)
+      If TypeOf queueValue Is String Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
+
+      Dim queueSize As Integer = CInt(queueValue)
+      If queueSize < 1 Or queueSize > 32 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      Select Case node.VerbKind
+        Case SyntaxKind.OnKeyword
+          If m_playHandlerTarget Is Nothing Then
+            ' No handler set up yet
+            Return
+          End If
+          m_playState = TimerState.On
+
+        Case SyntaxKind.OffKeyword
+          m_playState = TimerState.Off
+          ' Clear handler
+          m_playHandlerTarget = Nothing
+          m_playQueueSize = 0
+
+        Case SyntaxKind.StopKeyword
+          m_playState = TimerState.Stop
+      End Select
+    End Sub
+
+    Private Sub EvaluatePenStatement(node As BoundPenStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' PEN ON/OFF/STOP - controls PEN event state
+      Select Case node.VerbKind
+        Case SyntaxKind.OnKeyword
+          If m_penHandlerTarget Is Nothing Then
+            ' No handler set up yet
+            Return
+          End If
+          m_penState = TimerState.On
+
+        Case SyntaxKind.OffKeyword
+          m_penState = TimerState.Off
+          ' Clear handler
+          m_penHandlerTarget = Nothing
+
+        Case SyntaxKind.StopKeyword
+          m_penState = TimerState.Stop
       End Select
     End Sub
 

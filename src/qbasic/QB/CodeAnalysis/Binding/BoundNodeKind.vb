@@ -45,6 +45,16 @@ Namespace Global.QB.CodeAnalysis.Binding
     OnErrorGotoStatement
     OnErrorGotoZeroStatement
     OnTimerGosubStatement
+    OnComGosubStatement
+    OnKeyGosubStatement
+    OnStrigGosubStatement
+    OnPlayGosubStatement
+    OnPenGosubStatement
+    ComStatement
+    KeyEventStatement
+    StrigStatement
+    PlayEventStatement
+    PenStatement
     OptionStatement
     PrintStatement
     PokeStatement

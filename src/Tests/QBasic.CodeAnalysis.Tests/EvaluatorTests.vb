@@ -72,6 +72,7 @@ TIMER ON
 started = TIMER
 SLEEP 10
 slept = TIMER - started
+END
 
 HandleTimer:
 RETURN"
@@ -1618,6 +1619,194 @@ next x
 
       ' 2+3+4+5+6 = 20
       Assert.Equal(20, CInt(variables("sum")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesOnComEventSetup()
+      ' Test ON COM(n) GOSUB sets up handler
+      Dim text = "ON COM(1) GOSUB HandleCom
+x = 1"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.True(variables.ContainsKey("x"))
+      Assert.Equal($"{1}", $"{variables("x")}") ' Handler not called until COM ON
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesOnKeyEventSetup()
+      ' Test ON KEY(n) GOSUB sets up handler
+      Dim text = "ON KEY(1) GOSUB HandleKey
+x = 1
+END
+
+HandleKey:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' Handler not called until KEY ON
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesOnStrigEventSetup()
+      ' Test ON STRIG(n) GOSUB sets up handler
+      Dim text = "ON STRIG(0) GOSUB HandleStrig
+x = 1
+END
+
+HandleStrig:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' Handler not called until STRIG ON
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesOnPlayEventSetup()
+      ' Test ON PLAY(n) GOSUB sets up handler
+      Dim text = "ON PLAY(1) GOSUB HandlePlay
+x = 1
+END
+
+HandlePlay:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' Handler not called until PLAY ON
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesOnPenEventSetup()
+      ' Test ON PEN GOSUB sets up handler and RETURN without GOSUB errors
+      Dim text = "ON PEN GOSUB HandlePen
+PEN ON
+x = 1
+END
+
+HandlePen:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' PEN events not implemented yet
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesComStatement()
+      ' Test COM(n) ON/OFF/STOP commands
+      Dim text = "ON COM(1) GOSUB HandleCom
+COM(1) ON
+x = 1
+END
+
+HandleCom:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' COM events not implemented yet
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesKeyEventStatement()
+      ' Test KEY(n) ON/OFF/STOP commands
+      Dim text = "ON KEY(1) GOSUB HandleKey
+KEY(1) ON
+x = 1
+END
+
+HandleKey:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' KEY events not implemented yet
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesStrigStatement()
+      ' Test STRIG(n) ON/OFF/STOP commands
+      Dim text = "ON STRIG(0) GOSUB HandleStrig
+STRIG(0) ON
+x = 1
+END
+
+HandleStrig:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' STRIG events not implemented yet
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesPlayEventStatement()
+      ' Test PLAY(n) ON/OFF/STOP commands
+      Dim text = "ON PLAY(1) GOSUB HandlePlay
+PLAY(1) ON
+x = 1
+END
+
+HandlePlay:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' PLAY events not implemented yet
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesPenStatement()
+      ' Test PEN ON/OFF/STOP commands
+      Dim text = "ON PEN GOSUB HandlePen
+PEN ON
+x = 1
+END
+
+HandlePen:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Equal($"{1}", $"{variables("x")}") ' PEN events not implemented yet
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesPenStatement_ShouldFail_MissingEndStatement()
+      Dim text = "ON PEN GOSUB HandlePen
+PEN ON
+x = 1
+
+HandlePen:
+x = 2
+RETURN"
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim ex = Assert.ThrowsAny(Of Exception)(Sub() compilation.Evaluate(variables))
+      Assert.Contains("RETURN without GOSUB", ex.Message)
     End Sub
 
   End Class

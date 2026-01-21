@@ -903,14 +903,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
       Dim n = ParseExpression()
       Dim closeParent = MatchToken(SyntaxKind.CloseParenToken)
-      Dim verb As SyntaxNode
-      Select Case Current.Kind
-        Case SyntaxKind.OnKeyword : verb = MatchToken(SyntaxKind.OnKeyword)
-        Case SyntaxKind.OffKeyword : verb = MatchToken(SyntaxKind.OffKeyword)
-        Case Else : verb = MatchToken(SyntaxKind.StopKeyword)
-      End Select
+       Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword})
 
-      Return New ComStatementSyntax(m_syntaxTree, comKeyword, openParen, n, closeParent, verb)
+       Return New ComStatementSyntax(m_syntaxTree, comKeyword, openParen, n, closeParent, verb)
 
     End Function
 
@@ -1887,12 +1882,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
       'QBasic: KEY(n%) OFF
       'QBasic: KEY(n%) STOP
 
-      Dim keyKeyword = MatchToken(SyntaxKind.KeyKeyword)
-      Select Case Current.Kind
-        Case SyntaxKind.OpenParenToken
-          Stop
-          Return Nothing
-        Case SyntaxKind.OffKeyword
+       Dim keyKeyword = MatchToken(SyntaxKind.KeyKeyword)
+       Select Case Current.Kind
+         Case SyntaxKind.OpenParenToken
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim keyNumber = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword})
+           Return New KeyEventStatementSyntax(m_syntaxTree, keyKeyword, openParen, keyNumber, closeParen, verb)
+         Case SyntaxKind.OffKeyword
           Dim offKeyword = MatchToken(SyntaxKind.OffKeyword)
           Return New KeyOffStatementSyntax(m_syntaxTree, keyKeyword, offKeyword)
         Case SyntaxKind.OnKeyword
@@ -2293,22 +2291,91 @@ repeat:
                                                  errorKeyword,
                                                  gotoKeyword,
                                                  target)
-        Case SyntaxKind.TimerKeyword
-          Dim timerKeyword = MatchToken(SyntaxKind.TimerKeyword)
-          Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
-          Dim interval = ParseExpression()
-          Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
-          Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
-          Dim target = ParseExpression()
-          Return New OnTimerGosubStatementSyntax(m_syntaxTree,
+         Case SyntaxKind.TimerKeyword
+           Dim timerKeyword = MatchToken(SyntaxKind.TimerKeyword)
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim interval = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+           Dim target = ParseExpression()
+           Return New OnTimerGosubStatementSyntax(m_syntaxTree,
+                                                   onKeyword,
+                                                   timerKeyword,
+                                                   openParen,
+                                                   interval,
+                                                   closeParen,
+                                                   gosubKeyword,
+                                                   target)
+         Case SyntaxKind.ComKeyword
+           Dim comKeyword = MatchToken(SyntaxKind.ComKeyword)
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim channel = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+           Dim target = ParseExpression()
+           Return New OnComGosubStatementSyntax(m_syntaxTree,
+                                                 onKeyword,
+                                                 comKeyword,
+                                                 openParen,
+                                                 channel,
+                                                 closeParen,
+                                                 gosubKeyword,
+                                                 target)
+         Case SyntaxKind.KeyKeyword
+           Dim keyKeyword = MatchToken(SyntaxKind.KeyKeyword)
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim keyNumber = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+           Dim target = ParseExpression()
+           Return New OnKeyGosubStatementSyntax(m_syntaxTree,
+                                                 onKeyword,
+                                                 keyKeyword,
+                                                 openParen,
+                                                 keyNumber,
+                                                 closeParen,
+                                                 gosubKeyword,
+                                                 target)
+         Case SyntaxKind.StrigKeyword
+           Dim strigKeyword = MatchToken(SyntaxKind.StrigKeyword)
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim triggerNumber = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+           Dim target = ParseExpression()
+           Return New OnStrigGosubStatementSyntax(m_syntaxTree,
+                                                   onKeyword,
+                                                   strigKeyword,
+                                                   openParen,
+                                                   triggerNumber,
+                                                   closeParen,
+                                                   gosubKeyword,
+                                                   target)
+         Case SyntaxKind.PlayKeyword
+           Dim playKeyword = MatchToken(SyntaxKind.PlayKeyword)
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim queueSize = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+           Dim target = ParseExpression()
+           Return New OnPlayGosubStatementSyntax(m_syntaxTree,
                                                   onKeyword,
-                                                  timerKeyword,
+                                                  playKeyword,
                                                   openParen,
-                                                  interval,
+                                                  queueSize,
                                                   closeParen,
                                                   gosubKeyword,
                                                   target)
-        Case Else ' Expression
+         Case SyntaxKind.PenKeyword
+           Dim penKeyword = MatchToken(SyntaxKind.PenKeyword)
+           Dim gosubKeyword = MatchToken(SyntaxKind.GosubKeyword)
+           Dim target = ParseExpression()
+           Return New OnPenGosubStatementSyntax(m_syntaxTree,
+                                                 onKeyword,
+                                                 penKeyword,
+                                                 gosubKeyword,
+                                                 target)
+         Case Else ' Expression
 
           Dim expression = ParseExpression()
           Select Case Current.Kind
@@ -2547,7 +2614,7 @@ repeat:
 
     End Function
 
-    Private Function ParsePlayStatement() As PlayStatementSyntax
+    Private Function ParsePlayStatement() As StatementSyntax
 
       'QBasic: PLAY commandstring$
       'QBasic: PLAY ON
@@ -2556,19 +2623,25 @@ repeat:
 
       Dim playKeyword = MatchToken(SyntaxKind.PlayKeyword)
 
-      Select Case Current.Kind
-        Case SyntaxKind.OnKeyword
-          Stop
-          Return Nothing
-        Case SyntaxKind.OffKeyword
-          Stop
-          Return Nothing
-        Case SyntaxKind.StopKeyword
-          Stop
-          Return Nothing
-        Case Else
-          Dim command = ParseExpression()
-          Return New PlayStatementSyntax(m_syntaxTree, playKeyword, command)
+       Select Case Current.Kind
+         Case SyntaxKind.OpenParenToken
+           Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+           Dim queueSize = ParseExpression()
+           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+           Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword})
+           Return New PlayEventStatementSyntax(m_syntaxTree, playKeyword, openParen, queueSize, closeParen, verb)
+         Case SyntaxKind.OnKeyword
+           Stop
+           Return Nothing
+         Case SyntaxKind.OffKeyword
+           Stop
+           Return Nothing
+         Case SyntaxKind.StopKeyword
+           Stop
+           Return Nothing
+         Case Else
+           Dim command = ParseExpression()
+           Return New PlayStatementSyntax(m_syntaxTree, playKeyword, command)
       End Select
 
     End Function

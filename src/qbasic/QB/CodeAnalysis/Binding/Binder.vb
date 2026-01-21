@@ -580,6 +580,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OnPenGosubStatement : Return BindOnPenGosubStatement(CType(syntax, OnPenGosubStatementSyntax))
         Case SyntaxKind.OpenStatement : Return BindOpenStatement(CType(syntax, OpenStatementSyntax))
         Case SyntaxKind.CloseStatement : Return BindCloseStatement(CType(syntax, CloseStatementSyntax))
+        Case SyntaxKind.SeekStatement : Return BindSeekStatement(CType(syntax, SeekStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
@@ -1932,6 +1933,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         fileNumbers = ImmutableArray(Of BoundExpression).Empty
       End If
       Return New BoundCloseStatement(fileNumbers)
+    End Function
+
+    Private Function BindSeekStatement(syntax As SeekStatementSyntax) As BoundStatement
+      Dim fileNumber = BindExpression(syntax.FileNumber)
+      Dim position = BindExpression(syntax.Position)
+      Return New BoundSeekStatement(fileNumber, position)
     End Function
 
     Private Function BindLineInputFileStatement(syntax As LineInputFileStatementSyntax) As BoundStatement

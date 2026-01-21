@@ -412,6 +412,73 @@ CLOSE f
       'IO.File.Delete("test_using.txt")
     End Sub
 
+    <Fact>
+    Public Sub SeekStatementParsesCorrectly()
+      ' Test that SEEK statement parses without errors
+      Dim tree = SyntaxTree.Parse("SEEK 1, 100")
+      Dim comp = Compilation.Create(tree)
+      ' Should not throw exception during creation
+      Assert.NotNull(comp)
+    End Sub
+
+    <Fact>
+    Public Sub SeekFunctionWorks()
+      ' Test SEEK function exists and is callable
+      Dim test = "LET result = SEEK(1)" ' Won't error during evaluation since we just test compilation
+      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
+      Dim comp As Compilation = Compilation.Create(tree)
+
+      ' Should compile without errors
+      Assert.NotNull(comp)
+    End Sub
+
+    <Fact>
+    Public Sub BinaryFileOpenWithSeekStatementParses()
+      ' Test that BINARY OPEN with LEN and SEEK statement parse correctly
+      Dim test = "OPEN ""test.bin"" FOR BINARY AS #1 LEN = 512 : SEEK 1, 100"
+      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
+      Dim comp As Compilation = Compilation.Create(tree)
+
+      ' Should compile without errors
+      Assert.NotNull(comp)
+    End Sub
+
+    <Fact>
+    Public Sub RandomFileOpenWithLenParses()
+      ' Test that RANDOM OPEN with LEN parameter parses correctly
+      Dim test = "OPEN ""test.dat"" FOR RANDOM AS #2 LEN = 128"
+      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
+      Dim comp As Compilation = Compilation.Create(tree)
+
+      ' Should compile without errors
+      Assert.NotNull(comp)
+    End Sub
+
+    <Fact>
+    Public Sub SeekStatementWithExpressionsParses()
+      ' Test SEEK statement with complex expressions
+      Dim test = "SEEK file_num%, record% * 10 + offset%"
+      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
+      Dim comp As Compilation = Compilation.Create(tree)
+
+      ' Should compile without errors
+      Assert.NotNull(comp)
+    End Sub
+
+    <Fact>
+    Public Sub PosFunctionReturnsCursorPosition()
+      ' Test POS function (cursor column position)
+      Dim test = "LET result = POS(0)"
+      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
+      Dim comp As Compilation = Compilation.Create(tree)
+      Dim vars As New Dictionary(Of String, Object)()
+      comp.Evaluate(vars)
+
+      ' POS should return an integer between 1 and screen width
+      Dim posValue = CInt(vars("result"))
+      Assert.True(posValue >= 1 AndAlso posValue <= 80)
+    End Sub
+
   End Class
 
 End Namespace

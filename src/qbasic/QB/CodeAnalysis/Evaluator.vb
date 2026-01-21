@@ -68,6 +68,7 @@ Namespace Global.QB.CodeAnalysis
     ' File I/O state
     Private ReadOnly m_openFiles As New Dictionary(Of Integer, FileStream) ' File number to FileStream mapping
     Private ReadOnly m_fileModes As New Dictionary(Of Integer, String) ' File number to access mode mapping
+    Private ReadOnly m_recordLengths As New Dictionary(Of Integer, Integer) ' File number to record length mapping (for RANDOM files)
     Private ReadOnly m_textReaders As New Dictionary(Of Integer, StreamReader) ' File number to StreamReader mapping for INPUT files
     Private ReadOnly m_textWriters As New Dictionary(Of Integer, StreamWriter) ' File number to StreamWriter mapping for OUTPUT/APPEND files
 
@@ -672,6 +673,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.CloseStatement : EvaluateCloseStatement(CType(s, BoundCloseStatement)) : index += 1
             Case BoundNodeKind.LineInputFileStatement : EvaluateLineInputFileStatement(CType(s, BoundLineInputFileStatement)) : index += 1
             Case BoundNodeKind.PrintFileStatement : EvaluatePrintFileStatement(CType(s, BoundPrintFileStatement)) : index += 1
+            Case BoundNodeKind.SeekStatement : EvaluateSeekStatement(CType(s, BoundSeekStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
@@ -2372,8 +2374,9 @@ Namespace Global.QB.CodeAnalysis
             Case "BINARY"
               Return CLng(stream.Position)
             Case "RANDOM"
-              ' For random files, return record number (assuming 128-byte records)
-              Return CLng(stream.Position \ 128) + 1
+              ' For random files, return record number
+              Dim recLen = m_recordLengths(fileNumber)
+              Return CLng(stream.Position \ recLen) + 1
             Case "INPUT", "OUTPUT", "APPEND"
               ' For sequential files, return offset divided by 128
               Return CLng(stream.Position \ 128)
@@ -2491,8 +2494,27 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Seek Then
-        Stop
-        Return Nothing
+        ' SEEK function returns the same as LOC function
+        Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
+        If m_openFiles.ContainsKey(fileNumber) Then
+          Dim stream = m_openFiles(fileNumber)
+          Dim mode = m_fileModes(fileNumber)
+          Select Case mode.ToUpper()
+            Case "BINARY"
+              Return CLng(stream.Position)
+            Case "RANDOM"
+              ' For random files, return record number
+              Dim recLen = m_recordLengths(fileNumber)
+              Return CLng(stream.Position \ recLen) + 1
+            Case "INPUT", "OUTPUT", "APPEND"
+              ' For sequential files, return offset divided by 128
+              Return CLng(stream.Position \ 128)
+            Case Else
+              Return CLng(stream.Position)
+          End Select
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Sgn Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Sign(value)
@@ -2707,6 +2729,13 @@ Namespace Global.QB.CodeAnalysis
         m_openFiles.Add(fileNumber, stream)
         m_fileModes.Add(fileNumber, modeString.ToUpper())
 
+        ' Store record length (default 128 for RANDOM files)
+        Dim recLen As Integer = 128
+        If node.RecLen IsNot Nothing Then
+          recLen = CInt(EvaluateExpression(node.RecLen))
+        End If
+        m_recordLengths.Add(fileNumber, recLen)
+
         ' For INPUT files, create a StreamReader
         If modeString.ToUpper() = "INPUT" Then
           m_textReaders.Add(fileNumber, New StreamReader(stream, leaveOpen:=True))
@@ -2723,6 +2752,7 @@ Namespace Global.QB.CodeAnalysis
           m_openFiles(fileNumber).Close()
           m_openFiles.Remove(fileNumber)
           m_fileModes.Remove(fileNumber)
+          m_recordLengths.Remove(fileNumber)
           If m_textReaders.ContainsKey(fileNumber) Then
             'm_textReaders(fileNumber).Dispose()
             m_textReaders.Remove(fileNumber)
@@ -2741,6 +2771,7 @@ Namespace Global.QB.CodeAnalysis
         Next
         m_openFiles.Clear()
         m_fileModes.Clear()
+        m_recordLengths.Clear()
         'For Each kvp In m_textReaders
         '  kvp.Value.Dispose()
         'Next
@@ -2798,6 +2829,36 @@ Namespace Global.QB.CodeAnalysis
       ' For simplicity, always add newline for now
       writer.WriteLine()
       writer.Flush()
+    End Sub
+
+    Private Sub EvaluateSeekStatement(node As BoundSeekStatement)
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+      If Not m_openFiles.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+      End If
+
+      Dim stream = m_openFiles(fileNumber)
+      Dim mode = m_fileModes(fileNumber)
+      Dim position = CLng(EvaluateExpression(node.Position))
+
+      If position < 1 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+
+      Select Case mode.ToUpper()
+        Case "BINARY"
+          ' Position is byte offset (0-based)
+          stream.Position = position - 1
+        Case "RANDOM"
+          ' Position is record number (1-based)
+          Dim recLen = m_recordLengths(fileNumber)
+          stream.Position = (position - 1) * recLen
+        Case "INPUT", "OUTPUT", "APPEND"
+          ' For sequential files, position is byte offset
+          stream.Position = position - 1
+        Case Else
+          stream.Position = position - 1
+      End Select
     End Sub
 
   End Class

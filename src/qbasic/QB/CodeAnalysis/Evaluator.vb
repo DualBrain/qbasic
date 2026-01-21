@@ -23,7 +23,7 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Lower As Integer, Upper As Integer))
 
     ' Error handling state
-    Private m_err As Integer = 0 ' Current error code (ERR)
+    Private m_err As ErrorCode = ErrorCode.None   ' Current error code (ERR)
     Private m_erl As Integer = 0 ' Line number where error occurred (ERL)
     Private m_errorHandlerTarget As String = Nothing ' Target label for ON ERROR GOTO
     Private m_errorResumeNext As Boolean = False ' ON ERROR RESUME NEXT mode
@@ -55,9 +55,17 @@ Namespace Global.QB.CodeAnalysis
     Public Class QBasicRuntimeException
       Inherits Exception
 
-      Public Sub New(message As String)
-        MyBase.New(message)
+      Public ReadOnly Property ErrorCode As ErrorCode
+
+      Public Sub New(errorCode As ErrorCode)
+        MyBase.New($"Error {CInt(errorCode)}: {GetErrorMessage(errorCode)}")
+        Me.ErrorCode = errorCode
       End Sub
+
+      'Public Sub New(message As String)
+      '  MyBase.New(message)
+      'End Sub
+
     End Class
 
     ' Exception for RESUME operations that need to jump
@@ -69,14 +77,15 @@ Namespace Global.QB.CodeAnalysis
       Public Sub New(targetIndex As Integer)
         Me.TargetIndex = targetIndex
       End Sub
+
     End Class
 
     ' Error handling methods
-    Private Sub SetError(errorCode As Integer, Optional lineNumber As Integer = 0)
-      m_err = errorCode
-      m_erl = lineNumber
-      m_errorPending = True
-    End Sub
+    'Private Sub SetError(errorCode As ErrorCode, Optional lineNumber As Integer = 0)
+    '  m_err = errorCode
+    '  m_erl = lineNumber
+    '  m_errorPending = True
+    'End Sub
 
     Private Sub ClearError()
       m_err = 0
@@ -112,77 +121,155 @@ Namespace Global.QB.CodeAnalysis
         Else
           'Console.WriteLine("DEBUG: Label not found")
           ' Label not found, treat as fatal error
-          Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
+          Throw New QBasicRuntimeException(ErrorCode.UndefinedLineNumber)
         End If
       Else
         ' No error handler, fatal error
-        Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
+        Throw New QBasicRuntimeException(m_err)
       End If
 
       Return False
     End Function
 
-    Private Function GetErrorMessage(errorCode As Integer) As String
+    Friend Enum ErrorCode
+      None = 0
+      NextWithoutFor = 1
+      Syntax = 2
+      ReturnWithoutGosub = 3
+      OutOfData = 4
+      IllegalFunctionCall = 5
+      Overflow = 6
+      OutOfMemory = 7
+      UndefinedLineNumber = 8
+      SubscriptOutOfRange = 9
+      DuplicateDefinition = 10
+      DivisionByZero = 11
+      IllegalDirect = 12
+      TypeMismatch = 13
+      OutOfStringSpace = 14
+      StringTooLong = 15
+      StringFormulaTooComplex = 16
+      CanNotContinue = 17
+      UndefinedUserFunction = 18
+      NoResume = 19
+      ResumeWithoutError = 20
+      Unprintable21 = 21
+      MissingOperand = 22
+      LineBufferOverflow = 23
+      DeviceTimeout = 24
+      DeviceFault = 25
+      ForWithoutNext = 26
+      OutOfPaper = 27
+      Unprintable28 = 28
+      WhileWithoutWend = 29
+      WendWithoutWHILE = 30
+      Unprintable31 = 31
+      Unprintable32 = 32
+      Unprintable33 = 33
+      Unprintable34 = 34
+      Unprintable35 = 35
+      Unprintable36 = 36
+      Unprintable37 = 37
+      Unprintable38 = 38
+      Unprintable39 = 39
+      Unprintable40 = 40
+      Unprintable41 = 41
+      Unprintable42 = 42
+      Unprintable43 = 43
+      Unprintable44 = 44
+      Unprintable45 = 45
+      Unprintable46 = 46
+      Unprintable47 = 47
+      Unprintable48 = 48
+      Unprintable49 = 49
+      FieldOverflow = 50
+      Internal = 51
+      BadFileNumber = 52
+      FileNotFound = 53
+      BadFileMode = 54
+      FileAlreadyOpen = 55
+      Unprintable56 = 56
+      DeviceIO = 57
+      FileAlreadyExists = 58
+      Unprintable59 = 59
+      Unprintable60 = 60
+      DiskFull = 61
+      InputPastEnd = 62
+      BadRecordNumber = 63
+      BadFilename = 64
+      Unprintable65 = 65
+      DirectStatementInFile = 66
+      TooManyFiles = 67
+      DeviceUnavailable = 68
+      CommunicationBufferOverflow = 69
+      PermissionDenied = 70
+      DiskNotReady = 71
+      DiskMedia = 72
+      AdvancedFeature = 73
+      RenameAcrossDisks = 74
+      PathFileAccess = 75
+      PathNotFound = 76
+    End Enum
+
+    Private Shared Function GetErrorMessage(errorCode As Integer) As String
+      Return GetErrorMessage(CType(errorCode, ErrorCode))
+    End Function
+
+    Friend Shared Function GetErrorMessage(errorCode As ErrorCode) As String
       Select Case errorCode
-        Case 1 : Return "NEXT without FOR"
-        Case 2 : Return "Syntax error"
-        Case 3 : Return "RETURN without GOSUB"
-        Case 4 : Return "Out of DATA"
-        Case 5 : Return "Illegal function call"
-        Case 6 : Return "Overflow"
-        Case 7 : Return "Out of memory"
-        Case 8 : Return "Undefined line number"
-        Case 9 : Return "Subscript out of range"
-        Case 10 : Return "Duplicate Definition"
-        Case 11 : Return "Division by zero"
-        Case 12 : Return "Illegal direct"
-        Case 13 : Return "Type mismatch"
-        Case 14 : Return "Out of string space"
-        Case 15 : Return "String too long"
-        Case 16 : Return "String formula too complex"
-        Case 17 : Return "Can't continue"
-        Case 18 : Return "Undefined user function"
-        Case 19 : Return "No RESUME"
-        Case 20 : Return "RESUME without error"
-        Case 21 : Return "Unprintable error"
-        Case 22 : Return "Missing operand"
-        Case 23 : Return "Line buffer overflow"
-        Case 24 : Return "Device Timeout"
-        Case 25 : Return "Device Fault"
-        Case 26 : Return "FOR Without NEXT"
-        Case 27 : Return "Out of Paper"
-        Case 28 : Return "Unprintable error"
-        Case 29 : Return "WHILE without WEND"
-        Case 30 : Return "WEND without WHILE"
-        Case 31 To 49 : Return "Unprintable error"
-        Case 50 : Return "FIELD overflow"
-        Case 51 : Return "Internal error"
-        Case 52 : Return "Bad file number"
-        Case 53 : Return "File not found"
-        Case 54 : Return "Bad file mode"
-        Case 55 : Return "File already open"
-        Case 56 : Return "Unprintable error"
-        Case 57 : Return "Device I/O Error"
-        Case 58 : Return "File already exists"
-        Case 59 : Return "Unprintable error"
-        Case 60 : Return "Unprintable error"
-        Case 61 : Return "Disk full"
-        Case 62 : Return "Input past end"
-        Case 63 : Return "Bad record number"
-        Case 64 : Return "Bad filename"
-        Case 65 : Return "Unprintable error"
-        Case 66 : Return "Direct statement in file"
-        Case 67 : Return "Too many files"
-        Case 68 : Return "Device Unavailable"
-        Case 69 : Return "Communication buffer overflow"
-        Case 70 : Return "Permission Denied"
-        Case 71 : Return "Disk not Ready"
-        Case 72 : Return "Disk media error"
-        Case 73 : Return "Advanced Feature"
-        Case 74 : Return "Rename across disks"
-        Case 75 : Return "Path/File Access Error"
-        Case 76 : Return "Path not found"
-        Case Else : Return $"Undefined error {errorCode}"
+        Case ErrorCode.None : Return "Undefined"
+        Case ErrorCode.NextWithoutFor : Return "NEXT without FOR"
+        Case ErrorCode.Syntax : Return "Syntax error"
+        Case ErrorCode.ReturnWithoutGosub : Return "RETURN without GOSUB"
+        Case ErrorCode.OutOfData : Return "Out of DATA"
+        Case ErrorCode.IllegalFunctionCall : Return "Illegal function call"
+        Case ErrorCode.Overflow : Return "Overflow"
+        Case ErrorCode.OutOfMemory : Return "Out of memory"
+        Case ErrorCode.UndefinedLineNumber : Return "Undefined line number"
+        Case ErrorCode.SubscriptOutOfRange : Return "Subscript out of range"
+        Case ErrorCode.DuplicateDefinition : Return "Duplicate Definition"
+        Case ErrorCode.DivisionByZero : Return "Division by zero"
+        Case ErrorCode.IllegalDirect : Return "Illegal direct"
+        Case ErrorCode.TypeMismatch : Return "Type mismatch"
+        Case ErrorCode.OutOfStringSpace : Return "Out of string space"
+        Case ErrorCode.StringTooLong : Return "String too long"
+        Case ErrorCode.StringFormulaTooComplex : Return "String formula too complex"
+        Case ErrorCode.CanNotContinue : Return "Can't continue"
+        Case ErrorCode.UndefinedUserFunction : Return "Undefined user function"
+        Case ErrorCode.NoResume : Return "No RESUME"
+        Case ErrorCode.ResumeWithoutError : Return "RESUME without error"
+        Case ErrorCode.MissingOperand : Return "Missing operand"
+        Case ErrorCode.LineBufferOverflow : Return "Line buffer overflow"
+        Case ErrorCode.DeviceTimeout : Return "Device Timeout"
+        Case ErrorCode.DeviceFault : Return "Device Fault"
+        Case ErrorCode.ForWithoutNext : Return "FOR Without NEXT"
+        Case ErrorCode.OutOfPaper : Return "Out of Paper"
+        Case ErrorCode.WhileWithoutWend : Return "WHILE without WEND"
+        Case ErrorCode.WendWithoutWHILE : Return "WEND without WHILE"
+        Case ErrorCode.FieldOverflow : Return "FIELD overflow"
+        Case ErrorCode.Internal : Return "Internal error"
+        Case ErrorCode.BadFileNumber : Return "Bad file number"
+        Case ErrorCode.FileNotFound : Return "File not found"
+        Case ErrorCode.BadFileMode : Return "Bad file mode"
+        Case ErrorCode.FileAlreadyOpen : Return "File already open"
+        Case ErrorCode.DeviceIO : Return "Device I/O Error"
+        Case ErrorCode.FileAlreadyExists : Return "File already exists"
+        Case ErrorCode.DiskFull : Return "Disk full"
+        Case ErrorCode.InputPastEnd : Return "Input past end"
+        Case ErrorCode.BadRecordNumber : Return "Bad record number"
+        Case ErrorCode.BadFilename : Return "Bad filename"
+        Case ErrorCode.DirectStatementInFile : Return "Direct statement in file"
+        Case ErrorCode.TooManyFiles : Return "Too many files"
+        Case ErrorCode.DeviceUnavailable : Return "Device Unavailable"
+        Case ErrorCode.CommunicationBufferOverflow : Return "Communication buffer overflow"
+        Case ErrorCode.PermissionDenied : Return "Permission Denied"
+        Case ErrorCode.DiskNotReady : Return "Disk not Ready"
+        Case ErrorCode.DiskMedia : Return "Disk media error"
+        Case ErrorCode.AdvancedFeature : Return "Advanced Feature"
+        Case ErrorCode.RenameAcrossDisks : Return "Rename across disks"
+        Case ErrorCode.PathFileAccess : Return "Path/File Access Error"
+        Case ErrorCode.PathNotFound : Return "Path not found"
+        Case Else : Return $"Unprintable error {errorCode}"
       End Select
     End Function
 
@@ -243,47 +330,59 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-       Dim func = If(m_program.MainFunction, m_program.ScriptFunction)
-       If func Is Nothing Then
-         Return Nothing
-       Else
-         Dim body = m_functions(func)
-         m_container.Push(func.Name)
-         Dim result = EvaluateStatement(body, Nothing)
-         m_container.Pop()
-         Return result
-       End If
+      Dim func = If(m_program.MainFunction, m_program.ScriptFunction)
+      If func Is Nothing Then
+        Return Nothing
+      Else
+        Dim body = m_functions(func)
+        m_container.Push(func.Name)
+        Dim result = EvaluateStatement(body, Nothing)
+        m_container.Pop()
+        Return result
+      End If
     End Function
 
     Private Function EvaluateStatement(body As BoundBlockStatement, Optional labelToIndex As Dictionary(Of String, Integer) = Nothing) As Object
 
-       Dim localLabelToIndex = If(labelToIndex IsNot Nothing, labelToIndex, New Dictionary(Of String, Integer))
+      Dim localLabelToIndex = If(labelToIndex IsNot Nothing, labelToIndex, New Dictionary(Of String, Integer))
 
-       If labelToIndex Is Nothing Then
-         For i = 0 To body.Statements.Length - 1
-           If TypeOf body.Statements(i) Is BoundLabelStatement Then
-             localLabelToIndex.Add(CType(body.Statements(i), BoundLabelStatement).Label.Name, i + 1)
-           End If
-         Next
-       End If
+      If labelToIndex Is Nothing Then
+        For i = 0 To body.Statements.Length - 1
+          Dim s = body.Statements(i)
+          If TypeOf s Is BoundLabelStatement Then
+            Dim label = CType(s, BoundLabelStatement).Label.Name
+            If IsNumeric(label) Then
+              localLabelToIndex.Add(GOTO_LABEL_PREFIX & label, i)
+            Else
+              localLabelToIndex.Add(label, i)
+            End If
+          ElseIf TypeOf s Is BoundBlockStatement Then
+            Dim block = CType(s, BoundBlockStatement)
+            If block.Statements.Length > 0 AndAlso TypeOf block.Statements(0) Is BoundLabelStatement Then
+              localLabelToIndex.Add(CType(block.Statements(0), BoundLabelStatement).Label.Name, i)
+            End If
+          End If
+        Next
+      End If
 
-       Dim index = 0
+      Dim index = 0
       While index < body.Statements.Length
 
         If QBasic.Common.s_cancelToken.IsCancellationRequested Then
           Exit While
         End If
 
-         ' Check for pending errors before executing next statement
-         If m_errorPending Then
-           If HandlePendingError(index, localLabelToIndex) Then
-             Continue While ' Skip to next iteration with updated index
-           End If
-         End If
+        ' Check for pending errors before executing next statement
+        If m_errorPending Then
+          If HandlePendingError(index, localLabelToIndex) Then
+            Continue While ' Skip to next iteration with updated index
+          End If
+        End If
 
         'Console.WriteLine($"DEBUG: About to execute index {index}")
         Try
           Dim s = body.Statements(index)
+          Debug.WriteLine($"{index}:{s.Kind}")
           Select Case s.Kind
             Case BoundNodeKind.BeepStatement
               ' TODO: Implement BEEP sound
@@ -303,10 +402,10 @@ Namespace Global.QB.CodeAnalysis
                 port = CInt(portValue)
               End If
               If port < 0 Or port > 65535 Then
-                Throw New QBasicRuntimeException("Overflow")
+                Throw New QBasicRuntimeException(ErrorCode.Overflow)
               End If
               ' Data is ignored, just throw error
-              Throw New QBasicRuntimeException("Advanced feature unavailable")
+              Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
             Case BoundNodeKind.ChDirStatement
               Dim chdir = CType(s, BoundChDirStatement)
               Dim value = CStr(EvaluateExpression(chdir.Expression))
@@ -366,38 +465,38 @@ Namespace Global.QB.CodeAnalysis
                 Case Else
               End Select
               index += 1
-             Case BoundNodeKind.ConditionalGotoStatement
-               Dim cgs = CType(s, BoundConditionalGotoStatement)
-               Dim condition = CBool(EvaluateExpression(cgs.Condition))
-               If condition = cgs.JumpIfTrue Then
-                 index = localLabelToIndex(cgs.Label.Name)
-               Else
-                 index += 1
-               End If
+            Case BoundNodeKind.ConditionalGotoStatement
+              Dim cgs = CType(s, BoundConditionalGotoStatement)
+              Dim condition = CBool(EvaluateExpression(cgs.Condition))
+              If condition = cgs.JumpIfTrue Then
+                index = localLabelToIndex(cgs.Label.Name)
+              Else
+                index += 1
+              End If
             Case BoundNodeKind.EndStatement
               index = body.Statements.Length
             Case BoundNodeKind.ExpressionStatement : EvaluateExpressionStatement(CType(s, BoundExpressionStatement)) : index += 1
 
-             Case BoundNodeKind.GosubStatement
-               Dim gs = CType(s, BoundGosubStatement)
-               Dim value As Integer = Nothing
-               If localLabelToIndex.TryGetValue(gs.Label.Name, value) Then
-                 m_gosubStack.Push(index + 1)
-                 index = value
-               Else
-                 'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
-                 index += 1
-               End If
+            Case BoundNodeKind.GosubStatement
+              Dim gs = CType(s, BoundGosubStatement)
+              Dim value As Integer = Nothing
+              If localLabelToIndex.TryGetValue(gs.Label.Name, value) Then
+                m_gosubStack.Push(index + 1)
+                index = value
+              Else
+                'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
+                index += 1
+              End If
 
-             Case BoundNodeKind.GotoStatement
-               Dim gs = CType(s, BoundGotoStatement)
-               Dim value As Integer = Nothing
-               If localLabelToIndex.TryGetValue(gs.Label.Name, value) Then
-                 index = value
-               Else
-                 'Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
-                 index += 1
-               End If
+            Case BoundNodeKind.GotoStatement
+              Dim gs = CType(s, BoundGotoStatement)
+              Dim value As Integer = Nothing
+              If localLabelToIndex.TryGetValue(gs.Label.Name, value) Then
+                index = value
+              Else
+                'Console.WriteLine("ERROR: GotoStatement label " & gs.Label.Name & " not found")
+                index += 1
+              End If
             'index = labelToIndex(gs.Label)
 
             Case BoundNodeKind.HandleCommaStatement : EvaluateHandleCommaStatement(CType(s, BoundHandleCommaStatement)) : index += 1
@@ -406,7 +505,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.HandlePrintStatement : EvaluateHandlePrintStatement(CType(s, BoundHandlePrintStatement)) : index += 1
             Case BoundNodeKind.HandleSpcStatement : EvaluateHandleSpcStatement(CType(s, BoundHandleSpcStatement)) : index += 1
             Case BoundNodeKind.HandleTabStatement : EvaluateHandleTabStatement(CType(s, BoundHandleTabStatement)) : index += 1
-             Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.IfStatement : EvaluateIfStatement(CType(s, BoundIfStatement), localLabelToIndex) : index += 1
 
             Case BoundNodeKind.InputStatement
 
@@ -573,19 +672,19 @@ Namespace Global.QB.CodeAnalysis
 
             Case BoundNodeKind.RemStatement : index += 1
 
-             Case BoundNodeKind.ReturnGosubStatement
-               Dim rg = CType(s, BoundReturnGosubStatement)
+            Case BoundNodeKind.ReturnGosubStatement
+              Dim rg = CType(s, BoundReturnGosubStatement)
 
-               Dim value As Integer = Nothing
-               If rg.Label Is Nothing Then
-                 If m_gosubStack.Count > 0 Then
-                   index = m_gosubStack.Pop
-                 End If
-               ElseIf localLabelToIndex.TryGetValue(rg.Label.Name, value) Then
-                 index = value
-               Else
-                 'Console.WriteLine("ERROR: ReturnGosubStatement label " & rg.Label.Name & " not found")
-               End If
+              Dim value As Integer = Nothing
+              If rg.Label Is Nothing Then
+                If m_gosubStack.Count > 0 Then
+                  index = m_gosubStack.Pop
+                End If
+              ElseIf localLabelToIndex.TryGetValue(rg.Label.Name, value) Then
+                index = value
+              Else
+                'Console.WriteLine("ERROR: ReturnGosubStatement label " & rg.Label.Name & " not found")
+              End If
 
             Case BoundNodeKind.ReturnStatement
               'TODO: Need to determine if this is a 
@@ -648,11 +747,11 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
-             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
-             Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement), localLabelToIndex) : index += 1
-             Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement), localLabelToIndex) : index += 1
-             Case BoundNodeKind.ForStatement : EvaluateForStatement(CType(s, BoundForStatement), localLabelToIndex) : index += 1
-             Case BoundNodeKind.WhileStatement : EvaluateWhileStatement(CType(s, BoundWhileStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.ForStatement : EvaluateForStatement(CType(s, BoundForStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.WhileStatement : EvaluateWhileStatement(CType(s, BoundWhileStatement), localLabelToIndex) : index += 1
             Case Else
               Throw New Exception($"Unexpected kind {s.Kind}")
           End Select
@@ -664,14 +763,33 @@ Namespace Global.QB.CodeAnalysis
         Catch ex As QBasicRuntimeException
           ' Handle runtime errors - set error and handle it
           If m_err = 0 Then ' Only set if not already set
-            Select Case ex.Message
-              Case "Overflow" : SetError(6)
-              Case "Advanced feature unavailable" : SetError(73)
-              Case Else : SetError(11) ' Generic error
-            End Select
+            m_err = ex.ErrorCode
+            'Select Case ex.Message
+            '  Case "Overflow" : m_err = ErrorCode.Overflow
+            '  Case "RESUME without error" : m_err = ErrorCode.ResumeWithoutError
+            '  Case "Advanced feature unavailable" : m_err = ErrorCode.AdvancedFeature
+            '  Case Else : m_err = ErrorCode.Internal
+            'End Select
           End If
-          ' Error will be handled on next iteration
-          Continue While
+          m_errorPending = True
+          If HandlePendingError(index, localLabelToIndex) Then
+            Continue While
+          End If
+        Catch ex As Exception
+          ' Handle other runtime exceptions
+          If m_err = 0 Then
+            If ex.GetType() = GetType(DivideByZeroException) Then
+              m_err = ErrorCode.DivisionByZero
+            ElseIf ex.GetType() = GetType(IndexOutOfRangeException) Then
+              m_err = ErrorCode.SubscriptOutOfRange
+            Else
+              m_err = ErrorCode.Internal
+            End If
+          End If
+          m_errorPending = True
+          If HandlePendingError(index, localLabelToIndex) Then
+            Continue While
+          End If
         End Try
       End While
 
@@ -680,30 +798,30 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Private Sub EvaluateForStatement(node As BoundForStatement, labelToIndex As Dictionary(Of String, Integer))
-       Dim lower As Integer = CInt(EvaluateExpression(node.LowerBound))
-       Dim upper As Integer = CInt(EvaluateExpression(node.UpperBound))
-       Dim stepValue As Integer = If(node.Stepper Is Nothing, 1, CInt(EvaluateExpression(node.Stepper)))
-       Dim variable = node.Variable
-       Assign(variable, CObj(lower))
-       While True
-         Dim condition = New BoundBinaryExpression(
-           New BoundVariableExpression(variable),
-           BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
-           New BoundLiteralExpression(CObj(upper)))
-         Dim condResult = EvaluateExpression(condition)
-         If DirectCast(condResult, Boolean) Then
-           Dim bodyBlock = CType(node.Body, BoundBlockStatement)
-            EvaluateStatement(bodyBlock, labelToIndex)
-         Else
-           Exit While
-         End If
-         Dim increment = New BoundBinaryExpression(
-           New BoundVariableExpression(variable),
-           BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
-           New BoundLiteralExpression(CObj(stepValue)))
-         Assign(variable, EvaluateExpression(increment))
-       End While
-     End Sub
+      Dim lower As Integer = CInt(EvaluateExpression(node.LowerBound))
+      Dim upper As Integer = CInt(EvaluateExpression(node.UpperBound))
+      Dim stepValue As Integer = If(node.Stepper Is Nothing, 1, CInt(EvaluateExpression(node.Stepper)))
+      Dim variable = node.Variable
+      Assign(variable, CObj(lower))
+      While True
+        Dim condition = New BoundBinaryExpression(
+          New BoundVariableExpression(variable),
+          BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+          New BoundLiteralExpression(CObj(upper)))
+        Dim condResult = EvaluateExpression(condition)
+        If DirectCast(condResult, Boolean) Then
+          Dim bodyBlock = CType(node.Body, BoundBlockStatement)
+          EvaluateStatement(bodyBlock, labelToIndex)
+        Else
+          Exit While
+        End If
+        Dim increment = New BoundBinaryExpression(
+          New BoundVariableExpression(variable),
+          BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
+          New BoundLiteralExpression(CObj(stepValue)))
+        Assign(variable, EvaluateExpression(increment))
+      End While
+    End Sub
 
     Private Sub EvaluateWhileStatement(node As BoundWhileStatement, labelToIndex As Dictionary(Of String, Integer))
       Dim exprResult = EvaluateExpression(node.Expression)
@@ -727,7 +845,10 @@ Namespace Global.QB.CodeAnalysis
           m_dataIndex += 1
         Else
           ' Out of data error
-          Throw New Exception("Out of DATA")
+          'Throw New Exception("Out of DATA")
+          'SetError(ErrorCode.OutOfData)
+          Throw New QBasicRuntimeException(ErrorCode.OutOfData)
+          ' Error will be handled by the main evaluation loop
         End If
       Next
     End Sub
@@ -753,7 +874,7 @@ Namespace Global.QB.CodeAnalysis
       If TypeOf node.Target Is BoundVariableExpression Then
         ' Target is a label/variable name
         Dim varExpr = CType(node.Target, BoundVariableExpression)
-        m_errorHandlerTarget = varExpr.Variable.Name
+        m_errorHandlerTarget = varExpr.Variable.Name?.ToLower
       Else
         ' Target is an expression (line number)
         Dim targetValue = EvaluateExpression(node.Target)
@@ -762,7 +883,7 @@ Namespace Global.QB.CodeAnalysis
           m_errorHandlerTarget = GOTO_LABEL_PREFIX & CStr(targetValue)
         Else
           ' Label name
-          m_errorHandlerTarget = CStr(targetValue)
+          m_errorHandlerTarget = CStr(targetValue)?.ToLower
         End If
       End If
       m_errorResumeNext = False
@@ -777,7 +898,7 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateResumeStatement(node As BoundResumeStatement)
       If Not m_errorPending AndAlso m_errorResumeIndex = -1 Then
-        Throw New QBasicRuntimeException("RESUME without error")
+        Throw New QBasicRuntimeException(ErrorCode.ResumeWithoutError)
       End If
 
       ' For RESUME with label, we'd need to implement jumping to specific labels
@@ -789,19 +910,18 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateResumeNextStatement(node As BoundResumeNextStatement)
-      If Not m_errorPending AndAlso m_errorResumeIndex = -1 Then
-        Throw New QBasicRuntimeException("RESUME without error")
+      If m_errorResumeIndex = -1 Then
+        Throw New QBasicRuntimeException(ErrorCode.ResumeWithoutError)
       End If
 
       ' RESUME NEXT - continue with statement after the error
-      If m_errorResumeIndex >= 0 Then
-        Throw New ResumeException(m_errorResumeIndex + 1)
-      End If
+      Throw New ResumeException(m_errorResumeIndex + 1)
     End Sub
 
     Private Sub EvaluateErrorStatement(node As BoundErrorStatement)
-      Dim errorCode = CInt(EvaluateExpression(node.Expression))
-      SetError(errorCode)
+      Dim errorCode = CType(CInt(EvaluateExpression(node.Expression)), ErrorCode)
+      'SetError(errorCode)
+      Throw New QBasicRuntimeException(errorCode)
       ' Error will be handled by the main evaluation loop
     End Sub
 
@@ -857,7 +977,7 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
           If isMatch Then
-             EvaluateStatement(CType(caseStmt.Statement, BoundBlockStatement), labelToIndex)
+            EvaluateStatement(CType(caseStmt.Statement, BoundBlockStatement), labelToIndex)
             Return ' Exit after first matching case
           End If
         Next
@@ -875,12 +995,12 @@ Namespace Global.QB.CodeAnalysis
         Do
           Dim conditionValue = CBool(EvaluateExpression(node.Expression))
           If Not conditionValue Then Exit Do
-           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
         Loop
       Else
         ' DO ... LOOP WHILE condition
         Do
-           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
           Dim conditionValue = CBool(EvaluateExpression(node.Expression))
           If Not conditionValue Then Exit Do
         Loop
@@ -905,13 +1025,13 @@ Namespace Global.QB.CodeAnalysis
             Exit Do
           End If
           Console.WriteLine("DEBUG: Executing body")
-           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
         Loop
         Console.WriteLine("DEBUG: Loop finished")
       Else
         ' DO ... LOOP UNTIL condition
         Do
-           EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
           Dim conditionValue = CBool(EvaluateExpression(node.Expression))
           If conditionValue Then Exit Do
         Loop
@@ -1043,7 +1163,7 @@ Namespace Global.QB.CodeAnalysis
     Private Sub EvaluateIfStatement(node As BoundIfStatement, labelToIndex As Dictionary(Of String, Integer))
       Dim conditionValue = CBool(EvaluateExpression(node.Expression))
       If conditionValue Then
-         EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
+        EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
       Else
         Dim executed = False
         For Each elseIfClause In node.ElseIfStatements
@@ -1480,8 +1600,8 @@ Namespace Global.QB.CodeAnalysis
         Case BoundBinaryOperatorKind.Division
           ' Check for division by zero
           If CDbl(right) = 0 Then
-            SetError(11) ' Division by zero
-            Throw New QBasicRuntimeException($"Error {m_err}: {GetErrorMessage(m_err)}")
+            'SetError(ErrorCode.DivisionByZero) ' Division by zero
+            Throw New QBasicRuntimeException(ErrorCode.DivisionByZero)
           End If
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.Decimal : Return (CDec(CDec(left) / CDec(right)))
@@ -1500,7 +1620,8 @@ Namespace Global.QB.CodeAnalysis
         Case BoundBinaryOperatorKind.IntegerDivision
           ' Check for division by zero
           If CDbl(right) = 0 Then
-            SetError(11) ' Division by zero
+            'SetError(ErrorCode.DivisionByZero) ' Division by zero
+            Throw New QBasicRuntimeException(ErrorCode.DivisionByZero)
             Return 0 ' Return 0 for integer division by zero
           End If
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
@@ -1832,9 +1953,9 @@ Namespace Global.QB.CodeAnalysis
           port = CInt(portValue)
         End If
         If port < 0 Or port > 65535 Then
-          Throw New QBasicRuntimeException("Overflow")
+          Throw New QBasicRuntimeException(ErrorCode.Overflow)
         End If
-        Throw New QBasicRuntimeException("Advanced feature unavailable")
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.[Function] Is BuiltinFunctions.Input Then
         Return Console.ReadLine()
       ElseIf node.Function Is BuiltinFunctions.Command Then

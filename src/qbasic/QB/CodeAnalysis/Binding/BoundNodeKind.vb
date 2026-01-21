@@ -38,56 +38,56 @@ Namespace Global.QB.CodeAnalysis.Binding
     LetStatement
     LineStatement
     LocateStatement
-     MidStatement
-     MkDirStatement
-     NameStatement
-     NopStatement
-     OnErrorGotoStatement
-     OnErrorGotoZeroStatement
-     OptionStatement
-     PrintStatement
-     PokeStatement
-     OutStatement
-     PsetStatement
+    MidStatement
+    MkDirStatement
+    NameStatement
+    NopStatement
+    OnErrorGotoStatement
+    OnErrorGotoZeroStatement
+    OptionStatement
+    PrintStatement
+    PokeStatement
+    OutStatement
+    PsetStatement
     PresetStatement
     RemStatement
-     ResumeStatement
-     ResumeNextStatement
-     ReturnGosubStatement
-     ReturnStatement
-     RmDirStatement
+    ResumeStatement
+    ResumeNextStatement
+    ReturnGosubStatement
+    ReturnStatement
+    RmDirStatement
     ScreenStatement
     StopStatement
     SubStatement
     SystemStatement
     SwapStatement
     VariableDeclaration
-     DataStatement
-      DateStatement
-      DimStatement
-     EnvironStatement
-     EraseStatement
-     ErrorStatement
-     ReadStatement
-     RedimStatement
-     TimeStatement
-      WhileStatement
-      SelectCaseStatement
-      CaseStatement
-      CaseMatchStatement
+    DataStatement
+    DateStatement
+    DimStatement
+    EnvironStatement
+    EraseStatement
+    ErrorStatement
+    ReadStatement
+    RedimStatement
+    TimeStatement
+    WhileStatement
+    SelectCaseStatement
+    CaseStatement
+    CaseMatchStatement
 
-      ' Expressions
-     ArrayAccessExpression
-     BinaryExpression
-     AssignmentExpression
-     BoundFunctionExpression
-     CallExpression
-     ConversionExpression
-     ErrorExpression
-     LiteralExpression
-     ParenExpression
-     VariableExpression
-     UnaryExpression
+    ' Expressions
+    ArrayAccessExpression
+    BinaryExpression
+    AssignmentExpression
+    BoundFunctionExpression
+    CallExpression
+    ConversionExpression
+    ErrorExpression
+    LiteralExpression
+    ParenExpression
+    VariableExpression
+    UnaryExpression
 
   End Enum
 

@@ -1925,6 +1925,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' LabelName: or line number
 
       Dim label = MatchTokens({SyntaxKind.Label, SyntaxKind.NumberToken})
+      If label IsNot Nothing Then
+        label = New SyntaxToken(label.SyntaxTree, label.Kind, label.Position, label.Text.ToLower, label.Value, label.LeadingTrivia, label.TrailingTrivia)
+      End If
       Return New LabelStatementSyntax(m_syntaxTree, label)
 
     End Function

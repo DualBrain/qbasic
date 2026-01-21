@@ -260,7 +260,7 @@ Namespace Global.QB.CodeAnalysis
         End If
 
         Dim s = body.Statements(index)
-        Debug.WriteLine($"{index}:{s.Kind}")
+        'Debug.WriteLine($"{index}:{s.Kind}")
         Try
           Select Case s.Kind
             Case BoundNodeKind.BeepStatement
@@ -1601,7 +1601,7 @@ Namespace Global.QB.CodeAnalysis
       Dim left = EvaluateExpression(node.Left)
       Dim right = EvaluateExpression(node.Right)
 
-      Debug.Assert(left IsNot Nothing AndAlso right IsNot Nothing)
+      'Debug.Assert(left IsNot Nothing AndAlso right IsNot Nothing)
       Select Case node.Op.Kind
 
 ' 14 ()

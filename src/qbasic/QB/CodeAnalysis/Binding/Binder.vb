@@ -636,6 +636,19 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Return New BoundAssignmentExpression(boundLeft, boundRight)
 
+      'Dim left = BindExpression(syntax.Variable)
+      'Dim right = BindExpression(syntax.Expression)
+      'If left.Kind = BoundNodeKind.VariableExpression Then
+      '  Dim var = DirectCast(left, BoundVariableExpression).Variable
+      '  If right.Type IsNot var.Type Then
+      '    Diagnostics.ReportCannotConvert(syntax.EqualToken.Location, right.Type, var.Type)
+      '    Return New BoundErrorExpression
+      '  End If
+      '  Return New BoundAssignmentExpression(left, right)
+      'Else
+      '  Diagnostics.ReportInvalidExpressionStatement(syntax.Variable.Location)
+      '  Return New BoundErrorExpression
+      'End If
     End Function
 
     Private Function BindBinaryExpression(syntax As BinaryExpressionSyntax) As BoundExpression
@@ -756,17 +769,17 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Function
 
-     Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
-       Dim offset = BindExpression(syntax.Offset)
-       Dim value = BindExpression(syntax.Value)
-       Return New BoundPokeStatement(offset, value)
-     End Function
+    Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
+      Dim offset = BindExpression(syntax.Offset)
+      Dim value = BindExpression(syntax.Value)
+      Return New BoundPokeStatement(offset, value)
+    End Function
 
-     Private Function BindOutStatement(syntax As OutStatementSyntax) As BoundStatement
-       Dim port = BindExpression(syntax.Port)
-       Dim data = BindExpression(syntax.Data)
-       Return New BoundOutStatement(port, data)
-     End Function
+    Private Function BindOutStatement(syntax As OutStatementSyntax) As BoundStatement
+      Dim port = BindExpression(syntax.Port)
+      Dim data = BindExpression(syntax.Data)
+      Return New BoundOutStatement(port, data)
+    End Function
 
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)

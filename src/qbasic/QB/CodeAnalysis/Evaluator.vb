@@ -1383,6 +1383,11 @@ Namespace Global.QB.CodeAnalysis
     Private Function EvaluateAssignmentExpression(node As BoundAssignmentExpression) As Object
       Dim value = EvaluateExpression(node.Expression)
       Debug.Assert(value IsNot Nothing)
+      If node.Variable.Type Is TypeSymbol.String AndAlso (TypeOf value IsNot String AndAlso TypeOf value IsNot Char) Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      ElseIf node.Variable.Type IsNot TypeSymbol.String AndAlso (TypeOf value Is String OrElse TypeOf value Is Char) Then
+        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End If
       Assign(node.Variable, value)
       Return value
     End Function

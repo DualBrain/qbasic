@@ -595,6 +595,7 @@ Namespace Global.QB.CodeAnalysis.Binding
          Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
+        Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
          Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
          Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
@@ -1987,6 +1988,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindTimeStatement(syntax As TimeStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression)
       Return New BoundTimeStatement(expression)
+    End Function
+
+    Private Function BindTimerStatement(syntax As TimerStatementSyntax) As BoundStatement
+      Return New BoundNopStatement()
     End Function
 
     Private Function BindSelectCaseStatement(syntax As SelectCaseStatementSyntax) As BoundStatement

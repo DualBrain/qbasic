@@ -254,7 +254,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "tab" : Return SyntaxKind.TabKeyword
         Case "then" : Return SyntaxKind.ThenKeyword
         Case "time$" : Return SyntaxKind.TimeKeyword
-        'Case "timer" : Return SyntaxKind.TimerKeyword
+        Case "timer" : Return SyntaxKind.TimerKeyword
         Case "to" : Return SyntaxKind.ToKeyword
         Case "troff" : Return SyntaxKind.TroffKeyword
         Case "tron" : Return SyntaxKind.TronKeyword
@@ -454,7 +454,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.TabKeyword : Return "TAB"
         Case SyntaxKind.ThenKeyword : Return "THEN"
         Case SyntaxKind.TimeKeyword : Return "TIME$"
-        'Case SyntaxKind.TimerKeyword : Return "TIMER"
+        Case SyntaxKind.TimerKeyword : Return "TIMER"
         Case SyntaxKind.ToKeyword : Return "TO"
         Case SyntaxKind.TroffKeyword : Return "TROFF"
         Case SyntaxKind.TronKeyword : Return "TRON"

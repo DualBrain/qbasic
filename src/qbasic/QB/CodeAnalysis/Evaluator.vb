@@ -2199,7 +2199,12 @@ Namespace Global.QB.CodeAnalysis
         Return MathF.Abs(value)
       ElseIf node.Function Is BuiltinFunctions.Asc Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
-        Return Microsoft.VisualBasic.Strings.Asc(value)
+        Try
+          Return QBLib.Core.QBAsc(value)
+          'Return Microsoft.VisualBasic.Strings.Asc(value)
+        Catch ex As Exception
+          Return Microsoft.VisualBasic.Chr(0)
+        End Try
       ElseIf node.Function Is BuiltinFunctions.Atn Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Math.Atan(value)

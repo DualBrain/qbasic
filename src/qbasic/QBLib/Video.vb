@@ -1,3 +1,5 @@
+Imports Basic
+
 Imports QBLib.Core
 
 Imports VbPixelGameEngine
@@ -1185,7 +1187,12 @@ Namespace Global.QBLib
             Case ChrW(9500) : c = ChrW(195)
             Case Else
           End Select
-          WriteCharacter(CByte(AscW(c)), noScroll)
+          Dim v = AscW(c)
+          If v.Between(0, 255) Then
+            WriteCharacter(CByte(v), noScroll)
+          Else
+            WriteCharacter(CByte(AscW("?"c)), noScroll)
+          End If
         Next
         If noScroll Then
           m_cursorCol = prevCursorCol
@@ -1988,7 +1995,15 @@ allplotted:
         ' For now, return empty string (TODO: implement GUI key detection)
         If s_keys.Count > 0 Then
           Dim key = s_keys.Pop
-          Return Chr(key)
+          If CLng(key).Between(0, 255) Then
+            Select Case key
+              Case ConsoleKey.OemPeriod : Return QBChr(46)
+              Case Else
+                Return QBChr(key)
+            End Select
+          Else
+            Stop
+          End If
         End If
         Return ""
       End If

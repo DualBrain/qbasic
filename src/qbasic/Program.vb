@@ -721,6 +721,8 @@ Friend Class QBasic
 
   Private ReadOnly m_subs As New List(Of String)
 
+  Private ReadOnly m_keyDecay As New Dictionary(Of ConsoleKey, Date)
+
   Protected Overrides Function OnUserUpdate(elapsedTime As Single) As Boolean
 
     m_frameCount += 1
@@ -747,6 +749,26 @@ Friend Class QBasic
     Dim cursorVisible = True
 
     Dim keys = GetPressed()
+    For Each key In m_keyDecay.Keys
+      If m_keyDecay(key) < Now Then
+        m_keyDecay.Remove(key)
+      End If
+    Next
+    If keys IsNot Nothing Then
+      Dim filtered = New List(Of ConsoleKey)
+      For index = keys.Count - 1 To 0 Step -1
+        If filtered.Contains(keys(index)) Then
+          keys.RemoveAt(index)
+        Else
+          If m_keyDecay.ContainsKey(keys(index)) Then
+            keys.RemoveAt(index)
+          Else
+            m_keyDecay.Add(keys(index), Now.AddMilliseconds(100))
+            filtered.Add(keys(index))
+          End If
+        End If
+      Next
+    End If
     Dim mButton1 = GetMouse(0)
     Dim mButton2 = GetMouse(1)
     Dim mButton3 = GetMouse(2)
@@ -756,8 +778,6 @@ Friend Class QBasic
     Dim mButton = mButton1.Pressed
     Dim mr = (mMouseY \ m_textH) + 1
     Dim mc = (mMouseX \ m_textW) + 1
-
-
 
     Dim isAlt = GetKey(Key.ALT).Held OrElse GetKey(Key.ALT).Pressed
     Dim isShift = GetKey(Key.SHIFT).Held OrElse GetKey(Key.SHIFT).Pressed

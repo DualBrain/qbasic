@@ -1,11 +1,11 @@
 Imports System.Collections.Immutable
+Imports System.IO
 
 Imports QB.CodeAnalysis.Binding
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib
-Imports System.IO
 
 Namespace Global.QB.CodeAnalysis
 

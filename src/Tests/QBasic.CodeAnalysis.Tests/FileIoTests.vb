@@ -1,5 +1,5 @@
-Imports QB.CodeAnalysis.Syntax
 Imports QB.CodeAnalysis
+Imports QB.CodeAnalysis.Syntax
 
 Imports Xunit
 

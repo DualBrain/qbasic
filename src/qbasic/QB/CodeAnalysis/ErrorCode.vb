@@ -53,8 +53,8 @@ Namespace Global.QB.CodeAnalysis
     Unprintable49 = 49
     FieldOverflow = 50
     Internal = 51
-     BadFileNumber = 52
-     FileNotFound = 53
+    BadFileNumber = 52
+    FileNotFound = 53
     BadFileMode = 54
     FileAlreadyOpen = 55
     Unprintable56 = 56

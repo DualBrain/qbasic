@@ -1153,6 +1153,10 @@ Namespace Global.QBLib
     End Function
 
     Public Shared Sub PRINT()
+      If StdoutMode Then
+        Console.WriteLine()
+        Return
+      End If
       m_cursorCol = 1
       If m_cursorRow + 1 > m_textRows Then ShiftViewUp() Else m_cursorRow += 1
     End Sub
@@ -1762,45 +1766,160 @@ allplotted:
     '  Loop
     'End Function
 
-    Public Shared Async Function InputAsync(prompt$) As Task(Of String)
-      PRINT(prompt$)
-      Dim result$ = ""
+    'Public Shared Async Function InputAsync(prompt$) As Task(Of String)
+    Public Shared Async Function InputAsync() As Task(Of String)
+      Dim result As String = ""
+      Dim cursorPos As Integer = 0
+      Dim insertMode As Boolean = True
+
+      ' Store the starting cursor position for redrawing
+      Dim startCol As Integer
+      Dim startRow As Integer
+      If StdoutMode Then
+        startCol = Console.CursorLeft
+        startRow = Console.CursorTop
+      Else
+        startCol = m_cursorCol
+        startRow = m_cursorRow
+      End If
+
       Do
         Await Task.Delay(1)
-        Dim a$ = INKEY()
-        If a$?.Length > 0 Then
-          If a$ = Chr(13) Then
-            Return result$
-          ElseIf a$ = Chr(8) Then
-            ' Handle backspace
-            If result$.Length > 0 Then
-              result$ = result$.Substring(0, result$.Length - 1)
-              ' Handle backspace differently for stdout vs GUI mode
-              If StdoutMode Then
-                ' In console mode, use Console methods
-                If Console.CursorLeft > 0 Then
-                  Console.CursorLeft -= 1
-                  Console.Write(" "c)
-                  Console.CursorLeft -= 1
+        Dim keyCode As String = INKEY()
+        If keyCode?.Length > 0 Then
+          Dim handled As Boolean = False
+
+          ' Handle two-character key codes first
+          If keyCode.Length >= 2 Then
+            Select Case keyCode
+              Case ChrW(0) & ChrW(83) ' Delete
+                If cursorPos < result.Length Then
+                  result = result.Remove(cursorPos, 1)
+                  handled = True
                 End If
-              Else
-                ' In GUI mode, move cursor back and erase character from screen buffer
-                If m_cursorCol > 1 Then
-                  m_cursorCol -= 1
-                  ' Write space to erase the character
-                  WriteCharacter(Asc(" "c), True)
-                  m_cursorCol -= 1
-                  Invalidate()
+
+              Case ChrW(0) & ChrW(71) ' Home
+                cursorPos = 0
+                handled = True
+
+              Case ChrW(0) & ChrW(79) ' End
+                cursorPos = result.Length
+                handled = True
+
+              Case ChrW(0) & ChrW(75) ' Left Arrow
+                If cursorPos > 0 Then
+                  cursorPos -= 1
+                  handled = True
                 End If
-              End If
-            End If
+
+              Case ChrW(0) & ChrW(77) ' Right Arrow
+                If cursorPos < result.Length Then
+                  cursorPos += 1
+                  handled = True
+                End If
+
+              Case ChrW(0) & ChrW(82) ' Insert
+                insertMode = Not insertMode
+                handled = True
+            End Select
           Else
-            result$ &= a$
-            PRINT(a$, True)
+            ' Handle single-character keys
+            Select Case keyCode
+              Case Chr(13) ' Enter
+                Return result
+
+              Case Chr(8) ' Backspace
+                If cursorPos > 0 Then
+                  result = result.Remove(cursorPos - 1, 1)
+                  cursorPos -= 1
+                  handled = True
+                End If
+
+              Case Chr(9) ' Tab
+                Dim spaces As String = New String(" "c, 8)
+                If insertMode Then
+                  result = result.Insert(cursorPos, spaces)
+                Else
+                  ' In overwrite mode, replace characters
+                  For i = 0 To Math.Min(spaces.Length - 1, result.Length - cursorPos - 1)
+                    result = result.Remove(cursorPos + i, 1).Insert(cursorPos + i, spaces(i))
+                  Next
+                  If cursorPos + spaces.Length > result.Length Then
+                    result &= spaces.Substring(Math.Max(0, result.Length - cursorPos))
+                  End If
+                End If
+                cursorPos += spaces.Length
+                handled = True
+
+              Case Else
+                ' Regular character input
+                If insertMode Then
+                  result = result.Insert(cursorPos, keyCode)
+                Else
+                  ' Overwrite mode
+                  If cursorPos < result.Length Then
+                    result = result.Remove(cursorPos, 1).Insert(cursorPos, keyCode)
+                  Else
+                    result &= keyCode
+                  End If
+                End If
+                cursorPos += 1
+                handled = True
+            End Select
+          End If
+
+          If handled Then
+            ' Redraw the input line
+            RedrawInputLine(result, cursorPos, startCol, startRow)
           End If
         End If
       Loop
     End Function
+
+    Private Shared Sub RedrawInputLine(text As String, cursorPos As Integer, startCol As Integer, startRow As Integer)
+      If StdoutMode Then
+        ' Console mode
+        Console.CursorLeft = startCol
+        Console.CursorTop = startRow
+        Console.Write(text)
+        ' Clear any remaining characters from previous longer input
+        Dim currentPos = Console.CursorLeft
+        Dim spacesNeeded = (startCol + text.Length) - currentPos
+        If spacesNeeded > 0 Then
+          Console.Write(New String(" "c, spacesNeeded))
+          Console.CursorLeft = startCol + text.Length
+        End If
+        ' Position cursor
+        Console.CursorLeft = startCol + cursorPos
+      Else
+        ' GUI mode - need to clear and redraw the screen buffer
+        Dim savedCol = m_cursorCol
+        Dim savedRow = m_cursorRow
+
+        ' Move to start position
+        m_cursorCol = startCol
+        m_cursorRow = startRow
+
+        ' Clear the line by writing spaces
+        For i = 1 To 80 ' Assume 80 column display
+          WriteCharacter(Asc(" "c), True)
+        Next
+
+        ' Reset to start position
+        m_cursorCol = startCol
+        m_cursorRow = startRow
+
+        ' Write the current text
+        For Each c In text
+          WriteCharacter(CByte(Asc(c)), True)
+        Next
+
+        ' Position cursor at the right location
+        m_cursorCol = startCol + cursorPos - 1 ' -1 because cursorCol is 1-based
+
+        Invalidate()
+      End If
+    End Sub
 
 #Region "SCREEN (Function)"
 
@@ -1957,6 +2076,8 @@ allplotted:
               Case ConsoleKey.PageDown
                 Return QBChr(0) & QBChr(81)
 
+              Case ConsoleKey.Insert
+                Return QBChr(0) & QBChr(82)
               Case ConsoleKey.LeftArrow
                 Return QBChr(0) & QBChr(75)
               Case ConsoleKey.RightArrow

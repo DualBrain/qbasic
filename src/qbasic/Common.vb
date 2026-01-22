@@ -38,7 +38,7 @@ Friend Module Common
     End If
   End Sub
 
-  Friend Function GetChar(key As ConsoleKey, capsLock As Boolean, shift As Boolean) As Char
+  Friend Function GetChar(key As ConsoleKey, capsLock As Boolean, shift As Boolean) As String
     Dim result = "?"c
     Select Case key
 
@@ -97,6 +97,49 @@ Friend Module Common
       Case ConsoleKey.Enter : Return ChrW(13)
       Case ConsoleKey.Backspace : Return ChrW(8)
       Case ConsoleKey.Tab : Return ChrW(9)
+
+      Case ConsoleKey.Delete : Return ChrW(0) & ChrW(83)
+      Case ConsoleKey.Home : Return ChrW(0) & ChrW(71)
+      Case ConsoleKey.UpArrow : Return ChrW(0) & ChrW(72)
+      Case ConsoleKey.PageUp : Return ChrW(0) & ChrW(73)
+      Case ConsoleKey.End : Return ChrW(0) & ChrW(79)
+      Case ConsoleKey.DownArrow : Return ChrW(0) & ChrW(80)
+      Case ConsoleKey.PageDown : Return ChrW(0) & ChrW(81)
+
+      Case ConsoleKey.Insert : Return ChrW(0) & ChrW(82)
+      Case ConsoleKey.LeftArrow : Return ChrW(0) & ChrW(75)
+      Case ConsoleKey.RightArrow : Return ChrW(0) & ChrW(77)
+
+        'Case ConsoleKey.F1 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(84 + adder), ChrW(59))
+        'Case ConsoleKey.F2 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(85 + adder), ChrW(60))
+        'Case ConsoleKey.F3 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(86 + adder), ChrW(61))
+        'Case ConsoleKey.F4 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(87 + adder), ChrW(62))
+        'Case ConsoleKey.F5 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(88 + adder), ChrW(63))
+        'Case ConsoleKey.F6 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(89 + adder), ChrW(64))
+        'Case ConsoleKey.F7 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(80 + adder), ChrW(65))
+        'Case ConsoleKey.F8 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(91 + adder), ChrW(66))
+        'Case ConsoleKey.F9 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(92 + adder), ChrW(67))
+        'Case ConsoleKey.F10 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(93 + adder), ChrW(68))
+        'Case ConsoleKey.F11
+        '  If shift Then
+        '    Return ChrW(0) & ChrW(135)
+        '  ElseIf ctrl Then
+        '    Return ChrW(0) & ChrW(137)
+        '  ElseIf alt Then
+        '    Return ChrW(0) & ChrW(139)
+        '  Else
+        '    Return ChrW(0) & ChrW(133)
+        '  End If
+        'Case ConsoleKey.F12
+        '  If shift Then
+        '    Return ChrW(0) & ChrW(136)
+        '  ElseIf ctrl Then
+        '    Return ChrW(0) & ChrW(138)
+        '  ElseIf alt Then
+        '    Return ChrW(0) & ChrW(140)
+        '  Else
+        '    Return ChrW(0) & ChrW(134)
+        '  End If
 
       Case Else
         Stop

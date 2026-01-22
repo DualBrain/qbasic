@@ -433,7 +433,7 @@ Namespace Global.QB.CodeAnalysis
                 If Not suppressQuestionMark Then
                   QBLib.Video.PRINT("? ", True)
                 End If
-                Dim potential = QBLib.Video.InputAsync("").GetAwaiter.GetResult
+                Dim potential = QBLib.Video.InputAsync().GetAwaiter.GetResult
                 Dim potentials = Split(potential, ",")
                 If potentials.Length = input.Variables.Length Then
                   For i = 0 To input.Variables.Length - 1
@@ -467,8 +467,7 @@ Namespace Global.QB.CodeAnalysis
                       Assign(input.Variables(i), value)
                     End If
                   Next
-                  'If Not suppressCr Then Console.WriteLine()
-                  'TODO: If suppressCr is True, need to move the cursor back????
+                  QBLib.Video.PRINT()
                   Exit Do
                 Else
                   QBLib.Video.PRINT()

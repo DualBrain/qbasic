@@ -93,6 +93,11 @@ Friend Module Common
       Case ConsoleKey.D9 : If shift Then Return "("c Else Return "9"c
       Case ConsoleKey.D0 : If shift Then Return ")"c Else Return "0"c
 
+      Case ConsoleKey.Escape : Return ChrW(27)
+      Case ConsoleKey.Enter : Return ChrW(13)
+      Case ConsoleKey.Backspace : Return ChrW(8)
+      Case ConsoleKey.Tab : Return ChrW(9)
+
       Case Else
         Stop
     End Select

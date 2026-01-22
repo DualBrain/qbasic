@@ -817,7 +817,7 @@ Namespace Global.QBLib
       Next
     End Sub
 
-    Friend Shared Sub KeyPush(key As ConsoleKey) 'System.Windows.Forms.KeyEventArgs)
+    Friend Shared Sub KeyPush(key As String) 'System.Windows.Forms.KeyEventArgs)
       s_keys.Push(key)
     End Sub
 
@@ -1890,7 +1890,7 @@ allplotted:
       End If
     End Sub
 
-    Private Shared ReadOnly s_keys As New Stack(Of ConsoleKey)
+    Private Shared ReadOnly s_keys As New Stack(Of String) 'ConsoleKey)
 
     Public Shared Function INKEY$()
       If StdoutMode Then
@@ -1995,15 +1995,7 @@ allplotted:
         ' For now, return empty string (TODO: implement GUI key detection)
         If s_keys.Count > 0 Then
           Dim key = s_keys.Pop
-          If CLng(key).Between(0, 255) Then
-            Select Case key
-              Case ConsoleKey.OemPeriod : Return QBChr(46)
-              Case Else
-                Return QBChr(key)
-            End Select
-          Else
-            Stop
-          End If
+          Return key
         End If
         Return ""
       End If

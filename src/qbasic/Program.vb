@@ -467,7 +467,7 @@ Friend Class QBasic
     XQueryTree(display, window, dummy, dummy, children, nchildren)
     If children <> IntPtr.Zero Then
       For i = 0 To nchildren - 1
-        Dim child = Marshal.ReadIntPtr(new IntPtr(children.ToInt64() + CLng(i) * Marshal.SizeOf(GetType(IntPtr))))
+        Dim child = Marshal.ReadIntPtr(New IntPtr(children.ToInt64() + CLng(i) * Marshal.SizeOf(GetType(IntPtr))))
         Dim found = FindWindowByName(display, child, name)
         If found <> IntPtr.Zero Then
           XFree(children)
@@ -721,7 +721,7 @@ Friend Class QBasic
 
   Private ReadOnly m_subs As New List(Of String)
 
-  Private ReadOnly m_keyDecay As New Dictionary(Of ConsoleKey, Date)
+  'Private ReadOnly m_keyDecay As New Dictionary(Of ConsoleKey, Date)
 
   Protected Overrides Function OnUserUpdate(elapsedTime As Single) As Boolean
 
@@ -749,26 +749,26 @@ Friend Class QBasic
     Dim cursorVisible = True
 
     Dim keys = GetPressed()
-    For Each key In m_keyDecay.Keys
-      If m_keyDecay(key) < Now Then
-        m_keyDecay.Remove(key)
-      End If
-    Next
-    If keys IsNot Nothing Then
-      Dim filtered = New List(Of ConsoleKey)
-      For index = keys.Count - 1 To 0 Step -1
-        If filtered.Contains(keys(index)) Then
-          keys.RemoveAt(index)
-        Else
-          If m_keyDecay.ContainsKey(keys(index)) Then
-            keys.RemoveAt(index)
-          Else
-            m_keyDecay.Add(keys(index), Now.AddMilliseconds(100))
-            filtered.Add(keys(index))
-          End If
-        End If
-      Next
-    End If
+    'For Each key In m_keyDecay.Keys
+    '  If m_keyDecay(key) < Now Then
+    '    m_keyDecay.Remove(key)
+    '  End If
+    'Next
+    'If keys IsNot Nothing Then
+    '  Dim filtered = New List(Of ConsoleKey)
+    '  For index = keys.Count - 1 To 0 Step -1
+    '    If filtered.Contains(keys(index)) Then
+    '      keys.RemoveAt(index)
+    '    Else
+    '      If m_keyDecay.ContainsKey(keys(index)) Then
+    '        keys.RemoveAt(index)
+    '      Else
+    '        m_keyDecay.Add(keys(index), Now.AddMilliseconds(100))
+    '        filtered.Add(keys(index))
+    '      End If
+    '    End If
+    '  Next
+    'End If
     Dim mButton1 = GetMouse(0)
     Dim mButton2 = GetMouse(1)
     Dim mButton3 = GetMouse(2)
@@ -973,14 +973,18 @@ Tip: These topics are also available from the Help menu.
 
       If m_running Then 'Interpreter.IsRunning Then
 
+        ' need to feed the keys into the runner
+        If keys IsNot Nothing Then
+          For index = keys.Count - 1 To 0 Step -1
+            If Not isControl AndAlso Not isAlt Then
+              Dim k = GetChar(keys(index), CapsLock, isShift)
+              QBLib.Video.KeyPush(k)
+            End If
+            keys.RemoveAt(index)
+          Next
+        End If
+
         If m_runner.IsAlive Then
-          ' need to feed the keys into the runner
-          If keys IsNot Nothing Then
-            For index = keys.Count - 1 To 0 Step -1
-              QBLib.Video.KeyPush(keys(index))
-              keys.RemoveAt(index)
-            Next
-          End If
           m_scrn0 = Nothing
           m_scrn = Nothing
           m_buffer = Nothing

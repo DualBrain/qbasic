@@ -45,16 +45,16 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
 
     ' COM event state (channels 1-2)
-    Private m_comHandlerTargets As Object() = {Nothing, Nothing} ' Targets for ON COM(n) GOSUB
-    Private m_comStates As TimerState() = {TimerState.Off, TimerState.Off} ' Current COM states
+    Private ReadOnly m_comHandlerTargets As Object() = {Nothing, Nothing} ' Targets for ON COM(n) GOSUB
+    Private ReadOnly m_comStates As TimerState() = {TimerState.Off, TimerState.Off} ' Current COM states
 
     ' KEY event state (keys 1-20)
-    Private m_keyHandlerTargets As Object() = New Object(20) {} ' Targets for ON KEY(n) GOSUB (1-based, index 0 unused)
-    Private m_keyStates As TimerState() = New TimerState(20) {} ' Current KEY states (1-based, index 0 unused)
+    Private ReadOnly m_keyHandlerTargets As Object() = New Object(20) {} ' Targets for ON KEY(n) GOSUB (1-based, index 0 unused)
+    Private ReadOnly m_keyStates As TimerState() = New TimerState(20) {} ' Current KEY states (1-based, index 0 unused)
 
     ' STRIG event state (triggers 0,2,4,6)
-    Private m_strigHandlerTargets As Object() = New Object(6) {} ' Targets for ON STRIG(n) GOSUB
-    Private m_strigStates As TimerState() = New TimerState(6) {} ' Current STRIG states
+    Private ReadOnly m_strigHandlerTargets As Object() = New Object(6) {} ' Targets for ON STRIG(n) GOSUB
+    Private ReadOnly m_strigStates As TimerState() = New TimerState(6) {} ' Current STRIG states
 
     ' PLAY event state
     Private m_playHandlerTarget As Object = Nothing ' Target for ON PLAY(n) GOSUB
@@ -1286,15 +1286,19 @@ Namespace Global.QB.CodeAnalysis
             Case CaseMatchType.Value
               ' Direct value comparison - use numeric comparison for compatibility
               Dim matchValue As Object = EvaluateExpression(match.Expression)
-              Try
-                ' Try numeric comparison first
-                Dim testNum = CDbl(testValue)
-                Dim matchNum = CDbl(matchValue)
-                isMatch = (testNum = matchNum)
-              Catch ex As Exception
-                ' Fall back to object comparison
+              If match.Expression.Type Is TypeSymbol.String Then
                 isMatch = Object.Equals(testValue, matchValue)
-              End Try
+              Else
+                Try
+                  ' Try numeric comparison first
+                  Dim testNum = CDbl(testValue)
+                  Dim matchNum = CDbl(matchValue)
+                  isMatch = (testNum = matchNum)
+                Catch ex As Exception
+                  ' Fall back to object comparison
+                  isMatch = Object.Equals(testValue, matchValue)
+                End Try
+              End If
             Case CaseMatchType.Range
               ' Range comparison: start <= testValue <= end
               Dim startValue As Object = EvaluateExpression(match.Expression)
@@ -1467,7 +1471,7 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)
       Dim value = EvaluateExpression(node.Expression)
-      Dim str = value.ToString()
+      Dim str = $"{value}"
       If TypeOf value IsNot String AndAlso
          Not str.StartsWith("-"c) Then
         QBLib.Video.PRINT(" ", True) ': QBLib.Video.PRINT(" "c, True)
@@ -2042,36 +2046,23 @@ Namespace Global.QB.CodeAnalysis
           End Select
 
         Case BoundBinaryOperatorKind.Equal
-          ' Use numeric comparison for QBasic compatibility
-          Try
-            Dim leftNum = CDbl(left)
-            Dim rightNum = CDbl(right)
-            Return If(leftNum = rightNum, -1, 0)
-          Catch ex As Exception
-            Return If(Equals(left, right), -1, 0)
-          End Try
+          Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
+            Case TypeSymbol.Type.String : Return If(CStr(left) = CStr(right), -1, 0)
+            Case Else
+              Return If(CDbl(left) = CDbl(right), -1, 0)
+          End Select
         Case BoundBinaryOperatorKind.NotEqual
-          ' Use numeric comparison for QBasic compatibility
-          Try
-            Dim leftNum = CDbl(left)
-            Dim rightNum = CDbl(right)
-            Return If(leftNum <> rightNum, -1, 0)
-          Catch ex As Exception
-            Return If(Not Equals(left, right), -1, 0)
-          End Try
-
+          Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
+            Case TypeSymbol.Type.String : Return If(CStr(left) <> CStr(right), -1, 0)
+            Case Else
+              Return If(CDbl(left) <> CDbl(right), -1, 0)
+          End Select
         Case BoundBinaryOperatorKind.GreaterThan
-          ' Use numeric comparison for QBasic compatibility
-          ' Use numeric comparison for QBasic compatibility
-          Try
-            Dim leftNum = CDbl(left)
-            Dim rightNum = CDbl(right)
-            Return If(leftNum > rightNum, -1, 0)
-          Catch ex As Exception
-            ' Fallback to type-specific comparison
-            Return If(CDbl(left) > CDbl(right), -1, 0)
-          End Try
-
+          Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
+            Case TypeSymbol.Type.String : Return If(CStr(left) > CStr(right), -1, 0)
+            Case Else
+              Return If(CDbl(left) > CDbl(right), -1, 0)
+          End Select
         Case BoundBinaryOperatorKind.GreaterThanEqual
           Select Case TypeSymbol.TypeSymbolToType(node.Left.Type)
             Case TypeSymbol.Type.Decimal : Return If(CDec(left) >= CDec(right), -1, 0)
@@ -2199,6 +2190,9 @@ Namespace Global.QB.CodeAnalysis
         Return MathF.Abs(value)
       ElseIf node.Function Is BuiltinFunctions.Asc Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        If value Is Nothing Then
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
         Try
           Return QBLib.Core.QBAsc(value)
           'Return Microsoft.VisualBasic.Strings.Asc(value)

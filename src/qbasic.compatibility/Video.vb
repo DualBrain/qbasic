@@ -1,4 +1,4 @@
-﻿' Yet another approach... try again on another episode.
+' Yet another approach... try again on another episode.
 ' https://stackoverflow.com/questions/24701703/c-sharp-faster-alternatives-to-setpixel-and-getpixel-for-bitmaps-for-windows-f
 
 #Const oldway = False
@@ -1476,6 +1476,18 @@ allplotted:
         If a$?.Length > 0 Then
           If a$ = Chr(13) Then
             Return result$
+          ElseIf a$ = Chr(8) Then
+            ' Handle backspace
+            If result$.Length > 0 Then
+              result$ = result$.Substring(0, result$.Length - 1)
+              ' Move cursor back and erase character from screen buffer
+              If s_cursorCol > 1 Then
+                s_cursorCol -= 1
+                ' Write space to erase the character
+                WriteCharacter(Asc(" "c))
+                s_cursorCol -= 1
+              End If
+            End If
           Else
             result$ &= a$
             PRINT(a$, True)
@@ -1533,6 +1545,18 @@ allplotted:
         If a$?.Length > 0 Then
           If a$ = Chr(13) Then
             Return result$
+          ElseIf a$ = Chr(8) Then
+            ' Handle backspace
+            If result$.Length > 0 Then
+              result$ = result$.Substring(0, result$.Length - 1)
+              ' Move cursor back and erase character from screen buffer
+              If s_cursorCol > 1 Then
+                s_cursorCol -= 1
+                ' Write space to erase the character
+                WriteCharacter(Asc(" "c))
+                s_cursorCol -= 1
+              End If
+            End If
           Else
             result$ &= a$
             PRINT(a$, True)

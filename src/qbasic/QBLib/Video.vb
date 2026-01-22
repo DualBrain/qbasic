@@ -1771,6 +1771,29 @@ allplotted:
         If a$?.Length > 0 Then
           If a$ = Chr(13) Then
             Return result$
+          ElseIf a$ = Chr(8) Then
+            ' Handle backspace
+            If result$.Length > 0 Then
+              result$ = result$.Substring(0, result$.Length - 1)
+              ' Handle backspace differently for stdout vs GUI mode
+              If StdoutMode Then
+                ' In console mode, use Console methods
+                If Console.CursorLeft > 0 Then
+                  Console.CursorLeft -= 1
+                  Console.Write(" "c)
+                  Console.CursorLeft -= 1
+                End If
+              Else
+                ' In GUI mode, move cursor back and erase character from screen buffer
+                If m_cursorCol > 1 Then
+                  m_cursorCol -= 1
+                  ' Write space to erase the character
+                  WriteCharacter(Asc(" "c), True)
+                  m_cursorCol -= 1
+                  Invalidate()
+                End If
+              End If
+            End If
           Else
             result$ &= a$
             PRINT(a$, True)

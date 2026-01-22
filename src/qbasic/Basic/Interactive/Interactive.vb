@@ -1,4 +1,4 @@
-﻿Imports Basic.Parser.ParserExtensions
+Imports Basic.Parser.ParserExtensions
 
 Namespace Global.Basic
 
@@ -9999,6 +9999,12 @@ nameList As List(Of String)) As Boolean
             If m_characterBuffer(0) = ChrW(13) Then
               m_characterBuffer.RemoveAt(0)
               Exit Do
+            ElseIf m_characterBuffer(0) = ChrW(8) Then
+              ' Handle backspace by removing the last character from input
+              If input.Length > 0 Then
+                input = input.Substring(0, input.Length - 1)
+              End If
+              m_characterBuffer.RemoveAt(0)
             Else
               input &= m_characterBuffer(0)
               m_characterBuffer.RemoveAt(0)
@@ -10054,7 +10060,7 @@ nameList As List(Of String)) As Boolean
 
       End If
 
-      Return True
+      Return False
 
     End Function
 
@@ -10717,6 +10723,12 @@ nameList As List(Of String)) As Boolean
             If m_characterBuffer(0) = ChrW(13) Then
               m_characterBuffer.RemoveAt(0)
               Exit Do
+            ElseIf m_characterBuffer(0) = ChrW(8) Then
+              ' Handle backspace by removing the last character from input
+              If input.Length > 0 Then
+                input = input.Substring(0, input.Length - 1)
+              End If
+              m_characterBuffer.RemoveAt(0)
             Else
               input &= m_characterBuffer(0)
               m_characterBuffer.RemoveAt(0)
@@ -14065,6 +14077,12 @@ nameList As List(Of String)) As Boolean
             If m_characterBuffer(0) = ChrW(13) Then
               m_characterBuffer.RemoveAt(0)
               Exit Do
+            ElseIf m_characterBuffer(0) = ChrW(8) Then
+              ' Handle backspace by removing the last character from input
+              If input.Length > 0 Then
+                input = input.Substring(0, input.Length - 1)
+              End If
+              m_characterBuffer.RemoveAt(0)
             Else
               input &= m_characterBuffer(0)
               m_characterBuffer.RemoveAt(0)

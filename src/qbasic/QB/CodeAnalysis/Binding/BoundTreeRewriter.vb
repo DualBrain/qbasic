@@ -212,26 +212,30 @@ Namespace Global.QB.CodeAnalysis.Binding
       'Return node
 
       Dim builder = ImmutableArray.CreateBuilder(Of BoundStatement)()
-      For i = 0 To node.Nodes.Length - 1
-        Dim entry = node.Nodes(i)
-        If TypeOf entry Is BoundExpression Then
-          Dim nextEntry = If(i < node.Nodes.Length - 1, node.Nodes(i + 1), Nothing)
-          Dim noCr = nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso (CType(nextEntry, BoundSymbol).Value = ";"c OrElse CType(nextEntry, BoundSymbol).Value = ","c)
-          Dim expression = RewriteExpression(CType(entry, BoundExpression))
-          builder.Add(New BoundHandlePrintStatement(expression, noCr))
-        ElseIf TypeOf entry Is BoundSymbol Then
-          Dim s = CType(entry, BoundSymbol).Value
-          If s = ","c Then
-            builder.Add(New BoundHandleCommaStatement())
+      If node.Nodes.Length = 0 Then
+        builder.Add(New BoundHandlePrintStatement(New BoundLiteralExpression("", Nothing), False))
+      Else
+        For i = 0 To node.Nodes.Length - 1
+          Dim entry = node.Nodes(i)
+          If TypeOf entry Is BoundExpression Then
+            Dim nextEntry = If(i < node.Nodes.Length - 1, node.Nodes(i + 1), Nothing)
+            Dim noCr = nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso (CType(nextEntry, BoundSymbol).Value = ";"c OrElse CType(nextEntry, BoundSymbol).Value = ","c)
+            Dim expression = RewriteExpression(CType(entry, BoundExpression))
+            builder.Add(New BoundHandlePrintStatement(expression, noCr))
+          ElseIf TypeOf entry Is BoundSymbol Then
+            Dim s = CType(entry, BoundSymbol).Value
+            If s = ","c Then
+              builder.Add(New BoundHandleCommaStatement())
+            End If
+          ElseIf TypeOf entry Is BoundSpcFunction Then
+            Dim expression = RewriteExpression(CType(entry, BoundSpcFunction).Expression)
+            builder.Add(New BoundHandleSpcStatement(expression))
+          ElseIf TypeOf entry Is BoundTabFunction Then
+            Dim expression = RewriteExpression(CType(entry, BoundTabFunction).Expression)
+            builder.Add(New BoundHandleTabStatement(expression))
           End If
-        ElseIf TypeOf entry Is BoundSpcFunction Then
-          Dim expression = RewriteExpression(CType(entry, BoundSpcFunction).Expression)
-          builder.Add(New BoundHandleSpcStatement(expression))
-        ElseIf TypeOf entry Is BoundTabFunction Then
-          Dim expression = RewriteExpression(CType(entry, BoundTabFunction).Expression)
-          builder.Add(New BoundHandleTabStatement(expression))
-        End If
-      Next
+        Next
+      End If
       Return New BoundBlockStatement(builder.ToImmutable)
 
       'Dim screenWidth = 80

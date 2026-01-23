@@ -1742,8 +1742,8 @@ allplotted:
         WriteCharacter(CByte(Asc(c)))
       Next
 
-      ' Position cursor at the right location
-      s_cursorCol = startCol + cursorPos
+      ' Position cursor at the right location (clamp to screen bounds)
+      s_cursorCol = Math.Min(startCol + cursorPos, 80)
     End Sub
 
 #Region "SCREEN (Function)"

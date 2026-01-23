@@ -847,6 +847,7 @@ Namespace Global.QBLib
     End Sub
 
     Friend Shared m_cursorVisible As Boolean = True
+    Friend Shared m_inputActive As Boolean = False
     Public Shared StdoutMode As Boolean = False
     Private Shared m_cursorStart As Integer = 6
     Public Shared ReadOnly Property CursorStart As Integer
@@ -1126,6 +1127,15 @@ Namespace Global.QBLib
         Else
           Stop
         End If
+      End Set
+    End Property
+
+    Public Shared Property IsInputActive As Boolean
+      Get
+        Return m_inputActive
+      End Get
+      Set(value As Boolean)
+        m_inputActive = value
       End Set
     End Property
 
@@ -1768,112 +1778,120 @@ allplotted:
 
     'Public Shared Async Function InputAsync(prompt$) As Task(Of String)
     Public Shared Async Function InputAsync() As Task(Of String)
-      Dim result As String = ""
-      Dim cursorPos As Integer = 0
-      Dim insertMode As Boolean = True
+      m_inputActive = True
+      Dim savedCursorVisible = m_cursorVisible
+      m_cursorVisible = True
+      Try
+        Dim result As String = ""
+        Dim cursorPos As Integer = 0
+        Dim insertMode As Boolean = True
 
-      ' Store the starting cursor position for redrawing
-      Dim startCol As Integer
-      Dim startRow As Integer
-      If StdoutMode Then
-        startCol = Console.CursorLeft
-        startRow = Console.CursorTop
-      Else
-        startCol = m_cursorCol
-        startRow = m_cursorRow
-      End If
+        ' Store the starting cursor position for redrawing
+        Dim startCol As Integer
+        Dim startRow As Integer
+        If StdoutMode Then
+          startCol = Console.CursorLeft
+          startRow = Console.CursorTop
+        Else
+          startCol = m_cursorCol
+          startRow = m_cursorRow
+        End If
 
-      Do
-        Await Task.Delay(1)
-        Dim keyCode As String = INKEY()
-        If keyCode?.Length > 0 Then
-          Dim handled As Boolean = False
+        Do
+          Await Task.Delay(1)
+          Dim keyCode As String = INKEY()
+          If keyCode?.Length > 0 Then
+            Dim handled As Boolean = False
 
-          ' Handle two-character key codes first
-          If keyCode.Length >= 2 Then
-            Select Case keyCode
-              Case ChrW(0) & ChrW(83) ' Delete
-                If cursorPos < result.Length Then
-                  result = result.Remove(cursorPos, 1)
+            ' Handle two-character key codes first
+            If keyCode.Length >= 2 Then
+              Select Case keyCode
+                Case ChrW(0) & ChrW(83) ' Delete
+                  If cursorPos < result.Length Then
+                    result = result.Remove(cursorPos, 1)
+                    handled = True
+                  End If
+
+                Case ChrW(0) & ChrW(71) ' Home
+                  cursorPos = 0
                   handled = True
-                End If
 
-              Case ChrW(0) & ChrW(71) ' Home
-                cursorPos = 0
-                handled = True
-
-              Case ChrW(0) & ChrW(79) ' End
-                cursorPos = result.Length
-                handled = True
-
-              Case ChrW(0) & ChrW(75) ' Left Arrow
-                If cursorPos > 0 Then
-                  cursorPos -= 1
+                Case ChrW(0) & ChrW(79) ' End
+                  cursorPos = result.Length
                   handled = True
-                End If
 
-              Case ChrW(0) & ChrW(77) ' Right Arrow
-                If cursorPos < result.Length Then
+                Case ChrW(0) & ChrW(75) ' Left Arrow
+                  If cursorPos > 0 Then
+                    cursorPos -= 1
+                    handled = True
+                  End If
+
+                Case ChrW(0) & ChrW(77) ' Right Arrow
+                  If cursorPos < result.Length Then
+                    cursorPos += 1
+                    handled = True
+                  End If
+
+                Case ChrW(0) & ChrW(82) ' Insert
+                  insertMode = Not insertMode
+                  handled = True
+              End Select
+            Else
+              ' Handle single-character keys
+              Select Case keyCode
+                Case Chr(13) ' Enter
+                  Return result
+
+                Case Chr(8) ' Backspace
+                  If cursorPos > 0 Then
+                    result = result.Remove(cursorPos - 1, 1)
+                    cursorPos -= 1
+                    handled = True
+                  End If
+
+                Case Chr(9) ' Tab
+                  Dim spaces As String = New String(" "c, 8)
+                  If insertMode Then
+                    result = result.Insert(cursorPos, spaces)
+                  Else
+                    ' In overwrite mode, replace characters
+                    For i = 0 To Math.Min(spaces.Length - 1, result.Length - cursorPos - 1)
+                      result = result.Remove(cursorPos + i, 1).Insert(cursorPos + i, spaces(i))
+                    Next
+                    If cursorPos + spaces.Length > result.Length Then
+                      result &= spaces.Substring(Math.Max(0, result.Length - cursorPos))
+                    End If
+                  End If
+                  cursorPos += spaces.Length
+                  handled = True
+
+                Case Else
+                  ' Regular character input
+                  If insertMode Then
+                    result = result.Insert(cursorPos, keyCode)
+                  Else
+                    ' Overwrite mode
+                    If cursorPos < result.Length Then
+                      result = result.Remove(cursorPos, 1).Insert(cursorPos, keyCode)
+                    Else
+                      result &= keyCode
+                    End If
+                  End If
                   cursorPos += 1
                   handled = True
-                End If
+              End Select
+            End If
 
-              Case ChrW(0) & ChrW(82) ' Insert
-                insertMode = Not insertMode
-                handled = True
-            End Select
-          Else
-            ' Handle single-character keys
-            Select Case keyCode
-              Case Chr(13) ' Enter
-                Return result
-
-              Case Chr(8) ' Backspace
-                If cursorPos > 0 Then
-                  result = result.Remove(cursorPos - 1, 1)
-                  cursorPos -= 1
-                  handled = True
-                End If
-
-              Case Chr(9) ' Tab
-                Dim spaces As String = New String(" "c, 8)
-                If insertMode Then
-                  result = result.Insert(cursorPos, spaces)
-                Else
-                  ' In overwrite mode, replace characters
-                  For i = 0 To Math.Min(spaces.Length - 1, result.Length - cursorPos - 1)
-                    result = result.Remove(cursorPos + i, 1).Insert(cursorPos + i, spaces(i))
-                  Next
-                  If cursorPos + spaces.Length > result.Length Then
-                    result &= spaces.Substring(Math.Max(0, result.Length - cursorPos))
-                  End If
-                End If
-                cursorPos += spaces.Length
-                handled = True
-
-              Case Else
-                ' Regular character input
-                If insertMode Then
-                  result = result.Insert(cursorPos, keyCode)
-                Else
-                  ' Overwrite mode
-                  If cursorPos < result.Length Then
-                    result = result.Remove(cursorPos, 1).Insert(cursorPos, keyCode)
-                  Else
-                    result &= keyCode
-                  End If
-                End If
-                cursorPos += 1
-                handled = True
-            End Select
+            If handled Then
+              ' Redraw the input line
+              RedrawInputLine(result, cursorPos, startCol, startRow)
+            End If
           End If
-
-          If handled Then
-            ' Redraw the input line
-            RedrawInputLine(result, cursorPos, startCol, startRow)
-          End If
-        End If
-      Loop
+        Loop
+      Finally
+        m_inputActive = False
+        m_cursorVisible = savedCursorVisible
+      End Try
     End Function
 
     Private Shared Sub RedrawInputLine(text As String, cursorPos As Integer, startCol As Integer, startRow As Integer)
@@ -1914,8 +1932,8 @@ allplotted:
           WriteCharacter(CByte(Asc(c)), True)
         Next
 
-        ' Position cursor at the right location
-        m_cursorCol = startCol + cursorPos - 1 ' -1 because cursorCol is 1-based
+        ' Position cursor at the right location (clamp to screen bounds)
+        m_cursorCol = Math.Min(startCol + cursorPos, m_textColumns)
 
         Invalidate()
       End If

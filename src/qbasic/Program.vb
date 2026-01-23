@@ -1061,7 +1061,7 @@ Tip: These topics are also available from the Help menu.
         End If
 
         If Not Menu.ShowAccelerators AndAlso
-         Not Menu.Focused Then
+           Not Menu.Focused Then
 
           ' End+Enter - Insert Line below???
           ' End,Enter - Insert a blank line below the cursor position
@@ -1408,8 +1408,6 @@ Tip: These topics are also available from the Help menu.
           End If
 
         Else
-          cursorVisible = False
-
           Menu.ProcessKeys(keys, Me.CapsLock, isControl, isAlt, isShift, mButton, mr, mc)
         End If
 
@@ -1418,6 +1416,18 @@ Tip: These topics are also available from the Help menu.
     End If
 
     If m_running Then 'Interpreter.IsRunning Then
+
+      'TODO: Need to determine cursor visibility based
+      '      on INPUT being active certainly; but also
+      '      based on the current state of the most
+      '      recent LOCATE statement which provides for
+      '      mechanism to not only show/hide the text
+      '      cursor, but also the size of the cursor.
+      '      Additionally, if memory servse, there is
+      '      no visible cursor in graphics modes except
+      '      for during the INPUT statement; and even
+      '      then, it's not animated.
+      cursorVisible = QBLib.Video.IsInputActive
 
       If g_display IsNot Nothing Then
 
@@ -1537,89 +1547,93 @@ Abort:
         Next
       Next
 
-      ' Blinking cursor...
-      If cursorVisible AndAlso m_cursorVisible Then
-        If CInt(Fix(m_t * 8)) Mod 2 = 0 Then
+    End If
 
-          Dim cc = QBLib.Video.CursorCol
-          Dim cr = QBLib.Video.CursorRow
-          If m_context IsNot Nothing Then
-            cc = m_context.CursorCol
-            cr = m_context.CursorRow
-          ElseIf m_help.Focused Then
-            cc = m_help.CursorCol
-            cr = m_help.CursorRow
-          ElseIf Document1.Focused Then
-            cc = Document1.CursorCol
-            cr = Document1.CursorRow
-          ElseIf Document2.Focused Then
-            cc = Document2.CursorCol
-            cr = Document2.CursorRow
-          ElseIf m_immediate.Focused Then
-            cc = m_immediate.CursorCol
-            cr = m_immediate.CursorRow
-          Else
-          End If
+    ' Blinking cursor...
+    If cursorVisible AndAlso m_cursorVisible Then
+      If CInt(Fix(m_t * 8)) Mod 2 = 0 Then
 
-          If cr < 1 OrElse cr > m_textRows Then cr = 1
-
-          Dim strt = CursorStart
-          Dim stp = CursorStop
-
-          If stp = 0 Then ' RULE: If stop=0, nothing...
-            If strt = 0 Then ' ...unless start=0
-              ' draw a single line at top of block
-            Else
-              strt = -1
-            End If
-          ElseIf stp < strt Then ' RULE: If stop<start, from stop to bottom
-            strt = stp : stp = 14
-          ElseIf strt = stp Then ' RULE: If start=stop, single line at start...
-            If strt <= 3 Then
-            Else '...(or bottom if start=>4)
-              strt = 14 : stp = 14
-            End If
-          ElseIf strt >= 3 Then ' RULE: Calcuate difference between start and stop
-            If stp - strt = 1 Then ' If difference is 1, draw two lines at bottom
-              strt = 14 : stp = 14
-            ElseIf stp - strt = 2 Then ' If difference is 2, draw two lines at bottom
-              strt = 13 : stp = 14
-            Else ' Draw "half" cursor...
-              strt = 7 : stp = 14
-            End If
-          ElseIf strt <= 1 Then ' RULE: If start<=1 then...
-            If stp <= 3 Then ' ... start to difference + 1
-              stp = stp - strt + 1
-            Else ' ...start to bottom...
-              stp = 14
-            End If
-          ElseIf stp = 2 Then ' RULE: If start=2...
-            If stp = 3 Then ' If stop=3, then 2 to 3
-            ElseIf stp = 4 Then ' If stop=4, then 3 lines at bottom
-              strt = 12
-              stp = 14
-            Else ' Otherwise 2 to bottom
-              strt = 2
-              stp = 14
-            End If
-          End If
-
-          If strt > -1 Then
-            Dim x = (cc - 1) * m_textW
-            Dim y = (cr - 1) * m_textH
-            Dim c = SCREEN(cr, cc, 1)
-            'Dim fg, bg As Integer
-            SplitColor(c, fg, bg)
-            Dim cclr = Presets.Gray
-            If bg = 8 Then cclr = Presets.Black
-            For i = strt To stp
-              DrawLine(x, y + i, x + 7, y + i, cclr)
-            Next
-          End If
-
+        Dim cc = QBLib.Video.CursorCol
+        Dim cr = QBLib.Video.CursorRow
+        'TODO: Need to determine how/where this value is overflowing...
+        If cc > m_textColumns Then cc = m_textColumns
+        If m_running Then
+          ' uses CursorCol/CursorRow
+        ElseIf m_context IsNot Nothing Then
+          cc = m_context.CursorCol
+          cr = m_context.CursorRow
+        ElseIf m_help.Focused Then
+          cc = m_help.CursorCol
+          cr = m_help.CursorRow
+        ElseIf Document1.Focused Then
+          cc = Document1.CursorCol
+          cr = Document1.CursorRow
+        ElseIf Document2.Focused Then
+          cc = Document2.CursorCol
+          cr = Document2.CursorRow
+        ElseIf m_immediate.Focused Then
+          cc = m_immediate.CursorCol
+          cr = m_immediate.CursorRow
+        Else
         End If
-      End If
 
+        If cr < 1 OrElse cr > m_textRows Then cr = 1
+
+        Dim strt = CursorStart
+        Dim stp = CursorStop
+
+        If stp = 0 Then ' RULE: If stop=0, nothing...
+          If strt = 0 Then ' ...unless start=0
+            ' draw a single line at top of block
+          Else
+            strt = -1
+          End If
+        ElseIf stp < strt Then ' RULE: If stop<start, from stop to bottom
+          strt = stp : stp = 14
+        ElseIf strt = stp Then ' RULE: If start=stop, single line at start...
+          If strt <= 3 Then
+          Else '...(or bottom if start=>4)
+            strt = 14 : stp = 14
+          End If
+        ElseIf strt >= 3 Then ' RULE: Calcuate difference between start and stop
+          If stp - strt = 1 Then ' If difference is 1, draw two lines at bottom
+            strt = 14 : stp = 14
+          ElseIf stp - strt = 2 Then ' If difference is 2, draw two lines at bottom
+            strt = 13 : stp = 14
+          Else ' Draw "half" cursor...
+            strt = 7 : stp = 14
+          End If
+        ElseIf strt <= 1 Then ' RULE: If start<=1 then...
+          If stp <= 3 Then ' ... start to difference + 1
+            stp = stp - strt + 1
+          Else ' ...start to bottom...
+            stp = 14
+          End If
+        ElseIf stp = 2 Then ' RULE: If start=2...
+          If stp = 3 Then ' If stop=3, then 2 to 3
+          ElseIf stp = 4 Then ' If stop=4, then 3 lines at bottom
+            strt = 12
+            stp = 14
+          Else ' Otherwise 2 to bottom
+            strt = 2
+            stp = 14
+          End If
+        End If
+
+        If strt > -1 Then
+          Dim x = (cc - 1) * m_textW
+          Dim y = (cr - 1) * m_textH
+          Dim c = SCREEN(cr, cc, 1)
+          Dim fg, bg As Integer
+          SplitColor(c, fg, bg)
+          Dim cclr = Presets.Gray
+          If bg = 8 Then cclr = Presets.Black
+          For i = strt To stp
+            DrawLine(x, y + i, x + 7, y + i, cclr)
+          Next
+        End If
+
+      End If
     End If
 
     Return Not m_exit

@@ -41,6 +41,8 @@ Friend Module Program
     Dim dumpGlobals As Boolean = False
     Dim showHelp As Boolean = False
     Dim roundtripMode As Boolean = False
+    Dim upgradeGwBasicMode As Boolean = False
+    Dim convertToVbNetMode As Boolean = False
     Dim programArgs As New List(Of String)()
 
     Dim fileArgIndex = -1
@@ -62,6 +64,10 @@ Friend Module Program
             showHelp = True
           Case "--roundtrip", "-r"
             roundtripMode = True
+          Case "--upgrade-gwbasic", "-g"
+            upgradeGwBasicMode = True
+          Case "--convert-vbnet", "-v"
+            convertToVbNetMode = True
           Case Else
             Console.WriteLine($"Unknown option: {arg}")
             ShowUsage()
@@ -92,12 +98,14 @@ Friend Module Program
         ' Skip options that might come after the file
         Dim arg = args(j)
         If Not ((arg.StartsWith("--") OrElse arg.StartsWith("-")) AndAlso
-                (arg.ToLower() = "--syntax-tree" OrElse arg.ToLower() = "-t" OrElse
-                 arg.ToLower() = "--methods" OrElse arg.ToLower() = "-m" OrElse
-                 arg.ToLower() = "--stdout" OrElse arg.ToLower() = "-s" OrElse
-                 arg.ToLower() = "--dump-globals" OrElse arg.ToLower() = "-d" OrElse
-                 arg.ToLower() = "--help" OrElse arg.ToLower() = "-h" OrElse
-                 arg.ToLower() = "--roundtrip" OrElse arg.ToLower() = "-r")) Then
+                 (arg.ToLower() = "--syntax-tree" OrElse arg.ToLower() = "-t" OrElse
+                  arg.ToLower() = "--methods" OrElse arg.ToLower() = "-m" OrElse
+                  arg.ToLower() = "--stdout" OrElse arg.ToLower() = "-s" OrElse
+                  arg.ToLower() = "--dump-globals" OrElse arg.ToLower() = "-d" OrElse
+                  arg.ToLower() = "--help" OrElse arg.ToLower() = "-h" OrElse
+                  arg.ToLower() = "--roundtrip" OrElse arg.ToLower() = "-r" OrElse
+                  arg.ToLower() = "--upgrade-gwbasic" OrElse arg.ToLower() = "-g" OrElse
+                  arg.ToLower() = "--convert-vbnet" OrElse arg.ToLower() = "-v")) Then
           programArgs.Add(arg)
         End If
       Next
@@ -124,6 +132,12 @@ Friend Module Program
     ElseIf filename IsNot Nothing AndAlso stdoutMode Then
       HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs)
       Return False ' Exit after running program
+    ElseIf filename IsNot Nothing AndAlso upgradeGwBasicMode Then
+      HandleUpgradeGwBasicMode(filename)
+      Return False ' Exit after upgrading GW-BASIC
+    ElseIf filename IsNot Nothing AndAlso convertToVbNetMode Then
+      HandleConvertToVbNetMode(filename)
+      Return False ' Exit after converting to VB.NET
     ElseIf filename IsNot Nothing Then
       ' Load file into IDE
       Dim demo As New QBasic(filename)
@@ -147,6 +161,8 @@ Friend Module Program
     Console.WriteLine("  qbasic <filename.bas>          Load file into GUI IDE")
     Console.WriteLine("  qbasic <filename.bas> --stdout Run program in console")
     Console.WriteLine("  qbasic <filename.bas> --roundtrip Test syntax tree roundtrip")
+    Console.WriteLine("  qbasic <filename.bas> --upgrade-gwbasic Upgrade GW-BASIC to QBasic")
+    Console.WriteLine("  qbasic <filename.bas> --convert-vbnet Convert QBasic to VB.NET")
     Console.WriteLine("  qbasic <filename.bas> [options] Analyze QBasic program")
     Console.WriteLine()
     Console.WriteLine("Options:")
@@ -154,6 +170,8 @@ Friend Module Program
     Console.WriteLine("  --methods, -m        Display method definitions (SUB, FUNCTION, DEF FN)")
     Console.WriteLine("  --stdout, -s         Run program and output to console instead of GUI")
     Console.WriteLine("  --roundtrip, -r       Test syntax tree roundtrip fidelity")
+    Console.WriteLine("  --upgrade-gwbasic, -g  Upgrade GW-BASIC line numbers to QBasic")
+    Console.WriteLine("  --convert-vbnet, -v   Convert QBasic to VB.NET code")
     Console.WriteLine("  --help, -h           Show this help message")
     Console.WriteLine()
     Console.WriteLine("Examples:")
@@ -311,6 +329,127 @@ Friend Module Program
           Console.WriteLine($"{kv.Key} = {kv.Value}")
         Next
       End If
+    End Try
+  End Sub
+
+  Private Sub HandleUpgradeGwBasicMode(filename As String)
+    Try
+      Console.WriteLine($"Upgrading GW-BASIC file: {filename}")
+      
+      Dim sourceText = File.ReadAllText(filename)
+      Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(sourceText)
+      
+      Dim rewriter = New GwBasicToQBasicRewriter()
+      Dim rewrittenTree = rewriter.Rewrite(syntaxTree.Root)
+      
+      ' Generate analysis
+      rewriter.GenerateSuggestions()
+      
+      Console.WriteLine($"GW-BASIC to QBasic Analysis:")
+      Console.WriteLine($"  Line numbers found: {rewriter.Analysis.LineNumbersRemoved}")
+      Console.WriteLine($"  GOTO statements found: {rewriter.Analysis.GotoStatementsFound}")
+      Console.WriteLine($"  GOSUB statements found: {rewriter.Analysis.GosubStatementsFound}")
+      Console.WriteLine($"  Labels created: {rewriter.Analysis.LabelsCreated}")
+      
+      If rewriter.Analysis.Suggestions.Any() Then
+        Console.WriteLine()
+        Console.WriteLine("Suggestions:")
+        For Each suggestion In rewriter.Analysis.Suggestions
+          Console.WriteLine($"  - {suggestion}")
+        Next
+      End If
+      
+      If rewriter.Analysis.Warnings.Any() Then
+        Console.WriteLine()
+        Console.WriteLine("Warnings:")
+        For Each warning In rewriter.Analysis.Warnings
+          Console.WriteLine($"  - {warning}")
+        Next
+      End If
+      
+      ' Generate transformed code
+      Using writer = New StringWriter()
+        WriteNodeWithTrivia(writer, rewrittenTree)
+        Dim transformedCode = writer.ToString()
+        
+        ' Create output filename
+        Dim outputFilename = Path.ChangeExtension(filename, ".upgraded.bas")
+        File.WriteAllText(outputFilename, transformedCode)
+        
+        Console.WriteLine()
+        Console.WriteLine($"Upgraded file saved as: {outputFilename}")
+      End Using
+      
+    Catch ex As Exception
+      Console.WriteLine($"Error upgrading GW-BASIC file: {ex.Message}")
+    End Try
+  End Sub
+
+  Private Sub HandleConvertToVbNetMode(filename As String)
+    Try
+      Console.WriteLine($"Converting QBasic to VB.NET: {filename}")
+      
+      Dim sourceText = File.ReadAllText(filename)
+      Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(sourceText)
+      
+      Dim options = New QBasicToVbNetRewriter.ConversionOptions()
+      options.AddModuleBoilerplate = True
+      options.AddSubMain = True
+      options.ModernizePrint = True
+      options.AddImports = True
+      options.GenerateWarnings = True
+      
+      Dim rewriter = New QBasicToVbNetRewriter(options)
+      Dim rewrittenTree = rewriter.Rewrite(syntaxTree.Root)
+      
+      ' Generate VB.NET code
+      Using writer = New StringWriter()
+        WriteNodeWithTrivia(writer, rewrittenTree)
+        Dim qbasicCode = writer.ToString()
+        
+        ' Apply VB.NET transformations
+        Dim vbNetCode = rewriter.GenerateVbNetCode(qbasicCode)
+        
+        ' Create output filename
+        Dim outputFilename = Path.ChangeExtension(filename, ".vb")
+        File.WriteAllText(outputFilename, vbNetCode)
+        
+        Console.WriteLine($"VB.NET Conversion Analysis:")
+        Console.WriteLine($"  Added Module wrapper: {If(rewriter.Analysis.AddedModule, "Yes", "No")}")
+        Console.WriteLine($"  Added SUB MAIN: {If(rewriter.Analysis.AddedSubMain, "Yes", "No")}")
+        Console.WriteLine($"  PRINT statements modernized: {rewriter.Analysis.ModernizedPrintStatements}")
+        Console.WriteLine($"  Variables needing types: {rewriter.Analysis.VariablesRequiringTypes}")
+        
+        If rewriter.GetRequiredImports().Any() Then
+          Console.WriteLine()
+          Console.WriteLine("Required Imports:")
+          For Each import In rewriter.GetRequiredImports()
+            Console.WriteLine($"  - {import}")
+          Next
+        End If
+        
+        If rewriter.Analysis.Warnings.Any() Then
+          Console.WriteLine()
+          Console.WriteLine("Warnings:")
+          For Each warning In rewriter.Analysis.Warnings
+            Console.WriteLine($"  - {warning}")
+          Next
+        End If
+        
+        If rewriter.Analysis.ChangesMade.Any() Then
+          Console.WriteLine()
+          Console.WriteLine("Changes Made:")
+          For Each change In rewriter.Analysis.ChangesMade
+            Console.WriteLine($"  - {change}")
+          Next
+        End If
+        
+        Console.WriteLine()
+        Console.WriteLine($"VB.NET file saved as: {outputFilename}")
+      End Using
+      
+    Catch ex As Exception
+      Console.WriteLine($"Error converting to VB.NET: {ex.Message}")
     End Try
   End Sub
 

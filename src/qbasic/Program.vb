@@ -342,7 +342,11 @@ Friend Module Program
       Dim rewriter = New GwBasicToQBasicRewriter()
       Dim rewrittenTree = rewriter.Rewrite(syntaxTree.Root)
       
-      ' Generate analysis
+      ' Generate transformed code using text transformation (this updates the analysis)
+      Dim originalCode = File.ReadAllText(filename)
+      Dim transformedCode = rewriter.GenerateUpgradedCode(originalCode)
+      
+      ' Generate suggestions based on analysis
       rewriter.GenerateSuggestions()
       
       Console.WriteLine($"GW-BASIC to QBasic Analysis:")
@@ -367,18 +371,12 @@ Friend Module Program
         Next
       End If
       
-      ' Generate transformed code
-      Using writer = New StringWriter()
-        WriteNodeWithTrivia(writer, rewrittenTree)
-        Dim transformedCode = writer.ToString()
-        
-        ' Create output filename
-        Dim outputFilename = Path.ChangeExtension(filename, ".upgraded.bas")
-        File.WriteAllText(outputFilename, transformedCode)
-        
-        Console.WriteLine()
-        Console.WriteLine($"Upgraded file saved as: {outputFilename}")
-      End Using
+      ' Create output filename
+      Dim outputFilename = Path.ChangeExtension(filename, ".upgraded.bas")
+      File.WriteAllText(outputFilename, transformedCode)
+
+      Console.WriteLine()
+      Console.WriteLine($"Upgraded file saved as: {outputFilename}")
       
     Catch ex As Exception
       Console.WriteLine($"Error upgrading GW-BASIC file: {ex.Message}")

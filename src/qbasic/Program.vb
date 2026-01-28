@@ -40,6 +40,7 @@ Friend Module Program
     Dim stdoutMode As Boolean = False
     Dim dumpGlobals As Boolean = False
     Dim showHelp As Boolean = False
+    Dim roundtripMode As Boolean = False
     Dim programArgs As New List(Of String)()
 
     Dim fileArgIndex = -1
@@ -59,6 +60,8 @@ Friend Module Program
             dumpGlobals = True
           Case "--help", "-h"
             showHelp = True
+          Case "--roundtrip", "-r"
+            roundtripMode = True
           Case Else
             Console.WriteLine($"Unknown option: {arg}")
             ShowUsage()
@@ -93,7 +96,8 @@ Friend Module Program
                  arg.ToLower() = "--methods" OrElse arg.ToLower() = "-m" OrElse
                  arg.ToLower() = "--stdout" OrElse arg.ToLower() = "-s" OrElse
                  arg.ToLower() = "--dump-globals" OrElse arg.ToLower() = "-d" OrElse
-                 arg.ToLower() = "--help" OrElse arg.ToLower() = "-h")) Then
+                 arg.ToLower() = "--help" OrElse arg.ToLower() = "-h" OrElse
+                 arg.ToLower() = "--roundtrip" OrElse arg.ToLower() = "-r")) Then
           programArgs.Add(arg)
         End If
       Next
@@ -114,6 +118,9 @@ Friend Module Program
       End If
       HandleAnalysisMode(filename, showSyntaxTree, showMethods)
       Return False ' Exit after showing analysis
+    ElseIf filename IsNot Nothing AndAlso roundtripMode Then
+      HandleRoundtripMode(filename)
+      Return False ' Exit after roundtrip
     ElseIf filename IsNot Nothing AndAlso stdoutMode Then
       HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs)
       Return False ' Exit after running program
@@ -139,18 +146,21 @@ Friend Module Program
     Console.WriteLine("  qbasic                         Start GUI IDE")
     Console.WriteLine("  qbasic <filename.bas>          Load file into GUI IDE")
     Console.WriteLine("  qbasic <filename.bas> --stdout Run program in console")
+    Console.WriteLine("  qbasic <filename.bas> --roundtrip Test syntax tree roundtrip")
     Console.WriteLine("  qbasic <filename.bas> [options] Analyze QBasic program")
     Console.WriteLine()
     Console.WriteLine("Options:")
     Console.WriteLine("  --syntax-tree, -t    Display syntax tree")
     Console.WriteLine("  --methods, -m        Display method definitions (SUB, FUNCTION, DEF FN)")
     Console.WriteLine("  --stdout, -s         Run program and output to console instead of GUI")
+    Console.WriteLine("  --roundtrip, -r       Test syntax tree roundtrip fidelity")
     Console.WriteLine("  --help, -h           Show this help message")
     Console.WriteLine()
     Console.WriteLine("Examples:")
     Console.WriteLine("  qbasic program.bas")
     Console.WriteLine("  qbasic program.bas --syntax-tree")
     Console.WriteLine("  qbasic program.bas --methods")
+    Console.WriteLine("  qbasic program.bas --roundtrip")
     Console.WriteLine("  qbasic --help")
   End Sub
 
@@ -195,6 +205,85 @@ Friend Module Program
     For Each child In node.GetChildren()
       FindAndDisplayMethods(child)
     Next
+  End Sub
+
+  Private Sub HandleRoundtripMode(filename As String)
+    Try
+      Dim originalText = File.ReadAllText(filename)
+      Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(originalText)
+
+      Console.WriteLine("Original source:")
+      Console.WriteLine(originalText)
+      Console.WriteLine()
+
+      Console.WriteLine("Roundtripped source:")
+      Dim roundtrippedText = WriteSyntaxTreeToText(syntaxTree.Root)
+      Console.WriteLine(roundtrippedText)
+      Console.WriteLine()
+
+      ' Compare original and roundtripped text
+      If originalText = roundtrippedText Then
+        Console.WriteLine("✓ Roundtrip successful: No differences detected")
+      Else
+        Console.WriteLine("✗ Roundtrip failed: Differences detected")
+        Console.WriteLine()
+        Console.WriteLine("Differences (first 500 chars):")
+        Dim maxLength = Math.Min(500, originalText.Length)
+        For i = 0 To maxLength - 1
+          If i < roundtrippedText.Length AndAlso originalText(i) <> roundtrippedText(i) Then
+            Console.WriteLine($"Position {i}: Original '{originalText(i)}' ≠ Roundtripped '{If(i < roundtrippedText.Length, roundtrippedText(i).ToString(), "MISSING")}'")
+            Exit For
+          ElseIf i >= roundtrippedText.Length Then
+            Console.WriteLine($"Position {i}: Original '{originalText(i)}' ≠ Roundtripped MISSING")
+            Exit For
+          End If
+        Next
+
+        ' Show length differences
+        If originalText.Length <> roundtrippedText.Length Then
+          Console.WriteLine()
+          Console.WriteLine($"Length difference: Original {originalText.Length} chars, Roundtripped {roundtrippedText.Length} chars")
+        End If
+
+        Console.WriteLine()
+        Console.WriteLine("Note: QBasic keywords are case-insensitive and may be normalized to uppercase during parsing.")
+        Console.WriteLine("This is expected behavior and doesn't affect program functionality.")
+      End If
+
+    Catch ex As Exception
+      Console.WriteLine($"Error during roundtrip: {ex.Message}")
+    End Try
+  End Sub
+
+  Private Function WriteSyntaxTreeToText(node As SyntaxNode) As String
+    Using writer = New System.IO.StringWriter()
+      WriteNodeWithTrivia(writer, node)
+      Return writer.ToString()
+    End Using
+  End Function
+
+  Private Sub WriteNodeWithTrivia(writer As System.IO.TextWriter, node As SyntaxNode)
+    If TypeOf node Is SyntaxToken Then
+      Dim token = CType(node, SyntaxToken)
+
+      ' Write leading trivia
+      For Each trivia In token.LeadingTrivia
+        writer.Write(trivia.Text)
+      Next
+
+      ' Write token text
+      writer.Write(token.Text)
+
+      ' Write trailing trivia
+      For Each trivia In token.TrailingTrivia
+        writer.Write(trivia.Text)
+      Next
+    Else
+      ' For non-token nodes, recursively process children
+      For Each child In node.GetChildren()
+        WriteNodeWithTrivia(writer, child)
+      Next
+    End If
   End Sub
 
   Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String())

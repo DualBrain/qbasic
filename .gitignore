@@ -398,5 +398,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Agentic AI
+opencode.json
 agents*.md
 todo.md

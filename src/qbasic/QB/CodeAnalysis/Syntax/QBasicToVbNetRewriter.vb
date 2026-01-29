@@ -36,6 +36,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Public Property AddedSubMain As Boolean = False
       Public Property ModernizedPrintStatements As Integer = 0
       Public Property VariablesRequiringTypes As Integer = 0
+      Public Property GotoStatementsFound As Integer = 0
     End Class
 
     Public Sub New(options As ConversionOptions)
@@ -74,32 +75,44 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' </summary>
     Private Sub AnalyzeCompilationUnit(compilationUnit As CompilationUnitSyntax)
       Dim hasModule = False
+      Dim hasProcedures = False
+      Dim hasGosubStatements = False
       
+      ' Check for existing Module, Function, or Sub declarations
       For Each member In compilationUnit.Members
         Dim kindName = member.Kind.ToString()
         If kindName.Contains("Module") OrElse kindName.Contains("Function") OrElse kindName.Contains("Sub") Then
           hasModule = True
+          hasProcedures = True
           Exit For
         End If
       Next
       
+      ' Check if there are only executable statements
       Dim hasOnlyStatements = True
       For Each member In compilationUnit.Members
         Dim kindName = member.Kind.ToString()
         If Not kindName.Contains("Statement") Then
           hasOnlyStatements = False
+        End If
+      Next
+      
+      ' Check for GOSUB statements (not supported in VB.NET)
+      For Each member In compilationUnit.Members
+        If member.Kind = SyntaxKind.GosubStatement Then
+          hasGosubStatements = True
           Exit For
         End If
       Next
 
-      If Options.AddModuleBoilerplate AndAlso hasOnlyStatements Then
-        Analysis.AddedModule = True
-        Analysis.ChangesMade.Add("Added Module/End Module wrapper")
-      End If
-
+      ' Module wrapper is always required in VB.NET
+      Analysis.AddedModule = True
+      Analysis.ChangesMade.Add("Added Module/End Module wrapper")
+      
+      ' Determine if we need to add Sub Main() for non-procedure code
       If Options.AddSubMain AndAlso hasOnlyStatements Then
         Analysis.AddedSubMain = True
-        Analysis.ChangesMade.Add("Added SUB MAIN/END SUB wrapper")
+        Analysis.ChangesMade.Add("Added Sub Main() for executable code")
       End If
 
       ' Check for PRINT statements that might need modernization
@@ -109,6 +122,19 @@ Namespace Global.QB.CodeAnalysis.Syntax
         If printCount > 0 Then
           Analysis.ChangesMade.Add($"Modernized {printCount} PRINT statements")
           Analysis.RequiredImports.Add("System.Console")
+        End If
+      End If
+
+      ' Generate warnings for unsupported constructs
+      If Options.GenerateWarnings Then
+        ' GOSUB is not supported in VB.NET - generate error
+        If hasGosubStatements Then
+          Analysis.Warnings.Add("GOSUB statements are not supported in VB.NET and will cause compile errors")
+        End If
+        
+        ' Only warn about GOTO if there are no procedures (already restructured)
+        If Not hasProcedures AndAlso Analysis.GotoStatementsFound > 0 Then
+          Analysis.Warnings.Add("GOTO statements should be replaced with structured programming (If/Select/Loops)")
         End If
       End If
     End Sub
@@ -134,9 +160,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       ' Check for GOTO statements
       If node.Kind = SyntaxKind.GotoStatement Then
-        If Options.GenerateWarnings Then
-          Analysis.Warnings.Add("GOTO statements are not recommended in modern VB.NET")
-        End If
+        Analysis.GotoStatementsFound += 1
       End If
 
       ' Check for GOSUB statements
@@ -259,32 +283,79 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Return True ' Default to WriteLine
     End Function
 
-    ''' <summary>
+''' <summary>
     ''' Generates VB.NET code with appropriate imports and structure.
     ''' </summary>
     Public Function GenerateVbNetCode(originalCode As String) As String
       Dim result = originalCode
       
-      ' Add required imports at the beginning
+      ' Add Module wrapper if needed
+      If Analysis.AddedModule Then
+        If Analysis.AddedSubMain Then
+          ' Extract all executable statements and move them into Sub Main()
+          Dim executableCode = ExtractExecutableStatements(result)
+          result = $"Module Program{vbCrLf}{executableCode}{vbCrLf}End Module"
+          Analysis.ChangesMade.Add("Added Module/End Module wrapper with Sub Main()")
+        Else
+          ' Just wrap in Module without Sub Main
+          result = $"Module Program{vbCrLf}{result}{vbCrLf}End Module"
+          Analysis.ChangesMade.Add("Added Module/End Module wrapper")
+        End If
+      End If
+      
+      ' Add required imports at the beginning (before Module)
       If Options.AddImports AndAlso Analysis.RequiredImports.Any() Then
         Dim importsText = String.Join(vbCrLf, Analysis.RequiredImports.Select(Function(imp) $"Imports {imp}"))
         result = importsText + vbCrLf + vbCrLf + result
         Analysis.ChangesMade.Add($"Added {Analysis.RequiredImports.Count} IMPORT statements")
       End If
-
-      ' Add Module wrapper if needed
-      If Analysis.AddedModule Then
-        result = $"Module Program{vbCrLf}{result}{vbCrLf}End Module"
-      End If
-
-      ' Add SUB MAIN wrapper if needed  
-      If Analysis.AddedSubMain Then
-        ' This is simplified - in practice you'd need to identify the main statements
-        result = result.Replace(vbCrLf & "End Module", 
-          $"{vbCrLf}    Sub Main(){vbCrLf}        ' Main code here{vbCrLf}    End Sub{vbCrLf}End Module")
-      End If
-
+      
       Return result
+    End Function
+
+''' <summary>
+    ''' Extracts executable statements for Sub Main() - handles GOTO targets properly.
+    ''' </summary>
+    Private Function ExtractExecutableStatements(code As String) As String
+      Dim lines = code.Split({vbCrLf, vbLf}, StringSplitOptions.None)
+      Dim result = New List(Of String)()
+      
+      ' Add Sub Main declaration
+      result.Add("  Sub Main()")
+      
+      For Each line In lines
+        Dim trimmedLine = line.Trim()
+        
+        ' Skip empty lines and transformation headers
+        If String.IsNullOrWhiteSpace(trimmedLine) OrElse trimmedLine.StartsWith("'") OrElse 
+           trimmedLine.StartsWith("======") Then
+          Continue For
+        End If
+        
+        ' Skip END statements (will be added after Sub Main)
+        If trimmedLine.ToUpper().StartsWith("END") Then
+          Continue For
+        End If
+        
+        ' Skip GOSUB statements entirely (not supported in VB.NET)
+        If trimmedLine.ToUpper().StartsWith("GOSUB") Then
+          Continue For
+        End If
+        
+        ' Handle label lines (including LabelXXX: targets for GOTO)
+        If trimmedLine.EndsWith(":") AndAlso Not trimmedLine.Contains("'") Then
+          ' Keep label with colon for GOTO compatibility, positioned to far left
+          result.Add(trimmedLine)
+        Else
+          ' Add executable statement with proper 2-space indentation
+          result.Add($"      {trimmedLine}")
+        End If
+      Next
+      
+      ' Add End Sub and close with proper spacing
+      result.Add("  End Sub")
+      
+      Return String.Join(vbCrLf, result)
     End Function
 
     ''' <summary>

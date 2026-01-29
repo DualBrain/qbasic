@@ -1,4 +1,5 @@
 Imports System.Collections.Immutable
+Imports System.IO
 
 Namespace Global.QB.CodeAnalysis.Syntax
 
@@ -79,20 +80,21 @@ Namespace Global.QB.CodeAnalysis.Syntax
       
       ' Check for existing Module, Function, or Sub declarations
       For Each member In compilationUnit.Members
-        Dim kindName = member.Kind.ToString()
-        If kindName.Contains("Module") OrElse kindName.Contains("Function") OrElse kindName.Contains("Sub") Then
-          hasModule = True
-          hasProcedures = True
-          Exit For
-        End If
+        Select Case member.Kind
+          Case SyntaxKind.FunctionDeclaration, SyntaxKind.SubStatement
+            hasModule = True
+            hasProcedures = True
+            Exit For
+        End Select
       Next
       
       ' Check if there are only executable statements
       Dim hasOnlyStatements = True
       For Each member In compilationUnit.Members
-        Dim kindName = member.Kind.ToString()
-        If Not kindName.Contains("Statement") Then
+        ' Check if this is NOT a statement type
+        If Not IsStatementKind(member.Kind) Then
           hasOnlyStatements = False
+          Exit For
         End If
       Next
       
@@ -151,32 +153,19 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' Check for GOTO statements
       If node.Kind = SyntaxKind.GotoStatement Then Analysis.GotoStatementsFound += 1
 
-      ' Check for GOSUB statements
-      If node.Kind = SyntaxKind.GosubStatement Then
+        ' Check for GOSUB statements
+        If node.Kind = SyntaxKind.GosubStatement Then
 
-        If Options.GenerateWarnings Then Analysis.Warnings.Add("GOSUB statements should be converted to SUB procedures")
+          If Options.GenerateWarnings Then Analysis.Warnings.Add("GOSUB statements should be converted to SUB procedures")
 
-        ' Extract GOSUB target label for TODO comments
-        Try
-          Dim labelProp = node.GetType().GetProperty("IdentifierToken")
-          If labelProp IsNot Nothing Then
-            Dim identifierToken = labelProp.GetValue(node)
-            If identifierToken IsNot Nothing Then
-              Dim textProp = identifierToken.GetType().GetProperty("Text")
-              If textProp IsNot Nothing Then
-                Dim targetText = DirectCast(textProp.GetValue(identifierToken), String)
-                If Not String.IsNullOrWhiteSpace(targetText) Then
-                  Dim targetLabel = targetText  ' Use the full identifier text (e.g., "Label300")
-                  Analysis.GosubStatementTargets.Add(targetLabel)
-                End If
-              End If
-            End If
+          ' Extract GOSUB target label using structured syntax properties
+          Dim gosubStatement = DirectCast(node, GosubStatementSyntax)
+          If gosubStatement.IdentifierToken IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(gosubStatement.IdentifierToken.Text) Then
+            Dim targetLabel = gosubStatement.IdentifierToken.Text
+            Analysis.GosubStatementTargets.Add(targetLabel)
           End If
-        Catch ex As Exception
-          ' Ignore reflection errors
-        End Try
 
-      End If
+        End If
 
     End Sub
 
@@ -220,10 +209,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Private Shared Function ShouldWrapInModule(members As ImmutableArray(Of MemberSyntax)) As Boolean
       ' If there are no existing Module, Sub, or Function declarations
       For Each member In members
-        Dim kindName = member.Kind.ToString()
-        If kindName.Contains("Module") OrElse kindName.Contains("Function") OrElse kindName.Contains("Sub") Then
-          Return False
-        End If
+        Select Case member.Kind
+          Case SyntaxKind.FunctionDeclaration, SyntaxKind.SubStatement : Return False
+        End Select
       Next
       Return True
     End Function
@@ -355,112 +343,163 @@ Namespace Global.QB.CodeAnalysis.Syntax
     End Function
 
     ''' <summary>
-    ''' Generates VB.NET code with appropriate imports and structure.
+    ''' Generates VB.NET code with appropriate imports and structure from a syntax tree.
     ''' </summary>
-    Public Function GenerateVbNetCode(originalCode As String) As String
+    Public Function GenerateVbNetCode(syntaxTree As SyntaxTree) As String
+      Dim compilationUnit = DirectCast(syntaxTree.Root, CompilationUnitSyntax)
+      Return GenerateVbNetCode(compilationUnit)
+    End Function
 
-      Dim result = originalCode
-
+    ''' <summary>
+    ''' Generates VB.NET code with appropriate imports and structure from a compilation unit.
+    ''' </summary>
+    Public Function GenerateVbNetCode(compilationUnit As CompilationUnitSyntax) As String
       ' Add Module wrapper if needed
       If Analysis.AddedModule Then
         If Analysis.AddedSubMain Then
-          ' Extract all executable statements and move them into Sub Main()
-          Dim executableCode = ExtractExecutableStatements(result)
-          result = $"Module Program{vbCrLf}{executableCode}{vbCrLf}End Module"
-          Analysis.ChangesMade.Add("Added Module/End Module wrapper with Sub Main()")
+          ' Extract all executable statements using syntax tree traversal
+          Dim executableCode = ExtractExecutableStatementsFromSyntax(compilationUnit)
+          Return $"Module Program{vbCrLf}{executableCode}{vbCrLf}End Module"
         Else
-          ' Just wrap in Module without Sub Main
-          result = $"Module Program{vbCrLf}{result}{vbCrLf}End Module"
-          Analysis.ChangesMade.Add("Added Module/End Module wrapper")
+          ' Just wrap in Module without Sub Main - generate content from syntax tree
+          Using writer = New StringWriter()
+            WriteSyntaxNodeToText(writer, compilationUnit)
+            Dim baseCode = writer.ToString()
+            Return $"Module Program{vbCrLf}{baseCode}{vbCrLf}End Module"
+          End Using
         End If
+      Else
+        ' Generate content from syntax tree without wrapper
+        Using writer = New StringWriter()
+          WriteSyntaxNodeToText(writer, compilationUnit)
+          Return writer.ToString()
+        End Using
       End If
-
-      ' Add required imports at the beginning (before Module)
-      If Options.AddImports AndAlso Analysis.RequiredImports.Count > 0 Then
-        Dim importsText = String.Join(vbCrLf, Analysis.RequiredImports.Select(Function(imp) $"Imports {imp}"))
-        result = importsText + vbCrLf + vbCrLf + result
-        Analysis.ChangesMade.Add($"Added {Analysis.RequiredImports.Count} IMPORT statements")
-      End If
-
-      Return result
-
     End Function
 
-''' <summary>
-    ''' Extracts executable statements for Sub Main() - handles GOTO targets properly.
+    ''' <summary>
+    ''' Writes a syntax node to text with trivia (preserving formatting and whitespace).
     ''' </summary>
-    Private Function ExtractExecutableStatements(code As String) As String
+    Private Shared Sub WriteSyntaxNodeToText(writer As TextWriter, node As SyntaxNode)
+      WriteNodeWithTrivia(writer, node)
+    End Sub
 
-      Dim lines = code.Split({vbCrLf, vbLf}, StringSplitOptions.None)
+    ''' <summary>
+    ''' Writes a syntax node to text with trivia preservation.
+    ''' </summary>
+    Private Shared Sub WriteNodeWithTrivia(writer As TextWriter, node As SyntaxNode)
+
+      If TypeOf node Is SyntaxToken Then
+
+        Dim token = CType(node, SyntaxToken)
+
+        ' Write leading trivia
+        For Each trivia In token.LeadingTrivia
+          writer.Write(trivia.Text)
+        Next
+
+        ' Write token text
+        writer.Write(token.Text)
+
+        ' Write trailing trivia
+        For Each trivia In token.TrailingTrivia
+          writer.Write(trivia.Text)
+        Next
+
+      Else
+
+        ' For non-token nodes, recursively process children
+        For Each child In node.GetChildren()
+          WriteNodeWithTrivia(writer, child)
+        Next
+
+      End If
+
+    End Sub
+
+    ''' <summary>
+    ''' Gets the text representation of a syntax node with trivia.
+    ''' </summary>
+    Private Shared Function GetSyntaxNodeText(node As SyntaxNode) As String
+      Using writer = New StringWriter()
+        WriteNodeWithTrivia(writer, node)
+        Return writer.ToString()
+      End Using
+    End Function
+
+    ''' <summary>
+    ''' Extracts executable statements for Sub Main() using syntax tree traversal.
+    ''' </summary>
+    Private Function ExtractExecutableStatementsFromSyntax(compilationUnit As CompilationUnitSyntax) As String
+
       Dim result = New List(Of String)()
-      
+
       ' Add Sub Main declaration
       result.Add("  Sub Main()")
       
-      For Each line In lines
-
-        Dim trimmedLine = line.Trim()
-
-        ' Skip empty lines and transformation headers
-        If String.IsNullOrWhiteSpace(trimmedLine) OrElse trimmedLine.StartsWith("'"c) OrElse
-           trimmedLine.StartsWith("======") Then
-          Continue For
-        End If
-
-        ' Skip END statements (will be added after Sub Main)
-        If trimmedLine.ToUpper().StartsWith("END") Then
-          Continue For
-        End If
-
-        ' Handle GOSUB statements - keep code but add TODO comments before and add parentheses
-        If trimmedLine.ToUpper().StartsWith("GOSUB") Then
-
-          ' Add TODO comment before GOSUB (maintain functionality)
-          result.Add($"      ' TODO: GOSUB statements should be converted to SUB procedures")
-          
-          ' Extract GOSUB target and add parentheses for VB.NET compatibility
-          Dim gosubParts = trimmedLine.Split({" "c}, StringSplitOptions.RemoveEmptyEntries)
-          If gosubParts.Length >= 2 Then
-            Dim targetLabel = String.Join(" ", gosubParts.Skip(1)).Trim()
-            result.Add($"{New String(" "c, 6)}GOSUB {targetLabel}()")
-          Else
-            ' Fallback if parsing fails
-            result.Add($"{New String(" "c, 6)}{trimmedLine}()")
-          End If
-
-          Continue For
-
-        End If
-
-        ' Handle label lines (including LabelXXX: targets for GOTO)
-        If trimmedLine.EndsWith(":"c) Then
-
-          ' Extract label name - everything before the colon
-          Dim colonIndex = trimmedLine.IndexOf(":"c)
-          Dim labelName = trimmedLine.Substring(0, colonIndex).Trim()
-
-          ' Check if this label is a GOSUB target and add TODO comment (case-insensitive)
-          Dim isGosubTarget = Analysis.GosubStatementTargets.Any(Function(target) String.Equals(target, labelName, StringComparison.OrdinalIgnoreCase))
-
-          ' Keep label with colon for GOTO compatibility, positioned to far left
-          result.Add(trimmedLine)
-
-          If isGosubTarget Then result.Add($"      ' TODO: Need to refactor as a SUB/END SUB")
-
-        Else
-          ' Check if this is a QBasic command that needs parentheses and add them
-          Dim processedLine = AddParenthesesToQBasicCommands(trimmedLine)
-          ' Add executable statement with proper 2-space indentation
-          result.Add($"      {processedLine}")
-        End If
-
+      ' Process each member in the compilation unit
+      For Each member In compilationUnit.Members
+        ProcessMemberForSubMain(member, result)
       Next
-
+      
       ' Add End Sub and close with proper spacing
       result.Add("  End Sub")
-      
+
       Return String.Join(vbCrLf, result)
 
+    End Function
+
+    ''' <summary>
+    ''' Processes a member for inclusion in Sub Main() using syntax tree analysis.
+    ''' </summary>
+    Private Sub ProcessMemberForSubMain(member As MemberSyntax, result As List(Of String))
+
+      Select Case member.Kind
+
+        Case SyntaxKind.GosubStatement
+          ' Handle GOSUB statements using syntax properties
+          result.Add("      ' TODO: GOSUB statements should be converted to SUB procedures")
+          result.Add($"      {member}")
+
+        Case SyntaxKind.LabelStatement
+          ' Handle label statements using syntax properties
+          result.Add($"{member}")
+          ' Check if this label is a GOSUB target and add TODO comment
+          Dim labelText = member.ToString().Trim(":"c)
+          Dim isGosubTarget = Analysis.GosubStatementTargets.Any(Function(target) String.Equals(target, labelText, StringComparison.OrdinalIgnoreCase))
+          If isGosubTarget Then result.Add("      ' TODO: Need to refactor as a SUB/END SUB")
+
+        Case SyntaxKind.StopStatement
+          ' Skip END statements (will be added after Sub Main)
+
+        Case SyntaxKind.GlobalStatement
+          ' Handle wrapped statements using syntax tree visitor pattern
+          Dim globalStmt = DirectCast(member, GlobalStatementSyntax)
+          If globalStmt.Statement IsNot Nothing Then
+            Dim convertedLine = ProcessStatementForVbNet(globalStmt.Statement)
+            ' Handle special case for RETURN GOSUB
+            If globalStmt.Statement.Kind = SyntaxKind.ReturnGosubStatement Then
+              result.Add($"      ' RETURN from GOSUB - needs SUB conversion")
+            Else
+              result.Add($"      {convertedLine}")
+            End If
+          End If
+
+        Case Else
+          ' Handle other members (function declarations, sub statements, etc.)
+          result.Add($"      {member}")
+
+      End Select
+
+    End Sub
+
+    ''' <summary>
+    ''' Determines if a SyntaxKind represents a statement type.
+    ''' </summary>
+    Private Shared Function IsStatementKind(kind As SyntaxKind) As Boolean
+      ' Check if kind name ends with "Statement"
+      Dim kindName = kind.ToString()
+      Return kindName.EndsWith("Statement")
     End Function
 
     ''' <summary>
@@ -471,130 +510,122 @@ Namespace Global.QB.CodeAnalysis.Syntax
     End Function
 
     ''' <summary>
-    ''' Adds parentheses to QBasic commands for VB.NET compatibility.
+    ''' Adds parentheses to QBasic commands for VB.NET compatibility using syntax tree analysis.
+    ''' This implements a visitor pattern for statement transformation.
     ''' </summary>
-    Private Shared Function AddParenthesesToQBasicCommands(line As String) As String
-
-      If String.IsNullOrWhiteSpace(line) Then Return line
-
-      ' Check for specific commands
-      If line.StartsWith("PRINT ", StringComparison.OrdinalIgnoreCase) Then
-        Return ConvertPrintStatement(line.Substring(6).Trim)
-      ElseIf line.StartsWith("CLS", StringComparison.OrdinalIgnoreCase) Then
-        Return "CLS()"
-      ElseIf line.StartsWith("INPUT ", StringComparison.OrdinalIgnoreCase) Then
-        Return $"INPUT({line.Substring(6).Trim})"
-      ElseIf line.StartsWith("LOCATE ", StringComparison.OrdinalIgnoreCase) Then
-        Return $"LOCATE({line.Substring(7).Trim})"
-      ElseIf line.StartsWith("COLOR ", StringComparison.OrdinalIgnoreCase) Then
-        Return $"COLOR({line.Substring(6).Trim})"
-      ElseIf line.StartsWith("BEEP", StringComparison.OrdinalIgnoreCase) Then
-        Return "BEEP()"
-      ElseIf line.StartsWith("RANDOMIZE", StringComparison.OrdinalIgnoreCase) Then
-        If line.Length > 10 Then
-          Return $"RANDOMIZE({line.Substring(10).Trim})"
-        Else
-          Return "RANDOMIZE()"
-        End If
-      End If
-
-      Return line
-
+    Private Function ProcessStatementForVbNet(statement As StatementSyntax) As String
+      Select Case statement.Kind
+        Case SyntaxKind.PrintStatement : Return ConvertPrintStatementUsingSyntax(DirectCast(statement, PrintStatementSyntax))
+        Case SyntaxKind.ClsStatement : Return ConvertClsStatementUsingSyntax(DirectCast(statement, ClsStatementSyntax))
+        Case SyntaxKind.InputStatement : Return ConvertInputStatementUsingSyntax(DirectCast(statement, InputStatementSyntax))
+        Case SyntaxKind.LocateStatement : Return ConvertLocateStatementUsingSyntax(DirectCast(statement, LocateStatementSyntax))
+        Case SyntaxKind.BeepStatement : Return ConvertBeepStatementUsingSyntax(DirectCast(statement, BeepStatementSyntax))
+        Case SyntaxKind.ColorStatement : Return ConvertColorStatementUsingSyntax(DirectCast(statement, ColorStatementSyntax))
+        Case SyntaxKind.RandomizeStatement : Return ConvertRandomizeStatementUsingSyntax(DirectCast(statement, RandomizeStatementSyntax))
+        Case SyntaxKind.GosubStatement : Return ConvertGosubStatementUsingSyntax(DirectCast(statement, GosubStatementSyntax))
+        Case SyntaxKind.GotoStatement : Return ConvertGotoStatementUsingSyntax(DirectCast(statement, GotoStatementSyntax))
+        Case SyntaxKind.LabelStatement : Return ConvertLabelStatementUsingSyntax(DirectCast(statement, LabelStatementSyntax))
+        Case SyntaxKind.StopStatement, SyntaxKind.EndStatement
+          Return "' Statement removed for VB.NET compatibility"
+        Case Else
+          Return statement.ToString()
+      End Select
     End Function
 
     ''' <summary>
-    ''' Converts a PRINT statement to VB.NET Console calls.
+    ''' Converts BEEP statement using syntax tree properties.
     ''' </summary>
-    Private Shared Function ConvertPrintStatement(printArgs As String) As String
+    Private Shared Function ConvertBeepStatementUsingSyntax(beepStmt As BeepStatementSyntax) As String
+      ' BEEP in QBasic becomes Console.Beep() or MessageBox.Show in VB.NET
+      Return "Console.Beep()"
+    End Function
 
-      If String.IsNullOrWhiteSpace(printArgs) Then Return "Console.WriteLine()"
+    ''' <summary>
+    ''' Converts GOSUB statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertGosubStatementUsingSyntax(gosubStmt As GosubStatementSyntax) As String
+      If gosubStmt.IdentifierToken IsNot Nothing Then
+        Return $"' TODO: Convert GOSUB {gosubStmt.IdentifierToken.Text} to SUB call"
+      End If
+      Return "' TODO: Convert GOSUB statement to SUB call"
+    End Function
 
-      ' Parse the PRINT arguments - this is a simplified parser
-      Dim result = New List(Of String)()
-      Dim currentSegment = ""
-      Dim i = 0
-      Dim inString = False
+    ''' <summary>
+    ''' Converts GOTO statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertGotoStatementUsingSyntax(gotoStmt As GotoStatementSyntax) As String
+      Return GetSyntaxNodeText(gotoStmt)
+    End Function
 
-      While i < printArgs.Length
+    ''' <summary>
+    ''' Converts Label statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertLabelStatementUsingSyntax(labelStmt As LabelStatementSyntax) As String
+      Return GetSyntaxNodeText(labelStmt)
+    End Function
 
-        Dim ch = printArgs(i)
-
-        Select Case ch
-
-          Case """"c
-            ' Quote character - toggle string mode
-            inString = Not inString
-            currentSegment += ch
-            i += 1
-
-          Case ";"c
-            If Not inString Then
-              ' Semicolon - continue on same line
-              If Not String.IsNullOrWhiteSpace(currentSegment) Then
-                result.Add($"Write({currentSegment.Trim()})")
-                currentSegment = ""
-              End If
-              i += 1
-            Else
-              ' Semicolon inside string - keep it
-              currentSegment += ch
-              i += 1
-            End If
-
-          Case ","c
-            If Not inString Then
-              ' Comma - tab to next zone (approximate with spaces)
-              If Not String.IsNullOrWhiteSpace(currentSegment) Then
-                result.Add($"Write({currentSegment.Trim()})")
-                currentSegment = ""
-              End If
-              result.Add("Write(vbTab)")
-              i += 1
-            Else
-              ' Comma inside string - keep it
-              currentSegment += ch
-              i += 1
-            End If
-
-          Case "'"c
-            If Not inString Then
-              ' Start of comment - stop processing
-              If Not String.IsNullOrWhiteSpace(currentSegment) Then
-                result.Add($"WriteLine({currentSegment.Trim()})")
-              End If
-              ' Clear current segment since we already processed it
-              currentSegment = ""
-              ' Add only the comment part (from current position)
-              result.Add(printArgs.Substring(i))
-              Exit While
-            Else
-              ' Apostrophe inside string - keep it
-              currentSegment += ch
-              i += 1
-            End If
-
-          Case Else
-            currentSegment += ch
-            i += 1
-
-        End Select
-
-      End While
-
-      ' Handle the last segment
-      If Not String.IsNullOrWhiteSpace(currentSegment) Then
-        ' Check if it ends with semicolon (suppress newline)
-        If currentSegment.EndsWith(";"c) Then
-          currentSegment = currentSegment.Substring(0, currentSegment.Length - 1)
-          result.Add($"Write({currentSegment.Trim()})")
+    ''' <summary>
+    ''' Converts PRINT statement using syntax tree properties instead of text parsing.
+    ''' </summary>
+    Private Shared Function ConvertPrintStatementUsingSyntax(printStmt As PrintStatementSyntax) As String
+      Dim printText = GetSyntaxNodeText(printStmt)
+      ' Basic conversion - can be enhanced for full syntax tree processing
+      If String.IsNullOrWhiteSpace(printText) Then
+        Return "Console.WriteLine()"
+      Else
+        ' Remove PRINT keyword and clean up
+        Dim args = printText.Substring(5).Trim() ' Remove "PRINT"
+        If String.IsNullOrWhiteSpace(args) Then
+          Return "Console.WriteLine()"
         Else
-          result.Add($"WriteLine({currentSegment.Trim()})")
+          Return $"Console.WriteLine({args})"
         End If
       End If
+    End Function
 
-      ' Join all the Console calls
-      Return String.Join(" : ", result)
+    ''' <summary>
+    ''' Converts CLS statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertClsStatementUsingSyntax(clsStmt As ClsStatementSyntax) As String
+      Dim clsText = GetSyntaxNodeText(clsStmt).Trim()
+      ' Add parentheses for VB.NET compatibility
+      Return $"{clsText}()"
+    End Function
 
+    ''' <summary>
+    ''' Converts INPUT statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertInputStatementUsingSyntax(inputStmt As InputStatementSyntax) As String
+      Dim inputText = GetSyntaxNodeText(inputStmt).Trim()
+      ' Basic conversion for now
+      Return $"{inputText}()" ' Add parentheses for VB.NET compatibility
+    End Function
+
+    ''' <summary>
+    ''' Converts LOCATE statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertLocateStatementUsingSyntax(locateStmt As LocateStatementSyntax) As String
+      Dim locateText = GetSyntaxNodeText(locateStmt).Trim()
+      ' Add parentheses for VB.NET compatibility
+      Return $"{locateText}()"
+    End Function
+
+    ''' <summary>
+    ''' Converts COLOR statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertColorStatementUsingSyntax(colorStmt As ColorStatementSyntax) As String
+      Dim colorText = GetSyntaxNodeText(colorStmt).Trim()
+      ' Add parentheses for VB.NET compatibility
+      Return $"{colorText}()"
+    End Function
+
+    ''' <summary>
+    ''' Converts RANDOMIZE statement using syntax tree properties.
+    ''' </summary>
+    Private Shared Function ConvertRandomizeStatementUsingSyntax(randomizeStmt As RandomizeStatementSyntax) As String
+      Dim randomizeText = GetSyntaxNodeText(randomizeStmt).Trim()
+      ' Add parentheses for VB.NET compatibility
+      Return $"{randomizeText}()"
     End Function
 
   End Class

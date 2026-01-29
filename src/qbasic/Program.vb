@@ -405,8 +405,8 @@ Friend Module Program
         WriteNodeWithTrivia(writer, rewrittenTree)
         Dim qbasicCode = writer.ToString()
         
-        ' Apply VB.NET transformations
-        Dim vbNetCode = rewriter.GenerateVbNetCode(qbasicCode)
+        ' Apply VB.NET transformations using syntax tree
+        Dim vbNetCode = rewriter.GenerateVbNetCode(DirectCast(rewrittenTree, CompilationUnitSyntax))
         
         ' Create output filename
         Dim outputFilename = Path.ChangeExtension(filename, ".vb")

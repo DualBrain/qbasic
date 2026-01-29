@@ -513,6 +513,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim result = New List(Of String)()
       Dim currentSegment = ""
       Dim i = 0
+      Dim inString = False
 
       While i < printArgs.Length
 
@@ -520,31 +521,57 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
         Select Case ch
 
-          Case ";"c
-            ' Semicolon - continue on same line
-            If Not String.IsNullOrWhiteSpace(currentSegment) Then
-              result.Add($"Write({currentSegment.Trim()})")
-              currentSegment = ""
-            End If
+          Case """"c
+            ' Quote character - toggle string mode
+            inString = Not inString
+            currentSegment += ch
             i += 1
+
+          Case ";"c
+            If Not inString Then
+              ' Semicolon - continue on same line
+              If Not String.IsNullOrWhiteSpace(currentSegment) Then
+                result.Add($"Write({currentSegment.Trim()})")
+                currentSegment = ""
+              End If
+              i += 1
+            Else
+              ' Semicolon inside string - keep it
+              currentSegment += ch
+              i += 1
+            End If
 
           Case ","c
-            ' Comma - tab to next zone (approximate with spaces)
-            If Not String.IsNullOrWhiteSpace(currentSegment) Then
-              result.Add($"Write({currentSegment.Trim()})")
-              currentSegment = ""
+            If Not inString Then
+              ' Comma - tab to next zone (approximate with spaces)
+              If Not String.IsNullOrWhiteSpace(currentSegment) Then
+                result.Add($"Write({currentSegment.Trim()})")
+                currentSegment = ""
+              End If
+              result.Add("Write(vbTab)")
+              i += 1
+            Else
+              ' Comma inside string - keep it
+              currentSegment += ch
+              i += 1
             End If
-            result.Add("Write(vbTab)")
-            i += 1
 
           Case "'"c
-            ' Start of comment - stop processing
-            If Not String.IsNullOrWhiteSpace(currentSegment) Then
-              result.Add($"WriteLine({currentSegment.Trim()})")
+            If Not inString Then
+              ' Start of comment - stop processing
+              If Not String.IsNullOrWhiteSpace(currentSegment) Then
+                result.Add($"WriteLine({currentSegment.Trim()})")
+              End If
+              ' Clear current segment since we already processed it
+              currentSegment = ""
+              ' Add only the comment part (from current position)
+              result.Add(printArgs.Substring(i))
+              Exit While
+            Else
+              ' Apostrophe inside string - keep it
+              currentSegment += ch
+              i += 1
             End If
-            ' Add the comment part
-            result.Add(printArgs.Substring(i))
-            Exit While
 
           Case Else
             currentSegment += ch

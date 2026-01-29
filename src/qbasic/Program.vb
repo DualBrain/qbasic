@@ -345,10 +345,10 @@ Friend Module Program
       ' Generate transformed code using text transformation (this updates the analysis)
       Dim originalCode = File.ReadAllText(filename)
       Dim transformedCode = rewriter.GenerateUpgradedCode(originalCode)
-      
+
       ' Generate suggestions based on analysis
-      rewriter.GenerateSuggestions()
-      
+      'rewriter.GenerateSuggestions()
+
       Console.WriteLine($"GW-BASIC to QBasic Analysis:")
       Console.WriteLine($"  Line numbers found: {rewriter.Analysis.LineNumbersRemoved}")
       Console.WriteLine($"  GOTO statements found: {rewriter.Analysis.GotoStatementsFound}")

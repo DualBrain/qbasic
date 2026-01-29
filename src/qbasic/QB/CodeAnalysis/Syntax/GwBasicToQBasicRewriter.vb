@@ -1,14 +1,3 @@
-' ============================================================================'
-' GW-BASIC to QBasic Transformer
-' Transforms line-numbered GW-BASIC code to structured QBasic
-' Uses SyntaxTree COMPLETELY - no text scanning!
-' ============================================================================'
-
-Imports System
-Imports System.Collections.Generic
-Imports System.Linq
-Imports System.Reflection
-
 Namespace Global.QB.CodeAnalysis.Syntax
 
   ''' <summary>
@@ -16,19 +5,19 @@ Namespace Global.QB.CodeAnalysis.Syntax
   ''' Uses SyntaxTree completely - extracts line numbers from nodes, not text.
   ''' </summary>
   Public Class GwBasicToQBasicRewriter
+
     Private ReadOnly m_targetLineNumbers As New HashSet(Of String)()
     Private ReadOnly m_allLineNumbers As New HashSet(Of String)()
-    Private m_sourceCode As String
 
     ''' <summary>
     ''' Analysis results for transformation.
     ''' </summary>
     Public Class TransformationResult
-      Public Property LineNumbersFound As Integer = 0
-      Public Property LineNumbersRemoved As Integer = 0
-      Public Property LabelsCreated As Integer = 0
-      Public Property GotoStatementsFound As Integer = 0
-      Public Property GosubStatementsFound As Integer = 0
+      Public Property LineNumbersFound As Integer
+      Public Property LineNumbersRemoved As Integer
+      Public Property LabelsCreated As Integer
+      Public Property GotoStatementsFound As Integer
+      Public Property GosubStatementsFound As Integer
       Public ReadOnly Property Warnings As New List(Of String)()
       Public ReadOnly Property Suggestions As New List(Of String)()
       Public ReadOnly Property TargetLineNumbers As New List(Of String)()
@@ -40,7 +29,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' Analyzes syntax tree to collect GOTO/GOSUB targets and line numbers.
     ''' </summary>
     Public Sub CollectTargetsOnce(node As SyntaxNode)
-      ' First pass: collect from syntax tree (GOTO/GOSUB targets)
+      ' Walk all nodes to extract targets and line numbers from SyntaxTree
       WalkAllNodes(node)
     End Sub
 
@@ -48,8 +37,13 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' Recursively walks all nodes to extract targets and line numbers.
     ''' </summary>
     Private Sub WalkAllNodes(node As SyntaxNode)
+
       For Each child In node.GetChildren()
+
         If child Is Nothing Then Continue For
+
+        ' Extract line number from node (from tokens, properties, or trivia)
+        ExtractLineNumberFromNode(child)
 
         ' Collect GOTO targets
         If child.Kind = SyntaxKind.GotoStatement Then
@@ -65,41 +59,49 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
         ' Recurse
         WalkAllNodes(child)
+
       Next
+
     End Sub
 
     ''' <summary>
-    ''' Scans the source code to find all line numbers in GW-BASIC format (digits + space + code).
-    ''' This is necessary because GW-BASIC line numbers without colons don't become SyntaxTree nodes.
+    ''' Extracts line numbers from SyntaxTree nodes.
+    ''' GW-BASIC line numbers are parsed as LabelStatementSyntax with a Label property containing a NumberToken.
     ''' </summary>
-    Private Sub ScanSourceForLineNumbers()
-      If String.IsNullOrWhiteSpace(m_sourceCode) Then Return
-
-      Dim lines = m_sourceCode.Split({vbCrLf, vbLf}, StringSplitOptions.None)
-
-      For Each line In lines
-        Dim trimmedLine = line.TrimStart()
-
-        ' Check for pattern: digits + space + code (GW-BASIC line number format)
-        If StartsWithLineNumberPattern(trimmedLine) Then
-          Dim spacePos = trimmedLine.IndexOf(" "c)
-          If spacePos > 0 Then
-            Dim lineNumber = trimmedLine.Substring(0, spacePos)
-            If Integer.TryParse(lineNumber, Nothing) Then
-              Analysis.LineNumbersFound += 1
-              m_allLineNumbers.Add(lineNumber)
+    Private Sub ExtractLineNumberFromNode(node As SyntaxNode)
+      ' Check if this is a LabelStatement (GW-BASIC line number)
+      If node.Kind = SyntaxKind.LabelStatement Then
+        Try
+          ' Extract from Label property (contains NumberToken)
+          Dim labelProp = node.GetType().GetProperty("Label")
+          If labelProp IsNot Nothing Then
+            Dim label = labelProp.GetValue(node)
+            If label IsNot Nothing Then
+              ' Extract Text from the NumberToken
+              Dim textProp = label.GetType().GetProperty("Text")
+              If textProp IsNot Nothing Then
+                Dim lineNumber = DirectCast(textProp.GetValue(label), String)
+                If Integer.TryParse(lineNumber, Nothing) Then
+                  Analysis.LineNumbersFound += 1
+                  m_allLineNumbers.Add(lineNumber)
+                End If
+              End If
             End If
           End If
-        End If
-      Next
+        Catch ex As Exception
+          ' Ignore errors and continue
+        End Try
+      End If
     End Sub
 
     ''' <summary>
     ''' Extracts target line number from GOTO/GOSUB statements.
     ''' </summary>
-    Private Sub ExtractTargetFromNode(node As SyntaxNode, keyword As String, addTarget As Action(Of String))
+    Private Shared Sub ExtractTargetFromNode(node As SyntaxNode, keyword As String, addTarget As Action(Of String))
+
       ' Use reflection to get token text from Friend types
       Try
+
         Dim targetTokenProp = node.GetType().GetProperty("TargetToken")
         Dim identifierTokenProp = node.GetType().GetProperty("IdentifierToken")
 
@@ -119,7 +121,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
             End If
           End If
         End If
+
       Catch
+
         ' Fallback to text parsing
         Dim text = node.ToString().Trim().ToUpper()
         If text.StartsWith(keyword) Then
@@ -131,23 +135,22 @@ Namespace Global.QB.CodeAnalysis.Syntax
             End If
           End If
         End If
+
       End Try
+
     End Sub
 
     ''' <summary>
     ''' Generates the upgraded QBasic code from GW-BASIC source.
     ''' </summary>
     Public Function GenerateUpgradedCode(originalCode As String) As String
+
       If String.IsNullOrWhiteSpace(originalCode) Then Return originalCode
 
-      m_sourceCode = originalCode
-      Dim syntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(originalCode)
+      Dim syntaxTree = Syntax.SyntaxTree.Parse(originalCode)
 
-      ' Collect targets from syntax tree
+      ' Collect targets and line numbers from syntax tree completely
       CollectTargetsOnce(syntaxTree.Root)
-
-      ' Scan source for line numbers (required for GW-BASIC format)
-      ScanSourceForLineNumbers()
 
       ' Update analysis results
       Analysis.TargetLineNumbers.AddRange(m_targetLineNumbers.OrderBy(Function(x) CInt(x)))
@@ -158,8 +161,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
       GenerateSuggestions()
 
       ' Use writer for output
-      Dim writer = New IndentedSyntaxWriter(m_targetLineNumbers, m_allLineNumbers, Analysis)
+      Dim writer = New IndentedSyntaxWriter(m_targetLineNumbers, Analysis)
       Return writer.WriteTree(originalCode)
+
     End Function
 
     ''' <summary>
@@ -167,9 +171,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' </summary>
     Public Sub GenerateSuggestions()
       If Analysis.GosubStatementsFound > 0 Then
-        Analysis.Suggestions.Add("Found " & Analysis.GosubStatementsFound.ToString() & " GOSUB statements. Consider converting to SUB procedures.")
+        Analysis.Suggestions.Add($"Found {Analysis.GosubStatementsFound} GOSUB statements. Consider converting to SUB procedures.")
       End If
-
       If m_targetLineNumbers.Count > 5 Then
         Analysis.Warnings.Add("Large number of GOTO targets detected. Code may benefit from restructuring.")
       End If
@@ -189,23 +192,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Public Function Rewrite(node As SyntaxNode) As SyntaxNode
       ' Initialize analysis by collecting targets
       CollectTargetsOnce(node)
-      
       ' Return node unchanged - the real transformation happens in GenerateUpgradedCode
       Return node
-    End Function
-
-    ''' <summary>
-    ''' Checks if text starts with line number pattern.
-    ''' </summary>
-    Private Function StartsWithLineNumberPattern(text As String) As Boolean
-      If String.IsNullOrEmpty(text) Then Return False
-
-      Dim i = 0
-      While i < text.Length AndAlso Char.IsDigit(text(i))
-        i += 1
-      End While
-
-      Return i > 0 AndAlso i < text.Length AndAlso text(i) = " "c
     End Function
 
   End Class
@@ -214,17 +202,17 @@ Namespace Global.QB.CodeAnalysis.Syntax
   ''' Writes the transformed code.
   ''' </summary>
   Friend Class IndentedSyntaxWriter
+
     Private ReadOnly m_targetLineNumbers As HashSet(Of String)
-    Private ReadOnly m_allLineNumbers As HashSet(Of String)
     Private ReadOnly m_analysis As GwBasicToQBasicRewriter.TransformationResult
 
-    Public Sub New(targets As HashSet(Of String), labels As HashSet(Of String), analysis As GwBasicToQBasicRewriter.TransformationResult)
+    Public Sub New(targets As HashSet(Of String), analysis As GwBasicToQBasicRewriter.TransformationResult)
       m_targetLineNumbers = targets
-      m_allLineNumbers = labels
       m_analysis = analysis
     End Sub
 
     Public Function WriteTree(originalCode As String) As String
+
       Dim result = New List(Of String)()
       Dim lines = originalCode.Split({vbCrLf, vbLf}, StringSplitOptions.None)
 
@@ -242,11 +230,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Next
 
       Return String.Join(vbCrLf, result)
+
     End Function
 
     Private Sub ProcessLine(line As String, result As List(Of String))
       Dim trimmedLine = line.TrimStart()
-
       ' Check if line starts with line number pattern
       If StartsWithLineNumberPattern(trimmedLine) Then
         ProcessLineWithNumber(trimmedLine, result)
@@ -258,6 +246,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     End Sub
 
     Private Sub ProcessLineWithNumber(line As String, result As List(Of String))
+
       Dim spacePos = line.IndexOf(" "c)
       If spacePos <= 0 Then Return
 
@@ -270,7 +259,6 @@ Namespace Global.QB.CodeAnalysis.Syntax
           result.Add("")
         End If
         result.Add("Label" & lineNumber & ":")
-
         If Not String.IsNullOrWhiteSpace(codeAfterNumber) Then
           result.Add("  " & codeAfterNumber)
         End If
@@ -280,28 +268,27 @@ Namespace Global.QB.CodeAnalysis.Syntax
           result.Add(codeAfterNumber)
         End If
       End If
+
     End Sub
 
-    Private Sub ProcessLabelLine(line As String, result As List(Of String))
+    Private Shared Sub ProcessLabelLine(line As String, result As List(Of String))
       result.Add(line)
     End Sub
 
-    Private Function StartsWithLineNumberPattern(text As String) As Boolean
+    Private Shared Function StartsWithLineNumberPattern(text As String) As Boolean
       If String.IsNullOrEmpty(text) Then Return False
-
       Dim i = 0
       While i < text.Length AndAlso Char.IsDigit(text(i))
         i += 1
       End While
-
       Return i > 0 AndAlso i < text.Length AndAlso text(i) = " "c
     End Function
 
-    Private Function IsLabelLine(line As String) As Boolean
+    Private Shared Function IsLabelLine(line As String) As Boolean
       Return line.Contains(":"c) AndAlso Not line.StartsWith("'")
     End Function
 
-    Private Sub ProcessCodeLine(line As String, result As List(Of String))
+    Private Shared Sub ProcessCodeLine(line As String, result As List(Of String))
       If String.IsNullOrWhiteSpace(line) Then
         result.Add("")
       Else

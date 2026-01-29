@@ -37,6 +37,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Public Property ModernizedPrintStatements As Integer = 0
       Public Property VariablesRequiringTypes As Integer = 0
       Public Property GotoStatementsFound As Integer = 0
+      Public ReadOnly Property GosubStatementTargets As New HashSet(Of String)()
     End Class
 
     Public Sub New(options As ConversionOptions)
@@ -168,6 +169,26 @@ Namespace Global.QB.CodeAnalysis.Syntax
         If Options.GenerateWarnings Then
           Analysis.Warnings.Add("GOSUB statements should be converted to SUB procedures")
         End If
+        
+        ' Extract GOSUB target label for TODO comments
+        Try
+          Dim labelProp = node.GetType().GetProperty("IdentifierToken")
+          If labelProp IsNot Nothing Then
+            Dim identifierToken = labelProp.GetValue(node)
+            If identifierToken IsNot Nothing Then
+              Dim textProp = identifierToken.GetType().GetProperty("Text")
+              If textProp IsNot Nothing Then
+                Dim targetText = DirectCast(textProp.GetValue(identifierToken), String)
+                  If Not String.IsNullOrWhiteSpace(targetText) Then
+                    Dim targetLabel = targetText  ' Use the full identifier text (e.g., "Label300")
+                    Analysis.GosubStatementTargets.Add(targetLabel)
+                  End If
+              End If
+            End If
+          End If
+        Catch ex As Exception
+          ' Ignore reflection errors
+        End Try
       End If
     End Sub
 
@@ -337,15 +358,29 @@ Namespace Global.QB.CodeAnalysis.Syntax
           Continue For
         End If
         
-        ' Skip GOSUB statements entirely (not supported in VB.NET)
+' Handle GOSUB statements - keep code but add TODO comments before
         If trimmedLine.ToUpper().StartsWith("GOSUB") Then
+          ' Add TODO comment before GOSUB (maintain functionality)
+          result.Add($"      ' TODO: GOSUB statements should be converted to SUB procedures")
+          result.Add($"{New String(" "c, 6)}{trimmedLine}")
           Continue For
         End If
         
         ' Handle label lines (including LabelXXX: targets for GOTO)
-        If trimmedLine.EndsWith(":") AndAlso Not trimmedLine.Contains("'") Then
+        If trimmedLine.EndsWith(":") Then
+          ' Extract label name - everything before the colon
+          Dim colonIndex = trimmedLine.IndexOf(":")
+          Dim labelName = trimmedLine.Substring(0, colonIndex).Trim()
+          
+          ' Check if this label is a GOSUB target and add TODO comment (case-insensitive)
+          Dim isGosubTarget = Analysis.GosubStatementTargets.Any(Function(target) String.Equals(target, labelName, StringComparison.OrdinalIgnoreCase))
+          
           ' Keep label with colon for GOTO compatibility, positioned to far left
           result.Add(trimmedLine)
+          
+          If isGosubTarget Then
+            result.Add($"      ' TODO: Need to refactor as a SUB/END SUB")
+          End If
         Else
           ' Add executable statement with proper 2-space indentation
           result.Add($"      {trimmedLine}")

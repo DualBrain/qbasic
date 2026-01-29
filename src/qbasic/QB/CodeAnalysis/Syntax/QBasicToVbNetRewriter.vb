@@ -77,7 +77,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim hasModule = False
       Dim hasProcedures = False
       Dim hasGosubStatements = False
-      
+
       ' Check for existing Module, Function, or Sub declarations
       For Each member In compilationUnit.Members
         Select Case member.Kind
@@ -87,7 +87,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
             Exit For
         End Select
       Next
-      
+
       ' Check if there are only executable statements
       Dim hasOnlyStatements = True
       For Each member In compilationUnit.Members
@@ -97,7 +97,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
           Exit For
         End If
       Next
-      
+
       ' Check for GOSUB statements (not supported in VB.NET)
       For Each member In compilationUnit.Members
         If member.Kind = SyntaxKind.GosubStatement Then
@@ -109,7 +109,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' Module wrapper is always required in VB.NET
       Analysis.AddedModule = True
       Analysis.ChangesMade.Add("Added Module/End Module wrapper")
-      
+
       ' Determine if we need to add Sub Main() for non-procedure code
       If Options.AddSubMain AndAlso hasOnlyStatements Then
         Analysis.AddedSubMain = True
@@ -153,19 +153,19 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' Check for GOTO statements
       If node.Kind = SyntaxKind.GotoStatement Then Analysis.GotoStatementsFound += 1
 
-        ' Check for GOSUB statements
-        If node.Kind = SyntaxKind.GosubStatement Then
+      ' Check for GOSUB statements
+      If node.Kind = SyntaxKind.GosubStatement Then
 
-          If Options.GenerateWarnings Then Analysis.Warnings.Add("GOSUB statements should be converted to SUB procedures")
+        If Options.GenerateWarnings Then Analysis.Warnings.Add("GOSUB statements should be converted to SUB procedures")
 
-          ' Extract GOSUB target label using structured syntax properties
-          Dim gosubStatement = DirectCast(node, GosubStatementSyntax)
-          If gosubStatement.IdentifierToken IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(gosubStatement.IdentifierToken.Text) Then
-            Dim targetLabel = gosubStatement.IdentifierToken.Text
-            Analysis.GosubStatementTargets.Add(targetLabel)
-          End If
-
+        ' Extract GOSUB target label using structured syntax properties
+        Dim gosubStatement = DirectCast(node, GosubStatementSyntax)
+        If gosubStatement.IdentifierToken IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(gosubStatement.IdentifierToken.Text) Then
+          Dim targetLabel = gosubStatement.IdentifierToken.Text
+          Analysis.GosubStatementTargets.Add(targetLabel)
         End If
+
+      End If
 
     End Sub
 
@@ -229,13 +229,13 @@ Namespace Global.QB.CodeAnalysis.Syntax
     End Function
 
     ''' <summary>
-    ''' Rewrites PRINT statements to use Console.WriteLine/Write with proper syntax.
+    ''' Rewrites PRINT statements to use WriteLine/Write with proper syntax.
     ''' </summary>
     Protected Overrides Function RewritePrintStatement(node As PrintStatementSyntax) As StatementSyntax
       If Not Options.ModernizePrint Then Return MyBase.RewritePrintStatement(node)
       ' Process the PRINT statement nodes and convert to proper VB.NET Console calls
       Dim convertedPrintCalls = ConvertPrintNodesToConsoleCalls(node.Nodes)
-      Analysis.ChangesMade.Add("PRINT statement converted to Console.WriteLine/Write calls")
+      Analysis.ChangesMade.Add("PRINT statement converted to WriteLine/Write calls")
       ' Return the original node - the actual transformation happens in text generation
       Return node
     End Function
@@ -259,7 +259,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
             Continue For
 
           Case SyntaxKind.CommaToken
-            ' Comma means tab to next zone - use Console.Write with spaces or separate calls
+            ' Comma means tab to next zone - use Write with spaces or separate calls
             Continue For
 
           Case SyntaxKind.SpcFunction
@@ -288,15 +288,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
         If isEndOfLine AndAlso currentLine.Count > 0 Then
           If result.Count > 0 Then
             ' Previous lines exist, this should be a new line
-            result.Add($"Console.WriteLine({String.Join("" & "", currentLine)})")
+            result.Add($"WriteLine({String.Join("" & "", currentLine)})")
           Else
             ' First line of the PRINT statement
-            result.Add($"Console.WriteLine({String.Join("" & "", currentLine)})")
+            result.Add($"WriteLine({String.Join("" & "", currentLine)})")
           End If
           currentLine.Clear()
         ElseIf isEndOfLine = False AndAlso currentLine.Count > 0 Then
-          ' Not end of line, use Console.Write
-          result.Add($"Console.Write({String.Join("" & "", currentLine)})")
+          ' Not end of line, use Write
+          result.Add($"Write({String.Join("" & "", currentLine)})")
           currentLine.Clear()
         End If
 
@@ -338,7 +338,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.RandomizeStatement
           Analysis.ChangesMade.Add("RANDOMIZE statement converted to use parentheses")
       End Select
-      
+
       Return MyBase.RewriteFriendStatement(node)
     End Function
 
@@ -354,26 +354,41 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' Generates VB.NET code with appropriate imports and structure from a compilation unit.
     ''' </summary>
     Public Function GenerateVbNetCode(compilationUnit As CompilationUnitSyntax) As String
+
+      ' Generate the base content
+      Dim baseCode As String
+      Using writer = New StringWriter()
+        WriteSyntaxNodeToText(writer, compilationUnit)
+        baseCode = writer.ToString()
+      End Using
+
       ' Add Module wrapper if needed
       If Analysis.AddedModule Then
         If Analysis.AddedSubMain Then
           ' Extract all executable statements using syntax tree traversal
           Dim executableCode = ExtractExecutableStatementsFromSyntax(compilationUnit)
-          Return $"Module Program{vbCrLf}{executableCode}{vbCrLf}End Module"
+          Return GetCodeWithImports($"Module Program{vbCrLf}{executableCode}{vbCrLf}End Module")
         Else
-          ' Just wrap in Module without Sub Main - generate content from syntax tree
-          Using writer = New StringWriter()
-            WriteSyntaxNodeToText(writer, compilationUnit)
-            Dim baseCode = writer.ToString()
-            Return $"Module Program{vbCrLf}{baseCode}{vbCrLf}End Module"
-          End Using
+          ' Just wrap in Module without Sub Main
+          Return GetCodeWithImports($"Module Program{vbCrLf}{baseCode}{vbCrLf}End Module")
         End If
       Else
         ' Generate content from syntax tree without wrapper
-        Using writer = New StringWriter()
-          WriteSyntaxNodeToText(writer, compilationUnit)
-          Return writer.ToString()
-        End Using
+        Return GetCodeWithImports(baseCode)
+      End If
+
+    End Function
+
+    ''' <summary>
+    ''' Adds required imports to the code if needed.
+    ''' </summary>
+    Private Function GetCodeWithImports(code As String) As String
+      ' Add required imports at the beginning if needed
+      If Options.AddImports AndAlso Analysis.RequiredImports.Count > 0 Then
+        Dim importsText = String.Join(vbCrLf, Analysis.RequiredImports.Select(Function(imp) $"Imports {imp}"))
+        Return importsText + vbCrLf + vbCrLf + code
+      Else
+        Return code
       End If
     End Function
 
@@ -435,15 +450,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim result = New List(Of String)()
 
       ' Add Sub Main declaration
-      result.Add("  Sub Main()")
-      
+      result.Add($"{vbCrLf}  Sub Main()")
+
       ' Process each member in the compilation unit
       For Each member In compilationUnit.Members
         ProcessMemberForSubMain(member, result)
       Next
-      
+
       ' Add End Sub and close with proper spacing
-      result.Add("  End Sub")
+      result.Add($"  End Sub{vbCrLf}")
 
       Return String.Join(vbCrLf, result)
 
@@ -536,8 +551,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' Converts BEEP statement using syntax tree properties.
     ''' </summary>
     Private Shared Function ConvertBeepStatementUsingSyntax(beepStmt As BeepStatementSyntax) As String
-      ' BEEP in QBasic becomes Console.Beep() or MessageBox.Show in VB.NET
-      Return "Console.Beep()"
+      ' BEEP in QBasic becomes Beep() or MessageBox.Show in VB.NET
+      Return "Beep()"
     End Function
 
     ''' <summary>
@@ -545,9 +560,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' </summary>
     Private Shared Function ConvertGosubStatementUsingSyntax(gosubStmt As GosubStatementSyntax) As String
       If gosubStmt.IdentifierToken IsNot Nothing Then
-        Return $"' TODO: Convert GOSUB {gosubStmt.IdentifierToken.Text} to SUB call"
+        Return $"GOSUB {gosubStmt.IdentifierToken.Text}() ' TODO: Convert GOSUB to SUB call"
       End If
-      Return "' TODO: Convert GOSUB statement to SUB call"
+      Return "GOSUB ' TODO: Convert GOSUB statement to SUB call"
     End Function
 
     ''' <summary>
@@ -566,21 +581,96 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
     ''' <summary>
     ''' Converts PRINT statement using syntax tree properties instead of text parsing.
+    ''' Handles QBasic semicolon (;) and comma (,) separators properly.
     ''' </summary>
     Private Shared Function ConvertPrintStatementUsingSyntax(printStmt As PrintStatementSyntax) As String
-      Dim printText = GetSyntaxNodeText(printStmt)
-      ' Basic conversion - can be enhanced for full syntax tree processing
-      If String.IsNullOrWhiteSpace(printText) Then
-        Return "Console.WriteLine()"
-      Else
-        ' Remove PRINT keyword and clean up
-        Dim args = printText.Substring(5).Trim() ' Remove "PRINT"
-        If String.IsNullOrWhiteSpace(args) Then
-          Return "Console.WriteLine()"
-        Else
-          Return $"Console.WriteLine({args})"
+
+      If printStmt.Nodes.Length = 0 Then Return "WriteLine()"
+
+      Dim result = New List(Of String)()
+      Dim currentSegment = New List(Of String)()
+
+      For i = 0 To printStmt.Nodes.Length - 1
+        Dim currentNode = printStmt.Nodes(i)
+
+        Select Case currentNode.Kind
+
+          Case SyntaxKind.SemicolonToken
+            ' Semicolon means continue on same line (no newline)
+            ' Just continue to next item without ending the line
+
+          Case SyntaxKind.CommaToken
+            ' Comma means tab to next zone (14 character columns)
+            ' Add current segment and then add a tab
+            If currentSegment.Count > 0 Then
+              result.Add($"Write({String.Join("" & "", currentSegment)})")
+              result.Add("Write(vbTab)")
+              currentSegment.Clear()
+            Else
+              result.Add("Write(vbTab)")
+            End If
+
+          Case SyntaxKind.SpcFunction
+            Dim spcFunc = DirectCast(currentNode, SpcFunctionSyntax)
+            currentSegment.Add($"Space({GetExpressionText(spcFunc.Expression)})")
+
+          Case SyntaxKind.TabFunction
+            Dim tabFunc = DirectCast(currentNode, TabFunctionSyntax)
+            ' TAB(n) - position to column n
+            currentSegment.Add($"New String("" ""c, {GetExpressionText(tabFunc.Expression)})")
+
+          Case Else
+            ' Handle expressions and literals
+            If TypeOf currentNode Is ExpressionSyntax Then
+              Dim expr = DirectCast(currentNode, ExpressionSyntax)
+              currentSegment.Add(GetExpressionText(expr))
+            ElseIf TypeOf currentNode Is SyntaxToken AndAlso
+                   DirectCast(currentNode, SyntaxToken).Kind <> SyntaxKind.SemicolonToken AndAlso
+                   DirectCast(currentNode, SyntaxToken).Kind <> SyntaxKind.CommaToken Then
+              Dim token = DirectCast(currentNode, SyntaxToken)
+              If Not String.IsNullOrWhiteSpace(token.Text) Then
+                currentSegment.Add($"""{token.Text}""")
+              End If
+            End If
+
+        End Select
+
+        ' Check if this is the end of the line (next token is not semicolon)
+        Dim isEndOfLine = (i = printStmt.Nodes.Length - 1) OrElse
+                           (i + 1 < printStmt.Nodes.Length AndAlso
+                            printStmt.Nodes(i + 1).Kind <> SyntaxKind.SemicolonToken)
+
+        If isEndOfLine Then
+          ' End of line - use WriteLine
+          If currentSegment.Count > 0 Then
+            result.Add($"WriteLine({String.Join("" & "", currentSegment)})")
+            currentSegment.Clear()
+          End If
+        ElseIf currentSegment.Count > 0 Then
+          ' Not End of line (semicolon) - use Write
+          result.Add($"Write({String.Join("" & "", currentSegment)})")
+          currentSegment.Clear()
         End If
-      End If
+      Next
+
+      Return String.Join(" : ", result)
+
+    End Function
+
+    ''' <summary>
+    ''' Gets text representation of an expression for Console output.
+    ''' </summary>
+    Private Shared Function GetExpressionText(expr As ExpressionSyntax) As String
+      Using writer = New StringWriter()
+        WriteNodeWithTrivia(writer, expr)
+        Dim exprText = writer.ToString().Trim()
+        ' Check if it's a string literal
+        'If exprText.StartsWith(""""c) AndAlso exprText.EndsWith(""""c) Then
+        Return exprText ' Keep quotes for strings
+        'Else
+        'Return exprText ' Return as-is for numbers, variables, etc.
+        'End If
+      End Using
     End Function
 
     ''' <summary>

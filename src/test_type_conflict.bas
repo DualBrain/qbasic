@@ -1,1 +1,0 @@
-DIM x$ AS INTEGER

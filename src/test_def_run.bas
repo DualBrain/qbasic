@@ -1,0 +1,6 @@
+DEFINT A-Z
+DIM y AS SINGLE
+x = 123
+y = 456.78
+PRINT x
+PRINT y

@@ -76,6 +76,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     StopStatement
     SubStatement
     SystemStatement
+    DefTypeStatement
     SwapStatement
     VariableDeclaration
     DataStatement

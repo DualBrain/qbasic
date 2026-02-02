@@ -49,10 +49,33 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return True
     End Function
 
-    Public Function TryLookupVariable(name As String) As VariableSymbol
-      Dim symbol = TryLookupSymbol(name.ToLower)
-      Return TryCast(symbol, VariableSymbol)
-    End Function
+     Public Function TryLookupVariable(name As String) As VariableSymbol
+       ' First try exact match
+       Dim symbol = TryLookupSymbol(name.ToLower)
+       If TypeOf symbol Is VariableSymbol Then
+         Return DirectCast(symbol, VariableSymbol)
+       End If
+       
+       ' Check if this is a variable with type character
+       If Not String.IsNullOrEmpty(name) Then
+         Dim baseName = name.Substring(0, name.Length - 1)
+         Dim baseSymbol = TryLookupSymbol(baseName.ToLower)
+         If TypeOf baseSymbol Is VariableSymbol Then
+           Return DirectCast(baseSymbol, VariableSymbol)
+         End If
+       End If
+       
+       ' Try array access (for variables like a(0))
+       If name.EndsWith("]") Then
+         Dim arrayBaseName = name.Substring(0, name.IndexOf("["))
+         Dim arraySymbol = TryLookupSymbol(arrayBaseName.ToLower())
+         If TypeOf arraySymbol Is VariableSymbol Then
+           Return DirectCast(arraySymbol, VariableSymbol)
+         End If
+       End If
+       
+       Return Parent?.TryLookupVariable(name)
+     End Function
 
     Public Function TryLookupFunction(name As String, parameters As List(Of TypeSymbol)) As Symbol
       ' First try exact match

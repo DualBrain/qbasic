@@ -636,6 +636,27 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return (lower, upper)
     End Function
 
+    ''' <summary>
+    ''' Resolve variable type considering type characters and defaults.
+    ''' DEF statements will be implemented later.
+    ''' </summary>
+    Private Function ResolveVariableType(variableName As String) As TypeSymbol
+      If String.IsNullOrEmpty(variableName) Then Return TypeSymbol.Single
+      
+      ' Check for type character suffix first (highest precedence)
+      Dim lastChar = variableName.Last()
+      Select Case lastChar
+        Case "%"c : Return TypeSymbol.Integer
+        Case "&"c : Return TypeSymbol.Long
+        Case "!"c : Return TypeSymbol.Single
+        Case "#"c : Return TypeSymbol.Double
+        Case "$"c : Return TypeSymbol.String
+      End Select
+      
+      ' Default to SINGLE (lowest precedence) - TODO: Add DEF statements later
+      Return TypeSymbol.Single
+    End Function
+
     Private Function BindAsClause(syntax As AsClause) As TypeSymbol
       If syntax Is Nothing Then Return Nothing
       Dim type = LookupType(syntax.Identifier.Text)
@@ -1472,7 +1493,9 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundRemStatement()
     End Function
 
-    Private Shared Function BindDefTypeStatement(syntax As DefTypeStatementSyntax) As BoundStatement
+    Private Function BindDefTypeStatement(syntax As DefTypeStatementSyntax) As BoundStatement
+      ' For now, DEF statements are parsed but don't affect variable types
+      ' TODO: Implement actual DEF type functionality
       Return New BoundRemStatement()
     End Function
 
@@ -1711,21 +1734,23 @@ Namespace Global.QB.CodeAnalysis.Binding
 
           If existingSymbol Is Nothing OrElse Not (TypeOf existingSymbol Is VariableSymbol AndAlso CType(existingSymbol, VariableSymbol).IsArray) Then
             ' Variable doesn't exist or is not an array - create new dynamic array
-            ' Extract type from AS clause or default to Single
-            Dim arrayType As TypeSymbol = BindAsClause(variableDecl.AsClause)
+             ' Extract type using DEF statements, AS clause, or type character priority
+            Dim arrayType As TypeSymbol = ResolveVariableType(variableDecl.Identifier.Text)
             If arrayType Is Nothing Then
-              ' No AS clause, check variable name suffix
-              Dim suffix = variableName.Last
+              ' If no specific type found, check variable name suffix
+              Dim suffix = variableDecl.Identifier.Text.Last
               Select Case suffix
                 Case "%"c : arrayType = TypeSymbol.Integer
-                Case "&"c : arrayType = TypeSymbol.Long
-                Case "!"c : arrayType = TypeSymbol.Single
-                Case "#"c : arrayType = TypeSymbol.Double
-                Case "$"c : arrayType = TypeSymbol.String
+                  Case "&"c : arrayType = TypeSymbol.Long
+                  Case "!"c : arrayType = TypeSymbol.Single
+                  Case "#"c : arrayType = TypeSymbol.Double
+                  Case "$"c : arrayType = TypeSymbol.String
                 Case Else
                   arrayType = TypeSymbol.Single ' Default for dynamic arrays
               End Select
             End If
+
+            ' DEF types are already applied in ResolveVariableType, so no need for extra logic here
 
             ' Count dimensions
             Dim dimensionCount = 0

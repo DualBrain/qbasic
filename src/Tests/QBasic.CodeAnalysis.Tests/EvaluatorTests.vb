@@ -180,6 +180,250 @@ d = 987654
     ' End Sub
 
     <Fact>
+    Public Sub EvaluatesDimAsInteger()
+      Dim text = "
+DIM x AS INTEGER
+x = 42
+y = 100
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' Variables should be integers
+      Assert.Equal(42, CInt(variables("x")))
+      Assert.Equal(100, CInt(variables("y")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsLong()
+      Dim text = "
+DIM a AS LONG
+a = 2147483647
+b = -2147483648
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' Variables should be long integers
+      Assert.Equal(2147483647, CLng(variables("a")))
+      Assert.Equal(-2147483648, CLng(variables("b")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsSingle()
+      Dim text = "
+DIM s AS SINGLE
+s = 3.14159
+t = 2.71828
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' Variables should be single precision
+      Assert.Equal(3.14159, CSng(variables("s")))
+      Assert.Equal(2.71828, CSng(variables("t")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsDouble()
+      Dim text = "
+DIM d AS DOUBLE
+d = 1.23456789012345
+e = 9.87654321098765
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      ' Variables should be double precision
+      Assert.Equal(1.23456789012345, CDbl(variables("d")), 0.0001)
+      Assert.Equal(9.87654321098765, CSng(variables("e")), 0.0001)
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsString()
+      Dim text = "
+DIM strVar AS STRING
+strVar = ""hello""
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      ' Variables should be strings
+      Assert.Equal("hello", variables("strVar"))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsMultipleVariables()
+      Dim text = "
+DIM intVar AS INTEGER, strVar AS STRING, sngVar AS SINGLE
+intVar = 42
+strVar = ""test""
+sngVar = 3.14
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' Different variable types should be preserved
+      Assert.Equal(42, CInt(variables("intVar")))
+      Assert.Equal("test", variables("strVar"))
+      Assert.Equal(3.14, CSng(variables("sngVar")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsWithDef()
+      Dim text = "
+DEFINT X-Z
+DIM x AS INTEGER  ' Should use explicit DIM type
+DIM y AS SINGLE   ' Should use default DEF type
+z = 100
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' x should be INTEGER from DIM AS (highest precedence)
+      ' y should be SINGLE from DEFINT (lower precedence than DIM AS)
+      ' z should be INTEGER from DEFINT
+      Assert.Equal(100, CInt(variables("x")))
+      Assert.Equal(100, CSng(variables("y")))
+      Assert.Equal(100, CInt(variables("z")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsStringArray()
+      Dim text = "
+DIM strArray(3) AS STRING
+strArray(0) = ""first""
+strArray(1) = ""second""
+strArray(2) = ""third""
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      ' String array should work correctly
+      Dim strArray = CType(variables("strArray"), List(Of Object))
+      Assert.Equal("first", strArray(0))
+      Assert.Equal("second", strArray(1))
+      Assert.Equal("third", strArray(2))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsDoubleArray()
+      Dim text = "
+DIM dblArray(2) AS DOUBLE
+dblArray(0) = 1.23456789012345
+dblArray(1) = 9.87654321098765
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      ' Double array should work correctly
+      Dim dblArray = CType(variables("dblArray"), List(Of Object))
+      Assert.Equal(1.23456789012345, CDbl(dblArray(0)))
+      Assert.Equal(9.87654321098765, CDbl(dblArray(1)))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsOverwritesDef()
+      Dim text = "
+DEFSNG A-C
+DIM a AS SINGLE  ' Should override DEFSNG for 'a'
+DIM b AS DOUBLE  ' Should override DEFSNG for 'b'
+a = 1.1
+b = 2.2
+c = 3.3  ' Should remain SINGLE from DEFSNG
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      ' DIM AS should override DEF statements
+      Assert.Equal(1.1, CSng(variables("a")))
+      Assert.Equal(2.2, CDbl(variables("b")))
+      Assert.Equal(3.3, CSng(variables("c")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsComplexScenario()
+      Dim text = "
+DIM intCounter AS INTEGER
+DIM strName AS STRING
+DIM sngTotal AS SINGLE
+DIM dblAverage AS DOUBLE
+
+intCounter = 0
+strName = ""John""
+sngTotal = 0.0
+dblAverage = 0.0
+
+' Simulate some calculations
+FOR i = 1 TO 5
+  intCounter = intCounter + i
+  sngTotal = sngTotal + i * 1.5
+  dblAverage = dblAverage + i * 2.5
+NEXT i
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' All variable types should be preserved correctly
+      Assert.Equal(15, CInt(variables("intCounter")))
+      Assert.Equal("John", variables("strName"))
+      Assert.Equal(22.5, CSng(variables("sngTotal")))
+      Assert.Equal(37.5, CDbl(variables("dblAverage")))
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDimAsCaseSensitivity()
+      Dim text = "
+dim x as integer
+dim y as long
+dim z as single
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' Should work regardless of case
+      Assert.Equal(0, CInt(variables("x")))
+      Assert.Equal(0, CLng(variables("y")))
+      Assert.Equal(0.0, CSng(variables("z")))
+    End Sub
+
+    <Fact>
     Public Sub EvaluatesSleepStatement()
       ' Exactly replicate the working ExecutesSimpleProgram test
       Dim text = "start = TIMER

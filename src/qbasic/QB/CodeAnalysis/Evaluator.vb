@@ -1880,7 +1880,7 @@ Namespace Global.QB.CodeAnalysis
     Private Function EvaluateAssignmentExpression(node As BoundAssignmentExpression) As Object
       Dim value = EvaluateExpression(node.Expression)
       Debug.Assert(value IsNot Nothing)
-      If node.Variable.Type Is TypeSymbol.String AndAlso (TypeOf value IsNot String AndAlso TypeOf value IsNot Char) Then
+If node.Variable.Type Is TypeSymbol.String AndAlso (TypeOf value IsNot String AndAlso TypeOf value IsNot Char) Then
         Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
       ElseIf node.Variable.Type IsNot TypeSymbol.String AndAlso (TypeOf value Is String OrElse TypeOf value Is Char) Then
         Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
@@ -2657,9 +2657,20 @@ Namespace Global.QB.CodeAnalysis
       End If
     End Sub
 
-    Private Function ConvertValue(value As Object, targetType As TypeSymbol) As Object
+Private Function ConvertValue(value As Object, targetType As TypeSymbol) As Object
       If value Is Nothing Then Return Nothing
-      If targetType Is TypeSymbol.Integer Then
+      
+      ' Handle string type conversion - only allow char to string, not numeric to string
+      If targetType Is TypeSymbol.String Then
+        If TypeOf value Is String Then
+          Return value
+        ElseIf TypeOf value Is Char Then
+          Return CStr(value)
+        Else
+          ' Don't allow numeric to string conversion - let the type checker handle this
+          Return value
+        End If
+      ElseIf targetType Is TypeSymbol.Integer Then
         Return CInt(value)
       ElseIf targetType Is TypeSymbol.Single Then
         Return CSng(value)

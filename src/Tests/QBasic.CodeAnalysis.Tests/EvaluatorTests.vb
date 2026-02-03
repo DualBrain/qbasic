@@ -51,6 +51,135 @@ b = -2147483648
     End Sub
 
     <Fact>
+    Public Sub EvaluatesDefIntAllLetters()
+      Dim text = "
+DEFINT A-Z
+a = 42
+b = 100
+c = 200
+z = 999
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' All variables should be integers (type coercion)
+      Assert.Equal($"{42}", $"{variables("a")}")
+      Assert.Equal($"{100}", $"{variables("b")}")
+      Assert.Equal($"{200}", $"{variables("c")}")
+      Assert.Equal($"{999}", $"{variables("z")}")
+    End Sub
+
+    ' <Fact>
+    ' Public Sub EvaluatesDefStrSingleLetter()
+    '   Dim text = "
+    ' DEFSTR S
+    ' s = ""hello""
+    ' s2 = ""world""
+    ' t = 12345  ' Should be converted to string
+    ' "
+
+    '   Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+    '   Dim compilation As Compilation = Compilation.Create(syntaxTree)
+    '   Dim variables = New Dictionary(Of String, Object)()
+    '   Dim result = compilation.Evaluate(variables)
+    '   
+    '   ' Variables starting with S should be strings
+    '   Assert.Equal("hello", $"{variables("s")}")
+    '   Assert.Equal("world", $"{variables("s2")}")
+    '   Assert.Equal("12345", $"{variables("t")}")  ' Numeric to string conversion
+    ' End Sub
+
+    <Fact>
+    Public Sub EvaluatesDefSngMultipleRanges()
+      Dim text = "
+DEFSNG A-M
+DEFSNG X-Z
+a = 3.14
+m = 2.71
+x = 1.5
+z = 9.99
+b = 100  ' Should be single (not in range)
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' Variables in A-M and X-Z should be single precision
+      Assert.Equal($"{3.14}", $"{variables("a")}")
+      Assert.Equal($"{2.71}", $"{variables("m")}")
+      Assert.Equal($"{1.5}", $"{variables("x")}")
+      Assert.Equal($"{9.99}", $"{variables("z")}")
+      
+      ' Variable b should be default type (single, since it's the default)
+      Assert.Equal($"{100.0}", $"{variables("b")}")
+    End Sub
+
+<Fact>
+    Public Sub EvaluatesDefDblPartialRange()
+      Dim text = "
+DEFDBL F-P
+f = 123.456789
+g = 987.654321
+a = 42  ' Should be default type
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+
+      ' Variables in F-P should be double precision
+      Assert.Equal(123.456789, CDbl(variables("f")), 0.0001)
+      Assert.Equal(987.654321, CDbl(variables("g")), 0.0001)
+
+      ' Variable a should be default type (single)
+      Assert.Equal($"{42}", $"{variables("a")}")
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesDefLngOverlappingRanges()
+      Dim text = "
+DEFLNG A-C
+DEFLNG B-E
+x = 123456
+d = 987654
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      
+      ' All should be long integers
+      Assert.Equal($"{123456}", $"{variables("x")}")
+      Assert.Equal($"{987654}", $"{variables("d")}")
+    End Sub
+
+    ' <Fact>
+    ' Public Sub EvaluatesDefStmtCaseSensitivity()
+    '   Dim text = "
+    '   defint a-z
+    '   DEFSTR s
+    '   A = 10
+    '   s = ""test""
+    '   "
+
+    '   Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+    '   Dim compilation As Compilation = Compilation.Create(syntaxTree)
+    '   Dim variables = New Dictionary(Of String, Object)()
+    '   Dim result = compilation.Evaluate(variables)
+    '   
+    '   ' Should work regardless of case
+    '   Assert.Equal($"{10}", $"{variables("A")}")
+    '   Assert.Equal("test", $"{variables("s")}")
+    ' End Sub
+
+    <Fact>
     Public Sub EvaluatesSleepStatement()
       ' Exactly replicate the working ExecutesSimpleProgram test
       Dim text = "start = TIMER

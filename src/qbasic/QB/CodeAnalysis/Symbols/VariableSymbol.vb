@@ -2,12 +2,19 @@ Imports QB.CodeAnalysis.Binding
 
 Namespace Global.QB.CodeAnalysis.Symbols
 
+  Public Enum VariableTypeSource
+    DefaultType
+    DefStatement
+    DimAsClause
+    TypeCharacter
+  End Enum
+
   Public Class VariableSymbol
     Inherits Symbol
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Variable
 
-    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer)
+    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource)
       MyBase.New(name)
       Me.IsReadOnly = False
       Me.IsArray = isArray
@@ -17,9 +24,14 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.Upper = upper
       Me.IsStaticArray = isStaticArray
       Me.DimensionCount = dimensionCount
+      Me.TypeSource = typeSource
     End Sub
 
-    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant)
+    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer)
+      Me.New(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType)
+    End Sub
+
+    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource)
       MyBase.New(name)
       Me.IsReadOnly = isReadOnly
       Me.Type = type
@@ -28,6 +40,11 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.Lower = Nothing
       Me.Upper = Nothing
       Me.DimensionCount = 0
+      Me.TypeSource = typeSource
+    End Sub
+
+    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant)
+      Me.New(name, isReadOnly, type, constant, VariableTypeSource.DefaultType)
     End Sub
 
     Public ReadOnly Property IsReadOnly As Boolean
@@ -38,12 +55,21 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Friend ReadOnly Property Upper As BoundExpression
     Friend ReadOnly Property IsStaticArray As Boolean
     Public ReadOnly Property DimensionCount As Integer
+    Public ReadOnly Property TypeSource As VariableTypeSource
 
-    Public Overrides Function ToString() As String
+Public Overrides Function ToString() As String
+      Dim typeSourceStr = ""
+      Select Case TypeSource
+        Case VariableTypeSource.DefaultType : typeSourceStr = " [default]"
+        Case VariableTypeSource.DefStatement : typeSourceStr = " [DEF]"
+        Case VariableTypeSource.DimAsClause : typeSourceStr = " [DIM AS]"
+        Case VariableTypeSource.TypeCharacter : typeSourceStr = " [suffix]"
+      End Select
+      
       If IsArray Then
-        Return $"DIM {Name}({Lower} TO {Upper}): {Type}"
+        Return $"DIM {Name}({Lower} TO {Upper}): {Type}{typeSourceStr}"
       Else
-        Return $"{Name}: {Type}"
+        Return $"{Name}: {Type}{typeSourceStr}"
       End If
     End Function
 

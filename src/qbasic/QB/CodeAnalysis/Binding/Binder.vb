@@ -19,9 +19,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private ReadOnly Property Diagnostics As DiagnosticBag = New DiagnosticBag
     Private ReadOnly m_loopStack As New Stack(Of (ExitLabel As BoundLabel, ContinueLabel As BoundLabel))
     Private m_labelCounter As Integer
-    Private m_optionBase As Integer = 0 ' Default to 0 as per QBasic spec
+Private m_optionBase As Integer = 0 ' Default to 0 as per QBasic spec
     Private m_optionBaseDeclared As Boolean = False ' Track if OPTION BASE was already declared
     Private m_arrayModeDynamic As Boolean = True ' Track current $DYNAMIC/$STATIC metacommand state (default $DYNAMIC)
+    Private Shared m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
 
     Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol)
       m_scope = New BoundScope(parent)
@@ -640,24 +641,30 @@ Namespace Global.QB.CodeAnalysis.Binding
     ''' Resolve variable type considering type characters and defaults.
     ''' DEF statements will be implemented later.
     ''' </summary>
-    Private Function ResolveVariableType(variableName As String) As TypeSymbol
-      If String.IsNullOrEmpty(variableName) Then Return TypeSymbol.Single
+Private Function ResolveVariableType(variableName As String) As TypeSymbol
+      If String.IsNullOrEmpty(variableName) Then Return QB.CodeAnalysis.Symbols.TypeSymbol.Single
       
       ' Check for type character suffix first (highest precedence)
       Dim lastChar = variableName.Last()
       Select Case lastChar
-        Case "%"c : Return TypeSymbol.Integer
-        Case "&"c : Return TypeSymbol.Long
-        Case "!"c : Return TypeSymbol.Single
-        Case "#"c : Return TypeSymbol.Double
-        Case "$"c : Return TypeSymbol.String
+        Case "%"c : Return QB.CodeAnalysis.Symbols.TypeSymbol.Integer
+        Case "&"c : Return QB.CodeAnalysis.Symbols.TypeSymbol.Long
+        Case "!"c : Return QB.CodeAnalysis.Symbols.TypeSymbol.Single
+        Case "#"c : Return QB.CodeAnalysis.Symbols.TypeSymbol.Double
+        Case "$"c : Return QB.CodeAnalysis.Symbols.TypeSymbol.String
       End Select
       
-      ' Default to SINGLE (lowest precedence) - TODO: Add DEF statements later
-      Return TypeSymbol.Single
+      ' Check DEF statements (medium precedence)
+      Dim firstChar = variableName(0).ToString().ToUpper()
+      If m_defTypeRanges.ContainsKey(firstChar) Then
+        Return m_defTypeRanges(firstChar)
+      End If
+      
+      ' Default to SINGLE (lowest precedence)
+      Return QB.CodeAnalysis.Symbols.TypeSymbol.Single
     End Function
 
-    Private Function BindAsClause(syntax As AsClause) As TypeSymbol
+Private Function BindAsClause(syntax As AsClause) As QB.CodeAnalysis.Symbols.TypeSymbol
       If syntax Is Nothing Then Return Nothing
       Dim type = LookupType(syntax.Identifier.Text)
       If type Is Nothing Then
@@ -1306,11 +1313,11 @@ Namespace Global.QB.CodeAnalysis.Binding
           Dim type = TypeSymbol.Single
           Dim suffix = name.Last
           Select Case suffix
-            Case "%"c : type = TypeSymbol.Integer
-            Case "&"c : type = TypeSymbol.Long
-            Case "!"c : type = TypeSymbol.Single
-            Case "#"c : type = TypeSymbol.Double
-            Case "$"c : type = TypeSymbol.String
+Case "%"c : type = QB.CodeAnalysis.Symbols.TypeSymbol.Integer
+            Case "&"c : type = QB.CodeAnalysis.Symbols.TypeSymbol.Long
+            Case "!"c : type = QB.CodeAnalysis.Symbols.TypeSymbol.Single
+            Case "#"c : type = QB.CodeAnalysis.Symbols.TypeSymbol.Double
+            Case "$"c : type = QB.CodeAnalysis.Symbols.TypeSymbol.String
             Case Else
               'Type = TypeSymbol.Single ' Default for arrays without suffix
           End Select
@@ -1493,11 +1500,53 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundRemStatement()
     End Function
 
-    Private Function BindDefTypeStatement(syntax As DefTypeStatementSyntax) As BoundStatement
-      ' For now, DEF statements are parsed but don't affect variable types
-      ' TODO: Implement actual DEF type functionality
+Private Function BindDefTypeStatement(syntax As DefTypeStatementSyntax) As BoundStatement
+      Dim defType = syntax.Keyword.Text
+      Dim typeSymbol As TypeSymbol
+      
+      ' Map DEF type keywords to TypeSymbol
+      Select Case defType.ToUpper()
+        Case "DEFINT" : typeSymbol = QB.CodeAnalysis.Symbols.TypeSymbol.Integer
+        Case "DEFLNG" : typeSymbol = QB.CodeAnalysis.Symbols.TypeSymbol.Long
+        Case "DEFSNG" : typeSymbol = QB.CodeAnalysis.Symbols.TypeSymbol.Single
+        Case "DEFDBL" : typeSymbol = QB.CodeAnalysis.Symbols.TypeSymbol.Double
+        Case "DEFSTR" : typeSymbol = QB.CodeAnalysis.Symbols.TypeSymbol.String
+        Case Else
+          ' This shouldn't happen if parser is working correctly
+          Return New BoundRemStatement()
+      End Select
+      
+      ' Process each range in the DEF statement
+      For Each node In syntax.Nodes
+        If TypeOf node Is DefVarRangeClause Then
+          Dim range = CType(node, DefVarRangeClause)
+          Dim startLetter = range.Lower.Text.ToUpper()
+          
+          If range.OptionalUpper IsNot Nothing Then
+            ' This is a range like A-Z
+            Dim endLetter = range.OptionalUpper.Text.ToUpper()
+            If startLetter.Length = 1 AndAlso endLetter.Length = 1 Then
+              For c As Integer = Microsoft.VisualBasic.Asc(startLetter) To Microsoft.VisualBasic.Asc(endLetter)
+                AddDefTypeRange(Microsoft.VisualBasic.Chr(c), typeSymbol)
+              Next
+            End If
+          Else
+            ' This is a single letter like S
+            If startLetter.Length = 1 Then
+              AddDefTypeRange(startLetter, typeSymbol)
+            End If
+          End If
+        End If
+      Next
+      
+      ' For now, we don't need to generate any runtime code for DEF statements
       Return New BoundRemStatement()
     End Function
+    
+    Private Shared Sub AddDefTypeRange(letter As String, typeSym As TypeSymbol)
+      If String.IsNullOrEmpty(letter) OrElse letter.Length <> 1 Then Return
+      m_defTypeRanges(letter) = typeSym
+    End Sub
 
     Private Shared Function BindReturnGosubStatement(syntax As ReturnGosubStatementSyntax) As BoundStatement
       Dim value = syntax.TargetToken?.Text
@@ -1646,7 +1695,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim name = syntax.Identifier.Text
       Dim bounds = syntax.Bounds
       Dim isArray = bounds IsNot Nothing
-      Dim type As TypeSymbol = BindAsClause(syntax.AsClause)
+      Dim type As QB.CodeAnalysis.Symbols.TypeSymbol = BindAsClause(syntax.AsClause)
       If type Is Nothing Then
         ' No AS clause, check variable name suffix
         Dim suffix = name.Last
@@ -1657,7 +1706,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           Case "#"c : type = TypeSymbol.Double
           Case "$"c : type = TypeSymbol.String
           Case Else
-            type = TypeSymbol.Single ' Default for arrays without suffix
+            type = QB.CodeAnalysis.Symbols.TypeSymbol.Single ' Default for arrays without suffix
         End Select
       End If
       Dim lower As BoundExpression = Nothing
@@ -1687,12 +1736,16 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return variable
     End Function
 
-    Private Function BindVariableDeclaration(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, Optional constant As BoundConstant = Nothing) As VariableSymbol
+Private Function BindVariableDeclaration(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, Optional constant As BoundConstant = Nothing) As VariableSymbol
+      Return BindVariableDeclarationWithSource(identifier, isReadOnly, type, VariableTypeSource.DefaultType, constant)
+    End Function
+    
+    Private Function BindVariableDeclarationWithSource(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, typeSource As VariableTypeSource, Optional constant As BoundConstant = Nothing) As VariableSymbol
       Dim name = If(identifier.Text, "?")
       Dim [declare] = Not identifier.IsMissing
       Dim variable = If(m_function Is Nothing,
-                        DirectCast(New GlobalVariableSymbol(name, isReadOnly, type, constant), VariableSymbol),
-                        DirectCast(New LocalVariableSymbol(name, isReadOnly, type, constant), VariableSymbol))
+                        DirectCast(New GlobalVariableSymbol(name, isReadOnly, type, constant, typeSource), VariableSymbol),
+                        DirectCast(New LocalVariableSymbol(name, isReadOnly, type, constant, typeSource), VariableSymbol))
       If [declare] AndAlso Not m_scope.TryDeclareVariable(variable) Then
         Diagnostics.ReportSymbolAlreadyDeclared(identifier.Location, name)
       End If
@@ -1995,20 +2048,25 @@ Namespace Global.QB.CodeAnalysis.Binding
       If TypeOf s Is VariableSymbol Then
         Return TryCast(s, VariableSymbol)
       ElseIf s Is Nothing Then
-        If Not OPTION_EXPLICIT Then
-          Dim type As TypeSymbol '= TypeSymbol.String
+If Not OPTION_EXPLICIT Then
+          Dim type As QB.CodeAnalysis.Symbols.TypeSymbol = ResolveVariableType(identifierToken.Text)
+          Dim typeSource As VariableTypeSource
+          
+          ' Determine type source
           Dim suffix = identifierToken.Text.Last
           Select Case suffix
-            Case "%"c : type = TypeSymbol.Integer
-            Case "&"c : type = TypeSymbol.Long
-            Case "!"c : type = TypeSymbol.Single
-            Case "#"c : type = TypeSymbol.Double
-            Case "$"c : type = TypeSymbol.String
+            Case "%"c, "&"c, "!"c, "#"c, "$"c
+              typeSource = VariableTypeSource.TypeCharacter
             Case Else
-              'TODO: This needs to be set based on current DEFINT, etc.
-              type = TypeSymbol.Single
+              ' Check if this is from a DEF statement
+              If m_defTypeRanges.ContainsKey(identifierToken.Text(0).ToString().ToUpper()) Then
+                typeSource = VariableTypeSource.DefStatement
+              Else
+                typeSource = VariableTypeSource.DefaultType
+              End If
           End Select
-          Dim variable = BindVariableDeclaration(identifierToken, False, type)
+          
+          Dim variable = BindVariableDeclarationWithSource(identifierToken, False, type, typeSource)
           If variable Is Nothing Then
             Diagnostics.ReportUndefinedVariable(identifierToken.Location, name)
             Return Nothing

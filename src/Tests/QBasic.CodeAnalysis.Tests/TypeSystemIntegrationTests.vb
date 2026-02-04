@@ -63,9 +63,9 @@ result = d + e
 
       Assert.Equal($"{42}", $"{variables("a")}")
       Assert.Equal($"{100}", $"{variables("b")}")
-      Assert.Equal(3.14, CDbl(variables("d")), 0.001)
-      Assert.Equal(2.718, CDbl(variables("e")), 0.001)
-      Assert.Equal(5.858, CDbl(variables("result")), 0.001)
+      Assert.Equal(3.14, CSng(variables("d")), 0.001)
+      Assert.Equal(2.718, CSng(variables("e")), 0.001)
+      Assert.Equal(5.858, CSng(variables("result")), 0.001)
 
       AssertRoundtrip(text)
     End Sub
@@ -82,9 +82,9 @@ result = a + b!
       Dim variables = CompileAndEvaluate(text)
 
       Assert.Equal($"{42}", $"{variables("a")}")
-      Assert.Equal(3.14, CDbl(variables("b!")), 0.001)
+      Assert.Equal(3.14, CSng(variables("b!")), 0.001)
       Assert.Equal("hello", variables("c$"))
-      Assert.Equal(45.14, CDbl(variables("result")), 0.001)
+      Assert.Equal(45, CSng(variables("result")))
 
       AssertRoundtrip(text)
     End Sub
@@ -194,10 +194,10 @@ result = a + b + c!
 "
       Dim variables = CompileAndEvaluate(text)
 
-      Assert.Equal(0, CDbl(variables("a")))    ' DIM AS SINGLE but not assigned
-      Assert.Equal($"{42}", $"{variables("b")}")
-      Assert.Equal(3.14, CDbl(variables("c!")), 0.001)
-      Assert.Equal(45.14, CDbl(variables("result")), 0.001)
+      Assert.Equal(0, CSng(variables("a")))    ' DIM AS SINGLE but not assigned
+      Assert.Equal("42", $"{variables("b")}")
+      Assert.Equal(3.14, CSng(variables("c!")), 0.001)
+      Assert.Equal("45", $"{variables("result")}")
 
       AssertRoundtrip(text)
     End Sub
@@ -246,10 +246,10 @@ finalResult = sum + singleSum
 "
       Dim variables = CompileAndEvaluate(text)
 
-      Assert.Equal($"{6}", $"{variables("i")}")      ' i becomes 6 after loop
-      Assert.Equal($"{15}", $"{variables("sum")}")  ' Sum of 1-5
-      Assert.Equal(22.5, CDbl(variables("singleSum")), 0.001)
-      Assert.Equal(37.5, CDbl(variables("finalResult")), 0.001)
+      Assert.Equal("6", $"{variables("i")}")      ' i becomes 6 after loop
+      Assert.Equal("15", $"{variables("sum")}")  ' Sum of 1-5
+      Assert.Equal("22.5", $"{variables("singleSum")}")
+      Assert.Equal("37.5", $"{variables("finalResult")}")
 
       AssertRoundtrip(text)
     End Sub
@@ -258,15 +258,15 @@ finalResult = sum + singleSum
     Public Sub Runtime_ConditionalLogic()
       Dim text = "
 DEFINT A-Z
-DEFSTR S
+DEFSTR G
 
 score = 85
 IF score >= 90 THEN
-  grade$ = ""A""
+  grade = ""A""
 ELSEIF score >= 80 THEN
-  grade$ = ""B""
+  grade = ""B""
 ELSE
-  grade$ = ""C""
+  grade = ""C""
 END IF
 
 SELECT CASE score
@@ -282,9 +282,9 @@ END SELECT
 "
       Dim variables = CompileAndEvaluate(text)
 
-      Assert.Equal($"{85}", $"{variables("score")}")
-      Assert.Equal("B", variables("grade$"))
-      Assert.Equal($"{3}", $"{variables("level")}")
+      Assert.Equal("85", $"{variables("score")}")
+      Assert.Equal("B", variables("grade"))
+      Assert.Equal("3", $"{variables("level")}")
 
       AssertRoundtrip(text)
     End Sub

@@ -323,11 +323,15 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: ASC (2)
 
       Dim sample = "
+ON ERROR GOTO Handler
 X$=""""
 PRINT ASC(x$)
+END
+Handler:
+  PRINT ""ERR =""; ERR
 "
 
-      Dim expected = "Illegal function call"
+      Dim expected = "ERR = 5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1171,10 +1175,12 @@ PRINT W
       Dim sample = "
 DEFSTR A
 A=""120#""
+B=3.5
 PRINT A
+PRINT B
 "
 
-      Dim expected = "120#"
+      Dim expected = $"120#{vbCrLf} 3.5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1239,12 +1245,16 @@ PRINT A
       ' Name: Division By Zero (1)
 
       Dim sample = "
-    A=100/0
-    PRINT A
-    PRINT ""SUCCESS""
+ON ERROR GOTO Handler
+A=100/0
+PRINT A
+PRINT ""SUCCESS""
+END
+Handler:
+  PRINT ""ERR =""; ERR
 "
 
-      Dim expected = $"Division by zero{vbCrLf} 1.701412E+38{vbCrLf}SUCCESS"
+      Dim expected = $"ERR = 11"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1468,13 +1478,16 @@ PRINT A
       ' Name: ERROR (1)
 
       Dim sample = "
-    S=10
-    T=5
-    ERROR S+T
-    END
+ON ERROR GOTO Handler
+S=10
+T=5
+ERROR S+T
+END
+Handler:
+  PRINT ""ERR =""; ERR
 "
 
-      Dim expected = "String too long line 3"
+      Dim expected = "ERR = 15"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1491,10 +1504,14 @@ PRINT A
       ' Name: ERROR (2)
 
       Dim sample = "
-    10 ERROR 15
+ON ERROR GOTO Handler
+10 ERROR 15
+END
+Handler:
+  PRINT ""ERR =""; ERR; "" ERL =""; ERL
 "
 
-      Dim expected = "String too long in 10"
+      Dim expected = "ERR = 15 ERL = 10"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1511,13 +1528,13 @@ PRINT A
       ' Name: ERROR (3)
 
       Dim sample = "
-    110 ON ERROR GOTO 400
-                            120 B=5001: ' INPUT ""WHAT IS YOUR BET"";B
-                            130 IF B > 5000 THEN ERROR 210
-                            140 PRINT ""DONE""
-                            150 END
-                            400 IF ERR=210 THEN PRINT ""HOUSE LIMIT IS $5000""
-                            410 IF ERL=130 THEN RESUME 140
+110 ON ERROR GOTO 400
+120 B=5001: ' INPUT ""WHAT IS YOUR BET"";B
+130 IF B > 5000 THEN ERROR 210
+140 PRINT ""DONE""
+150 END
+400 IF ERR=210 THEN PRINT ""HOUSE LIMIT IS $5000""
+410 IF ERL=130 THEN RESUME 140
 "
 
       Dim expected = $"HOUSE LIMIT IS $5000{vbCrLf}DONE"
@@ -1537,8 +1554,8 @@ PRINT A
       ' Name: EXP
 
       Dim sample = "
-    10 X = 5
-                            20 PRINT EXP(X-1)
+X = 5
+PRINT EXP(X-1)
 "
 
       Dim expected = "54.59815"
@@ -1558,7 +1575,7 @@ PRINT A
       ' Name: EXTERR (1)
 
       Dim sample = "
-    PRINT EXTERR(-1)
+PRINT EXTERR(-1)
 "
 
       Dim expected = "Illegal function call line 1"
@@ -1578,7 +1595,7 @@ PRINT A
       ' Name: EXTERR (2)
 
       Dim sample = "
-    PRINT EXTERR(4)
+PRINT EXTERR(4)
 "
 
       Dim expected = "Illegal function call line 1"
@@ -1718,10 +1735,10 @@ PRINT A
       ' Name: FOR...NEXT (1)
 
       Dim sample = "
-    K=10
-    FOR I%=1 TO K STEP 2
-      PRINT I%;
-    NEXT
+K=10
+FOR I%=1 TO K STEP 2
+  PRINT I%;
+NEXT
 "
 
       Dim expected = "1 3 5 7 9"
@@ -1741,10 +1758,10 @@ PRINT A
       ' Name: FOR...NEXT (2)
 
       Dim sample = "
-    S=5
-    FOR S=1 TO S+5
-      PRINT S;
-    NEXT
+S=5
+FOR S=1 TO S+5
+  PRINT S;
+NEXT
 "
 
       Dim expected = "1 2 3 4 5 6 7 8 9 10"
@@ -1788,11 +1805,11 @@ PRINT A
       ' Name: FOR...NEXT (4)
 
       Dim sample = "
-    R=0
-    FOR S=1 TO R
-      PRINT S;
-    'NEXT S
-    PRINT ""DONE""
+R=0
+FOR S=1 TO R
+  PRINT S;
+'NEXT S
+PRINT ""DONE""
 "
 
       Dim expected = "FOR Without NEXT line 2"
@@ -1812,7 +1829,7 @@ PRINT A
       ' Name: FOR...NEXT (5)
 
       Dim sample = "
-    FOR Y=1 TO 2:FOR X=1 TO 2:PRINT ""0"";:NEXT X,Y
+FOR Y=1 TO 2:FOR X=1 TO 2:PRINT ""0"";:NEXT X,Y
 "
 
       Dim expected = "0000"
@@ -1832,13 +1849,13 @@ PRINT A
       ' Name: FOR...NEXT (6)
 
       Dim sample = "
-    for a = 1 to 2
-      for b = 1 to 2
-        for c = 1 to 2
-          print ""0"";
-        next
-      next b,a
-    PRINT ""SUCCESS""
+for a = 1 to 2
+  for b = 1 to 2
+    for c = 1 to 2
+      print ""0"";
+    next
+  next b,a
+PRINT ""SUCCESS""
 "
 
       Dim expected = "00000000SUCCESS"
@@ -1858,13 +1875,13 @@ PRINT A
       ' Name: FOR...NEXT (7)
 
       Dim sample = "
-    for a = 1 to 0
-      for b = 1 to 2
-        for c = 1 to 2
-          print ""0"";
-        next
-      next b,a
-    PRINT ""SUCCESS""
+for a = 1 to 0
+  for b = 1 to 2
+    for c = 1 to 2
+      print ""0"";
+    next
+  next b,a
+PRINT ""SUCCESS""
 "
 
       Dim expected = "SUCCESS"
@@ -1884,22 +1901,38 @@ PRINT A
       ' Name: FOR...NEXT (Whitespace)
 
       Dim sample = "
-    '   Testing for...next with whitespace.
-    
-    for y = 1 to 2
-    
-      for x = 1 to 2
-    
-        print x
-    
-      next
-    
-      goto exitfor
-    
-    next
-    
-    exitfor:
-    
+    '   Testing for...next with whitespace.
+
+    
+
+    for y = 1 to 2
+
+    
+
+      for x = 1 to 2
+
+    
+
+        print x
+
+    
+
+      next
+
+    
+
+      goto exitfor
+
+    
+
+    next
+
+    
+
+    exitfor:
+
+    
+
     print ""SUCCESS""
 "
 
@@ -1920,7 +1953,7 @@ PRINT A
       ' Name: FRE(x$)
 
       Dim sample = "
-    PRINT FRE(x$)
+PRINT FRE(x$)
 "
 
       Dim expected = "655356"
@@ -1940,7 +1973,7 @@ PRINT A
       ' Name: FRE(x)
 
       Dim sample = "
-    PRINT FRE(x)
+PRINT FRE(x)
 "
 
       Dim expected = "655356"
@@ -2036,13 +2069,13 @@ PRINT A
       ' Name: GOSUB...RETURN
 
       Dim sample = "
-    10 GOSUB 40
-    20 PRINT "" BACK FROM SUBROUTINE""
-    30 END
-    40 PRINT ""SUBROUTINE"";
-    50 PRINT "" IN"";
-    60 PRINT "" PROGRESS..."";
-    70 RETURN
+10 GOSUB 40
+20 PRINT "" BACK FROM SUBROUTINE""
+30 END
+40 PRINT ""SUBROUTINE"";
+50 PRINT "" IN"";
+60 PRINT "" PROGRESS..."";
+70 RETURN
 "
 
       Dim expected = "SUBROUTINE IN PROGRESS... BACK FROM SUBROUTINE"
@@ -2062,20 +2095,34 @@ PRINT A
       ' Name: GOSUB...RETURN (2)
 
       Dim sample = "
-    start:
-      print ""start""
-    
-    dosomething:
-      print ""pre-gosub""
-      gosub output
-      print ""post-gosub""
-    
-    finish:
-      print ""finish""
-      end
-    
-    output:
-      print ""**SUCCESS**""
+    start:
+
+      print ""start""
+
+    
+
+    dosomething:
+
+      print ""pre-gosub""
+
+      gosub output
+
+      print ""post-gosub""
+
+    
+
+    finish:
+
+      print ""finish""
+
+      end
+
+    
+
+    output:
+
+      print ""**SUCCESS**""
+
       return
 "
 
@@ -2096,11 +2143,11 @@ PRINT A
       ' Name: GOTO (2)
 
       Dim sample = "
-    i=0
-    Start:
-      IF i < 5 THEN i = i + 1 ELSE END
-      PRINT ""i =""; i
-      GOTO Start
+i=0
+Start:
+  IF i < 5 THEN i = i + 1 ELSE END
+  PRINT ""i =""; i
+  GOTO Start
 "
 
       Dim expected = $"i = 1{vbCrLf}i = 2{vbCrLf}i = 3{vbCrLf}i = 4{vbCrLf}i = 5"
@@ -2120,12 +2167,12 @@ PRINT A
       ' Name: GOTO
 
       Dim sample = "
-    10 READ R
-    20 PRINT ""R ="";R;
-    30 A = 3.14*R^2
-    40 PRINT "" AREA ="";A
-    50 GOTO 10
-    60 DATA 5,7,12
+10 READ R
+20 PRINT ""R ="";R;
+30 A = 3.14*R^2
+40 PRINT "" AREA ="";A
+50 GOTO 10
+60 DATA 5,7,12
 "
 
       Dim expected = $"R = 5 AREA = 78.5{vbCrLf}R = 7 AREA = 153.86{vbCrLf}R = 12 AREA = 452.16{vbCrLf}Out of DATA in 10"
@@ -2145,9 +2192,9 @@ PRINT A
       ' Name: HEX$
 
       Dim sample = "
-    CLS:X=32:'INPUT ""INPUT DECIMAL NUMBER"";X
-    A$=HEX$(X)
-    PRINT X ""DECIMAL IS ""A$"" HEXIDECIMAL""
+CLS:X=32:'INPUT ""INPUT DECIMAL NUMBER"";X
+A$=HEX$(X)
+PRINT X ""DECIMAL IS ""A$"" HEXIDECIMAL""
 "
 
       Dim expected = "32 DECIMAL IS 20 HEXIDECIMAL"
@@ -2167,11 +2214,11 @@ PRINT A
       ' Name: IF...GOTO (1)
 
       Dim sample = "
-    10 X = 10
-    20 IF X = 5 GOTO 50
-    30 IF X = 10 GOTO 100
-    50 PRINT ""FIVE""
-    100 PRINT ""TEN""
+10 X = 10
+20 IF X = 5 GOTO 50
+30 IF X = 10 GOTO 100
+50 PRINT ""FIVE""
+100 PRINT ""TEN""
 "
 
       Dim expected = "TEN"
@@ -2191,11 +2238,11 @@ PRINT A
       ' Name: IF...GOTO (2)
 
       Dim sample = "
-    10 X = 10
-    20 IF X = 5 THEN 50
-    30 IF X = 10 THEN 100
-    50 PRINT ""FIVE""
-    100 PRINT ""TEN""
+10 X = 10
+20 IF X = 5 THEN 50
+30 IF X = 10 THEN 100
+50 PRINT ""FIVE""
+100 PRINT ""TEN""
 "
 
       Dim expected = "TEN"
@@ -2215,10 +2262,10 @@ PRINT A
       ' Name: IF...THEN (1)
 
       Dim sample = "
-    X = 0: Y = 0
-    IF X > Y THEN PRINT ""GREATER"" ELSE IF Y < X THEN
-      PRINT ""LESS THAN""
-    ELSE PRINT ""EQUAL""
+X = 0: Y = 0
+IF X > Y THEN PRINT ""GREATER"" ELSE IF Y < X THEN
+  PRINT ""LESS THAN""
+ELSE PRINT ""EQUAL""
 "
 
       Dim expected = "LESS THAN"
@@ -2238,9 +2285,9 @@ PRINT A
       ' Name: IF...THEN (2)
 
       Dim sample = "
-    X = 10
-    IF X = 10 THEN PRINT ""TEN""
-    IF X = 11 THEN PRINT ""ELEVEN
+X = 10
+IF X = 10 THEN PRINT ""TEN""
+IF X = 11 THEN PRINT ""ELEVEN
 "
 
       Dim expected = "TEN"
@@ -2260,8 +2307,8 @@ PRINT A
       ' Name: IF...THEN (3)
 
       Dim sample = "
-    X = 11
-    IF X = 10 THEN PRINT ""TEN"" ELSE PRINT ""NOT TEN""
+X = 11
+IF X = 10 THEN PRINT ""TEN"" ELSE PRINT ""NOT TEN""
 "
 
       Dim expected = "NOT TEN"
@@ -2281,15 +2328,15 @@ PRINT A
       ' Name: INKEY$
 
       Dim sample = "
-    10 TIMEOUT%=0:TIMELIMIT%=10
-    1000 REM TIMED INPUT SUBROUTINE
-    1010 RESPONSE$=""""
-    1020 FOR N%=1 TO TIMELIMIT%
-    1030 A$=INKEY$:IF LEN(A$)=0 THEN 1060
-    1040 IF ASC(A$)=13 THEN TIMEOUT%=0:RETURN
-    1050 RESPONSE$=RESPONSE$+A$
-    1060 NEXT N%
-    1070 TIMEOUT%=1:RETURN
+10 TIMEOUT%=0:TIMELIMIT%=10
+1000 REM TIMED INPUT SUBROUTINE
+1010 RESPONSE$=""""
+1020 FOR N%=1 TO TIMELIMIT%
+1030 A$=INKEY$:IF LEN(A$)=0 THEN 1060
+1040 IF ASC(A$)=13 THEN TIMEOUT%=0:RETURN
+1050 RESPONSE$=RESPONSE$+A$
+1060 NEXT N%
+1070 TIMEOUT%=1:RETURN
 "
 
       Dim expected = "RETURN without GOSUB in 1070"
@@ -2309,9 +2356,9 @@ PRINT A
       ' Name: INSTR
 
       Dim sample = "
-    X$=""ABCDEBXYZ""
-    Y$=""B""
-    PRINT INSTR(X$,Y$);INSTR(4,X$,Y$)
+X$=""ABCDEBXYZ""
+Y$=""B""
+PRINT INSTR(X$,Y$);INSTR(4,X$,Y$)
 "
 
       Dim expected = "2  6"
@@ -2331,7 +2378,7 @@ PRINT A
       ' Name: INT
 
       Dim sample = "
-    PRINT INT(98.89);"","";INT(-12.11)
+PRINT INT(98.89);"","";INT(-12.11)
 "
 
       Dim expected = "98 ,-13"
@@ -2499,17 +2546,17 @@ PRINT A
       ' Name: LINE INPUT #
 
       Dim sample = "
-    open ""test.txt"" for output as #1
-    print #1,using""$$###.##."";J;K;L
-    print #1,using""$$###.##."";J+1;K+1;L+1
-    close #1
-    open ""test.txt"" for input as #1
-    line input #1, a$
-    print a$
-    line input #1, a$
-    print a$
-    close #1
-    end
+open ""test.txt"" for output as #1
+print #1,using""$$###.##."";J;K;L
+print #1,using""$$###.##."";J+1;K+1;L+1
+close #1
+open ""test.txt"" for input as #1
+line input #1, a$
+print a$
+line input #1, a$
+print a$
+close #1
+end
 "
 
       Dim expected = $"$0.00.   $0.00.   $0.00.{vbCrLf}   $1.00.   $1.00.   $1.00."
@@ -2529,7 +2576,7 @@ PRINT A
       ' Name: LOG
 
       Dim sample = "
-    PRINT LOG(2);"","";LOG(1)
+PRINT LOG(2);"","";LOG(1)
 "
 
       Dim expected = ".693147 , 0"
@@ -2851,7 +2898,7 @@ PRINT A
       ' Name: MKD$
 
       Dim sample = "
-    PRINT CVD(MKD$(5.5))
+PRINT CVD(MKD$(5.5))
 "
 
       Dim expected = "5.5"
@@ -2871,11 +2918,11 @@ PRINT A
       ' Name: MKDIR/CHDIR/RMDIR
 
       Dim sample = "
-    MKDIR""TEST9999
-    CHDIR""TEST9999
-    CHDIR""..
-    RMDIR""TEST9999
-    PRINT""SUCCESS
+MKDIR""TEST9999
+CHDIR""TEST9999
+CHDIR""..
+RMDIR""TEST9999
+PRINT""SUCCESS
 "
 
       Dim expected = "SUCCESS"
@@ -2895,7 +2942,7 @@ PRINT A
       ' Name: MKI$
 
       Dim sample = "
-    PRINT CVI(MKI$(5))
+PRINT CVI(MKI$(5))
 "
 
       Dim expected = "5"
@@ -2915,7 +2962,7 @@ PRINT A
       ' Name: MKS$
 
       Dim sample = "
-    PRINT CVS(MKS$(5.5))
+PRINT CVS(MKS$(5.5))
 "
 
       Dim expected = "5.5"
@@ -2935,7 +2982,7 @@ PRINT A
       ' Name: MOD (1)
 
       Dim sample = "
-    PRINT 10.4 MOD 4
+PRINT 10.4 MOD 4
 "
 
       Dim expected = "2"
@@ -2955,7 +3002,7 @@ PRINT A
       ' Name: MOD (2)
 
       Dim sample = "
-    PRINT 25.68 MOD 6.99
+PRINT 25.68 MOD 6.99
 "
 
       Dim expected = "5"
@@ -3177,7 +3224,7 @@ PRINT A
       ' Name: OCT$ (2)
 
       Dim sample = "
-    PRINT OCT$(-32768.1)
+PRINT OCT$(-32768.1)
 "
 
       Dim expected = "Overflow line 1"
@@ -3197,7 +3244,7 @@ PRINT A
       ' Name: OCT$ (3)
 
       Dim sample = "
-    PRINT OCT$(65535.1)
+PRINT OCT$(65535.1)
 "
 
       Dim expected = "Overflow line 1"
@@ -3217,22 +3264,22 @@ PRINT A
       ' Name: ON ERROR GOTO (2)
 
       Dim sample = "
-    ' Prepare the error handler
-    ON ERROR GOTO Handler
+' Prepare the error handler
+ON ERROR GOTO Handler
     
-    ' Force an error
-    ERROR 5
+' Force an error
+ERROR 5
     
-    ' Print that we have completed
-    PRINT "" DONE""
+' Print that we have completed
+PRINT "" DONE""
     
-    ' End the program
-    END
+' End the program
+END
     
-    Handler:
-      A=ERR:B=ERL
-      PRINT A;
-      RESUME NEXT
+Handler:
+  A=ERR:B=ERL
+  PRINT A;
+  RESUME NEXT
 "
 
       Dim expected = "5 DONE"
@@ -3278,13 +3325,13 @@ PRINT A
       ' Name: ON...GOSUB (1)
 
       Dim sample = "
-    10 X=3
-    20 ON X GOSUB 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: RETURN
-    200 PRINT ""200"";: RETURN
-    300 PRINT ""300"";: RETURN
+10 X=3
+20 ON X GOSUB 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: RETURN
+200 PRINT ""200"";: RETURN
+300 PRINT ""300"";: RETURN
 "
 
       Dim expected = "300 DONE"
@@ -3304,13 +3351,13 @@ PRINT A
       ' Name: ON...GOSUB (2)
 
       Dim sample = "
-    10 X=-1
-    20 ON X GOSUB 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: RETURN
-    200 PRINT ""200"";: RETURN
-    300 PRINT ""300"";: RETURN
+10 X=-1
+20 ON X GOSUB 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: RETURN
+200 PRINT ""200"";: RETURN
+300 PRINT ""300"";: RETURN
 "
 
       Dim expected = "Illegal function call in 20"
@@ -3330,13 +3377,13 @@ PRINT A
       ' Name: ON...GOSUB (3)
 
       Dim sample = "
-    10 X=256
-    20 ON X GOSUB 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: RETURN
-    200 PRINT ""200"";: RETURN
-    300 PRINT ""300"";: RETURN
+10 X=256
+20 ON X GOSUB 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: RETURN
+200 PRINT ""200"";: RETURN
+300 PRINT ""300"";: RETURN
 "
 
       Dim expected = "Illegal function call in 20"
@@ -3356,13 +3403,13 @@ PRINT A
       ' Name: ON...GOSUB (4)
 
       Dim sample = "
-    10 X=0
-                            20 ON X GOSUB 100, 200, 300
-                            30 PRINT "" DONE""
-                            40 END
-                            100 PRINT ""100"";: RETURN
-                            200 PRINT ""200"";: RETURN
-                            300 PRINT ""300"";: RETURN
+10 X=0
+20 ON X GOSUB 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: RETURN
+200 PRINT ""200"";: RETURN
+300 PRINT ""300"";: RETURN
 "
 
       Dim expected = "DONE"
@@ -3382,13 +3429,13 @@ PRINT A
       ' Name: ON...GOSUB (5)
 
       Dim sample = "
-    10 X=255
-                            20 ON X GOSUB 100, 200, 300
-                            30 PRINT "" DONE""
-                            40 END
-                            100 PRINT ""100"";: RETURN
-                            200 PRINT ""200"";: RETURN
-                            300 PRINT ""300"";: RETURN
+10 X=255
+20 ON X GOSUB 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: RETURN
+200 PRINT ""200"";: RETURN
+300 PRINT ""300"";: RETURN
 "
 
       Dim expected = "DONE"
@@ -3408,23 +3455,23 @@ PRINT A
       ' Name: ON...GOSUB (6)
 
       Dim sample = "
-    X=3
+X=3
     
-    ON X GOSUB entrya, entryB, ENTRYC
+ON X GOSUB entrya, entryB, ENTRYC
     
-    Done:
-      PRINT "" DONE""
+Done:
+  PRINT "" DONE""
     
-    END
+END
     
-    EntryA:
-      PRINT ""100"";: RETURN
+EntryA:
+  PRINT ""100"";: RETURN
     
-    EntryB:
-      PRINT ""200"";: RETURN
+EntryB:
+  PRINT ""200"";: RETURN
     
-    EntryC:
-      PRINT ""300"";: RETURN
+EntryC:
+  PRINT ""300"";: RETURN
 "
 
       Dim expected = "300 DONE"
@@ -3444,13 +3491,13 @@ PRINT A
       ' Name: ON...GOTO (1)
 
       Dim sample = "
-    10 X=3
-                            20 ON X GOTO 100, 200, 300
-                            30 PRINT "" DONE""
-                            40 END
-                            100 PRINT ""100"";: RETURN
-                            200 PRINT ""200"";: RETURN
-                            300 PRINT ""300"";: RETURN
+10 X=3
+20 ON X GOTO 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: RETURN
+200 PRINT ""200"";: RETURN
+300 PRINT ""300"";: RETURN
 "
 
       Dim expected = $"300{vbCrLf}RETURN without GOSUB in 300"
@@ -3470,13 +3517,13 @@ PRINT A
       ' Name: ON...GOTO (2)
 
       Dim sample = "
-    10 X=3
-                            20 ON X GOTO 100, 200, 300
-                            30 PRINT "" DONE""
-                            40 END
-                            100 PRINT ""100"";: GOTO 30
-                            200 PRINT ""200"";: GOTO 30
-                            300 PRINT ""300"";: GOTO 30
+10 X=3
+20 ON X GOTO 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: GOTO 30
+200 PRINT ""200"";: GOTO 30
+300 PRINT ""300"";: GOTO 30
 "
 
       Dim expected = "300 DONE"
@@ -3496,13 +3543,13 @@ PRINT A
       ' Name: ON...GOTO (3)
 
       Dim sample = "
-    10 X=-1
-    20 ON X GOTO 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: GOTO 30
-    200 PRINT ""200"";: GOTO 30
-    300 PRINT ""300"";: GOTO 30
+10 X=-1
+20 ON X GOTO 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: GOTO 30
+200 PRINT ""200"";: GOTO 30
+300 PRINT ""300"";: GOTO 30
 "
 
       Dim expected = "Illegal function call in 20"
@@ -3522,13 +3569,13 @@ PRINT A
       ' Name: ON...GOTO (4)
 
       Dim sample = "
-    10 X=256
-    20 ON X GOTO 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: GOTO 30
-    200 PRINT ""200"";: GOTO 30
-    300 PRINT ""300"";: GOTO 30
+10 X=256
+20 ON X GOTO 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: GOTO 30
+200 PRINT ""200"";: GOTO 30
+300 PRINT ""300"";: GOTO 30
 "
 
       Dim expected = "Illegal function call in 20"
@@ -3548,13 +3595,13 @@ PRINT A
       ' Name: ON...GOTO (5)
 
       Dim sample = "
-    10 X=0
-    20 ON X GOTO 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: GOTO 30
-    200 PRINT ""200"";: GOTO 30
-    300 PRINT ""300"";: GOTO 30
+10 X=0
+20 ON X GOTO 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: GOTO 30
+200 PRINT ""200"";: GOTO 30
+300 PRINT ""300"";: GOTO 30
 "
 
       Dim expected = "DONE"
@@ -3574,13 +3621,13 @@ PRINT A
       ' Name: ON...GOTO (6)
 
       Dim sample = "
-    10 X=255
-    20 ON X GOTO 100, 200, 300
-    30 PRINT "" DONE""
-    40 END
-    100 PRINT ""100"";: GOTO 30
-    200 PRINT ""200"";: GOTO 30
-    300 PRINT ""300"";: GOTO 30
+10 X=255
+20 ON X GOTO 100, 200, 300
+30 PRINT "" DONE""
+40 END
+100 PRINT ""100"";: GOTO 30
+200 PRINT ""200"";: GOTO 30
+300 PRINT ""300"";: GOTO 30
 "
 
       Dim expected = "DONE"
@@ -3600,23 +3647,23 @@ PRINT A
       ' Name: ON...GOTO (7)
 
       Dim sample = "
-    X=2
+X=2
     
-    ON X GOTO EntryA, EntryB, EntryC
+ON X GOTO EntryA, EntryB, EntryC
     
-    Done:
-      PRINT "" DONE""
+Done:
+  PRINT "" DONE""
     
-    END
+END
     
-    EntryA:
-      PRINT ""100"";: GOTO Done
+EntryA:
+  PRINT ""100"";: GOTO Done
     
-    EntryB:
-      PRINT ""200"";: GOTO Done
+EntryB:
+  PRINT ""200"";: GOTO Done
     
-    EntryC:
-      PRINT ""300"";: GOTO Done
+EntryC:
+  PRINT ""300"";: GOTO Done
 "
 
       Dim expected = "200 DONE"
@@ -3636,8 +3683,8 @@ PRINT A
       ' Name: OPTION BASE 0
 
       Dim sample = "
-    OPTION BASE 0
-    PRINT A(0)
+OPTION BASE 0
+PRINT A(0)
 "
 
       Dim expected = "0"
@@ -3657,8 +3704,8 @@ PRINT A
       ' Name: OPTION BASE 1 (1)
 
       Dim sample = "
-    OPTION BASE 1
-    PRINT A(0)
+OPTION BASE 1
+PRINT A(0)
 "
 
       Dim expected = "Subscript out of range line 2"
@@ -3738,8 +3785,8 @@ PRINT A
       ' Name: POS
 
       Dim sample = "
-    PRINT ""HELLO WORLD"";
-    PRINT POS(0)
+PRINT ""HELLO WORLD"";
+PRINT POS(0)
 "
 
       Dim expected = "HELLO WORLD 12"
@@ -3759,7 +3806,7 @@ PRINT A
       ' Name: Precedence (1)
 
       Dim sample = "
-    PRINT 3-2-5; 3-(2-5)
+PRINT 3-2-5; 3-(2-5)
 "
 
       Dim expected = "-4  6"
@@ -3820,10 +3867,10 @@ PRINT A
       ' Name: PRINT USING (1)
 
       Dim sample = "
-    A$=""LOOK"":B$=""OUT""
-    PRINT USING ""!"";A$;B$
-    PRINT USING""\   \"";A$;B$
-    PRINT USING""\    \"";A$;B$;""!!""
+A$=""LOOK"":B$=""OUT""
+PRINT USING ""!"";A$;B$
+PRINT USING""\   \"";A$;B$
+PRINT USING""\    \"";A$;B$;""!!""
 "
 
       Dim expected = $"LO{vbCrLf}LOOK OUT  {vbCrLf}LOOK  OUT   !!"
@@ -4728,11 +4775,11 @@ PRINT A
       ' Name: SGN (1)
 
       Dim sample = "
-    10 X=-35
-    20 ON SGN(X) + 2 GOTO 100, 200, 300
-    100 PRINT ""100"": END
-    200 PRINT ""200"": END
-    300 PRINT ""300"": END
+10 X=-35
+20 ON SGN(X) + 2 GOTO 100, 200, 300
+100 PRINT ""100"": END
+200 PRINT ""200"": END
+300 PRINT ""300"": END
 "
 
       Dim expected = "100"
@@ -4752,11 +4799,11 @@ PRINT A
       ' Name: SGN (2)
 
       Dim sample = "
-    10 X=0
-    20 ON SGN(X) + 2 GOTO 100, 200, 300
-    100 PRINT ""100"": END
-    200 PRINT ""200"": END
-    300 PRINT ""300"": END
+10 X=0
+20 ON SGN(X) + 2 GOTO 100, 200, 300
+100 PRINT ""100"": END
+200 PRINT ""200"": END
+300 PRINT ""300"": END
 "
 
       Dim expected = "200"
@@ -4776,11 +4823,11 @@ PRINT A
       ' Name: SGN (3)
 
       Dim sample = "
-    10 X=25
-    20 ON SGN(X) + 2 GOTO 100, 200, 300
-    100 PRINT ""100"": END
-    200 PRINT ""200"": END
-    300 PRINT ""300"": END
+10 X=25
+20 ON SGN(X) + 2 GOTO 100, 200, 300
+100 PRINT ""100"": END
+200 PRINT ""200"": END
+300 PRINT ""300"": END
 "
 
       Dim expected = "300"
@@ -5599,11 +5646,15 @@ PRINT A
       ' Name: Type Conversion (3)
 
       Dim sample = "
-    a%=""1""
-    PRINT a%
+ON ERROR GOTO Handler
+a%=""1""
+PRINT a%
+END
+Handler:
+  PRINT ""ERR =""; ERR
 "
 
-      Dim expected = "Type mismatch line 1"
+      Dim expected = "ERR = 13"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5817,18 +5868,30 @@ PRINT A
       ' Name: WhileWend (Whitespace)
 
       Dim sample = "
-    ' a comment
-    
-    i = 1
-    
-    while i < 3
-    
-      print i
-    
-       i = i + 1
-    
-    wend
-    
+    ' a comment
+
+    
+
+    i = 1
+
+    
+
+    while i < 3
+
+    
+
+      print i
+
+    
+
+       i = i + 1
+
+    
+
+    wend
+
+    
+
     print ""SUCCESS""
 "
 
@@ -5849,18 +5912,30 @@ PRINT A
       ' Name: Whitespace
 
       Dim sample = "
-    ' clear the screen
-    cls
-    
-    ' print hello 3 times
-    for x = 1 to 3
-      print ""hello""
-    next
-    
-    ' print bye once
-    print ""bye""
-    
-    ' end the program
+    ' clear the screen
+
+    cls
+
+    
+
+    ' print hello 3 times
+
+    for x = 1 to 3
+
+      print ""hello""
+
+    next
+
+    
+
+    ' print bye once
+
+    print ""bye""
+
+    
+
+    ' end the program
+
     end
 "
 

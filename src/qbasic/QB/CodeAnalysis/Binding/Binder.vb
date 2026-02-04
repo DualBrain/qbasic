@@ -1310,7 +1310,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         Else
           ' Implicit scalar
           ' No AS clause, check variable name suffix
-          Dim type = TypeSymbol.Single
+
+          Dim type As QB.CodeAnalysis.Symbols.TypeSymbol = ResolveVariableType(name)
+
+          'Dim type = TypeSymbol.Single
           Dim suffix = name.Last
           Select Case suffix
             Case "%"c : type = QB.CodeAnalysis.Symbols.TypeSymbol.Integer

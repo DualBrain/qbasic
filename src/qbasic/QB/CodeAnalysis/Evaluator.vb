@@ -1472,12 +1472,12 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)
       Dim value = EvaluateExpression(node.Expression)
-      Dim str = $"{value}"
+      Dim output = $"{value}"
       If TypeOf value IsNot String AndAlso
-         Not str.StartsWith("-"c) Then
+         Not output.StartsWith("-"c) Then
         QBLib.Video.PRINT(" ", True) ': QBLib.Video.PRINT(" "c, True)
       End If
-      QBLib.Video.PRINT(str, node.NoCr) ': QBLib.Video.PRINT(" "c, True)
+      QBLib.Video.PRINT(output, node.NoCr) ': QBLib.Video.PRINT(" "c, True)
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)
@@ -2203,8 +2203,8 @@ Namespace Global.QB.CodeAnalysis
           Return Microsoft.VisualBasic.Chr(0)
         End Try
       ElseIf node.Function Is BuiltinFunctions.Atn Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Atan(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Atan(value):N6}")
       ElseIf node.Function Is BuiltinFunctions.Chr Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         If value.Between(0, 255) Then
@@ -2214,7 +2214,7 @@ Namespace Global.QB.CodeAnalysis
         End If
       ElseIf node.Function Is BuiltinFunctions.CDbl Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return value
+        Return CDbl($"{value:n12}")
       ElseIf node.Function Is BuiltinFunctions.CInt Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return CShort(value)
@@ -2222,11 +2222,11 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return CInt(value)
       ElseIf node.Function Is BuiltinFunctions.Cos Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Cos(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Cos(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.CSng Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return CSng(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{value:n6}")
       ElseIf node.Function Is BuiltinFunctions.CsrLin Then
         Return QBLib.Video.CSRLIN
       ElseIf node.Function Is BuiltinFunctions.Cvd Then
@@ -2288,13 +2288,13 @@ Namespace Global.QB.CodeAnalysis
         Return m_erl
       ElseIf node.Function Is BuiltinFunctions.Err Then
         ' ERR returns the error code of the last error (0 if no error)
-        Return m_err
+        Return CInt(m_err)
       ElseIf node.Function Is BuiltinFunctions.Exp Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         'Dim base = 2.718282
         'If value = 0 Then Return 0
         'Return base ^ value
-        Return Math.Exp(value)
+        Return CSng($"{MathF.Exp(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.FileAttr Then
         Stop
         Return Nothing
@@ -2303,7 +2303,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Fix(value)
       ElseIf node.Function Is BuiltinFunctions.Fre Then
-        Return 160266
+        Return 655356 '160266
       ElseIf node.Function Is BuiltinFunctions.FreeFile Then
         ' Find the next available file number (1-255)
         For i = 1 To 255
@@ -2397,8 +2397,8 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
         End If
       ElseIf node.Function Is BuiltinFunctions.Log Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Log(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Log(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.Lpos Then
         Stop
         Return Nothing
@@ -2518,17 +2518,17 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
         End If
       ElseIf node.Function Is BuiltinFunctions.Sgn Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Sign(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Sign(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.Sin Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Sin(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Sin(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.Space Then
         Dim length = CInt(EvaluateExpression(node.Arguments(0)))
         Return New String(" "c, length)
       ElseIf node.Function Is BuiltinFunctions.Sqr Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Sqrt(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Sqrt(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.Stick Then
         Stop
         Return Nothing
@@ -2547,8 +2547,8 @@ Namespace Global.QB.CodeAnalysis
           Return New String(ChrW(CInt(thing)), length)
         End If
       ElseIf node.Function Is BuiltinFunctions.Tan Then
-        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return Math.Tan(value)
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return CSng($"{MathF.Tan(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.Time Then
         Return DateTime.Now.ToString("HH:mm:ss")
       ElseIf node.Function Is BuiltinFunctions.UBound Then

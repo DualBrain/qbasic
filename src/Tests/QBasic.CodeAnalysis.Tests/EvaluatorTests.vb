@@ -44,10 +44,10 @@ b = -2147483648
       Assert.Equal($"{60000}", $"{variables("L")}")
       Assert.Equal($"{5.5}", $"{variables("S")}")
       Assert.Equal($"{10000.9}", $"{variables("D")}")
-      Assert.Equal($"{123456790}", $"{variables("x")}")
+      Assert.Equal($"{123456789}", $"{variables("x")}")
       Assert.Equal($"{987654321}", $"{variables("y&")}")
       Assert.Equal($"{42}", $"{variables("z")}")
-      Assert.Equal($"-2.1474836E+09", $"{variables("b")}")
+      Assert.Equal($"-2147483648", $"{variables("b")}")
     End Sub
 
     <Fact>
@@ -249,6 +249,7 @@ e = 9.87654321098765
       ' Variables should be double precision
       Assert.Equal(1.23456789012345, CDbl(variables("d")), 0.0001)
       Assert.Equal(9.87654321098765, CSng(variables("e")), 0.0001)
+
     End Sub
 
     <Fact>

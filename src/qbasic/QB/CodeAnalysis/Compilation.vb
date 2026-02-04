@@ -44,22 +44,27 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Public ReadOnly Property IsScript As Boolean
+
     Public ReadOnly Property Previous As Compilation
     'Public ReadOnly Property SyntaxTree As SyntaxTree
+
     Public ReadOnly Property SyntaxTrees As ImmutableArray(Of SyntaxTree)
+
     Public ReadOnly Property MainFunction As FunctionSymbol
       Get
-        Return GlobalScope.MainFunction
+        Return Me.GlobalScope.MainFunction
       End Get
     End Property
+
     Public ReadOnly Property Functions As ImmutableArray(Of FunctionSymbol)
       Get
-        Return GlobalScope.Functions
+        Return Me.GlobalScope.Functions
       End Get
     End Property
+
     Public ReadOnly Property Variables As ImmutableArray(Of VariableSymbol)
       Get
-        Return GlobalScope.Variables
+        Return Me.GlobalScope.Variables
       End Get
     End Property
 

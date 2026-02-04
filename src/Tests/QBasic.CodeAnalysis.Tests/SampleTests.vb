@@ -1204,6 +1204,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      Assert.Equal(0, result.Diagnostics.Count)
       Assert.Equal(expected, actual)
 
     End Sub
@@ -1225,6 +1226,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      Assert.Equal(0, result.Diagnostics.Count)
       Assert.Equal(expected, actual)
 
     End Sub
@@ -1247,6 +1249,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      Assert.Equal(0, result.Diagnostics.Count)
       Assert.Equal(expected, actual)
 
     End Sub
@@ -1269,6 +1272,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      Assert.Equal(0, result.Diagnostics.Count)
       Assert.Equal(expected, actual)
 
     End Sub
@@ -5523,25 +5527,25 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
 
     End Sub
 
-    <Fact>
-    Public Sub Sample_TIMEStr_Variable()
+    '    <Fact>
+    '    Public Sub Sample_TIMEStr_Variable()
 
-      ' Name: TIME$ (Variable)
+    '      ' Name: TIME$ (Variable)
 
-      Dim sample = "
-PRINT TIME$
-"
+    '      Dim sample = "
+    'PRINT TIME$
+    '"
 
-      Dim expected = "22:18:17"
+    '      Dim expected = "22:18:17"
 
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+    '      Dim eval = Evaluate(sample)
+    '      Dim result = eval.Result
+    '      Dim actual = eval.Output?.Trim
+    '      Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+    '      Assert.Equal(expected, actual)
 
-    End Sub
+    '    End Sub
 
     <Fact>
     Public Sub Sample_Type_Conversion_1()

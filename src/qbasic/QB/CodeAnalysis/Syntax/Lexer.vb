@@ -187,13 +187,14 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case ChrW(0) : m_kind = SyntaxKind.EndOfFileToken
 
         'Case "%"c : m_kind = SyntaxKind.PercentToken : m_position += 1 ' Integer
-        'Case "&"c
-        '  'TODO: Need to handle hexadecimal, binary and octal literals.
-        '  '      &H
-        '  '      &B
-        '  '      &O
-        '  '      NOTE: Allow for the underscore (_) character as a group separator.
-        '  m_kind = SyntaxKind.AmpersandToken : m_position += 1 ' Long
+        Case "&"c
+          ' Handle hexadecimal, binary and octal literals.
+          '      &H, &h for hexadecimal
+          '      &B, &b for binary  
+          '      &O, &o for octal
+          '      NOTE: Allow for underscore (_) character as a group separator.
+          ReadNumberLiteral()
+          'm_kind = SyntaxKind.AmpersandToken : m_position += 1 ' Long
         'Case "!"c : m_kind = SyntaxKind.ExclamationToken : m_position += 1 ' Single
         Case "#"c : m_kind = SyntaxKind.PoundToken : m_position += 1 ' Double
         'Case "$"c : m_kind = SyntaxKind.DollarToken : m_position += 1 ' String
@@ -378,6 +379,172 @@ Namespace Global.QB.CodeAnalysis.Syntax
       End If
 
       m_kind = SyntaxKind.NumberToken
+
+    End Sub
+
+    Private Sub ReadNumberLiteral()
+
+      ' Handle &H (hex), &O (octal), &B (binary) literals
+      m_position += 1 ' Skip the & character
+      
+      ' Check what kind of literal this is
+      If m_position >= m_text.Length Then
+        ' Just & alone, treat as bad token
+        m_kind = SyntaxKind.BadToken
+        Return
+      End If
+
+      Dim literalType = Char.ToUpper(Current)
+      Select Case literalType
+        Case "H"c ' Hexadecimal
+          m_position += 1 ' Skip the H
+          ReadHexDigits()
+        Case "O"c ' Octal
+          m_position += 1 ' Skip the O
+          ReadOctalDigits()
+        Case "B"c ' Binary
+          m_position += 1 ' Skip the B
+          ReadBinaryDigits()
+        Case Else
+          ' Invalid literal type
+          m_kind = SyntaxKind.BadToken
+          Return
+      End Select
+
+      m_kind = SyntaxKind.NumberToken
+
+    End Sub
+
+    Private Sub ReadHexDigits()
+
+      Dim hasDigits = False
+      While m_position < m_text.Length AndAlso
+            (Char.IsDigit(Current) OrElse
+             (Current >= "A"c AndAlso Current <= "F"c) OrElse
+             (Current >= "a"c AndAlso Current <= "f"c) OrElse
+             Current = "_"c)
+        
+        If Current <> "_"c Then
+          hasDigits = True
+        End If
+        m_position += 1
+      End While
+
+      If Not hasDigits Then
+        m_kind = SyntaxKind.BadToken
+        Return
+      End If
+
+      ' Parse the hex value
+      Dim length = m_position - m_start
+      Dim text = m_text.ToString(m_start, length)
+      Dim hexPart = text.Substring(2) ' Skip &H
+      
+      ' Remove underscores for parsing
+      hexPart = hexPart.Replace("_", "")
+      
+      Dim intValue As Integer
+      Dim longValue As Long
+      If Integer.TryParse(hexPart, Globalization.NumberStyles.HexNumber, Globalization.CultureInfo.InvariantCulture, intValue) Then
+        m_value = intValue
+      ElseIf Long.TryParse(hexPart, Globalization.NumberStyles.HexNumber, Globalization.CultureInfo.InvariantCulture, longValue) Then
+        m_value = longValue
+      Else
+        ' Too large or invalid
+        Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+        m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Long)
+        m_kind = SyntaxKind.BadToken
+      End If
+
+    End Sub
+
+    Private Sub ReadOctalDigits()
+
+      Dim hasDigits = False
+      While m_position < m_text.Length AndAlso
+            (Current >= "0"c AndAlso Current <= "7"c OrElse Current = "_"c)
+        
+        If Current <> "_"c Then
+          hasDigits = True
+        End If
+        m_position += 1
+      End While
+
+      If Not hasDigits Then
+        m_kind = SyntaxKind.BadToken
+        Return
+      End If
+
+      ' Parse the octal value
+      Dim length = m_position - m_start
+      Dim text = m_text.ToString(m_start, length)
+      Dim octalPart = text.Substring(2) ' Skip &O
+      
+      ' Remove underscores for parsing
+      octalPart = octalPart.Replace("_", "")
+      
+      Try
+        Dim intValue = Convert.ToInt32(octalPart, 8)
+        m_value = intValue
+      Catch ex As OverflowException
+        Try
+          Dim longValue = Convert.ToInt64(octalPart, 8)
+          m_value = longValue
+        Catch ex2 As OverflowException
+          Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+          m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Long)
+          m_kind = SyntaxKind.BadToken
+        End Try
+      Catch ex As ArgumentException
+        Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+        m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Integer)
+        m_kind = SyntaxKind.BadToken
+      End Try
+
+    End Sub
+
+    Private Sub ReadBinaryDigits()
+
+      Dim hasDigits = False
+      While m_position < m_text.Length AndAlso
+            (Current = "0"c OrElse Current = "1"c OrElse Current = "_"c)
+        
+        If Current <> "_"c Then
+          hasDigits = True
+        End If
+        m_position += 1
+      End While
+
+      If Not hasDigits Then
+        m_kind = SyntaxKind.BadToken
+        Return
+      End If
+
+      ' Parse the binary value
+      Dim length = m_position - m_start
+      Dim text = m_text.ToString(m_start, length)
+      Dim binaryPart = text.Substring(2) ' Skip &B
+      
+      ' Remove underscores for parsing
+      binaryPart = binaryPart.Replace("_", "")
+      
+      Try
+        Dim intValue = Convert.ToInt32(binaryPart, 2)
+        m_value = intValue
+      Catch ex As OverflowException
+        Try
+          Dim longValue = Convert.ToInt64(binaryPart, 2)
+          m_value = longValue
+        Catch ex2 As OverflowException
+          Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+          m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Long)
+          m_kind = SyntaxKind.BadToken
+        End Try
+      Catch ex As ArgumentException
+        Dim location = New TextLocation(m_text, New TextSpan(m_start, length))
+        m_diagnostics.ReportInvalidNumber(location, text, TypeSymbol.Integer)
+        m_kind = SyntaxKind.BadToken
+      End Try
 
     End Sub
 

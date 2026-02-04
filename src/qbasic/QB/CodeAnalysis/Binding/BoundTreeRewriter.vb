@@ -219,7 +219,16 @@ Namespace Global.QB.CodeAnalysis.Binding
           Dim entry = node.Nodes(i)
           If TypeOf entry Is BoundExpression Then
             Dim nextEntry = If(i < node.Nodes.Length - 1, node.Nodes(i + 1), Nothing)
-            Dim noCr = nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso (CType(nextEntry, BoundSymbol).Value = ";"c OrElse CType(nextEntry, BoundSymbol).Value = ","c)
+            ' For QBasic PRINT: 
+            ' - If next entry is semicolon, suppress newline for this expression (noCr=True)
+            ' - If next entry is comma, suppress newline for this expression (noCr=True) 
+            ' - If this is the last expression and not followed by semicolon, allow newline (noCr=False)
+            ' - If this is the last expression and followed by semicolon, suppress newline (noCr=True)
+            Dim isLastExpression = (i = node.Nodes.Length - 1)
+            Dim hasNextSemicolon = (nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso CType(nextEntry, BoundSymbol).Value = ";"c)
+            Dim hasNextComma = (nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso CType(nextEntry, BoundSymbol).Value = ","c)
+            
+            Dim noCr As Boolean = Not isLastExpression OrElse hasNextSemicolon OrElse hasNextComma
             Dim expression = RewriteExpression(CType(entry, BoundExpression))
             builder.Add(New BoundHandlePrintStatement(expression, noCr))
           ElseIf TypeOf entry Is BoundSymbol Then

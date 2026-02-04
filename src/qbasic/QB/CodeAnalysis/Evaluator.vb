@@ -1431,40 +1431,41 @@ Namespace Global.QB.CodeAnalysis
       End If
       QBLib.Video.PRINT()
     End Sub
-
     Private Sub EvaluatePrintStatement(node As BoundPrintStatement)
+
       For Each item In node.Nodes
         Select Case item.Kind
           Case BoundNodeKind.Symbol
             Dim symbol = CType(item, BoundSymbol)
             If symbol.Value = ";" Then
-              ' Semicolon suppresses newline
+              ' Semicolon suppresses newline - don't output anything
             ElseIf symbol.Value = "," Then
-              ' Comma advances to next print zone
-              QBLib.Video.PRINT("        ", False) ' Print 8 spaces for tab
+              ' Comma advances to next print zone - print spaces, no newline
+              QBLib.Video.PRINT("        ", True) ' Print 8 spaces for tab
             End If
           Case BoundNodeKind.SpcFunction
             Dim spcFunc = CType(item, BoundSpcFunction)
             Dim count = CInt(EvaluateExpression(spcFunc.Expression))
             ' TODO: Implement SPC function - for now just print spaces
-            QBLib.Video.PRINT(New String(" "c, count), False)
+            QBLib.Video.PRINT(New String(" "c, count), True) ' No newline
           Case BoundNodeKind.TabFunction
             Dim tabFunc = CType(item, BoundTabFunction)
             Dim column = CInt(EvaluateExpression(tabFunc.Expression))
             ' TODO: Implement TAB function - for now just print
-            QBLib.Video.PRINT("TAB(" & column & ")", False)
+            QBLib.Video.PRINT("TAB(" & column & ")", True) ' No newline
           Case BoundNodeKind.LiteralExpression
             Dim literal = CType(item, BoundLiteralExpression)
-            QBLib.Video.PRINT(CStr(literal.Value), False)
+            QBLib.Video.PRINT(CStr(literal.Value), True) ' No newline for expressions
           Case Else
             ' Regular expression to print
             Dim value = EvaluateExpression(CType(item, BoundExpression))
-            QBLib.Video.PRINT(CStr(value), False)
+            QBLib.Video.PRINT(CStr(value), True) ' No newline for expressions
         End Select
       Next
+      
       ' Add newline at end unless last item was semicolon
-      If node.Nodes.Length = 0 OrElse Not (node.Nodes.Last.Kind = BoundNodeKind.Symbol AndAlso CType(node.Nodes.Last, BoundSymbol).Value = ";") Then
-        QBLib.Video.PRINT("", True)
+      If node.Nodes.Length > 0 AndAlso Not (node.Nodes.Last.Kind = BoundNodeKind.Symbol AndAlso CType(node.Nodes.Last, BoundSymbol).Value = ";") Then
+        QBLib.Video.PRINT("", False) ' Add final newline
       End If
     End Sub
 

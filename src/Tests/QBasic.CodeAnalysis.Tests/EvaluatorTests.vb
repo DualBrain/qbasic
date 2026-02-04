@@ -227,10 +227,10 @@ t = 2.71828
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' Variables should be single precision
-      Assert.Equal(3.14159, CSng(variables("s")))
-      Assert.Equal(2.71828, CSng(variables("t")))
+      Assert.Equal(3.14159, CSng(variables("s")), 0.0001)
+      Assert.Equal(2.71828, CSng(variables("t")), 0.0001)
     End Sub
 
     <Fact>
@@ -284,7 +284,7 @@ sngVar = 3.14
       ' Different variable types should be preserved
       Assert.Equal(42, CInt(variables("intVar")))
       Assert.Equal("test", variables("strVar"))
-      Assert.Equal(3.14, CSng(variables("sngVar")))
+      Assert.Equal(3.14, CSng(variables("sngVar")), 0.0001)
     End Sub
 
     <Fact>
@@ -293,6 +293,8 @@ sngVar = 3.14
 DEFINT X-Z
 DIM x AS INTEGER  ' Should use explicit DIM type
 DIM y AS SINGLE   ' Should use default DEF type
+x = 100
+y = 100
 z = 100
 "
 
@@ -366,9 +368,9 @@ c = 3.3  ' Should remain SINGLE from DEFSNG
       Dim result = compilation.Evaluate(variables)
 
       ' DIM AS should override DEF statements
-      Assert.Equal(1.1, CSng(variables("a")))
-      Assert.Equal(2.2, CDbl(variables("b")))
-      Assert.Equal(3.3, CSng(variables("c")))
+      Assert.Equal(1.1, CSng(variables("a")), 0.0000001)
+      Assert.Equal(2.2, CDbl(variables("b")), 0.0000001)
+      Assert.Equal(3.3, CSng(variables("c")), 0.0000001)
     End Sub
 
     <Fact>

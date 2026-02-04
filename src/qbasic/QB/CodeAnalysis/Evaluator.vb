@@ -1431,6 +1431,7 @@ Namespace Global.QB.CodeAnalysis
       End If
       QBLib.Video.PRINT()
     End Sub
+
     Private Sub EvaluatePrintStatement(node As BoundPrintStatement)
 
       For Each item In node.Nodes
@@ -1462,7 +1463,7 @@ Namespace Global.QB.CodeAnalysis
             QBLib.Video.PRINT(CStr(value), True) ' No newline for expressions
         End Select
       Next
-      
+
       ' Add newline at end unless last item was semicolon
       If node.Nodes.Length > 0 AndAlso Not (node.Nodes.Last.Kind = BoundNodeKind.Symbol AndAlso CType(node.Nodes.Last, BoundSymbol).Value = ";") Then
         QBLib.Video.PRINT("", False) ' Add final newline
@@ -1484,7 +1485,9 @@ Namespace Global.QB.CodeAnalysis
       'Dim zoneWidth = 14
       Dim result = EvaluateExpression(node.Expression)
       Dim value = CInt(result)
-      If value < 0 OrElse value > 255 Then
+      If value < 0 Then
+        value = 0
+      ElseIf value > 32767 Then
         'error
       ElseIf value > screenWidth Then
         value = value Mod screenWidth
@@ -2190,7 +2193,7 @@ Namespace Global.QB.CodeAnalysis
         Return MathF.Abs(value)
       ElseIf node.Function Is BuiltinFunctions.Asc Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
-        If value Is Nothing Then
+        If String.IsNullOrEmpty(value) Then
           Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
         End If
         Try
@@ -2225,7 +2228,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return CSng(value)
       ElseIf node.Function Is BuiltinFunctions.CsrLin Then
-        Return 1
+        Return QBLib.Video.CSRLIN
       ElseIf node.Function Is BuiltinFunctions.Cvd Then
         Stop
         Return Nothing

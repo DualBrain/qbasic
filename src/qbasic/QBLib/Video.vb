@@ -932,20 +932,21 @@ Namespace Global.QBLib
         Try
           Console.Clear()
         Catch
-          ' Ignore if console clear fails
+          ' Ignore...
+          m_cursorCol = 1
+          m_cursorRow = 1
         End Try
-        Return
+      Else
+        For index = 0 To Screen0.Length - 1
+          Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
+        Next
+        For index = 0 To Buffer.Length - 1
+          Buffer(index) = m_palette(m_bgColor)
+        Next
+        m_cursorCol = 1
+        m_cursorRow = 1
+        Invalidate()
       End If
-
-      For index = 0 To Screen0.Length - 1
-        Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
-      Next
-      For index = 0 To Buffer.Length - 1
-        Buffer(index) = m_palette(m_bgColor)
-      Next
-      m_cursorCol = 1
-      m_cursorRow = 1
-      Invalidate()
     End Sub
 
     Public Shared Sub CLS(viewport As Integer)
@@ -1153,22 +1154,42 @@ Namespace Global.QBLib
     End Property
 
     Public Shared Function CSRLIN() As Integer
-      Return m_cursorRow
+      If StdoutMode Then
+        Try
+          Dim p = Console.GetCursorPosition
+          Return p.Top + 1
+        Catch
+          Return m_cursorRow
+        End Try
+      Else
+        Return m_cursorRow
+      End If
     End Function
 
     Public Shared Function POS(Optional dummy As Integer = 0) As Integer
       If dummy = 0 Then
       End If
-      Return m_cursorCol
+      If StdoutMode Then
+        Try
+          Dim p = Console.GetCursorPosition
+          Return p.Left + 1
+        Catch
+          Return m_cursorCol
+        End Try
+      Else
+        Return m_cursorCol
+      End If
     End Function
 
     Public Shared Sub PRINT()
       If StdoutMode Then
         Console.WriteLine()
-        Return
+        m_cursorCol = 1
+        m_cursorRow += 1
+      Else
+        m_cursorCol = 1
+        If m_cursorRow + 1 > m_textRows Then ShiftViewUp() Else m_cursorRow += 1
       End If
-      m_cursorCol = 1
-      If m_cursorRow + 1 > m_textRows Then ShiftViewUp() Else m_cursorRow += 1
     End Sub
 
     Public Shared Sub PRINT(text As String, Optional noCr As Boolean = False, Optional noScroll As Boolean = False)
@@ -1176,9 +1197,18 @@ Namespace Global.QBLib
         ' Output to console
         If text IsNot Nothing Then
           Console.Write(text)
+          m_cursorCol += text.Length
+          Do
+            If m_cursorCol > 80 Then
+              m_cursorCol -= 80 : m_cursorRow += 1
+            Else
+              Exit Do
+            End If
+          Loop
         End If
         If Not noCr Then
           Console.WriteLine()
+          m_cursorCol = 1 : m_cursorRow += 1
         End If
         Return
       End If

@@ -323,17 +323,18 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: ASC (2)
 
       Dim sample = "
-    X$=""""
-    PRINT ASC(x$)
+X$=""""
+PRINT ASC(x$)
 "
 
-      Dim expected = "Illegal function call line 2"
+      Dim expected = "Illegal function call"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      Assert.Equal(0, result.Diagnostics.Count)
       Assert.Equal(expected, actual)
 
     End Sub
@@ -443,7 +444,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
     PRINT A;CDBL(A)
 "
 
-      Dim expected = "454.67  454.670013427734"
+      Dim expected = "454.67 454.670013427734"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -460,11 +461,11 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: CDBL (2)
 
       Dim sample = "
-    A$=""454.67""
-    PRINT CDBL(A$)
+A$=""454.67""
+PRINT CDBL(A$)
 "
 
-      Dim expected = "Syntax error line 2"
+      Dim expected = "Type mismatch"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -569,7 +570,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
     PRINT CINT(-32768.1)
 "
 
-      Dim expected = "Overflow line 1"
+      Dim expected = "-32768"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -589,7 +590,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
     PRINT CINT(32767.1)
 "
 
-      Dim expected = "Overflow line 1"
+      Dim expected = "32767"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -902,9 +903,10 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: CSRLIN (1)
 
       Dim sample = "
-    PRINT ""HELLO""
-    Y=CSRLIN
-    PRINT Y
+CLS
+PRINT ""HELLO""
+Y=CSRLIN
+PRINT Y
 "
 
       Dim expected = $"HELLO{vbCrLf} 2"
@@ -1078,10 +1080,10 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: DEF FN
 
       Dim sample = "
-    R=1:S=2
-    DEF FNAB(X,Y)=X^3/Y^2
-    T=FNAB(R,S)
-    PRINT T
+R=1:S=2
+DEF FNAB(X,Y)=X^3/Y^2
+T=FNAB(R,S)
+PRINT T
 "
 
       Dim expected = ".25"
@@ -1101,9 +1103,9 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: DEFDBL
 
       Dim sample = "
-    DEFINT I-N,W-Z
-    W=5
-    PRINT W
+  DEFINT I-N,W-Z
+  W=5
+  PRINT W
 "
 
       Dim expected = "5"
@@ -1123,9 +1125,9 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: DEFINT
 
       Dim sample = "
-    DEFINT I-N,W-Z
-    W=5.555
-    PRINT W
+DEFINT I-N,W-Z
+W=5.555
+PRINT W
 "
 
       Dim expected = "6"
@@ -1145,9 +1147,9 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: DEFSNG
 
       Dim sample = "
-    DEFINT I-N,W-Z
-    W=5
-    PRINT W
+DEFINT I-N,W-Z
+W=5
+PRINT W
 "
 
       Dim expected = "5"
@@ -1167,9 +1169,9 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: DEFSTR
 
       Dim sample = "
-    DEFSTR A
-    A=""120#""
-    PRINT A
+DEFSTR A
+A=""120#""
+PRINT A
 "
 
       Dim expected = "120#"
@@ -4852,6 +4854,7 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      Assert.Equal(0, result.Diagnostics.Count)
       Assert.Equal(expected, actual)
 
     End Sub

@@ -65,7 +65,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly VarPtr1 As New FunctionSymbol("varptr", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
     Public ReadOnly VarSeg As New FunctionSymbol("varseg", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
 
-    Public ReadOnly Chr As New FunctionSymbol("chr$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Long)), TypeSymbol.String)
+    Public ReadOnly Chr As New FunctionSymbol("chr$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Command As New FunctionSymbol("command$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     'Public ReadOnly [Date] As New FunctionSymbol("date$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly [Date] As New FunctionSymbol("date$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
@@ -87,7 +87,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Oct As New FunctionSymbol("oct$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly Right As New FunctionSymbol("right$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String), New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly Rtrim As New FunctionSymbol("rtrim$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.String)
-    Public ReadOnly Space As New FunctionSymbol("space$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
+    Public ReadOnly Space As New FunctionSymbol("space$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Str As New FunctionSymbol("str$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     'Public ReadOnly Time As New FunctionSymbol("time$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly Time As New FunctionSymbol("time$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)

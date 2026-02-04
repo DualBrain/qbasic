@@ -64,7 +64,7 @@ z = 999
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' All variables should be integers (type coercion)
       Assert.Equal($"{42}", $"{variables("a")}")
       Assert.Equal($"{100}", $"{variables("b")}")
@@ -108,18 +108,18 @@ b = 100  ' Should be single (not in range)
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' Variables in A-M and X-Z should be single precision
       Assert.Equal($"{3.14}", $"{variables("a")}")
       Assert.Equal($"{2.71}", $"{variables("m")}")
       Assert.Equal($"{1.5}", $"{variables("x")}")
       Assert.Equal($"{9.99}", $"{variables("z")}")
-      
+
       ' Variable b should be default type (single, since it's the default)
       Assert.Equal($"{100.0}", $"{variables("b")}")
     End Sub
 
-<Fact>
+    <Fact>
     Public Sub EvaluatesDefDblPartialRange()
       Dim text = "
 DEFDBL F-P
@@ -154,7 +154,7 @@ d = 987654
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' All should be long integers
       Assert.Equal($"{123456}", $"{variables("x")}")
       Assert.Equal($"{987654}", $"{variables("d")}")
@@ -191,7 +191,7 @@ y = 100
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' Variables should be integers
       Assert.Equal(42, CInt(variables("x")))
       Assert.Equal(100, CInt(variables("y")))
@@ -209,7 +209,7 @@ b = -2147483648
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' Variables should be long integers
       Assert.Equal(2147483647, CLng(variables("a")))
       Assert.Equal(-2147483648, CLng(variables("b")))
@@ -280,7 +280,7 @@ sngVar = 3.14
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' Different variable types should be preserved
       Assert.Equal(42, CInt(variables("intVar")))
       Assert.Equal("test", variables("strVar"))
@@ -302,7 +302,7 @@ z = 100
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' x should be INTEGER from DIM AS (highest precedence)
       ' y should be SINGLE from DEFINT (lower precedence than DIM AS)
       ' z should be INTEGER from DEFINT
@@ -398,7 +398,7 @@ NEXT i
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' All variable types should be preserved correctly
       Assert.Equal(15, CInt(variables("intCounter")))
       Assert.Equal("John", variables("strName"))
@@ -418,7 +418,7 @@ dim z as single
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      
+
       ' Should work regardless of case
       Assert.Equal(0, CInt(variables("x")))
       Assert.Equal(0, CLng(variables("y")))

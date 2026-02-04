@@ -423,6 +423,16 @@ The following syntax notation is used in this section:
 
 All punctuation, including commas, parentheses, semicolons, hyphens and equal signs must be included where shown.
 
+## Variable Types and Declarations
+
+For comprehensive information about the BASIC type system, see:
+
+- [Type-System](Type-System) - Complete guide to variable types, precedence, and best practices
+- [Type-Characters](Type-Characters) - Type declaration characters (%,&,!,#,$) usage and examples
+- [DEFINT](DEFINT) - DEF type statements (DEFINT, DEFLNG, DEFSNG, DEFDBL, DEFSTR)
+- [DIM](DIM) - Variable and array declarations with AS clause
+- [DEFSTR](DEFSTR), [DEFSNG](DEFSNG), [DEFLNG](DEFLNG), [DEFDBL](DEFDBL) - Individual DEF type documentation
+
 ## Additional Reference
 
 - [Alphabetical](alphabetical)

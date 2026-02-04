@@ -3,8 +3,9 @@
 ' Tests the transformation of line-numbered GW-BASIC to structured QBasic
 ' ============================================================================'
 
-Imports Xunit
 Imports QB.CodeAnalysis.Syntax
+
+Imports Xunit
 
 Namespace QB.CodeAnalysis.Syntax.Tests
 

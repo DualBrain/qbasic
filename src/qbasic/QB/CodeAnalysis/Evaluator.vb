@@ -2549,7 +2549,11 @@ Namespace Global.QB.CodeAnalysis
         Return New String(" "c, length)
       ElseIf node.Function Is BuiltinFunctions.Sqr Then
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
-        Return CSng($"{MathF.Sqrt(value):n6}")
+        If value < 0 Then
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        Else
+          Return CSng($"{MathF.Sqrt(value):n6}")
+        End If
       ElseIf node.Function Is BuiltinFunctions.Stick Then
         Stop
         Return Nothing

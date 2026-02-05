@@ -81,9 +81,7 @@ Namespace QBasic.CodeAnalysis.Tests
     Private Sub AssertRoundtripSuccess(text As String, Optional description As String = Nothing)
       Dim result = PerformRoundtripTest(text)
       
-      If description IsNot Nothing Then
-        Console.WriteLine($"Testing: {description}")
-      End If
+      ' Note: Removed Console.WriteLine to avoid test isolation issues with Console.Out redirection
       
       Assert.True(result.Success, $"Roundtrip failed: {result.Differences}")
     End Sub
@@ -91,9 +89,7 @@ Namespace QBasic.CodeAnalysis.Tests
     Private Sub AssertRoundtripFails(text As String, Optional description As String = Nothing)
       Dim result = PerformRoundtripTest(text)
       
-      If description IsNot Nothing Then
-        Console.WriteLine($"Testing expected failure: {description}")
-      End If
+      ' Note: Removed Console.WriteLine to avoid test isolation issues with Console.Out redirection
       
       Assert.False(result.Success, "Expected roundtrip to fail but it succeeded")
     End Sub

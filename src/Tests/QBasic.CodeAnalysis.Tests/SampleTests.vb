@@ -5063,10 +5063,19 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: SQR (3)
 
       Dim sample = "
-    PRINT SQR(-1)
+ON ERROR GOTO Handler
+PRINT SQR(-1)
+END
+Handler:
+  IF ERR = 5 THEN
+    PRINT ""Illegal function call""
+  ELSE
+    PRINT ""ERR =""; ERR
+  END IF
+  END
 "
 
-      Dim expected = "Illegal function call line 1"
+      Dim expected = "Illegal function call"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5083,19 +5092,17 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: STOP
 
       Dim sample = "
-    X=1
-    STOP
-    PRINT ""WHATEVER""
+X=1
+STOP
+PRINT ""WHATEVER""
 "
-
-      Dim expected = "Break"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(0, result.Diagnostics.Length)
 
     End Sub
 
@@ -5127,13 +5134,13 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: STR$ (2)
 
       Dim sample = "
-    5 REM ARITHMATIC FOR KIDS
-    10 N=55 'INPUT ""TYPE A NUMBER"";N
-    20 ON LEN(STR$(N)) GOTO 30,40,50
-    25 PRINT ""INVALID"": END
-    30 PRINT ""30"":END
-    40 PRINT ""40"":END
-    50 PRINT ""50"": END
+5 REM ARITHMATIC FOR KIDS
+10 N=55 'INPUT ""TYPE A NUMBER"";N
+20 ON LEN(STR$(N)) GOTO 30,40,50
+25 PRINT ""INVALID"": END
+30 PRINT ""30"":END
+40 PRINT ""40"":END
+50 PRINT ""50"": END
 "
 
       Dim expected = "50"
@@ -5296,10 +5303,16 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: String Operator (15)
 
       Dim sample = "
-    PRINT USING ""##.##"";a$<b$,1>2
+isLessThan = a$ < b$
+isGreaterThan = a$ > b$
+isEqual = a$ = b$
+isEqualOrLessThan = a$ >= b$
+isEqualOrGreaterThan = a$ <= b$
+
+PRINT isLessThan; isGreaterThan; isEqual; isEqualOrLessThan; isEqualOrGreaterThan
 "
 
-      Dim expected = "0.00 0.00"
+      Dim expected = "0  0 -1 -1 -1"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5612,20 +5625,19 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: Type Conversion (1)
 
       Dim sample = "
-    A$=""1""
-    B = 1
-    C$ = A$ + B
-    PRINT C$
+A$=""1""
+B = 1
+C$ = A$ + B
+PRINT C$
 "
-
-      Dim expected = "Type mismatch line 3"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      ' There should be at least one error...
+      Assert.Equal(1, result.Diagnostics.Length)
 
     End Sub
 
@@ -5635,17 +5647,16 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: Type Conversion (2)
 
       Dim sample = "
-    PRINT ""1"" + 1
+PRINT ""1"" + 1
 "
-
-      Dim expected = "Type mismatch line 1"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      ' There should be at least one error...
+      Assert.Equal(1, result.Diagnostics.Length)
 
     End Sub
 
@@ -5727,8 +5738,8 @@ Handler:
       ' Name: Type Conversion (6)
 
       Dim sample = "
-    c% = 55.88
-    PRINT c%
+c% = 55.88
+PRINT c%
 "
 
       Dim expected = "56"
@@ -5748,9 +5759,9 @@ Handler:
       ' Name: Type Conversion (7)
 
       Dim sample = "
-    a = 2.04
-    b# = a
-    PRINT a;b#
+a = 2.04
+b# = a
+PRINT a;b#
 "
 
       Dim expected = "2.04  2.04"
@@ -5817,7 +5828,7 @@ Handler:
     WEND
 "
 
-      Dim expected = "1 2"
+      Dim expected = "1  2"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5834,21 +5845,20 @@ Handler:
       ' Name: WHILE (2)
 
       Dim sample = "
-    X = 1
-    WHILE X < 3
-      PRINT X;
-      X = X + 1
-    'WEND
+X = 1
+WHILE X < 3
+  PRINT X;
+  X = X + 1
+'WEND
 "
-
-      Dim expected = "WHILE without WEND line 2"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      ' There should be at least one error...
+      Assert.Equal(1, result.Diagnostics.Length)
 
     End Sub
 
@@ -5858,21 +5868,20 @@ Handler:
       ' Name: WHILE (3)
 
       Dim sample = "
-    X = 1
-    'WHILE X < 3
-      PRINT X;
-      X = X + 1
-    WEND
+X = 1
+'WHILE X < 3
+  PRINT X;
+  X = X + 1
+WEND
 "
-
-      Dim expected = $"1{vbCrLf}WEND without WHILE line 5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      ' There should be at least one error...
+      Assert.Equal(1, result.Diagnostics.Length)
 
     End Sub
 

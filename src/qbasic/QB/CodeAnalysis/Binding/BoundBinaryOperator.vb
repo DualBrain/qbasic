@@ -256,9 +256,9 @@ Namespace Global.QB.CodeAnalysis.Binding
                                                TypeSymbol.ULong,
                                                TypeSymbol.Long64,
                                                TypeSymbol.ULong64,
-                                               TypeSymbol.Single,
-                                               TypeSymbol.Double,
-                                               TypeSymbol.Decimal}
+                                                TypeSymbol.Single,
+                                                TypeSymbol.Double,
+                                                TypeSymbol.Decimal}
 
       For index = 0 To tokens.Count - 1
         Dim token = tokens(index)
@@ -266,15 +266,67 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim leftIndex = 0
         For leftIndex = 0 To list.Count - 1
           Dim leftSide = list(leftIndex)
-          operators.Add(New BoundBinaryOperator(token, operation, leftSide))
+          ' Special handling for same-type division operators
+          If operation = BoundBinaryOperatorKind.Division Then
+            ' Floating-point division (/) should promote to at least SINGLE
+            Dim resultType As TypeSymbol
+            If list.IndexOf(leftSide) >= list.IndexOf(TypeSymbol.Single) Then
+              ' Type is SINGLE or higher, use the same type
+              resultType = leftSide
+            Else
+              ' Type is below SINGLE, promote to SINGLE
+              resultType = TypeSymbol.Single
+            End If
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide, leftSide, resultType))
+          Else
+            operators.Add(New BoundBinaryOperator(token, operation, leftSide))
+          End If
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            Dim resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
+            Dim resultType As TypeSymbol
+            ' Special handling for division operators
+            If operation = BoundBinaryOperatorKind.Division Then
+              ' Floating-point division (/) should promote to at least SINGLE
+              If list.IndexOf(leftSide) >= list.IndexOf(TypeSymbol.Single) OrElse list.IndexOf(rightSide) >= list.IndexOf(TypeSymbol.Single) Then
+                ' If either operand is SINGLE or higher, use the larger type
+                resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
+              Else
+                ' Both operands are below SINGLE, promote to SINGLE
+                resultType = TypeSymbol.Single
+              End If
+              ' Debug: Show division operator creation
+              If leftSide Is TypeSymbol.Integer AndAlso rightSide Is TypeSymbol.Integer Then
+                Console.WriteLine($"DEBUG: Creating division operator - INTEGER/INTEGER -> {resultType}")
+              End If
+            ElseIf operation = BoundBinaryOperatorKind.IntegerDivision Then
+              ' Integer division (\) should always return INTEGER
+              resultType = TypeSymbol.Integer
+            Else
+              ' For all other operations, use the larger type
+              resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
+            End If
             operators.Add(New BoundBinaryOperator(token, operation, leftSide, rightSide, resultType))
           Next
           For rightIndex = leftIndex + 1 To list.Count - 1
             Dim rightSide = list(rightIndex)
-            Dim resultType = If(list.IndexOf(leftSide) < list.IndexOf(rightSide), rightSide, leftSide)
+            Dim resultType As TypeSymbol
+            ' Special handling for division operators (reverse order)
+            If operation = BoundBinaryOperatorKind.Division Then
+              ' Floating-point division (/) should promote to at least SINGLE
+              If list.IndexOf(rightSide) >= list.IndexOf(TypeSymbol.Single) OrElse list.IndexOf(leftSide) >= list.IndexOf(TypeSymbol.Single) Then
+                ' If either operand is SINGLE or higher, use the larger type
+                resultType = If(list.IndexOf(rightSide) < list.IndexOf(leftSide), leftSide, rightSide)
+              Else
+                ' Both operands are below SINGLE, promote to SINGLE
+                resultType = TypeSymbol.Single
+              End If
+            ElseIf operation = BoundBinaryOperatorKind.IntegerDivision Then
+              ' Integer division (\) should always return INTEGER
+              resultType = TypeSymbol.Integer
+            Else
+              ' For all other operations, use the larger type
+              resultType = If(list.IndexOf(rightSide) < list.IndexOf(leftSide), leftSide, rightSide)
+            End If
             operators.Add(New BoundBinaryOperator(token, operation, rightSide, leftSide, resultType))
           Next
         Next
@@ -429,10 +481,14 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim operators = Initialize()
       'End If
 
-      Return (From op In operators
-              Where op.SyntaxKind = SyntaxKind AndAlso
-                    op.LeftType Is leftType AndAlso
-                    op.RightType Is rightType).FirstOrDefault
+      Dim result = (From op In operators
+                    Where op.SyntaxKind = SyntaxKind AndAlso
+                          op.LeftType Is leftType AndAlso
+                          op.RightType Is rightType).FirstOrDefault
+
+
+
+      Return result
 
       'For Each op In s_operators
       '  If op.SyntaxKind = SyntaxKind AndAlso op.LeftType Is leftType AndAlso op.RightType Is rightType Then

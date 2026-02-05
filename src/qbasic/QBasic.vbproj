@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,8 +14,8 @@
     <Product>Community QBasic</Product>
     <Copyright>(c) 2010-2026, Cory Smith</Copyright>
     <ApplicationIcon>Resources\qbasic.ico</ApplicationIcon>
-    <Version>0.0.1.0</Version>
-    <FileVersion>0.0.1.0</FileVersion>
+    <Version>0.0.2.0</Version>
+    <FileVersion>0.0.2.0</FileVersion>
     <TrimMode>copyused</TrimMode>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>

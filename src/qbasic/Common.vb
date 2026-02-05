@@ -13,6 +13,7 @@ End Module
 Friend Module Common
 
   Friend m_running As Boolean
+  Friend m_abort As Boolean
 
   Friend g_display As Display
 
@@ -128,16 +129,20 @@ Friend Module Common
       Case ConsoleKey.LeftArrow : Return ChrW(0) & ChrW(75)
       Case ConsoleKey.RightArrow : Return ChrW(0) & ChrW(77)
 
-        'Case ConsoleKey.F1 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(84 + adder), ChrW(59))
-        'Case ConsoleKey.F2 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(85 + adder), ChrW(60))
-        'Case ConsoleKey.F3 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(86 + adder), ChrW(61))
-        'Case ConsoleKey.F4 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(87 + adder), ChrW(62))
-        'Case ConsoleKey.F5 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(88 + adder), ChrW(63))
-        'Case ConsoleKey.F6 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(89 + adder), ChrW(64))
-        'Case ConsoleKey.F7 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(80 + adder), ChrW(65))
-        'Case ConsoleKey.F8 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(91 + adder), ChrW(66))
-        'Case ConsoleKey.F9 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(92 + adder), ChrW(67))
-        'Case ConsoleKey.F10 : Return ChrW(0) & If(shift OrElse ctrl OrElse alt, ChrW(93 + adder), ChrW(68))
+      Case ConsoleKey.F1 : Return ChrW(0) & ChrW(59) 'If(shift OrElse ctrl OrElse alt, ChrW(84 + adder), ChrW(59))
+      Case ConsoleKey.F2 : Return ChrW(0) & ChrW(60) 'If(shift OrElse ctrl OrElse alt, ChrW(85 + adder), ChrW(60))
+      Case ConsoleKey.F3 : Return ChrW(0) & ChrW(61) 'If(shift OrElse ctrl OrElse alt, ChrW(86 + adder), ChrW(61))
+      Case ConsoleKey.F4 : Return ChrW(0) & ChrW(62) 'If(shift OrElse ctrl OrElse alt, ChrW(87 + adder), ChrW(62))
+      Case ConsoleKey.F5 : Return ChrW(0) & ChrW(63) 'If(shift OrElse ctrl OrElse alt, ChrW(88 + adder), ChrW(63))
+      Case ConsoleKey.F6 : Return ChrW(0) & ChrW(64) 'If(shift OrElse ctrl OrElse alt, ChrW(89 + adder), ChrW(64))
+      Case ConsoleKey.F7 : Return ChrW(0) & ChrW(65) 'If(shift OrElse ctrl OrElse alt, ChrW(80 + adder), ChrW(65))
+      Case ConsoleKey.F8 : Return ChrW(0) & ChrW(66) 'If(shift OrElse ctrl OrElse alt, ChrW(91 + adder), ChrW(66))
+      Case ConsoleKey.F9 : Return ChrW(0) & ChrW(67) 'If(shift OrElse ctrl OrElse alt, ChrW(92 + adder), ChrW(67))
+      Case ConsoleKey.F10 : Return ChrW(0) & ChrW(68) 'If(shift OrElse ctrl OrElse alt, ChrW(93 + adder), ChrW(68))
+
+      Case ConsoleKey.F11 : Return ChrW(0) & ChrW(133)
+      Case ConsoleKey.F12 : Return ChrW(0) & ChrW(134)
+
         'Case ConsoleKey.F11
         '  If shift Then
         '    Return ChrW(0) & ChrW(135)

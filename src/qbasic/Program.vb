@@ -336,13 +336,13 @@ Friend Module Program
   Private Sub HandleUpgradeGwBasicMode(filename As String)
     Try
       Console.WriteLine($"Upgrading GW-BASIC file: {filename}")
-      
+
       Dim sourceText = File.ReadAllText(filename)
       Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(sourceText)
-      
+
       Dim rewriter = New GwBasicToQBasicRewriter()
       Dim rewrittenTree = rewriter.Rewrite(syntaxTree.Root)
-      
+
       ' Generate transformed code using text transformation (this updates the analysis)
       Dim originalCode = File.ReadAllText(filename)
       Dim transformedCode = rewriter.GenerateUpgradedCode(originalCode)
@@ -355,7 +355,7 @@ Friend Module Program
       Console.WriteLine($"  GOTO statements found: {rewriter.Analysis.GotoStatementsFound}")
       Console.WriteLine($"  GOSUB statements found: {rewriter.Analysis.GosubStatementsFound}")
       Console.WriteLine($"  Labels created: {rewriter.Analysis.LabelsCreated}")
-      
+
       If rewriter.Analysis.Suggestions.Any() Then
         Console.WriteLine()
         Console.WriteLine("Suggestions:")
@@ -363,7 +363,7 @@ Friend Module Program
           Console.WriteLine($"  - {suggestion}")
         Next
       End If
-      
+
       If rewriter.Analysis.Warnings.Any() Then
         Console.WriteLine()
         Console.WriteLine("Warnings:")
@@ -371,14 +371,14 @@ Friend Module Program
           Console.WriteLine($"  - {warning}")
         Next
       End If
-      
+
       ' Create output filename
       Dim outputFilename = Path.ChangeExtension(filename, ".upgraded.bas")
       File.WriteAllText(outputFilename, transformedCode)
 
       Console.WriteLine()
       Console.WriteLine($"Upgraded file saved as: {outputFilename}")
-      
+
     Catch ex As Exception
       Console.WriteLine($"Error upgrading GW-BASIC file: {ex.Message}")
     End Try
@@ -387,38 +387,38 @@ Friend Module Program
   Private Sub HandleConvertToVbNetMode(filename As String)
     Try
       Console.WriteLine($"Converting QBasic to VB.NET: {filename}")
-      
+
       Dim sourceText = File.ReadAllText(filename)
       Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(sourceText)
-      
+
       Dim options = New QBasicToVbNetRewriter.ConversionOptions()
       options.AddModuleBoilerplate = True
       options.AddSubMain = True
       options.ModernizePrint = True
       options.AddImports = True
       options.GenerateWarnings = True
-      
+
       Dim rewriter = New QBasicToVbNetRewriter(options)
       Dim rewrittenTree = rewriter.Rewrite(syntaxTree.Root)
-      
+
       ' Generate VB.NET code
       Using writer = New StringWriter()
         WriteNodeWithTrivia(writer, rewrittenTree)
         Dim qbasicCode = writer.ToString()
-        
+
         ' Apply VB.NET transformations using syntax tree
         Dim vbNetCode = rewriter.GenerateVbNetCode(DirectCast(rewrittenTree, CompilationUnitSyntax))
-        
+
         ' Create output filename
         Dim outputFilename = Path.ChangeExtension(filename, ".vb")
         File.WriteAllText(outputFilename, vbNetCode)
-        
+
         Console.WriteLine($"VB.NET Conversion Analysis:")
         Console.WriteLine($"  Added Module wrapper: {If(rewriter.Analysis.AddedModule, "Yes", "No")}")
         Console.WriteLine($"  Added SUB MAIN: {If(rewriter.Analysis.AddedSubMain, "Yes", "No")}")
         Console.WriteLine($"  PRINT statements modernized: {rewriter.Analysis.ModernizedPrintStatements}")
         Console.WriteLine($"  Variables needing types: {rewriter.Analysis.VariablesRequiringTypes}")
-        
+
         If rewriter.GetRequiredImports().Any() Then
           Console.WriteLine()
           Console.WriteLine("Required Imports:")
@@ -426,7 +426,7 @@ Friend Module Program
             Console.WriteLine($"  - {import}")
           Next
         End If
-        
+
         If rewriter.Analysis.Warnings.Any() Then
           Console.WriteLine()
           Console.WriteLine("Warnings:")
@@ -434,7 +434,7 @@ Friend Module Program
             Console.WriteLine($"  - {warning}")
           Next
         End If
-        
+
         If rewriter.Analysis.ChangesMade.Any() Then
           Console.WriteLine()
           Console.WriteLine("Changes Made:")
@@ -442,11 +442,11 @@ Friend Module Program
             Console.WriteLine($"  - {change}")
           Next
         End If
-        
+
         Console.WriteLine()
         Console.WriteLine($"VB.NET file saved as: {outputFilename}")
       End Using
-      
+
     Catch ex As Exception
       Console.WriteLine($"Error converting to VB.NET: {ex.Message}")
     End Try
@@ -483,14 +483,20 @@ Friend Class QBasic
 
   Private m_runner As Threading.Thread
 
-  Private m_screenMode As Integer
+  'Private m_screenMode As Integer
   Private m_scrn() As Integer
   Private m_scrn0() As UShort
   Private m_buffer() As Pixel
-  Private m_fg As Integer
-  Private m_bg As Integer
-  Private m_cr As Integer
-  Private m_cc As Integer
+
+  Dim m_outputState As OutputState
+
+  Private Structure OutputState
+    Public ScreenMode As Integer
+    Public FgColor As Integer
+    Public BgColor As Integer
+    Public CursorRow As Integer
+    Public CursorCol As Integer
+  End Structure
 
   Friend Sub New(Optional initialFile As String = Nothing)
     AppName = "Community QBasic"
@@ -1049,13 +1055,13 @@ Friend Class QBasic
               keys.RemoveAt(index)
             Case ConsoleKey.C
               If m_running Then
-                s_cancelTokenSource.Cancel()
-                m_running = False
+                's_cancelTokenSource.Cancel()
+                m_abort = True
               End If
             Case ConsoleKey.Attention
               If m_running Then
-                s_cancelTokenSource.Cancel()
-                m_running = False
+                's_cancelTokenSource.Cancel()
+                m_abort = True
               End If
             Case Else
               Debug.WriteLine($"Unhandled key: {keys(index)}")
@@ -1216,29 +1222,38 @@ Tip: These topics are also available from the Help menu.
           Next
         End If
 
+        If m_abort Then
+          s_cancelTokenSource.Cancel()
+          m_abort = False
+        End If
+
         If m_runner.IsAlive Then
           m_scrn0 = Nothing
           m_scrn = Nothing
           m_buffer = Nothing
         Else
+          m_abort = False
           If m_scrn0 Is Nothing Then
             'TODO: Take a "snapshot" of the screen
             '      Capture the current cursor location
             '      Capture the current foreground and background colors
             '      Capture the current screen mode? Width?
             ReDim m_scrn0(Screen0.Length - 1)
-            Array.Copy(Screen0, 0, m_scrn0, 0, Screen0.Length)
             ReDim m_buffer(Buffer.Length - 1)
-            Array.Copy(Buffer, 0, m_buffer, 0, Buffer.Length)
-            m_fg = QBLib.Video.m_fgColor
-            m_bg = QBLib.Video.m_bgColor
-            m_cr = QBLib.Video.CursorRow
-            m_cc = QBLib.Video.CursorCol
+            SyncLock Me
+              Array.Copy(Screen0, 0, m_scrn0, 0, Screen0.Length)
+              Array.Copy(Buffer, 0, m_buffer, 0, Buffer.Length)
+            End SyncLock
+            m_outputState.FgColor = QBLib.Video.m_fgColor
+            m_outputState.BgColor = QBLib.Video.m_bgColor
+            m_outputState.CursorRow = QBLib.Video.CursorRow
+            m_outputState.CursorCol = QBLib.Video.CursorCol
             LOCATE(25, 1) : PRINT("Press any key to continue", True)
           End If
           If keys IsNot Nothing Then
-            s_cancelTokenSource.Cancel()
+            's_cancelTokenSource.Cancel()
             m_running = False
+            m_runner = Nothing
             'For Each key In keys
             '  Select Case key
             '    Case ConsoleKey.Escape
@@ -1649,16 +1664,6 @@ Tip: These topics are also available from the Help menu.
 
     If m_running Then 'Interpreter.IsRunning Then
 
-      'TODO: Need to determine cursor visibility based
-      '      on INPUT being active certainly; but also
-      '      based on the current state of the most
-      '      recent LOCATE statement which provides for
-      '      mechanism to not only show/hide the text
-      '      cursor, but also the size of the cursor.
-      '      Additionally, if memory servse, there is
-      '      no visible cursor in graphics modes except
-      '      for during the INPUT statement; and even
-      '      then, it's not animated.
       cursorVisible = QBLib.Video.IsInputActive
 
       If g_display IsNot Nothing Then
@@ -1680,7 +1685,6 @@ Tip: These topics are also available from the Help menu.
 
       Else
 
-        'SyncLock Me
         Dim w = m_screenPixelWidth
         Dim h = m_screenPixelHeight
         For y = 0 To h - 1
@@ -1691,46 +1695,14 @@ Tip: These topics are also available from the Help menu.
             Draw(x, y, c)
           Next
         Next
-        'End SyncLock
 Abort:
-
-        'For r = 0 To 24
-        '  For c = 0 To 79
-
-        '    Dim index = (r * 80) + c
-        '    Dim ch = CByte(Screen0(index) And &HFF)
-        '    Dim clr = ((Screen0(index) And &HFF00) \ 256) And &HFF
-        '    Dim map = CharMap(m_textH, ch)
-
-        '    Dim x = c * m_textW
-        '    Dim y = r * m_textH
-
-        '    Dim fg, bg As Integer
-        '    SplitColor(clr, fg, bg)
-
-        '    Dim fgc = m_palette(fg)
-        '    Dim bgc = m_palette(bg)
-
-        '    For dy = 0 To m_textH - 1
-        '      Draw(x + 0, dy + y, If((map(dy) And 1) > 0, fgc, bgc))
-        '      Draw(x + 1, dy + y, If((map(dy) And 2) > 0, fgc, bgc))
-        '      Draw(x + 2, dy + y, If((map(dy) And 4) > 0, fgc, bgc))
-        '      Draw(x + 3, dy + y, If((map(dy) And 8) > 0, fgc, bgc))
-        '      Draw(x + 4, dy + y, If((map(dy) And 16) > 0, fgc, bgc))
-        '      Draw(x + 5, dy + y, If((map(dy) And 32) > 0, fgc, bgc))
-        '      Draw(x + 6, dy + y, If((map(dy) And 64) > 0, fgc, bgc))
-        '      Draw(x + 7, dy + y, If((map(dy) And 128) > 0, fgc, bgc))
-        '    Next
-
-        '  Next
-        'Next
 
       End If
 
-    Else
+    ElseIf m_runner Is Nothing Then
 
       If Not ScreenMode = 0 Then
-        m_screenMode = ScreenMode
+        m_outputState.ScreenMode = ScreenMode
         SCREEN(0)
       End If
 
@@ -2401,7 +2373,7 @@ To get help on a QBasic keyword in the list below:
 
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token
-    m_running = True
+    m_abort = False : m_running = True
 
     'InterpreterTimer.Enabled = True
 
@@ -2413,14 +2385,12 @@ To get help on a QBasic keyword in the list below:
     'm_display = New Display()
 
     If m_scrn0 IsNot Nothing Then
-      Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
-      Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
-      'QBLib.Video.m_fgColor = m_fg
-      'QBLib.Video.m_bgColor = m_bg
-      'QBLib.Video.m_cursorRow = m_cr
-      'QBLib.Video.m_cursorCol = m_cc
-      QBLib.Video.COLOR(m_fg, m_bg)
-      QBLib.Video.LOCATE(m_cr, m_cc)
+      SyncLock Me
+        Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
+        Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+      End SyncLock
+      QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
+      QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)
       m_scrn0 = Nothing
       m_buffer = Nothing
     Else
@@ -2442,19 +2412,17 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub RunnerBs()
-    g_display = Nothing : m_running = True
+    g_display = Nothing : m_abort = False : m_running = True
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token
     If m_scrn0 IsNot Nothing Then
-      If m_screenMode > 0 Then SCREEN(m_screenMode)
-      Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
-      Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
-      'QBLib.Video.m_fgColor = m_fg
-      'QBLib.Video.m_bgColor = m_bg
-      'QBLib.Video.m_cursorRow = m_cr
-      'QBLib.Video.m_cursorCol = m_cc
-      QBLib.Video.COLOR(m_fg, m_bg)
-      QBLib.Video.LOCATE(m_cr, m_cc)
+      If m_outputState.ScreenMode > 0 Then SCREEN(m_outputState.ScreenMode)
+      SyncLock Me
+        Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
+        Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+      End SyncLock
+      QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
+      QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)
       m_scrn0 = Nothing
       m_buffer = Nothing
     Else

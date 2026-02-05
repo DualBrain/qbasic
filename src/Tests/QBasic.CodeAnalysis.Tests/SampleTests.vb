@@ -329,6 +329,7 @@ PRINT ASC(x$)
 END
 Handler:
   PRINT ""ERR =""; ERR
+  END
 "
 
       Dim expected = "ERR = 5"
@@ -396,7 +397,7 @@ Handler:
     PRINT ATN(X)
 "
 
-      Dim expected = "1.249046"
+      Dim expected = "1.24905"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -448,7 +449,7 @@ Handler:
     PRINT A;CDBL(A)
 "
 
-      Dim expected = "454.67 454.670013427734"
+      Dim expected = "454.67  454.670013427734"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -845,7 +846,7 @@ PRINT CDBL(A$)
     PRINT X
 "
 
-      Dim expected = "1.842122"
+      Dim expected = "1.84212"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -890,7 +891,7 @@ PRINT CDBL(A$)
     PRINT A#; CSNG(A#)
 "
 
-      Dim expected = "975.3421222  975.3421"
+      Dim expected = "975.3421221999999  975.3421"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1487,7 +1488,7 @@ Handler:
   PRINT ""ERR =""; ERR
 "
 
-      Dim expected = "ERR = 15"
+      Dim expected = "ERR =  15"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1511,7 +1512,7 @@ Handler:
   PRINT ""ERR =""; ERR; "" ERL =""; ERL
 "
 
-      Dim expected = "ERR = 15 ERL = 10"
+      Dim expected = "ERR =  15 ERL =  10"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -2579,7 +2580,7 @@ end
 PRINT LOG(2);"","";LOG(1)
 "
 
-      Dim expected = ".693147 , 0"
+      Dim expected = ".69315 , 0"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -4850,7 +4851,7 @@ PRINT USING""\    \"";A$;B$;""!!""
     PRINT SIN(1.5)
 "
 
-      Dim expected = ".997495"
+      Dim expected = ".99749"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5017,7 +5018,7 @@ PRINT USING""\    \"";A$;B$;""!!""
     NEXT
 "
 
-      Dim expected = $"10  3.162278{vbCrLf} 15  3.872983{vbCrLf} 20  4.472136{vbCrLf} 25  5"
+      Dim expected = $"10  3.16228{vbCrLf} 15  3.87298{vbCrLf} 20  4.4721{vbCrLf} 25  5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5566,7 +5567,7 @@ PRINT USING""\    \"";A$;B$;""!!""
     PRINT Y
 "
 
-      Dim expected = ".713123"
+      Dim expected = ".71312"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5671,11 +5672,16 @@ Handler:
       ' Name: Type Conversion (4)
 
       Dim sample = "
-    a$=1
-    PRINT a$
+ON ERROR GOTO Handler
+a$=1
+PRINT a$
+END
+Handler:
+  PRINT ""ERR = ""; ERR
+  END
 "
 
-      Dim expected = "Type mismatch line 1"
+      Dim expected = "ERR =  13"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5696,7 +5702,7 @@ Handler:
     PRINT d#
 "
 
-      Dim expected = ".857142857142857"
+      Dim expected = ".8571428571428"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

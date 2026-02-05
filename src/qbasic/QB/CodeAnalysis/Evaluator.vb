@@ -1472,12 +1472,32 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateHandlePrintStatement(node As BoundHandlePrintStatement)
       Dim value = EvaluateExpression(node.Expression)
-      Dim output = $"{value}"
-      If TypeOf value IsNot String AndAlso
-         Not output.StartsWith("-"c) Then
-        QBLib.Video.PRINT(" ", True) ': QBLib.Video.PRINT(" "c, True)
+      Dim output = ""
+      If TypeOf value Is Single Then
+        Dim v = CSng(value)
+        output = If(v = MathF.Truncate(v),
+                    $"{v:F0}",
+                    $"{v:F5}".TrimEnd("0"c).TrimEnd("."c).TrimStart("0"c))
+        If Not output.StartsWith("-"c) Then output = $" {output}"
+      ElseIf TypeOf value Is Double Then
+        Dim v = CDbl(value)
+        output = If(v = Math.Truncate(v),
+                    $"{v:F0}",
+                    $"{v:F13}".TrimEnd("0"c).TrimEnd("."c).TrimStart("0"c))
+        If Not output.StartsWith("-"c) Then output = $" {output}"
+      ElseIf TypeOf value IsNot String AndAlso TypeOf value IsNot Char Then
+        If output.StartsWith("-"c) Then
+          output = $"{value}"
+        Else
+          output = $" {value}"
+        End If
+      Else
+        output = $"{value}"
       End If
       QBLib.Video.PRINT(output, node.NoCr) ': QBLib.Video.PRINT(" "c, True)
+      If node.NoCr AndAlso (TypeOf value IsNot String AndAlso TypeOf value IsNot Char) Then
+        QBLib.Video.PRINT(" ", True)
+      End If
     End Sub
 
     Private Sub EvaluateHandleSpcStatement(node As BoundHandleSpcStatement)

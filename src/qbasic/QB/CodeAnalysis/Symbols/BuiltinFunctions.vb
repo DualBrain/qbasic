@@ -71,7 +71,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly [Date] As New FunctionSymbol("date$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly Environ As New FunctionSymbol("environ$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.String)
     Public ReadOnly ErDev2 As New FunctionSymbol("erdev$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
-    Public ReadOnly Hex As New FunctionSymbol("hex$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
+    Public ReadOnly Hex As New FunctionSymbol("hex$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Inkey As New FunctionSymbol("inkey$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly Input As New FunctionSymbol("input$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly IoCtl As New FunctionSymbol("ioctl$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)

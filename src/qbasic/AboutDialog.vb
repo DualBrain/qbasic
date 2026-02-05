@@ -16,6 +16,8 @@
     End Get
   End Property
 
+  Private ReadOnly m_copyright As String = DetermineCopyright()
+
   Sub New()
     MyBase.New("", New Location(9, 14), New Size(9, 51))
 
@@ -35,13 +37,16 @@
 
     OnDraw()
 
+    Dim exePath = Environment.ProcessPath
+    Dim versionInfo = FileVersionInfo.GetVersionInfo(exePath)
+
     Dim title = "Community QBasic"
     Dim titleOffset = (Size.Cols - title.Length) \ 2
     QPrintRC(title, Location.Row + 2, Location.Col + titleOffset, OneColor(0, 8))
-    Dim version = "Version 0.0"
+    Dim version = $"Version {versionInfo.FileVersion.TrimEnd("0"c).TrimEnd("."c)}"
     Dim versionOffset = (Size.Cols - version.Length) \ 2
     QPrintRC(version, Location.Row + 3, Location.Col + versionOffset, OneColor(0, 8))
-    Dim copyright = "Copyright (C) Dartmouth Didn't, 1964-2026"
+    Dim copyright = $"Copyright (C) {m_copyright}, 1964-2026"
     Dim copyrightOffset = (Size.Cols - copyright.Length) \ 2
     QPrintRC(copyright, Location.Row + 4, Location.Col + copyrightOffset, OneColor(0, 8))
 

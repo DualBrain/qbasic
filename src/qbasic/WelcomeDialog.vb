@@ -17,6 +17,8 @@
   Private WithEvents Button1 As New ButtonControl(Me)
   Private WithEvents Button2 As New ButtonControl(Me)
 
+  Private ReadOnly m_copyright As String = DetermineCopyright()
+
   Sub New()
     MyBase.New("", New Location(6, 10), New Size(11, 60))
 
@@ -45,7 +47,7 @@
     Dim textOffset = (Size.Cols - welcomeText.Length) \ 2
     QPrintRC(welcomeText, Location.Row + 2, Location.Col + textOffset, OneColor(0, 8))
 
-    Dim copyrightText = "Copyright (C) Dartmouth Didn't, 1964-2026"
+    Dim copyrightText = $"Copyright (C) {m_copyright}, 1964-2026"
     textOffset = (Size.Cols - copyrightText.Length) \ 2
     QPrintRC(copyrightText, Location.Row + 4, Location.Col + textOffset, OneColor(0, 8))
 

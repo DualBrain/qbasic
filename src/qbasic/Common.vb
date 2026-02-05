@@ -21,6 +21,24 @@ Friend Module Common
   Friend s_cancelTokenSource As New CancellationTokenSource()
   Friend s_cancelToken As CancellationToken
 
+  Friend Function DetermineCopyright() As String
+    Dim r As New Random()
+    Dim n = r.Next(1, 20)
+    Select Case n
+      Case 1, 5, 9 : Return "The Kid In Us All"
+      Case 2 : Return "Inconceivable!"
+      Case 4 : Return "Shall We Play A Game?"
+      Case 6 : Return "Late Night Coders"
+      Case 3, 8 : Return "NOT Microsoft Corp."
+      Case 10 : Return "Cliffs of Insanity"
+      Case 12 : Return "All Out Of Bubblegum"
+      Case 14 : Return "We Don't Need Roads"
+      Case 16 : Return "Wax On, Wax Off"
+      Case 18 : Return "Yippee Ki-yay"
+      Case Else : Return "Dartmouth Didn't"
+    End Select
+  End Function
+
   Friend Sub ToggleInsertMode()
     Insert = Not Insert
     CsrSize()

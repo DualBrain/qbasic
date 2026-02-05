@@ -2026,7 +2026,7 @@ Namespace Global.QB.CodeAnalysis
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.Decimal : Return (CDec(left) Mod CDec(right))
             Case TypeSymbol.Type.Double : Return (CDbl(left) Mod CDbl(right))
-            Case TypeSymbol.Type.Single : Return (CSng(left) Mod CSng(right))
+            Case TypeSymbol.Type.Single : Return (CInt(left) Mod CInt(right))
             Case TypeSymbol.Type.ULong64 : Return (CULng(left) Mod CULng(right))
             Case TypeSymbol.Type.Long64 : Return (CLng(left) Mod CLng(right))
             Case TypeSymbol.Type.ULong : Return (CUInt(left) Mod CUInt(right))
@@ -2456,7 +2456,7 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Oct Then
-        Dim value = CInt(EvaluateExpression(node.Arguments(0)))
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Oct(value)
       ElseIf node.Function Is BuiltinFunctions.Peek Then
         Return 0
@@ -2473,7 +2473,8 @@ Namespace Global.QB.CodeAnalysis
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Pos Then
-        Return 1
+        Dim value = CInt(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Video.POS(value)
       ElseIf node.Function Is BuiltinFunctions.Right Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Dim position = CInt(EvaluateExpression(node.Arguments(1)))

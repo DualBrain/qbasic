@@ -22,7 +22,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private m_optionBase As Integer = 0 ' Default to 0 as per QBasic spec
     Private m_optionBaseDeclared As Boolean = False ' Track if OPTION BASE was already declared
     Private m_arrayModeDynamic As Boolean = True ' Track current $DYNAMIC/$STATIC metacommand state (default $DYNAMIC)
-    Private Shared ReadOnly m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
+    Private ReadOnly m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
 
     Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol)
       m_scope = New BoundScope(parent)
@@ -1546,7 +1546,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundRemStatement()
     End Function
 
-    Private Shared Sub AddDefTypeRange(letter As String, typeSym As TypeSymbol)
+    Private Sub AddDefTypeRange(letter As String, typeSym As TypeSymbol)
       If String.IsNullOrEmpty(letter) OrElse letter.Length <> 1 Then Return
       m_defTypeRanges(letter) = typeSym
     End Sub

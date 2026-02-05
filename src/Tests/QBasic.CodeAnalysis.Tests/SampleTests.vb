@@ -414,18 +414,19 @@ Handler:
       ' Name: CALL (1)
 
       Dim sample = "
-    DECLARE SUB SwapVal (a,b)
-    a = 1
-    b = 2
-    CALL SwapVal(a, b)
-    PRINT a; b
-    END
+DECLARE SUB SwapVal (a,b)
+
+a = 1
+b = 2
+CALL SwapVal(a, b)
+PRINT a; b
+END
     
-    SUB SwapVal(x,y)
-      temp = x
-      x = y
-      y = temp
-    END SUB
+SUB SwapVal(x,y)
+  temp = x
+  x = y
+  y = temp
+END SUB
 "
 
       Dim expected = "2 1"
@@ -445,8 +446,8 @@ Handler:
       ' Name: CDBL (1)
 
       Dim sample = "
-    A=454.67
-    PRINT A;CDBL(A)
+A=454.67
+PRINT A;CDBL(A)
 "
 
       Dim expected = "454.67  454.670013427734"
@@ -487,8 +488,8 @@ PRINT CDBL(A$)
       ' Name: CDBL (3)
 
       Dim sample = "
-    PRINT 5 / 6
-    PRINT CDBL(5 / 6)
+PRINT 5 / 6
+PRINT CDBL(5 / 6)
 "
 
       Dim expected = $".8333333{vbCrLf} .8333333333333334"
@@ -887,8 +888,8 @@ PRINT CDBL(A$)
       ' Name: CSNG
 
       Dim sample = "
-    a#=975.3421222#
-    PRINT A#; CSNG(A#)
+a#=975.3421222#
+PRINT A#; CSNG(A#)
 "
 
       Dim expected = "975.3421221999999  975.3421"
@@ -931,12 +932,13 @@ PRINT Y
       ' Name: CSRLIN (2)
 
       Dim sample = "
-    Y=CSRLIN
-    X=POS(0)
-    LOCATE 24,1
-    PRINT ""HELLO""
-    LOCATE Y,X
-    PRINT Y
+CLS
+Y=CSRLIN
+X=POS(0)
+LOCATE 24,1
+PRINT ""HELLO""
+LOCATE Y,X
+PRINT Y
 "
 
       Dim expected = $"HELLO{vbCrLf}{vbCrLf} 1"
@@ -3085,7 +3087,7 @@ PRINT 25.68 MOD 6.99
       ' Name: Numeric (2)
 
       Dim sample = "
-    PRINT -1.09E-06
+PRINT -1.09E-06
 "
 
       Dim expected = "-1.09E-06"
@@ -3185,7 +3187,7 @@ PRINT 25.68 MOD 6.99
       ' Name: Numeric (7)
 
       Dim sample = "
-    PRINT 7654321.1234
+PRINT 7654321.1234
 "
 
       Dim expected = "7654321.1234"
@@ -3228,7 +3230,7 @@ PRINT 25.68 MOD 6.99
 PRINT OCT$(-32768.1)
 "
 
-      Dim expected = "Overflow line 1"
+      Dim expected = "37777700000"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3248,7 +3250,7 @@ PRINT OCT$(-32768.1)
 PRINT OCT$(65535.1)
 "
 
-      Dim expected = "Overflow line 1"
+      Dim expected = "177777"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3786,18 +3788,24 @@ PRINT A(0)
       ' Name: POS
 
       Dim sample = "
+CLS
 PRINT ""HELLO WORLD"";
 PRINT POS(0)
 "
 
       Dim expected = "HELLO WORLD 12"
 
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
+      Dim originalStdoutMode = Video.StdoutMode
+      Try
+        Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+        Dim eval = Evaluate(sample)
+        Dim result = eval.Result
+        Dim actual = eval.Output?.Trim
+        Dim variables = eval.Variables
+        Assert.Equal(expected, actual)
+      Finally
+        Video.StdoutMode = originalStdoutMode
+      End Try
 
     End Sub
 

@@ -346,7 +346,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       list.Remove(TypeSymbol.Decimal)
       list.Remove(TypeSymbol.Double)
-      list.Remove(TypeSymbol.Single)
+      'list.Remove(TypeSymbol.Single)
 
       tokens = {SyntaxKind.ModKeyword}
       operations = {BoundBinaryOperatorKind.ModOperation}

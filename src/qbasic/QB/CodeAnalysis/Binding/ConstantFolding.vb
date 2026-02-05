@@ -259,7 +259,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           Select Case TypeSymbol.TypeSymbolToType(op.Type)
             Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) Mod CDec(r))
             Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) Mod CDbl(r))
-            Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) Mod CSng(r))
+            Case TypeSymbol.Type.Single : Return New BoundConstant(CInt(l) Mod CInt(r))
             Case TypeSymbol.Type.ULong64 : Return New BoundConstant(CULng(l) Mod CULng(r))
             Case TypeSymbol.Type.Long64 : Return New BoundConstant(CLng(l) Mod CLng(r))
             Case TypeSymbol.Type.ULong : Return New BoundConstant(CUInt(l) Mod CUInt(r))

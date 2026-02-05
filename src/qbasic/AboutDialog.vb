@@ -38,7 +38,7 @@
     Dim title = "Community QBasic"
     Dim titleOffset = (Size.Cols - title.Length) \ 2
     QPrintRC(title, Location.Row + 2, Location.Col + titleOffset, OneColor(0, 8))
-    Dim version = "Version 1.0"
+    Dim version = "Version 0.0"
     Dim versionOffset = (Size.Cols - version.Length) \ 2
     QPrintRC(version, Location.Row + 3, Location.Col + versionOffset, OneColor(0, 8))
     Dim copyright = "Copyright (C) Dartmouth Didn't, 1964-2026"

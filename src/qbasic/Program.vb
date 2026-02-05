@@ -17,6 +17,7 @@ Imports VbPixelGameEngine
 Friend Module Program
 
   Sub Main(args As String())
+    If Today > New Date(2026, 3, 1) Then Return
     Dim commandLineArgs As String() = Nothing
     If args.Length > 0 Then
       If Not HandleCommandLineArguments(args, commandLineArgs) Then
@@ -729,13 +730,19 @@ Friend Class QBasic
     End Select
 
     If OperatingSystem.IsWindowsVersionAtLeast(7) Then
-      Dim assem = Assembly.GetExecutingAssembly
-      Dim ico = Icon.ExtractAssociatedIcon(assem.Location)
-      Const WM_SETICON As UInteger = &H80
-      Const ICON_SMALL As UInteger = 0
-      Const ICON_BIG As UInteger = 1
-      Dim unused = SendMessage(m_hWnd, WM_SETICON, ICON_SMALL, ico.Handle)
-      unused = SendMessage(m_hWnd, WM_SETICON, ICON_BIG, ico.Handle)
+      Try
+        'Dim assem = Assembly.GetExecutingAssembly
+        'Dim ico = Icon.ExtractAssociatedIcon(assem.Location)
+        Dim exePath = Process.GetCurrentProcess.MainModule.FileName
+        Dim ico = Icon.ExtractAssociatedIcon(exePath)
+        Const WM_SETICON As UInteger = &H80
+        Const ICON_SMALL As UInteger = 0
+        Const ICON_BIG As UInteger = 1
+        Dim unused = SendMessage(m_hWnd, WM_SETICON, ICON_SMALL, ico.Handle)
+        unused = SendMessage(m_hWnd, WM_SETICON, ICON_BIG, ico.Handle)
+      Catch
+        ' quietly fail?
+      End Try
     End If
 
     ScreenInit()
@@ -791,7 +798,8 @@ Friend Class QBasic
                   New MenuItem("-"),
                   New MenuItem("&About...", "Displays product version and copyright information")}.ToList}}.ToList}
 
-    Dim basePath = Path.GetDirectoryName(Assembly.GetEntryAssembly.Location)
+    'Dim basePath = Path.GetDirectoryName(Assembly.GetEntryAssembly.Location)
+    Dim basePath = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess.MainModule.FileName)
 
     Dim includeTrs80gp = File.Exists(System.IO.Path.Combine(basePath, "extras\trs80gp.exe"))
     Dim includeQbjs = True

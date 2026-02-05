@@ -12,8 +12,12 @@
     <Authors>Cory Smith</Authors>
     <Company>AddressOf.com</Company>
     <Product>Community QBasic</Product>
-    <Copyright>(c) 2010-2024, Cory Smith</Copyright>
+    <Copyright>(c) 2010-2026, Cory Smith</Copyright>
     <ApplicationIcon>Resources\qbasic.ico</ApplicationIcon>
+    <Version>0.0.1.0</Version>
+    <FileVersion>0.0.1.0</FileVersion>
+    <TrimMode>copyused</TrimMode>
+    <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>

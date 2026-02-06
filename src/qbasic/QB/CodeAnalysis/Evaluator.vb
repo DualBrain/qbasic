@@ -797,6 +797,7 @@ Namespace Global.QB.CodeAnalysis
       ' For now, we'll just ignore it as setting system date requires admin privileges
       Dim dateString = CStr(EvaluateExpression(node.Expression))
       ' TODO: Implement actual date setting if needed
+      Throw New QBasicRuntimeException(ErrorCode.PermissionDenied)
     End Sub
 
     Private Sub EvaluateTimeStatement(node As BoundTimeStatement)
@@ -805,6 +806,7 @@ Namespace Global.QB.CodeAnalysis
       ' For now, we'll just ignore it as setting system time requires admin privileges
       Dim timeString = CStr(EvaluateExpression(node.Expression))
       ' TODO: Implement actual time setting if needed
+      Throw New QBasicRuntimeException(ErrorCode.PermissionDenied)
     End Sub
 
     Private Sub EvaluateOnTimerGosubStatement(node As BoundOnTimerGosubStatement)

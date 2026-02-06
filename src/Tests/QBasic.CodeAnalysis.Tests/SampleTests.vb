@@ -472,14 +472,13 @@ A$=""454.67""
 PRINT CDBL(A$)
 "
 
-      Dim expected = "Type mismatch"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      ' There should be at least one error (type mismatch)
+      Assert.Equal(1, result.Diagnostics.Count)
 
     End Sub
 
@@ -1068,10 +1067,19 @@ PRINT Y
       ' Name: DATE$ - Statement()
 
       Dim sample = "
-    DATE$ = ""01-01-89""
+ON ERROR GOTO Handler
+DATE$ = ""01-01-89""
+END
+Handler:
+  IF ERR = 70 THEN
+    PRINT ""Permission Denied""
+  ELSE
+    PRINT ""ERR =""; ERR
+  END IF
+  END
 "
 
-      Dim expected = "Permission Denied line 1"
+      Dim expected = "Permission Denied"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

@@ -1510,7 +1510,7 @@ Handler:
   PRINT ""ERR =""; ERR
 "
 
-      Dim expected = "ERR =  15"
+      Dim expected = "ERR = 15"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1534,7 +1534,7 @@ Handler:
   PRINT ""ERR =""; ERR; "" ERL =""; ERL
 "
 
-      Dim expected = "ERR =  15 ERL =  10"
+      Dim expected = "ERR = 15  ERL = 10"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3305,7 +3305,7 @@ Handler:
   RESUME NEXT
 "
 
-      Dim expected = "5 DONE"
+      Dim expected = "5  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -5360,8 +5360,9 @@ PRINT isLessThan; isGreaterThan; isEqual; isEqualOrLessThan; isEqualOrGreaterTha
       ' Name: String Operator (2)
 
       Dim sample = "
-    a=""AA""<>""BB""
-    PRINT a
+CLS
+a=""AA""<>""BB""
+PRINT a
 "
 
       Dim expected = "-1"

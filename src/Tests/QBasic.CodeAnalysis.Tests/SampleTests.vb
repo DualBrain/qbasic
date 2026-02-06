@@ -1,6 +1,5 @@
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
-Imports QB.CodeAnalysis.Binding
 
 Imports QBLib
 
@@ -18,27 +17,18 @@ Namespace QBasic.CodeAnalysis.Tests
           Video.StdoutMode = True ' Run in stdout mode like --stdout flag
           Console.SetOut(sw)
           Dim variables = New Dictionary(Of String, Object)
-          
+
           ' Handle chaining like the Interpreter does
           Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
           Dim compilation As Compilation = Compilation.Create(syntaxTree)
           Dim result = compilation.Evaluate(variables)
-          
+
           ' If there's a chain request, handle it
-            If result.ChainRequest IsNot Nothing AndAlso Not result.Diagnostics.HasErrors Then
-            ' COMMON variable preservation - use expected values for this test
-            ' The test expects a=1, b=2, c=3 to map to x=1, y=2, z=3
-            Dim commonVars As New Dictionary(Of String, Object)
-            commonVars.Add("x", 1)
-            commonVars.Add("y", 2)
-            commonVars.Add("z", 3)
-            
-            ' Create new variables dictionary for chained program
-            variables = commonVars
-            variables.Clear()
-            For Each kv In commonVars
-              variables(kv.Key) = kv.Value
-            Next
+          If result.ChainRequest IsNot Nothing AndAlso Not result.Diagnostics.HasErrors Then
+            ' Let the built-in COMMON variable preservation work
+            ' The variables should be preserved by CommonVariablePreserver
+            ' and restored automatically when chained program executes
+            ' No manual mapping needed
             ' Try to load and execute the chained file
             Try
               Dim filename = result.ChainRequest.Filename.Trim().Trim(""""c)
@@ -49,7 +39,7 @@ Namespace QBasic.CodeAnalysis.Tests
               Dim currentDir = IO.Directory.GetCurrentDirectory()
               Dim targetPath = IO.Path.Combine(currentDir, filename)
               targetPath = IO.Path.GetFullPath(targetPath)
-              
+
               If Not IO.File.Exists(targetPath) Then
                 Console.WriteLine("File not found")
                 ' Try to find the file in current directory
@@ -59,14 +49,18 @@ Namespace QBasic.CodeAnalysis.Tests
                 ' Ensure file operations complete
                 Threading.Thread.Sleep(10) ' Give file operations time to complete
                 Dim targetCode = IO.File.ReadAllText(targetPath)
-                
+
                 ' Parse and execute the chained file
                 Dim chainedTree = SyntaxTree.Parse(targetCode)
                 ' Flush output to ensure first program's output is captured
                 Console.Out.Flush()
-                
+
                 Dim chainedCompilation = Compilation.Create(chainedTree)
+
+                ' Execute chained program - COMMON variable restoration should be automatic
                 Dim chainedResult = chainedCompilation.Evaluate(variables)
+
+                ' Don't check for further chain requests in test environment
                 result = chainedResult
               End If
             Catch chainEx As QBasicRuntimeException
@@ -75,7 +69,7 @@ Namespace QBasic.CodeAnalysis.Tests
               Console.WriteLine($"CHAIN system error: {ex.Message}")
             End Try
           End If
-          
+
           Dim output = sw.ToString
           Return (result, output, variables)
         Finally
@@ -3882,13 +3876,13 @@ PRINT POS(0)
       Dim originalStdoutMode = Video.StdoutMode
       Try
         Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+        Dim eval = Evaluate(sample)
+        Dim result = eval.Result
+        Dim actual = eval.Output?.Trim
+        Dim variables = eval.Variables
 
-      Assert.Equal(0, result.Diagnostics.Count)
-      Assert.Equal(expected, actual)
+        Assert.Equal(0, result.Diagnostics.Count)
+        Assert.Equal(expected, actual)
       Finally
         Video.StdoutMode = originalStdoutMode
       End Try

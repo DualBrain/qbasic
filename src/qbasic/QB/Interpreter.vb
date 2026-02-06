@@ -1,8 +1,6 @@
 Imports QB.CodeAnalysis
-Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 Imports QB.IO
-Imports QB.CodeAnalysis.Binding
 
 Namespace Global.QB
 

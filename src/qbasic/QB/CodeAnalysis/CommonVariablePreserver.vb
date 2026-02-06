@@ -9,6 +9,7 @@ Namespace Global.QB.CodeAnalysis
   ''' variables are reset.
   ''' </summary>
   Friend NotInheritable Class CommonVariablePreserver
+
     Private Shared m_preservedVariables As New Dictionary(Of String, Object)
 
     ''' <summary>

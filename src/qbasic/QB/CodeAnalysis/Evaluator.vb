@@ -18,6 +18,10 @@ Namespace Global.QB.CodeAnalysis
   Friend NotInheritable Class Evaluator
 
     Private ReadOnly m_program As BoundProgram
+    ''' <summary>
+    ''' Keeps track of the **order** that variables are encountered as part of a COMMON statement.
+    ''' </summary>
+    Private ReadOnly m_commons As New List(Of String) ' variable name
     Private ReadOnly m_globals As Dictionary(Of String, Object)
     Private ReadOnly m_globalVariables As ImmutableArray(Of VariableSymbol)
     Private ReadOnly m_functions As New Dictionary(Of FunctionSymbol, BoundBlockStatement)
@@ -46,7 +50,7 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerState As TimerState = TimerState.Off ' Current timer state
     Private m_timerNextTrigger As DateTime = DateTime.MinValue ' Next trigger time
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
-    
+
     ' Chain request state
     Private m_chainRequest As ChainRequest = Nothing
 
@@ -176,7 +180,7 @@ Namespace Global.QB.CodeAnalysis
         Return m_globals
       End Get
     End Property
-    
+
     ''' <summary>
     ''' Gets the chain request if evaluation encountered a CHAIN statement.
     ''' </summary>
@@ -188,14 +192,14 @@ Namespace Global.QB.CodeAnalysis
 
     Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), Optional commandLineArgs As String() = Nothing)
 
-m_program = program
+      m_program = program
       m_globals = New Dictionary(Of String, Object)
       For Each kv In variables
         m_globals(kv.Key.Name) = kv.Value
       Next
       m_globalVariables = globalVariables
       m_commandLineArgs = If(commandLineArgs, Array.Empty(Of String)())
-      
+
       ' Restore any preserved COMMON variables
       CommonVariablePreserver.RestoreCommonVariables(Me)
       m_locals.Push(New Dictionary(Of String, Object))
@@ -293,7 +297,7 @@ m_program = program
         If CheckTimerEvent(index, localLabelToIndex) Then
           Continue While ' Timer event triggered, restart loop
         End If
-        
+
         ' Check for chain request
         If m_chainRequest IsNot Nothing Then
           Exit While ' Chain requested, exit evaluation
@@ -350,9 +354,14 @@ m_program = program
               QBLib.Video.CIRCLE(x, y, radius, color, start, [end], aspect)
               index += 1
             Case BoundNodeKind.ClearStatement
-              EvaluateClearStatement(CType(s, BoundClearStatement))
-              index += 1
-
+              'TODO: Need to see if done within a subroutine (GOSUB?)... if so, generate "Return without GOSUB" error.
+              '      If used withing a procedure, generate an "Illegal function call"
+              If m_container.Peek = "main" Then
+                EvaluateClearStatement(CType(s, BoundClearStatement))
+                index += 1
+              Else
+                Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+              End If
             Case BoundNodeKind.ClsStatement
               Debug.WriteLine("CLS")
               Dim cs = CType(s, BoundClsStatement)
@@ -1675,9 +1684,20 @@ m_program = program
     End Sub
 
     Private Sub EvaluateCommonStatement(node As BoundCommonStatement)
-      For Each declaration In node.Declarations
-        EvaluateVariableDeclaration(declaration)
-      Next
+      'TODO: Need to keep track variables that are part of a COMMON statement,
+      '      in the order in which they are encountered.
+      'TODO: Verify that statement is "before any executable statements"
+      'TODO: Assume that multiple COMMON statements are allowed; but treated
+      '      as one... meaning two or more is just *more variables* as if they
+      '      were all part of a single statement.
+      If m_container.Peek = "main" Then
+        For Each declaration In node.Declarations
+          m_commons.Add(declaration.Variable.Name)
+          EvaluateVariableDeclaration(declaration)
+        Next
+      Else
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
     End Sub
 
     Private Sub EvaluateRedimStatement(node As BoundRedimStatement)
@@ -2904,6 +2924,7 @@ m_program = program
     End Sub
 
     Private Sub ResetVariableState()
+      m_commons.Clear()
       m_arrayBounds.Clear()
       For Each variable In m_globalVariables
         If variable.IsArray Then

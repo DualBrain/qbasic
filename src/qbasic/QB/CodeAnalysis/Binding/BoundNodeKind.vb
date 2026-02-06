@@ -94,6 +94,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     SelectCaseStatement
     CaseStatement
     CaseMatchStatement
+    CommonStatement
 
     ' Expressions
     ArrayAccessExpression

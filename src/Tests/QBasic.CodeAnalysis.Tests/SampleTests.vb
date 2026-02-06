@@ -770,8 +770,8 @@ PRINT CDBL(5 / 6)
       ' Name: COMMON (1)
 
       Dim sample = "
-    COMMON A$
-    PRINT ""SUCCESS""
+COMMON A$
+PRINT ""SUCCESS""
 "
 
       Dim expected = "SUCCESS"
@@ -791,8 +791,8 @@ PRINT CDBL(5 / 6)
       ' Name: COMMON (2)
 
       Dim sample = "
-    COMMON SHARED A$
-    PRINT ""SUCCESS""
+COMMON SHARED A$
+PRINT ""SUCCESS""
 "
 
       Dim expected = "SUCCESS"
@@ -812,18 +812,18 @@ PRINT CDBL(5 / 6)
       ' Name: COMMON (3)
 
       Dim sample = "
-    ' Set common variables.
-    COMMON a, b, c
-    ' Create chained program.
-    OPEN ""COMMON.BAS"" FOR OUTPUT AS #1
-    PRINT #1, ""COMMON x, y, z""
-    PRINT #1, ""'COMMON is by variable location, not variable name.""
-    PRINT #1, ""PRINT x; y; z""
-    CLOSE #1
-    ' Set variables.
-    a = 1: b = 2: c = 3
-    ' Chain to chained target.
-    CHAIN ""COMMON.BAS""
+' Set common variables.
+COMMON a, b, c
+' Create chained program.
+OPEN ""COMMON.BAS"" FOR OUTPUT AS #1
+PRINT #1, ""COMMON x, y, z""
+PRINT #1, ""'COMMON is by variable location, not variable name.""
+PRINT #1, ""PRINT x; y; z""
+CLOSE #1
+' Set variables.
+a = 1: b = 2: c = 3
+' Chain to chained target.
+CHAIN ""COMMON.BAS""
 "
 
       Dim expected = "1 2 3"

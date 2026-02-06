@@ -647,7 +647,8 @@ Namespace Global.QB.CodeAnalysis
               index += 1
 
             Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
-            Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
+Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
+            Case BoundNodeKind.CommonStatement : EvaluateCommonStatement(CType(s, BoundCommonStatement)) : index += 1
             Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
             Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
             Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
@@ -1654,6 +1655,12 @@ Namespace Global.QB.CodeAnalysis
         Else
           EvaluateVariableDeclaration(declaration)
         End If
+      Next
+End Sub
+
+    Private Sub EvaluateCommonStatement(node As BoundCommonStatement)
+      For Each declaration In node.Declarations
+        EvaluateVariableDeclaration(declaration)
       Next
     End Sub
 

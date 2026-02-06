@@ -628,6 +628,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
         Case SyntaxKind.DeclareStatement : Return BindDeclareStatement(CType(syntax, DeclareStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
+        Case SyntaxKind.CommonStatement : Return BindCommonStatement(CType(syntax, CommonStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
@@ -1742,7 +1743,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         ' Validate array bounds at compile time if they are constants
         ValidateArrayBounds(syntax.Identifier, lower, upper)
       End If
-      Dim isStaticArray = Not m_arrayModeDynamic
+Dim isStaticArray = Not m_arrayModeDynamic
       If bounds Is Nothing Then
         Dim variable = If(m_function Is Nothing,
                        DirectCast(New GlobalVariableSymbol(name, False, type, Nothing), VariableSymbol),
@@ -1754,12 +1755,51 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
     End Function
 
-    Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, dimensionCount As Integer, Optional isStaticArray As Boolean = False) As VariableSymbol
+    Private Function BindVariableDeclaration(syntax As VariableDeclarationSyntax, isCommon As Boolean) As BoundStatement
+      Dim name = syntax.Identifier.Text
+      Dim bounds = syntax.Bounds
+      Dim isArray = bounds IsNot Nothing
+      Dim type As QB.CodeAnalysis.Symbols.TypeSymbol = BindAsClause(syntax.AsClause)
+      If type Is Nothing Then
+        ' No AS clause, check variable name suffix
+        Dim suffix = name.Last
+        Select Case suffix
+          Case "%"c : type = TypeSymbol.Integer
+          Case "&"c : type = TypeSymbol.Long
+          Case "!"c : type = TypeSymbol.Single
+          Case "#"c : type = TypeSymbol.Double
+          Case "$"c : type = TypeSymbol.String
+          Case Else
+            type = QB.CodeAnalysis.Symbols.TypeSymbol.Single ' Default for arrays without suffix
+        End Select
+      End If
+      Dim lower As BoundExpression = Nothing
+      Dim upper As BoundExpression = Nothing
+      Dim dimensionCount = 0
+      If bounds IsNot Nothing Then
+        dimensionCount = bounds.Dimensions.Where(Function(d) TypeOf d Is DimensionClauseSyntax).Count()
+        BindDimensionsClause(bounds, lower, upper)
+        ' Validate array bounds at compile time if they are constants
+        ValidateArrayBounds(syntax.Identifier, lower, upper)
+      End If
+      Dim isStaticArray = Not m_arrayModeDynamic
+      If bounds Is Nothing Then
+        Dim variable = If(m_function Is Nothing,
+                       DirectCast(New GlobalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DefaultType, isCommon), VariableSymbol),
+                       DirectCast(New LocalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DefaultType, isCommon), VariableSymbol))
+        Return New BoundVariableDeclaration(variable, Nothing)
+      Else
+        Dim variable = New VariableSymbol(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType, isCommon)
+        Return New BoundVariableDeclaration(variable, Nothing)
+      End If
+    End Function
+
+Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, dimensionCount As Integer, Optional isStaticArray As Boolean = False, Optional isCommon As Boolean = False) As VariableSymbol
       Dim name = If(identifier.Text, "?")
       Dim [declare] = Not identifier.IsMissing
       Dim variable = If(m_function Is Nothing,
-                       DirectCast(New GlobalArraySymbol(name, type, lower, upper, isStaticArray, dimensionCount), VariableSymbol),
-                       DirectCast(New LocalArraySymbol(name, type, lower, upper, isStaticArray, dimensionCount), VariableSymbol))
+                       DirectCast(New GlobalArraySymbol(name, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType, isCommon), VariableSymbol),
+                       DirectCast(New LocalArraySymbol(name, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType, isCommon), VariableSymbol))
       If [declare] Then
         m_scope.TryDeclareVariable(variable)
       End If
@@ -1770,12 +1810,12 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return BindVariableDeclarationWithSource(identifier, isReadOnly, type, VariableTypeSource.DefaultType, constant)
     End Function
 
-    Private Function BindVariableDeclarationWithSource(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, typeSource As VariableTypeSource, Optional constant As BoundConstant = Nothing) As VariableSymbol
+Private Function BindVariableDeclarationWithSource(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, typeSource As VariableTypeSource, Optional constant As BoundConstant = Nothing, Optional isCommon As Boolean = False) As VariableSymbol
       Dim name = If(identifier.Text, "?")
       Dim [declare] = Not identifier.IsMissing
       Dim variable = If(m_function Is Nothing,
-                        DirectCast(New GlobalVariableSymbol(name, isReadOnly, type, constant, typeSource), VariableSymbol),
-                        DirectCast(New LocalVariableSymbol(name, isReadOnly, type, constant, typeSource), VariableSymbol))
+                        DirectCast(New GlobalVariableSymbol(name, isReadOnly, type, constant, typeSource, isCommon), VariableSymbol),
+                        DirectCast(New LocalVariableSymbol(name, isReadOnly, type, constant, typeSource, isCommon), VariableSymbol))
       If [declare] AndAlso Not m_scope.TryDeclareVariable(variable) Then
         Diagnostics.ReportSymbolAlreadyDeclared(identifier.Location, name)
       End If
@@ -1799,7 +1839,26 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
+Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
+    End Function
+
+    Private Function BindCommonStatement(syntax As CommonStatementSyntax) As BoundStatement
+      Dim boundDeclarations = ImmutableArray.CreateBuilder(Of BoundVariableDeclaration)
+      Dim isShared = syntax.SharedKeyword IsNot Nothing
+
+      For Each variableNode In syntax.Variables
+        If TypeOf variableNode Is VariableDeclarationSyntax Then
+          Dim variableDecl = CType(variableNode, VariableDeclarationSyntax)
+          Dim boundDecl = CType(BindVariableDeclaration(variableDecl, True), BoundVariableDeclaration)
+          Dim variable = boundDecl.Variable
+          If Not m_scope.TryDeclareVariable(variable) Then
+            Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+          End If
+          boundDeclarations.Add(boundDecl)
+        End If
+      Next
+
+      Return New BoundCommonStatement(boundDeclarations.ToImmutable(), isShared)
     End Function
 
     Private Function BindRedimStatement(syntax As RedimStatementSyntax) As BoundStatement

@@ -14,7 +14,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Variable
 
-    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource)
+    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource, isCommon As Boolean)
       MyBase.New(name)
       Me.IsReadOnly = False
       Me.IsArray = isArray
@@ -25,13 +25,14 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.IsStaticArray = isStaticArray
       Me.DimensionCount = dimensionCount
       Me.TypeSource = typeSource
+      Me.IsCommon = isCommon
     End Sub
 
     Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer)
-      Me.New(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType)
+      Me.New(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType, False)
     End Sub
 
-    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource)
+    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource, isCommon As Boolean)
       MyBase.New(name)
       Me.IsReadOnly = isReadOnly
       Me.Type = type
@@ -41,10 +42,11 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.Upper = Nothing
       Me.DimensionCount = 0
       Me.TypeSource = typeSource
+      Me.IsCommon = isCommon
     End Sub
 
     Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant)
-      Me.New(name, isReadOnly, type, constant, VariableTypeSource.DefaultType)
+      Me.New(name, isReadOnly, type, constant, VariableTypeSource.DefaultType, False)
     End Sub
 
     Public ReadOnly Property IsReadOnly As Boolean
@@ -56,6 +58,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Friend ReadOnly Property IsStaticArray As Boolean
     Public ReadOnly Property DimensionCount As Integer
     Public ReadOnly Property TypeSource As VariableTypeSource
+    Public ReadOnly Property IsCommon As Boolean
 
 Public Overrides Function ToString() As String
       Dim typeSourceStr = ""

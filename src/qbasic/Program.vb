@@ -298,10 +298,27 @@ Friend Module Program
         writer.Write(trivia.Text)
       Next
     Else
-      ' For non-token nodes, recursively process children
-      For Each child In node.GetChildren()
-        WriteNodeWithTrivia(writer, child)
-      Next
+      ' Special handling for statements that need custom formatting
+      If TypeOf node Is CommonStatementSyntax Then
+        Dim commonStmt = CType(node, CommonStatementSyntax)
+        WriteNodeWithTrivia(writer, commonStmt.CommonKeyword)
+        If commonStmt.SharedKeyword IsNot Nothing Then
+          writer.Write(" ")
+          WriteNodeWithTrivia(writer, commonStmt.SharedKeyword)
+        End If
+        writer.Write(" ")
+        For i = 0 To commonStmt.Variables.Length - 1
+          WriteNodeWithTrivia(writer, commonStmt.Variables(i))
+          If i < commonStmt.Variables.Length - 1 Then
+            writer.Write(", ")
+          End If
+        Next
+      Else
+        ' For non-token nodes, recursively process children
+        For Each child In node.GetChildren()
+          WriteNodeWithTrivia(writer, child)
+        Next
+      End If
     End If
   End Sub
 

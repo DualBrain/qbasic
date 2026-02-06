@@ -1,8 +1,8 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 
 Namespace Global.QB.CodeAnalysis.Syntax
 
-  Friend Class CommonStatementSyntax
+  Public Class CommonStatementSyntax
     Inherits StatementSyntax
 
     Public Sub New(tree As SyntaxTree, commonKeyword As SyntaxToken, sharedKeyword As SyntaxToken, variables As ImmutableArray(Of SyntaxNode))

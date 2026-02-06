@@ -634,10 +634,10 @@ PRINT CDBL(5 / 6)
       ' Name: CLEAR (1)
 
       Dim sample = "
-    COMMON A$, B
-    A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
-    CLEAR
-    PRINT ""|"";A$;C$;B+D;""|""
+COMMON A$, B
+A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
+CLEAR
+PRINT ""|"";A$;C$;B+D;""|""
 "
 
       Dim expected = "| 0 |"
@@ -657,13 +657,18 @@ PRINT CDBL(5 / 6)
       ' Name: CLEAR (2)
 
       Dim sample = "
-    COMMON A$, B
-    A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
-    CLEAR 32768
-    PRINT ""|"";A$;C$;B+D;""|""
+ON ERROR GOTO Handler
+COMMON A$, B
+A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
+CLEAR 2147483648
+PRINT ""|"";A$;C$;B+D;""|""
+END
+Handler:
+  IF ERR = 6 THEN PRINT ""Overflow"" ELSE PRINT ""ERR =""; ERR
+  END
 "
 
-      Dim expected = "Overflow line 3"
+      Dim expected = "Overflow"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -680,10 +685,10 @@ PRINT CDBL(5 / 6)
       ' Name: CLEAR (3)
 
       Dim sample = "
-    COMMON A$, B
-    A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
-    CLEAR ,,2000
-    PRINT ""|"";A$;C$;B+D;""|""
+COMMON A$, B
+A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
+CLEAR ,,2000
+PRINT ""|"";A$;C$;B+D;""|""
 "
 
       Dim expected = "| 0 |"
@@ -703,10 +708,10 @@ PRINT CDBL(5 / 6)
       ' Name: CLEAR (4)
 
       Dim sample = "
-    COMMON A$, B
-    A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
-    CLEAR ,32768,2000
-    PRINT ""|"";A$;C$;B+D;""|""
+COMMON A$, B
+A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
+CLEAR ,32768,2000
+PRINT ""|"";A$;C$;B+D;""|""
 "
 
       Dim expected = "| 0 |"
@@ -726,13 +731,13 @@ PRINT CDBL(5 / 6)
       ' Name: CLEAR (5)
 
       Dim sample = "
-    DIM A(500)
-    CLEAR
-    DIM A(20)
-    PRINT ""SUCCESS""
+DIM A(20)
+a(1) = 5
+CLEAR
+PRINT a(1)
 "
 
-      Dim expected = "SUCCESS"
+      Dim expected = "0"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

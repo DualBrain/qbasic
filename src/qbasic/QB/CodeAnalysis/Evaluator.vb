@@ -341,7 +341,9 @@ Namespace Global.QB.CodeAnalysis
               QBLib.Video.CIRCLE(x, y, radius, color, start, [end], aspect)
               index += 1
             Case BoundNodeKind.ClearStatement
+              EvaluateClearStatement(CType(s, BoundClearStatement))
               index += 1
+
             Case BoundNodeKind.ClsStatement
               Debug.WriteLine("CLS")
               Dim cs = CType(s, BoundClsStatement)
@@ -2840,6 +2842,115 @@ End Sub
         m_textWriters.Clear()
       End If
     End Sub
+
+    Private Sub EvaluateClearStatement(node As BoundClearStatement)
+
+      Dim dummyValue1 As Single = -1
+      Dim dummyValue2 As Single = -1
+      Dim stackSpace As Single = -1
+
+      If node.DummyExpression1 IsNot Nothing Then dummyValue1 = CSng(EvaluateExpression(node.DummyExpression1))
+      If node.DummyExpression2 IsNot Nothing Then dummyValue2 = CSng(EvaluateExpression(node.DummyExpression1))
+      If node.StackSpaceExpression IsNot Nothing Then stackSpace = CSng(EvaluateExpression(node.StackSpaceExpression))
+      Dim emptyClose = New BoundCloseStatement(ImmutableArray(Of BoundExpression).Empty)
+
+      If dummyValue1 <> -1 Then
+        If dummyValue1 > Short.MaxValue Then Throw New QBasicRuntimeException(ErrorCode.Overflow)
+      End If
+
+      EvaluateCloseStatement(emptyClose)
+
+      ResetVariableState()
+      ResetEventState()
+      ResetErrorState()
+      ResetTimerState()
+      ResetPenState()
+      ResetStrigState()
+
+      m_data.Clear()
+      m_dataIndex = 0
+
+      ' Sound handling is not implemented yet.
+    End Sub
+
+    Private Sub ResetVariableState()
+      m_arrayBounds.Clear()
+      For Each variable In m_globalVariables
+        If variable.IsArray Then
+          m_globals(variable.Name) = InitializeArray(variable)
+        Else
+          m_globals(variable.Name) = DefaultScalarValue(variable.Type)
+        End If
+      Next
+      m_locals.Clear()
+      m_locals.Push(New Dictionary(Of String, Object))
+    End Sub
+
+    Private Function InitializeArray(variable As VariableSymbol) As List(Of Object)
+      Dim lower = If(variable.Lower IsNot Nothing, CInt(EvaluateExpression(variable.Lower)), 0)
+      Dim upper = If(variable.Upper IsNot Nothing, CInt(EvaluateExpression(variable.Upper)), 10)
+      Dim length = Math.Max(0, upper - lower + 1)
+      Dim result = New List(Of Object)(length)
+      Dim defaultValue = DefaultScalarValue(variable.Type)
+      For i = 0 To length - 1
+        result.Add(defaultValue)
+      Next
+      m_arrayBounds(variable.Name) = (lower, upper)
+      Return result
+    End Function
+
+    Private Function DefaultScalarValue(type As TypeSymbol) As Object
+      If type Is TypeSymbol.String Then
+        Return ""
+      End If
+      Return 0
+    End Function
+
+    Private Sub ResetEventState()
+      For i = 0 To m_comHandlerTargets.Length - 1
+        m_comHandlerTargets(i) = Nothing
+        m_comStates(i) = TimerState.Off
+      Next
+
+      For i = 0 To m_keyHandlerTargets.Length - 1
+        m_keyHandlerTargets(i) = Nothing
+        m_keyStates(i) = TimerState.Off
+      Next
+
+      m_playHandlerTarget = Nothing
+      m_playState = TimerState.Off
+      m_playQueueSize = 0
+
+      m_penHandlerTarget = Nothing
+      m_penState = TimerState.Off
+    End Sub
+
+    Private Sub ResetErrorState()
+      ClearError()
+      m_errorHandlerTarget = Nothing
+      m_errorResumeNext = False
+    End Sub
+
+    Private Sub ResetTimerState()
+      m_timerHandlerTarget = Nothing
+      m_timerState = TimerState.Off
+      m_timerInterval = 0
+      m_timerNextTrigger = DateTime.MinValue
+      m_timerEventPending = False
+    End Sub
+
+    Private Sub ResetPenState()
+      m_penHandlerTarget = Nothing
+      m_penState = TimerState.Off
+    End Sub
+
+    Private Sub ResetStrigState()
+      For i = 0 To m_strigHandlerTargets.Length - 1
+        m_strigHandlerTargets(i) = Nothing
+        m_strigStates(i) = TimerState.Off
+      Next
+    End Sub
+
 
     Private Sub EvaluateLineInputFileStatement(node As BoundLineInputFileStatement)
       Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))

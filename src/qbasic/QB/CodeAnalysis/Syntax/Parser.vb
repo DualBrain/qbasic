@@ -794,23 +794,24 @@ Namespace Global.QB.CodeAnalysis.Syntax
       'QBasic: CLEAR [,,stack&]
 
       Dim clearKeyword = MatchToken(SyntaxKind.ClearKeyword)
-      Dim maxBytesCommaToken As SyntaxToken = Nothing
-      Dim stackSpaceCommaToken As SyntaxToken = Nothing
-      Dim maxBytesExpression As ExpressionSyntax = Nothing
+      Dim commaToken1 As SyntaxToken = Nothing
+      Dim commaToken2 As SyntaxToken = Nothing
+      Dim dummyExpression1 As ExpressionSyntax = Nothing
+      Dim dummyExpression2 As ExpressionSyntax = Nothing
       Dim stackSpaceExpression As ExpressionSyntax = Nothing
+
+      If IsPossibleExpression() Then dummyExpression1 = ParseExpression()
       If Current.Kind = SyntaxKind.CommaToken Then
-        maxBytesCommaToken = MatchToken(SyntaxKind.CommaToken)
-      End If
-      If maxBytesCommaToken IsNot Nothing Then
+        commaToken1 = MatchToken(SyntaxKind.CommaToken)
         If IsPossibleExpression() Then
-          maxBytesExpression = ParseExpression()
+          dummyExpression2 = ParseExpression()
         End If
         If Current.Kind = SyntaxKind.CommaToken Then
-          stackSpaceCommaToken = MatchToken(SyntaxKind.CommaToken)
+          commaToken2 = MatchToken(SyntaxKind.CommaToken)
           stackSpaceExpression = ParseExpression()
         End If
       End If
-      Return New ClearStatementSyntax(m_syntaxTree, clearKeyword, maxBytesCommaToken, maxBytesExpression, stackSpaceCommaToken, stackSpaceExpression)
+      Return New ClearStatementSyntax(m_syntaxTree, clearKeyword, dummyExpression1, commaToken1, dummyExpression1, commaToken2, stackSpaceExpression)
 
     End Function
 

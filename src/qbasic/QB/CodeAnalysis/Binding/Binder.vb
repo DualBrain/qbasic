@@ -863,9 +863,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindClearStatement(syntax As ClearStatementSyntax) As BoundStatement
-      Dim maxBytesExpression = If(syntax.MaxBytesExpression IsNot Nothing, BindExpression(syntax.MaxBytesExpression), Nothing)
+      Dim dummyExpression1 = If(syntax.DummyExpression1 IsNot Nothing, BindExpression(syntax.DummyExpression1), Nothing)
+      Dim dummyExpression2 = If(syntax.DummyExpression2 IsNot Nothing, BindExpression(syntax.DummyExpression2), Nothing)
       Dim stackSpaceExpression = If(syntax.StackSpaceExpression IsNot Nothing, BindExpression(syntax.StackSpaceExpression), Nothing)
-      Return New BoundClearStatement(maxBytesExpression, stackSpaceExpression)
+      Return New BoundClearStatement(dummyExpression1, dummyExpression2, stackSpaceExpression)
     End Function
 
     Private Function BindClsStatement(syntax As ClsStatementSyntax) As BoundStatement

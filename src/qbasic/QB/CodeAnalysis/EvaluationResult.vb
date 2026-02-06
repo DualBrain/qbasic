@@ -12,7 +12,7 @@ Namespace Global.QB.CodeAnalysis
       Me.ChainRequest = Nothing
     End Sub
 
-    Sub New(diagnostics As ImmutableArray(Of Diagnostic), value As Object, chainRequest As ChainRequestException)
+    Sub New(diagnostics As ImmutableArray(Of Diagnostic), value As Object, chainRequest As ChainRequest)
       Me.Diagnostics = diagnostics
       Me.Value = value
       ErrorDiagnostics = diagnostics.Where(Function(d) d.IsError).ToImmutableArray
@@ -30,7 +30,7 @@ Namespace Global.QB.CodeAnalysis
     ''' <summary>
     ''' Contains chain request information if execution requested CHAIN.
     ''' </summary>
-    Public ReadOnly Property ChainRequest As ChainRequestException
+    Public ReadOnly Property ChainRequest As ChainRequest
 
   End Class
 

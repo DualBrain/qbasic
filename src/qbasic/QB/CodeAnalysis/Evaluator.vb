@@ -46,6 +46,9 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerState As TimerState = TimerState.Off ' Current timer state
     Private m_timerNextTrigger As DateTime = DateTime.MinValue ' Next trigger time
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
+    
+    ' Chain request state
+    Private m_chainRequest As ChainRequest = Nothing
 
     ' COM event state (channels 1-2)
     Private ReadOnly m_comHandlerTargets As Object() = {Nothing, Nothing} ' Targets for ON COM(n) GOSUB
@@ -173,16 +176,28 @@ Namespace Global.QB.CodeAnalysis
         Return m_globals
       End Get
     End Property
+    
+    ''' <summary>
+    ''' Gets the chain request if evaluation encountered a CHAIN statement.
+    ''' </summary>
+    Public ReadOnly Property ChainRequest As ChainRequest
+      Get
+        Return m_chainRequest
+      End Get
+    End Property
 
     Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), Optional commandLineArgs As String() = Nothing)
 
-      m_program = program
+m_program = program
       m_globals = New Dictionary(Of String, Object)
       For Each kv In variables
         m_globals(kv.Key.Name) = kv.Value
       Next
       m_globalVariables = globalVariables
       m_commandLineArgs = If(commandLineArgs, Array.Empty(Of String)())
+      
+      ' Restore any preserved COMMON variables
+      CommonVariablePreserver.RestoreCommonVariables(Me)
       m_locals.Push(New Dictionary(Of String, Object))
 
       Dim current = program
@@ -278,6 +293,11 @@ Namespace Global.QB.CodeAnalysis
         If CheckTimerEvent(index, localLabelToIndex) Then
           Continue While ' Timer event triggered, restart loop
         End If
+        
+        ' Check for chain request
+        If m_chainRequest IsNot Nothing Then
+          Exit While ' Chain requested, exit evaluation
+        End If
 
         Dim s = body.Statements(index)
         'Debug.WriteLine($"{index}:{s.Kind}")
@@ -311,8 +331,12 @@ Namespace Global.QB.CodeAnalysis
               System.IO.Directory.SetCurrentDirectory(value)
               index += 1
             Case BoundNodeKind.ChainStatement
-              ' Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
               EvaluateChainStatement(CType(s, BoundChainStatement))
+              ' Check if chain request was set
+              If m_chainRequest IsNot Nothing Then
+                ' Chain requested, exit evaluation early
+                Return Nothing
+              End If
               index += 1
             Case BoundNodeKind.CircleStatement
               Dim circle = CType(s, BoundCircleStatement)
@@ -710,6 +734,9 @@ Namespace Global.QB.CodeAnalysis
               m_err = ErrorCode.BadFileMode
             ElseIf ex.GetType = GetType(ObjectDisposedException) Then
               m_err = ErrorCode.BadFileMode
+            ElseIf TypeOf ex Is ChainRequest Then
+              ' Don't set error for ChainRequest - let it propagate
+              Throw
             Else
               m_err = ErrorCode.Internal
             End If
@@ -2765,7 +2792,9 @@ Namespace Global.QB.CodeAnalysis
       End Select
 
       ' For COM ports, handle differently (not implemented yet)
-      If fileName.ToUpper().StartsWith("COM") Then
+      If fileName.Length > 4 AndAlso
+         fileName.Substring(4, 1) = ":" AndAlso
+         fileName.ToUpper().StartsWith("COM") Then
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       End If
 
@@ -2859,8 +2888,19 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateChainStatement(node As BoundChainStatement)
-      ' For now, just throw advanced feature to show it's working
-      Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+      Try
+        Dim filename = CStr(EvaluateExpression(node.Filename))
+        Dim lineNumber As Integer? = Nothing
+        If node.OptionalLine IsNot Nothing Then
+          lineNumber = CInt(EvaluateExpression(node.OptionalLine))
+        End If
+
+        ' Throw chain request exception to interrupt evaluation
+        Throw New ChainRequest(filename, lineNumber)
+      Catch ex As QBasicRuntimeException
+        ' Re-throw runtime exceptions that occur during evaluation
+        Throw
+      End Try
     End Sub
 
     Private Sub ResetVariableState()

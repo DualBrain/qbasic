@@ -1,13 +1,10 @@
 Namespace Global.QB.CodeAnalysis
 
   ''' <summary>
-  ''' Exception thrown when a CHAIN statement requests file chaining.
-  ''' This allows the evaluation system to signal that execution should
-  ''' continue with a new file while preserving COMMON variables.
+  ''' Contains information about a CHAIN request from program execution.
   ''' </summary>
-  Public NotInheritable Class ChainRequestException
+  Public NotInheritable Class ChainRequest
     Inherits Exception
-
     Public Sub New(filename As String, Optional lineNumber As Integer? = Nothing)
       MyBase.New($"CHAIN request: {filename}{If(lineNumber.HasValue, $", {lineNumber.Value}", "")}")
       Me.Filename = filename

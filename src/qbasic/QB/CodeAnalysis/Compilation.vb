@@ -184,14 +184,14 @@ Namespace Global.QB.CodeAnalysis
 
       Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, commandLineArgs)
       Dim value As Object = Nothing
-      Dim chainRequest As ChainRequestException = Nothing
+      Dim chainRequest As ChainRequest = Nothing
       Try
         value = evaluator.Evaluate
-      Catch ex As ChainRequestException
+      Catch ex As ChainRequest
         chainRequest = ex
-        ' TODO: Fix COMMON variable preservation
-        ' Dim commonStatements = GlobalScope.Statements.OfType(Of BoundCommonStatement)().ToImmutableArray()
-        ' CommonVariablePreserver.PreserveCommonVariables(evaluator, commonStatements)
+        ' Preserve COMMON variables before evaluation ends
+        Dim commonStatements = GlobalScope.Statements.OfType(Of BoundCommonStatement)().ToImmutableArray()
+        CommonVariablePreserver.PreserveCommonVariables(evaluator, commonStatements)
       Finally
         ' Copy the evaluator's globals back to the caller's variables dictionary
         If evaluator.Globals IsNot Nothing AndAlso evaluator.Globals.Count > 0 Then

@@ -812,6 +812,7 @@ PRINT ""SUCCESS""
       ' Name: COMMON (3)
 
       Dim sample = "
+ON ERROR GOTO HANDLER
 ' Set common variables.
 COMMON a, b, c
 ' Create chained program.
@@ -824,9 +825,14 @@ CLOSE #1
 a = 1: b = 2: c = 3
 ' Chain to chained target.
 CHAIN ""COMMON.BAS""
+END
+HANDLER:
+  IF ERR = 73 THEN PRINT ""Advanced Feature"" ELSE PRINT ""ERR =""; ERR
+  END
 "
 
-      Dim expected = "1 2 3"
+      'Dim expected = "1 2 3"
+      Dim expected = "Advanced Feature"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

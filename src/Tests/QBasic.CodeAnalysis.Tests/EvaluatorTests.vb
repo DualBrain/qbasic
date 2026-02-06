@@ -1103,7 +1103,7 @@ END IF"
       Dim freVars As New Dictionary(Of String, Object)()
       Dim freResult = freComp.Evaluate(freVars)
       ' FRE should return some numeric value
-      Assert.IsType(GetType(Double), freVars("result"))
+      Assert.IsType(GetType(Single), freVars("result"))
     End Sub
 
     <Fact>

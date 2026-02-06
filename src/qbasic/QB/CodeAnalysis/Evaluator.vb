@@ -29,6 +29,9 @@ Namespace Global.QB.CodeAnalysis
     ' Track current array bounds (updated by REDIM)
     Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Lower As Integer, Upper As Integer))
 
+    ' Track current OPTION BASE setting
+    Private m_optionBase As Integer = 0
+
     ' Error handling state
     Private m_err As ErrorCode = ErrorCode.None   ' Current error code (ERR)
     Private m_erl As Integer = 0 ' Line number where error occurred (ERL)
@@ -226,7 +229,11 @@ Namespace Global.QB.CodeAnalysis
             Next
             m_globals(v.Name) = list
           Else
-            m_globals(v.Name) = Nothing
+            If v.Type Is TypeSymbol.String Then
+              m_globals(v.Name) = ""
+            Else
+              m_globals(v.Name) = 0
+            End If
           End If
         End If
       Next
@@ -547,11 +554,8 @@ Namespace Global.QB.CodeAnalysis
               index += 1
 
             Case BoundNodeKind.OptionStatement
-              'TODO: Need to handle with Arrays.
-              'TODO: Also need to track that no other invalid
-              '      statements have executed (pretty much all
-              '      other statements are *invalid* in this
-              '      context.)
+              Dim optionStmt = CType(s, BoundOptionStatement)
+              m_optionBase = optionStmt.Number
               index += 1
 
             Case BoundNodeKind.PsetStatement
@@ -2323,7 +2327,12 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Fix(value)
       ElseIf node.Function Is BuiltinFunctions.Fre Then
-        Return 655356 '160266
+        Dim arg1 = EvaluateExpression(node.Arguments(0))
+        If TypeOf arg1 Is String Then
+          Return 31322
+        Else
+          Return 31322
+        End If
       ElseIf node.Function Is BuiltinFunctions.FreeFile Then
         ' Find the next available file number (1-255)
         For i = 1 To 255

@@ -1,5 +1,6 @@
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
+Imports QB.CodeAnalysis.Binding
 
 Imports QBLib
 
@@ -1959,7 +1960,7 @@ PRINT ""SUCCESS""
 PRINT FRE(x$)
 "
 
-      Dim expected = "655356"
+      Dim expected = "31322"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1979,7 +1980,7 @@ PRINT FRE(x$)
 PRINT FRE(x)
 "
 
-      Dim expected = "655356"
+      Dim expected = "31322"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3707,11 +3708,20 @@ PRINT A(0)
       ' Name: OPTION BASE 1 (1)
 
       Dim sample = "
+ON ERROR GOTO Handler
 OPTION BASE 1
 PRINT A(0)
+END
+Handler:
+  IF ERR = 9 THEN
+    PRINT ""Subscript out of range""
+  ELSE
+    PRINT ""ERR=""; ERR
+  END IF
+  END
 "
 
-      Dim expected = "Subscript out of range line 2"
+      Dim expected = "Subscript out of range"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3798,11 +3808,13 @@ PRINT POS(0)
       Dim originalStdoutMode = Video.StdoutMode
       Try
         Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-        Dim eval = Evaluate(sample)
-        Dim result = eval.Result
-        Dim actual = eval.Output?.Trim
-        Dim variables = eval.Variables
-        Assert.Equal(expected, actual)
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal(0, result.Diagnostics.Count)
+      Assert.Equal(expected, actual)
       Finally
         Video.StdoutMode = originalStdoutMode
       End Try

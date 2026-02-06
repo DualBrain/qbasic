@@ -32,7 +32,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Exp As New FunctionSymbol("exp", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)
     Public ReadOnly FileAttr As New FunctionSymbol("fileattr", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
     Public ReadOnly Fix As New FunctionSymbol("fix", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)
-    Public ReadOnly Fre As New FunctionSymbol("fre", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
+    Public ReadOnly Fre As New FunctionSymbol("fre", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any, 0)), TypeSymbol.Single)
     'Public ReadOnly FreeFile As New FunctionSymbol("freefile", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
     Public ReadOnly FreeFile As New FunctionSymbol("freefile", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.Integer)
     Public ReadOnly Int As New FunctionSymbol("int", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)

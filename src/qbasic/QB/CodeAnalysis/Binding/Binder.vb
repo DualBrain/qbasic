@@ -733,7 +733,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim variableSymbol = m_scope.TryLookupVariable(syntax.Identifier.Text)
       If variableSymbol IsNot Nothing AndAlso Not variableSymbol.IsArray AndAlso syntax.Arguments.Count = 1 Then
         ' Redeclare scalar as array
-        Dim lowerBound = New BoundLiteralExpression(0)
+        Dim lowerBound = New BoundLiteralExpression(m_optionBase)
         Dim upperBound = New BoundLiteralExpression(10)
         variableSymbol = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
       End If
@@ -801,8 +801,8 @@ Namespace Global.QB.CodeAnalysis.Binding
       ' Not function, check for automatic array dimensioning
       If variableSymbol Is Nothing AndAlso syntax.Arguments.Count = 1 Then
         Dim index = BindExpression(syntax.Arguments(0))
-        ' Create automatic array with bounds 0-10
-        Dim lowerBound = New BoundLiteralExpression(0)
+        ' Create automatic array with bounds [OPTION BASE]-10
+        Dim lowerBound = New BoundLiteralExpression(m_optionBase)
         Dim upperBound = New BoundLiteralExpression(10)
         Dim autoArray = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
         Return New BoundArrayAccessExpression(autoArray, index)
@@ -1900,7 +1900,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim dimension = CType(dimensions(0), DimensionClauseSyntax)
       Dim lowerSyntax = dimension.OptionalLower
       Dim upperSyntax = dimension.Upper
-      lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(m_optionBase))
+        lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(0))
       upper = BindExpression(upperSyntax)
     End Sub
 

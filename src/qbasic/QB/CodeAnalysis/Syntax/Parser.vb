@@ -811,7 +811,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
           stackSpaceExpression = ParseExpression()
         End If
       End If
-      Return New ClearStatementSyntax(m_syntaxTree, clearKeyword, dummyExpression1, commaToken1, dummyExpression1, commaToken2, stackSpaceExpression)
+      Return New ClearStatementSyntax(m_syntaxTree, clearKeyword, dummyExpression1, commaToken1, dummyExpression2, commaToken2, stackSpaceExpression)
 
     End Function
 

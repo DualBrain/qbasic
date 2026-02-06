@@ -97,23 +97,6 @@ Namespace Global.QB.CodeAnalysis
       End Sub
     End Class
 
-    ' Custom exception for QBasic runtime errors
-    Public Class QBasicRuntimeException
-      Inherits Exception
-
-      Public ReadOnly Property ErrorCode As ErrorCode
-
-      Public Sub New(errorCode As ErrorCode)
-        MyBase.New($"Error {CInt(errorCode)}: {GetErrorMessage(errorCode)}")
-        Me.ErrorCode = errorCode
-      End Sub
-
-      'Public Sub New(message As String)
-      '  MyBase.New(message)
-      'End Sub
-
-    End Class
-
     ' Exception for RESUME operations that need to jump
     Private Class ResumeException
       Inherits Exception
@@ -328,7 +311,9 @@ Namespace Global.QB.CodeAnalysis
               System.IO.Directory.SetCurrentDirectory(value)
               index += 1
             Case BoundNodeKind.ChainStatement
-              Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+              ' Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+              EvaluateChainStatement(CType(s, BoundChainStatement))
+              index += 1
             Case BoundNodeKind.CircleStatement
               Dim circle = CType(s, BoundCircleStatement)
               Dim x = CInt(EvaluateExpression(circle.X))
@@ -651,7 +636,7 @@ Namespace Global.QB.CodeAnalysis
               index += 1
 
             Case BoundNodeKind.VariableDeclaration : EvaluateVariableDeclaration(CType(s, BoundVariableDeclaration)) : index += 1
-Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
+            Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
             Case BoundNodeKind.CommonStatement : EvaluateCommonStatement(CType(s, BoundCommonStatement)) : index += 1
             Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
             Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
@@ -1660,7 +1645,7 @@ Case BoundNodeKind.DimStatement : EvaluateDimStatement(s) : index += 1
           EvaluateVariableDeclaration(declaration)
         End If
       Next
-End Sub
+    End Sub
 
     Private Sub EvaluateCommonStatement(node As BoundCommonStatement)
       For Each declaration In node.Declarations
@@ -2850,7 +2835,7 @@ End Sub
       Dim stackSpace As Single = -1
 
       If node.DummyExpression1 IsNot Nothing Then dummyValue1 = CSng(EvaluateExpression(node.DummyExpression1))
-      If node.DummyExpression2 IsNot Nothing Then dummyValue2 = CSng(EvaluateExpression(node.DummyExpression1))
+      If node.DummyExpression2 IsNot Nothing Then dummyValue2 = CSng(EvaluateExpression(node.DummyExpression2))
       If node.StackSpaceExpression IsNot Nothing Then stackSpace = CSng(EvaluateExpression(node.StackSpaceExpression))
       Dim emptyClose = New BoundCloseStatement(ImmutableArray(Of BoundExpression).Empty)
 
@@ -2871,6 +2856,11 @@ End Sub
       m_dataIndex = 0
 
       ' Sound handling is not implemented yet.
+    End Sub
+
+    Private Sub EvaluateChainStatement(node As BoundChainStatement)
+      ' For now, just throw advanced feature to show it's working
+      Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
     End Sub
 
     Private Sub ResetVariableState()

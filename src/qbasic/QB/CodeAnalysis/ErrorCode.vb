@@ -1,6 +1,6 @@
 Namespace Global.QB.CodeAnalysis
 
-  Friend Enum ErrorCode
+  Public Enum ErrorCode
     None = 0
     NextWithoutFor = 1
     Syntax = 2

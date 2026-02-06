@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Friend Class ClearStatementSyntax
     Inherits StatementSyntax
@@ -14,7 +14,7 @@
       Me.ClearKeyword = clearKeyword
       Me.DummyExpression1 = dummyExpression1
       Me.CommaToken1 = commaToken1
-      Me.DummyExpression1 = dummyExpression2
+      Me.DummyExpression2 = dummyExpression2
       Me.CommaToken2 = commaToken2
       Me.StackSpaceExpression = stackSpaceExpression
     End Sub

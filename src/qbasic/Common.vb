@@ -91,9 +91,9 @@ Friend Module Common
 
         result = ChrW(key)
         If capsLock Then
-          If Not shift Then result = CChar($"{result}".ToLower)
-        Else
           If shift Then result = CChar($"{result}".ToLower)
+        Else
+          If Not shift Then result = CChar($"{result}".ToLower)
         End If
 
       Case ConsoleKey.Add : Return "+"c

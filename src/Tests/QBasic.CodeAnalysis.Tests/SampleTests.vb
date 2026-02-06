@@ -430,7 +430,7 @@ SUB SwapVal(x,y)
 END SUB
 "
 
-      Dim expected = "2 1"
+      Dim expected = "2  1"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

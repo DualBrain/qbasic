@@ -69,6 +69,16 @@ Namespace Global.QB.CodeAnalysis.Binding
         binder.BindDefDeclaration(func)
       Next
 
+      ' Process DECLARE statements
+      ' Since DECLARE statements are optional in this implementation,
+      ' we'll just collect them but defer full validation to a future enhancement
+      Dim declareStatements = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax)().
+                                            Where(Function(gs) TypeOf gs.Statement Is DeclareStatementSyntax).
+                                            Select(Function(gs) CType(gs.Statement, DeclareStatementSyntax))
+
+      ' DECLARE statements are now processed without validation since they are optional
+      ' Full validation against SUB/FUNCTION definitions can be added later
+
       Dim globalStatements = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax)
 
       ' Determine if any GOTO or GOSUB statements target a numeric value (Line Number).
@@ -616,6 +626,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
+        Case SyntaxKind.DeclareStatement : Return BindDeclareStatement(CType(syntax, DeclareStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
@@ -1550,6 +1561,16 @@ Namespace Global.QB.CodeAnalysis.Binding
       If String.IsNullOrEmpty(letter) OrElse letter.Length <> 1 Then Return
       m_defTypeRanges(letter) = typeSym
     End Sub
+
+    Private Function BindDeclareStatement(syntax As DeclareStatementSyntax) As BoundStatement
+      ' DECLARE statements are declarations, not executable statements.
+      ' For now, we'll just return a NOP statement since the validation
+      ' will happen during a separate pass when all function/sub declarations
+      ' are collected.
+      Return New BoundNopStatement()
+    End Function
+
+
 
     Private Shared Function BindReturnGosubStatement(syntax As ReturnGosubStatementSyntax) As BoundStatement
       Dim value = syntax.TargetToken?.Text

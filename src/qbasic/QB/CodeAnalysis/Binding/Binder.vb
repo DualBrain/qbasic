@@ -625,6 +625,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.PenStatement : Return BindPenStatement(CType(syntax, PenStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
+        Case SyntaxKind.ChainStatement : Return BindChainStatement(CType(syntax, ChainStatementSyntax))
         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
         Case SyntaxKind.DeclareStatement : Return BindDeclareStatement(CType(syntax, DeclareStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
@@ -841,6 +842,12 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
       Return New BoundChDirStatement(path)
+    End Function
+
+    Private Function BindChainStatement(syntax As ChainStatementSyntax) As BoundStatement
+      Dim filename = BindExpression(syntax.Filename)
+      Dim optionalLine = If(syntax.OptionalLine IsNot Nothing, BindExpression(syntax.OptionalLine), Nothing)
+      Return New BoundChainStatement(filename, optionalLine)
     End Function
 
     Private Function BindCircleStatement(syntax As CircleStatementSyntax) As BoundStatement

@@ -327,6 +327,8 @@ Namespace Global.QB.CodeAnalysis
               Dim value = CStr(EvaluateExpression(chdir.Expression))
               System.IO.Directory.SetCurrentDirectory(value)
               index += 1
+            Case BoundNodeKind.ChainStatement
+              Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
             Case BoundNodeKind.CircleStatement
               Dim circle = CType(s, BoundCircleStatement)
               Dim x = CInt(EvaluateExpression(circle.X))

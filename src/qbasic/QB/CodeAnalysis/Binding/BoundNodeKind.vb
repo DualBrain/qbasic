@@ -12,6 +12,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     BeepStatement
     BlockStatement
     CallStatement
+    ChainStatement
     ChDirStatement
     CircleStatement
     ClearStatement

@@ -198,7 +198,9 @@ Namespace Global.QB.CodeAnalysis.Binding
                   Next
                 End If
                 'Dim toBlock = m_blockFromLabel(gs.Label)
-                Connect(current, toBlock)
+                If toBlock IsNot Nothing Then
+                  Connect(current, toBlock)
+                End If
               Case BoundNodeKind.ConditionalGotoStatement
                 Dim cgs = CType(statement, BoundConditionalGotoStatement)
                 Dim thenBlock = m_blockFromLabel(cgs.Label)
@@ -206,10 +208,20 @@ Namespace Global.QB.CodeAnalysis.Binding
                 Dim negatedCondition = Negate(cgs.Condition)
                 Dim thenCondition = If(cgs.JumpIfTrue, cgs.Condition, negatedCondition)
                 Dim elseCondition = If(cgs.JumpIfTrue, negatedCondition, cgs.Condition)
-                Connect(current, thenBlock, thenCondition)
-                Connect(current, elseBlock, elseCondition)
-              Case BoundNodeKind.ReturnStatement
+                If thenBlock IsNot Nothing Then
+                  Connect(current, thenBlock, thenCondition)
+                End If
+                If elseBlock IsNot Nothing Then
+                  Connect(current, elseBlock, elseCondition)
+                End If
+               Case BoundNodeKind.ReturnStatement
                 Connect(current, m_end)
+              Case BoundNodeKind.OnGotoStatement, BoundNodeKind.OnGosubStatement
+                ' For ON...GOTO and ON...GOSUB, we can't determine which target will be chosen at compile time
+                ' So we treat it like a regular statement and connect to the next block
+                If isLastStatementInBlock AndAlso [next] IsNot Nothing Then
+                  Connect(current, [next])
+                End If
                 'Case BoundNodeKind.ChDirStatement,
                 '     BoundNodeKind.ClearStatement,
                 '     BoundNodeKind.ClsStatement,

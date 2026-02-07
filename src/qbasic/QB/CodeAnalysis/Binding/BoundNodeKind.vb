@@ -51,6 +51,8 @@ Namespace Global.QB.CodeAnalysis.Binding
     OnStrigGosubStatement
     OnPlayGosubStatement
     OnPenGosubStatement
+    OnGotoStatement
+    OnGosubStatement
     ComStatement
     KeyEventStatement
     StrigStatement

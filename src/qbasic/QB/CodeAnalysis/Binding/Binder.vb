@@ -589,6 +589,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OnStrigGosubStatement : Return BindOnStrigGosubStatement(CType(syntax, OnStrigGosubStatementSyntax))
         Case SyntaxKind.OnPlayGosubStatement : Return BindOnPlayGosubStatement(CType(syntax, OnPlayGosubStatementSyntax))
         Case SyntaxKind.OnPenGosubStatement : Return BindOnPenGosubStatement(CType(syntax, OnPenGosubStatementSyntax))
+        Case SyntaxKind.OnGotoStatement : Return BindOnGotoStatement(CType(syntax, OnGotoStatementSyntax))
+        Case SyntaxKind.OnGosubStatement : Return BindOnGosubStatement(CType(syntax, OnGosubStatementSyntax))
         Case SyntaxKind.OpenStatement : Return BindOpenStatement(CType(syntax, OpenStatementSyntax))
         Case SyntaxKind.CloseStatement : Return BindCloseStatement(CType(syntax, CloseStatementSyntax))
         Case SyntaxKind.SeekStatement : Return BindSeekStatement(CType(syntax, SeekStatementSyntax))
@@ -1011,6 +1013,40 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
       Dim label = New BoundLabel(value)
       Return New BoundGotoStatement(label)
+    End Function
+
+    Private Function BindOnGotoStatement(syntax As OnGotoStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression, TypeSymbol.Single)
+      Dim targetsBuilder = ImmutableArray.CreateBuilder(Of BoundLabel)
+      
+      For i = 0 To syntax.Targets.Count - 1 Step 2
+        Dim targetToken = syntax.Targets(i)
+        Dim value = targetToken.Text
+        If IsNumeric(value) Then
+          value = $"{GOTO_LABEL_PREFIX}{value}"
+        End If
+        Dim label = New BoundLabel(value)
+        targetsBuilder.Add(label)
+      Next
+      
+      Return New BoundOnGotoStatement(syntax, expression, targetsBuilder.ToImmutable())
+    End Function
+
+    Private Function BindOnGosubStatement(syntax As OnGosubStatementSyntax) As BoundStatement
+      Dim expression = BindExpression(syntax.Expression, TypeSymbol.Single)
+      Dim targetsBuilder = ImmutableArray.CreateBuilder(Of BoundLabel)
+      
+      For i = 0 To syntax.Targets.Count - 1 Step 2
+        Dim targetToken = syntax.Targets(i)
+        Dim value = targetToken.Text
+        If IsNumeric(value) Then
+          value = $"{GOTO_LABEL_PREFIX}{value}"
+        End If
+        Dim label = New BoundLabel(value)
+        targetsBuilder.Add(label)
+      Next
+      
+      Return New BoundOnGosubStatement(syntax, expression, targetsBuilder.ToImmutable())
     End Function
 
     Private Function BindIfStatement(syntax As IfStatementSyntax) As BoundStatement

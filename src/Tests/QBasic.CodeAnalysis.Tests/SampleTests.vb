@@ -4682,10 +4682,15 @@ Handler:
       ' Name: RETURN (3)
 
       Dim sample = "
-    RETURN
+ON ERROR GOTO Handler
+RETURN
+END
+Handler:
+  PRINT ""ERR =""; ERR
+  END    
 "
 
-      Dim expected = "RETURN without GOSUB line 1"
+      Dim expected = "ERR = 3"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

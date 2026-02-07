@@ -207,7 +207,7 @@ Namespace Global.QB.CodeAnalysis
       Return -1 ' Not found
     End Function
 
-    Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
+    Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of String, Integer), statements As ImmutableArray(Of BoundStatement)) As Boolean
       m_errorResumeIndex = index ' Save current index for RESUME
 
       'Console.WriteLine($"DEBUG: HandlePendingError - m_errorResumeNext={m_errorResumeNext}, m_errorHandlerTarget={m_errorHandlerTarget}")
@@ -237,8 +237,17 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.UndefinedLineNumber)
         End If
       Else
-        ' No error handler, fatal error
-        Throw New QBasicRuntimeException(m_err)
+        ' No error handler, print error directly and exit
+        Dim errorLine = FindLineNumberFromStatements(statements, index)
+        If errorLine > 0 Then
+          Console.WriteLine()
+          Console.WriteLine($"{GetErrorMessage(m_err)} in {errorLine}")
+        Else
+          Console.WriteLine()
+          Console.WriteLine($"{GetErrorMessage(m_err)} in {index + 1}")
+        End If
+        m_errorPending = False
+        index = statements.Length ' Exit the evaluation loop
       End If
 
       Return False
@@ -365,7 +374,7 @@ Namespace Global.QB.CodeAnalysis
 
         ' Check for pending errors before executing next statement
         If m_errorPending Then
-          If HandlePendingError(index, localLabelToIndex) Then
+          If HandlePendingError(index, localLabelToIndex, body.Statements) Then
             Continue While ' Skip to next iteration with updated index
           End If
         End If
@@ -513,6 +522,12 @@ Namespace Global.QB.CodeAnalysis
                 index += 1
               End If
             'index = labelToIndex(gs.Label)
+
+            Case BoundNodeKind.OnGotoStatement
+              EvaluateOnGotoStatement(CType(s, BoundOnGotoStatement), localLabelToIndex, index)
+
+            Case BoundNodeKind.OnGosubStatement
+              EvaluateOnGosubStatement(CType(s, BoundOnGosubStatement), localLabelToIndex, index)
 
             Case BoundNodeKind.HandleCommaStatement : EvaluateHandleCommaStatement(CType(s, BoundHandleCommaStatement)) : index += 1
             Case BoundNodeKind.HandlePrintLineStatement : EvaluateHandlePrintLineStatement(CType(s, BoundHandlePrintLineStatement)) : index += 1
@@ -802,9 +817,9 @@ Namespace Global.QB.CodeAnalysis
             '  Case "Advanced feature unavailable" : m_err = ErrorCode.AdvancedFeature
             '  Case Else : m_err = ErrorCode.Internal
             'End Select
-          End If
+End If
           m_errorPending = True
-          If HandlePendingError(index, localLabelToIndex) Then
+          If HandlePendingError(index, localLabelToIndex, body.Statements) Then
             Continue While
           End If
         Catch ex As Exception
@@ -828,7 +843,7 @@ Namespace Global.QB.CodeAnalysis
             End If
           End If
           m_errorPending = True
-          If HandlePendingError(index, localLabelToIndex) Then
+          If HandlePendingError(index, localLabelToIndex, body.Statements) Then
             Continue While
           End If
         End Try
@@ -3161,6 +3176,89 @@ Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As Im
         Case Else
           stream.Position = position - 1
       End Select
+    End Sub
+
+    Private Sub EvaluateOnGotoStatement(node As BoundOnGotoStatement, labelToIndex As Dictionary(Of String, Integer), ByRef index As Integer)
+      ' Evaluate the expression to get the index
+      Dim result = EvaluateExpression(node.Expression)
+      Dim selector As Integer
+      
+      ' Convert to integer with rounding as per QBasic spec
+      If TypeOf result Is Double Then
+        selector = CInt(Math.Round(CDbl(result)))
+      ElseIf TypeOf result Is Single Then
+        selector = CInt(Math.Round(CSng(result)))
+      ElseIf TypeOf result Is Integer Then
+        selector = CInt(result)
+      Else
+        selector = CInt(CDbl(result))
+      End If
+      
+      ' Check bounds according to QBasic specification:
+      ' - If selector <= 0 or > number of targets: continue to next statement
+      ' - If selector < 0 or > 255: Illegal function call error
+      If selector < 0 OrElse selector > 255 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+      
+      If selector = 0 OrElse selector > node.Targets.Length Then
+        ' Continue to next statement
+        index += 1
+        Return
+      End If
+      
+      ' Jump to the selected target (1-based indexing)
+      Dim targetLabel = node.Targets(selector - 1)
+      Dim targetIndex As Integer
+      If labelToIndex.TryGetValue(targetLabel.Name, targetIndex) Then
+        index = targetIndex
+      Else
+        ' If label not found, continue to next statement
+        index += 1
+      End If
+    End Sub
+
+    Private Sub EvaluateOnGosubStatement(node As BoundOnGosubStatement, labelToIndex As Dictionary(Of String, Integer), ByRef index As Integer)
+      ' Evaluate the expression to get the index
+      Dim result = EvaluateExpression(node.Expression)
+      Dim selector As Integer
+      
+      ' Convert to integer with rounding as per QBasic spec
+      If TypeOf result Is Double Then
+        selector = CInt(Math.Round(CDbl(result)))
+      ElseIf TypeOf result Is Single Then
+        selector = CInt(Math.Round(CSng(result)))
+      ElseIf TypeOf result Is Integer Then
+        selector = CInt(result)
+      Else
+        selector = CInt(CDbl(result))
+      End If
+      
+      ' Check bounds according to QBasic specification:
+      ' - If selector <= 0 or > number of targets: continue to next statement
+      ' - If selector < 0 or > 255: Illegal function call error
+      If selector < 0 OrElse selector > 255 Then
+        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+      End If
+      
+      If selector = 0 OrElse selector > node.Targets.Length Then
+        ' Continue to next statement
+        index += 1
+        Return
+      End If
+      
+      ' Jump to the selected target (1-based indexing) - like GOSUB
+      Dim targetLabel = node.Targets(selector - 1)
+      Dim targetIndex As Integer
+      If labelToIndex.TryGetValue(targetLabel.Name, targetIndex) Then
+        ' Push return address onto stack
+        m_gosubStack.Push(index + 1)
+        ' Jump to subroutine
+        index = targetIndex
+      Else
+        ' If label not found, continue to next statement
+        index += 1
+      End If
     End Sub
 
   End Class

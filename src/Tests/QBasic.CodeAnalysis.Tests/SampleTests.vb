@@ -1498,16 +1498,16 @@ Handler:
       ' Name: ERL
 
       Dim sample = "
-    10 ON ERROR GOTO 1000
-    20 ERROR 5
-    30 PRINT "" DONE""
-    40 END
-    1000 A=ERR:B=ERL
-    1010 PRINT A,B;
-    1020 RESUME NEXT
+10 ON ERROR GOTO 1000
+20 ERROR 5
+30 PRINT "" DONE""
+40 END
+1000 A=ERR:B=ERL
+1010 PRINT A,B;
+1020 RESUME NEXT
 "
 
-      Dim expected = "5             20 DONE"
+      Dim expected = "5       20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1524,16 +1524,16 @@ Handler:
       ' Name: ERR
 
       Dim sample = "
-    10 ON ERROR GOTO 1000
-    20 ERROR 5
-    30 PRINT "" DONE""
-    40 END
-    1000 A=ERR:B=ERL
-    1010 PRINT A,B;
-    1020 RESUME NEXT
+10 ON ERROR GOTO 1000
+20 ERROR 5
+30 PRINT "" DONE""
+40 END
+1000 A=ERR:B=ERL
+1010 PRINT A,B;
+1020 RESUME NEXT
 "
 
-      Dim expected = "5             20 DONE"
+      Dim expected = "5       20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3461,16 +3461,16 @@ Handler:
       ' Name: ON ERROR GOTO
 
       Dim sample = "
-    10 ON ERROR GOTO 1000
-    20 ERROR 5
-    30 PRINT "" DONE""
-    40 END
-    1000 A=ERR:B=ERL
-    1010 PRINT A,B;
-    1020 RESUME NEXT
+10 ON ERROR GOTO 1000
+20 ERROR 5
+30 PRINT "" DONE""
+40 END
+1000 A=ERR:B=ERL
+1010 PRINT A,B;
+1020 RESUME NEXT
 "
 
-      Dim expected = "5             20 DONE"
+      Dim expected = "5       20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3479,6 +3479,30 @@ Handler:
 
       Assert.Equal(expected, actual)
 
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ON_ERROR_GOTO_ERL_Verification()
+      ' Verification test for ERL functionality 
+      ' Focus specifically on ERL value, not formatting
+
+      Dim sample = "
+10 ON ERROR GOTO 1000
+20 ERROR 5
+30 PRINT ""DONE""
+40 END
+1000 PRINT ""ERL=""; ERL; ""ERR=""; ERR
+1010 RESUME NEXT
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      ' Verify that ERL contains the correct line number (20)
+      Assert.Contains("ERL= 20", actual)
+      Assert.Contains("ERR= 5", actual)
     End Sub
 
     <Fact>

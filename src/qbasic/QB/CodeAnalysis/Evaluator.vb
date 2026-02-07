@@ -130,6 +130,57 @@ Namespace Global.QB.CodeAnalysis
       m_errorResumeIndex = -1
     End Sub
 
+    Private Function ExtractLineNumber(syntax As Syntax.StatementSyntax) As Integer
+      If syntax Is Nothing Then Return 0
+      Return CheckNodeForLineNumber(CType(syntax, Syntax.SyntaxNode))
+    End Function
+
+    Private Function CheckNodeForLineNumber(node As Syntax.SyntaxNode) As Integer
+      If TypeOf node Is SyntaxToken Then
+        Dim token = CType(node, SyntaxToken)
+        For Each trivia As SyntaxTrivia In token.LeadingTrivia
+          If trivia.Kind = SyntaxKind.LineNumberTrivia Then
+            Dim lineText = trivia.Text.Trim()
+            If IsNumeric(lineText) Then
+              Return CInt(lineText)
+            End If
+          End If
+        Next
+      End If
+      
+      ' Recursively check children
+      For Each child As Syntax.SyntaxNode In node.GetChildren()
+        Dim lineNumber = CheckNodeForLineNumber(child)
+        If lineNumber > 0 Then Return lineNumber
+      Next
+      
+      Return 0
+    End Function
+
+    Private Function FindLineNumberFromStatements(statements As ImmutableArray(Of BoundStatement), currentIndex As Integer) As Integer
+      ' Look backward from current statement to find the most recent line number
+      For checkIndex = currentIndex To 0 Step -1
+        Dim stmt = statements(checkIndex)
+        
+        ' Check if this statement has syntax we can extract line number from
+        If stmt.Syntax IsNot Nothing Then
+          Dim lineNumber = ExtractLineNumber(stmt.Syntax)
+          If lineNumber > 0 Then Return lineNumber
+        End If
+        
+        ' Check if this is a label statement with a numeric label
+        If TypeOf stmt Is BoundLabelStatement Then
+          Dim labelStmt = CType(stmt, BoundLabelStatement)
+          Dim labelText = labelStmt.Label.Name
+          If IsNumeric(labelText) Then
+            Return CInt(labelText)
+          End If
+        End If
+      Next
+      
+      Return 0
+    End Function
+
     Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
       m_errorResumeIndex = index ' Save current index for RESUME
 
@@ -679,7 +730,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
             Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
             Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
-            Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement)) : index += 1
+            Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement), body.Statements, index) : index += 1
             Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
             Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement), index, localLabelToIndex) : index += 1
@@ -1299,8 +1350,22 @@ Namespace Global.QB.CodeAnalysis
       Throw New ResumeException(m_errorResumeIndex + 1)
     End Sub
 
-    Private Sub EvaluateErrorStatement(node As BoundErrorStatement)
+Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As ImmutableArray(Of BoundStatement), index As Integer)
       Dim errorCode = CType(CInt(EvaluateExpression(node.Expression)), ErrorCode)
+      
+      ' Try to get line number from syntax, fall back to looking at nearby statements
+      Dim lineNumber = ExtractLineNumber(node.Syntax)
+      
+      ' If we can't get line number from syntax, try to find it from the statements list
+      If lineNumber = 0 Then
+        ' Look for the line number by checking statements around the current index
+        lineNumber = FindLineNumberFromStatements(statements, index)
+      End If
+      
+      m_err = errorCode
+      m_erl = lineNumber
+      m_errorPending = True
+      
       'SetError(errorCode)
       Throw New QBasicRuntimeException(errorCode)
       ' Error will be handled by the main evaluation loop

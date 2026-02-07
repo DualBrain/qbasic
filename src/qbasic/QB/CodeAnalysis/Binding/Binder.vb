@@ -524,7 +524,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindErrorStatement(syntax As ErrorStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression)
-      Return New BoundErrorStatement(expression)
+      Return New BoundErrorStatement(syntax, expression)
     End Function
 
     Private Function BindGlobalStatement(syntax As StatementSyntax) As BoundStatement

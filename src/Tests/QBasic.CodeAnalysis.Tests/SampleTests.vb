@@ -2967,13 +2967,53 @@ PRINT LOG(2);"","";LOG(1)
     <Fact>
     Public Sub Sample_MKDStr()
 
+      Dim s As Double = 5.5
+      Dim m1 = QBLib.Core.MKD(s)
+      Dim m2 = QBLib.Core.MKDMBF(s)
+
+      Dim b1_1 = AscW(m1.Substring(0, 1))
+      Dim b1_2 = AscW(m1.Substring(1, 1))
+      Dim b1_3 = AscW(m1.Substring(2, 1))
+      Dim b1_4 = AscW(m1.Substring(3, 1))
+      Dim b1_5 = AscW(m1.Substring(4, 1))
+      Dim b1_6 = AscW(m1.Substring(5, 1))
+      Dim b1_7 = AscW(m1.Substring(6, 1))
+      Dim b1_8 = AscW(m1.Substring(7, 1))
+
+      Dim b2_1 = AscW(m2.Substring(0, 1))
+      Dim b2_2 = AscW(m2.Substring(1, 1))
+      Dim b2_3 = AscW(m2.Substring(2, 1))
+      Dim b2_4 = AscW(m2.Substring(3, 1))
+      Dim b2_5 = AscW(m2.Substring(4, 1))
+      Dim b2_6 = AscW(m2.Substring(5, 1))
+      Dim b2_7 = AscW(m2.Substring(6, 1))
+      Dim b2_8 = AscW(m2.Substring(7, 1))
+
+      Assert.Equal(0, b1_1)
+      Assert.Equal(0, b1_2)
+      Assert.Equal(0, b1_3)
+      Assert.Equal(0, b1_4)
+      Assert.Equal(0, b1_5)
+      Assert.Equal(0, b1_6)
+      Assert.Equal(22, b1_7)
+      Assert.Equal(64, b1_8)
+
+      Assert.Equal(0, b2_1)
+      Assert.Equal(0, b2_2)
+      Assert.Equal(0, b2_3)
+      Assert.Equal(0, b2_4)
+      Assert.Equal(0, b2_5)
+      Assert.Equal(0, b2_6)
+      Assert.Equal(48, b2_7)
+      Assert.Equal(131, b2_8)
+
       ' Name: MKD$
 
       Dim sample = "
-PRINT CVD(MKD$(5.5))
+PRINT CVD(MKD$(5.5)); CVDMBF(MKDMBF$(5.5))
 "
 
-      Dim expected = "5.5"
+      Dim expected = "5.5  5.5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3013,6 +3053,15 @@ PRINT""SUCCESS
 
       ' Name: MKI$
 
+      Dim i As Short = 5
+      Dim v = QBLib.Core.MKI(i)
+
+      Dim b1 = AscW(v.Substring(0, 1))
+      Dim b2 = AscW(v.Substring(1, 1))
+
+      Assert.Equal(5, b1)
+      Assert.Equal(0, b2)
+
       Dim sample = "
 PRINT CVI(MKI$(5))
 "
@@ -3034,15 +3083,56 @@ PRINT CVI(MKI$(5))
       ' Name: MKS$
 
       Dim sample = "
-PRINT CVS(MKS$(5.5))
+PRINT CVS(MKS$(5.5)); CVSMBF(MKSMBF$(5.5))
 "
 
-      Dim expected = "5.5"
+      Dim expected = "5.5  5.5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
+
+      Dim s As Single = 5.5
+      Dim m1 = QBLib.Core.MKS(s)
+      Dim m2 = QBLib.Core.MKSMBF(s)
+      Dim s1 = QBLib.Core.CVS(m1)
+      Dim s2 = QBLib.Core.CVSMBF(m2)
+
+      ' Test what IEEE 754 little-endian bytes would be
+      'Dim ieeeBytes(3) As Byte
+      'BitConverter.GetBytes(s).CopyTo(ieeeBytes, 0)
+
+      Dim b1_1 = AscW(m1.Substring(0, 1))
+      Dim b1_2 = AscW(m1.Substring(1, 1))
+      Dim b1_3 = AscW(m1.Substring(2, 1))
+      Dim b1_4 = AscW(m1.Substring(3, 1))
+
+      Dim b2_1 = AscW(m2.Substring(0, 1))
+      Dim b2_2 = AscW(m2.Substring(1, 1))
+      Dim b2_3 = AscW(m2.Substring(2, 1))
+      Dim b2_4 = AscW(m2.Substring(3, 1))
+
+      'Console.WriteLine($"Current MKS: {b1}, {b2}, {b3}, {b4}")
+      'Console.WriteLine($"IEEE 754 LE: {ieeeBytes(0)}, {ieeeBytes(1)}, {ieeeBytes(2)}, {ieeeBytes(3)}")
+
+      Assert.Equal(0, b1_1)
+      Assert.Equal(0, b1_2)
+      Assert.Equal(176, b1_3)
+      Assert.Equal(64, b1_4)
+
+      Assert.Equal(0, b2_1)
+      Assert.Equal(0, b2_2)
+      Assert.Equal(48, b2_3)
+      Assert.Equal(131, b2_4)
+
+      Console.WriteLine($"MKS bytes: {b1_1}, {b1_2}, {b1_3}, {b1_4}")
+      Console.WriteLine($"MKSMBF bytes: {b2_1}, {b2_2}, {b2_3}, {b2_4}")
+      Console.WriteLine($"CVS result: {s1}")
+      Console.WriteLine($"CVSMBF result: {s2}")
+      
+      Assert.Equal(5.5, s1)
+      Assert.Equal(5.5, s2)
 
       Assert.Equal(expected, actual)
 

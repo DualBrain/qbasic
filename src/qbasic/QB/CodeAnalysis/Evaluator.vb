@@ -2299,27 +2299,24 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.CsrLin Then
         Return QBLib.Video.CSRLIN
       ElseIf node.Function Is BuiltinFunctions.Cvd Then
-        Stop
-        Return Nothing
-      ElseIf node.Function Is BuiltinFunctions.CvdMbf Then
-        Stop
-        Return Nothing
-      ElseIf node.Function Is BuiltinFunctions.Cvi Then
-        ' CVI converts 2-byte binary string to integer
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
-        ' For testing, return a dummy integer value
-        Return 12345
+        Return QBLib.Core.CVD(value)
+      ElseIf node.Function Is BuiltinFunctions.CvdMbf Then
+        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.CVDMBF(value)
+      ElseIf node.Function Is BuiltinFunctions.Cvi Then
+        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.CVI(value)
       ElseIf node.Function Is BuiltinFunctions.Cvl Then
-        Stop
-        Return Nothing
+        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Return Nothing 'QBLib.Core.CVL(value)
       ElseIf node.Function Is BuiltinFunctions.Cvs Then
         ' CVS converts 4-byte binary string to single
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
-        ' For testing, return a dummy single value
-        Return 3.14F
+        Return QBLib.Core.CVS(value)
       ElseIf node.Function Is BuiltinFunctions.CvsMbf Then
-        Stop
-        Return Nothing
+        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.CVSMBF(value)
       ElseIf node.Function Is BuiltinFunctions.Date Then
         Return DateTime.Now.ToString("MM-dd-yyyy")
       ElseIf node.Function Is BuiltinFunctions.Environ Then
@@ -2491,24 +2488,24 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Mkd Then
         ' MKD$ converts double to 8-byte binary string
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
-        Return New String(ChrW(0), 8) ' Return 8-byte string for testing
+        Return QBLib.Core.MKD(value)
       ElseIf node.Function Is BuiltinFunctions.MkdMbf Then
-        Stop
-        Return Nothing
+        Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.MKDMBF(value)
       ElseIf node.Function Is BuiltinFunctions.Mki Then
         ' MKI$ converts integer to 2-byte binary string
-        Dim value = CInt(EvaluateExpression(node.Arguments(0)))
-        Return New String(ChrW(0), 2) ' Return 2-byte string for testing
+        Dim value = CShort(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.MKI(value)
       ElseIf node.Function Is BuiltinFunctions.Mkl Then
         Stop
         Return Nothing
       ElseIf node.Function Is BuiltinFunctions.Mks Then
         ' MKS$ converts single to 4-byte binary string
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
-        Return New String(ChrW(0), 4) ' Return 4-byte string for testing
+        Return QBLib.Core.MKS(value)
       ElseIf node.Function Is BuiltinFunctions.MksMbf Then
-        Stop
-        Return Nothing
+        Dim value = CSng(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.MKSMBF(value)
       ElseIf node.Function Is BuiltinFunctions.Oct Then
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Oct(value)

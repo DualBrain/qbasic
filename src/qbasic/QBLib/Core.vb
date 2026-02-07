@@ -1,4 +1,4 @@
-﻿Namespace Global.QBLib
+Namespace Global.QBLib
 
   Partial Public NotInheritable Class Core
 
@@ -553,7 +553,305 @@
     'End Sub
 
     Public Shared Function QBTimer() As Single
-      Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day), Now)) '+ ((Now.Millisecond \ 10) * 0.01))
+Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day), Now)) '+ ((Now.Millisecond \ 10) * 0.01))
+    End Function
+
+    Public Shared Function CVSMBF(x As String) As Single
+      ' Convert 4-byte MBF string back to Single
+      ' This reverses the MKSMBF operation
+      
+      Dim d(24) As Byte, b(3) As Byte
+      Dim i As Short, j As Short, k As Short
+      Dim n As Short, y As Short, c As Short
+      Dim expt As Short, pnt As Short, pwr As Short
+      Dim tot As Single, stot As Single
+
+      ' Extract bytes in the same order MKSMBF creates them
+      ' MKSMBF returns: ChrW(v(3)) + ChrW(v(2)) + ChrW(v(1)) + ChrW(aExp)
+      expt = CShort(AscW(x.Substring(3))) ' Exponent part (aExp)
+      b(1) = CByte(AscW(x.Substring(2))) ' Mantissa byte 1 (v(1))
+      b(2) = CByte(AscW(x.Substring(1))) ' Mantissa byte 2 (v(2))
+      b(3) = CByte(AscW(x.Substring(0))) ' Mantissa byte 3 (v(3))
+
+      n = 0
+      For j = 1 To 3
+        c = CShort(b(j))
+        For k = 1 To 8
+          n = n + 1S
+          y = CShort(Conversion.Fix(c / (2 ^ (8 - k))))
+          If y = 1 Then
+            d(n) = 1 ' Binary array for mantissa
+            c = c - CShort(2 ^ (8 - k))
+          Else : d(n) = 0
+          End If
+        Next
+      Next
+
+      pwr = expt - 129S ' Power of 2
+      If pwr = -129 Then ' Calculation - Power
+        tot = 0
+      Else : tot = CSng(2 ^ pwr)
+      End If
+
+      pnt = pwr + 2S ' Starting Point of Binary decimal
+      stot = 0 ' sub total Binary array
+      k = 1 ' array element number
+
+      For i = 0 To pwr - 1S ' Calculation - Binary
+        n = (pwr - 1S) - i
+        k = k + 1S
+        If i < 23 Then
+          stot = stot + CSng(d(i + 2) * (2 ^ n))
+        End If
+      Next
+
+      If pnt < 0 Then ' set - power binary decimal
+        n = pnt - 2S
+      End If
+
+      For j = k + 1S To 24 ' Calculation - Binary Decimal
+        If pnt < 0 Then
+          n = n - 1S
+        Else : n = pnt - (j + 1S)
+        End If
+        stot = stot + CSng(d(j) * (2 ^ n))
+      Next
+
+      tot = tot + stot ' Full Total
+
+      If d(1) = 1 Then ' Sign of the value
+        tot = tot * (-1)
+      End If
+
+      Return tot
+    End Function
+
+    Public Shared Function CVS(x As String) As Single
+      ' Convert 4-byte IEEE 754 little-endian string back to Single
+      
+      Dim bytes(3) As Byte
+      For i As Integer = 0 To 3
+        bytes(i) = CByte(AscW(x(i)))
+      Next
+      Return BitConverter.ToSingle(bytes, 0)
+    End Function
+
+    Public Shared Function MKS(x As Single) As String
+      ' Convert Single to 4-byte string in IEEE 754 little-endian format
+      
+      Dim bytes(3) As Byte
+      BitConverter.GetBytes(x).CopyTo(bytes, 0)
+      
+      ' Return as string in little-endian order
+      Return ChrW(bytes(0)) + ChrW(bytes(1)) + ChrW(bytes(2)) + ChrW(bytes(3))
+    End Function
+
+    Public Shared Function MKSMBF(x As Single) As String
+      ' Convert Single to 4-byte string in MBF format
+      
+      Dim d(24) As Byte, v(3) As Byte
+      Dim mxExp As Short, aExp As Short
+      Dim i As Short, j As Short, k As Short
+      Dim n As Short, e As Single
+      Dim found As Boolean
+
+      If x < 0 Then ' Sign of the number
+        d(1) = 1
+      Else
+        d(1) = 0
+      End If
+
+      e = CSng(Math.Abs(x)) ' Absolute Value
+      found = False
+      For i = 0 To 256 ' Cal Maximum power
+        n = 128S - i
+        If e >= (2 ^ n) Then
+          mxExp = n
+          i = 256
+          found = True
+        End If
+      Next
+
+      If e = 0 OrElse (Not found) Then ' Set Max Power for String
+        aExp = 0
+      Else
+        aExp = 129S + mxExp
+        e = e - CSng(2 ^ mxExp)
+      End If
+
+      For k = 1 To 23 ' Set Binary array
+        n = mxExp - k
+        If Conversion.Fix(e / (2 ^ n)) = 1 Then
+          d(k + 1) = 1
+          e = e - CSng(2 ^ n)
+        Else : d(k + 1) = 0
+        End If
+      Next
+
+      n = 0
+      For j = 1 To 3 ' Divide - 8 bit bytes
+        For k = 1 To 8
+          n = n + 1S
+          v(j) = CByte(v(j) + d(n) * 2 ^ (8 - k))
+        Next
+      Next
+
+      ' Set-up String
+      Return ChrW(v(3)) + ChrW(v(2)) + ChrW(v(1)) + ChrW(aExp)
+    End Function
+
+    Public Shared Function CVI(x As String) As Short
+      Dim bytes(1) As Byte
+      bytes(0) = CByte(AscW(x(0)))
+      bytes(1) = CByte(AscW(x(1)))
+      Return BitConverter.ToInt16(bytes, 0)
+    End Function
+
+    Public Shared Function MKI(x As Short) As String
+      Dim bytes(1) As Byte
+      BitConverter.GetBytes(x).CopyTo(bytes, 0)
+      Return ChrW(bytes(0)) + ChrW(bytes(1))
+    End Function
+
+    Public Shared Function CVD(x As String) As Double
+      Dim bytes(7) As Byte
+      For i As Integer = 0 To 7
+        bytes(i) = CByte(AscW(x(i)))
+      Next
+      Return BitConverter.ToDouble(bytes, 0)
+    End Function
+
+    Public Shared Function MKD(x As Double) As String
+      Dim bytes(7) As Byte
+      BitConverter.GetBytes(x).CopyTo(bytes, 0)
+      Dim result As String = ""
+      For i As Integer = 0 To 7
+        result &= ChrW(bytes(i))
+      Next
+      Return result
+    End Function
+
+    Public Shared Function CVDMBF(x As String) As Double
+      ' Convert 8-byte MBF string back to Double
+
+      Dim d(56) As Byte, b(7) As Byte
+      Dim i As Short, j As Short, k As Short
+      Dim n As Short, y As Short, c As Short
+      Dim expt As Short, pnt As Short, pwr As Short
+      Dim tot As Double, stot As Double
+
+      ' Extract bytes in the same order MKDMBF creates them
+      expt = CShort(AscW(x.Substring(7))) ' Exponent part
+      For idx As Integer = 1 To 7
+        b(idx) = CByte(AscW(x.Substring(7 - idx))) ' Mantissa bytes
+      Next
+
+      n = 0
+      For j = 1 To 7
+        c = CShort(b(j))
+        For k = 1 To 8
+          n = n + 1S
+          y = CShort(Conversion.Fix(c / (2 ^ (8 - k))))
+          If y = 1 Then
+            d(n) = 1 ' Binary array for mantissa
+            c = c - CShort(2 ^ (8 - k))
+          Else : d(n) = 0
+          End If
+        Next
+      Next
+
+      pwr = expt - 129S ' Power of 2
+      If pwr = -129 Then ' Calculation - Power
+        tot = 0
+      Else : tot = 2 ^ pwr
+      End If
+
+      pnt = pwr + 2S ' Starting Point of Binary decimal
+      stot = 0 ' sub total Binary array
+      k = 1 ' array element number
+
+      For i = 0 To pwr - 1S ' Calculation - Binary
+        n = (pwr - 1S) - i
+        k = k + 1S
+        If i < 55 Then
+          stot = stot + CDbl(d(i + 2) * (2 ^ n))
+        End If
+      Next
+
+      If pnt < 0 Then ' set - power binary decimal
+        n = pnt - 2S
+      End If
+
+      For j = k + 1S To 56 ' Calculation - Binary Decimal
+        If pnt < 0 Then
+          n = n - 1S
+        Else : n = pnt - (j + 1S)
+        End If
+        stot = stot + CDbl(d(j) * (2 ^ n))
+      Next
+
+      tot = tot + stot ' Full Total
+
+      If d(1) = 1 Then ' Sign of the value
+        tot = tot * (-1)
+      End If
+
+      Return tot
+    End Function
+
+    Public Shared Function MKDMBF(x As Double) As String
+      ' Convert Double to 8-byte string in MBF format
+
+      Dim d(56) As Byte, v(7) As Byte
+      Dim mxExp As Short, aExp As Short
+      Dim i As Short, j As Short, k As Short
+      Dim n As Short, e As Double
+      Dim found As Boolean
+
+      If x < 0 Then ' Sign of the number
+        d(1) = 1
+      Else
+        d(1) = 0
+      End If
+
+      e = Math.Abs(x) ' Absolute Value
+      found = False
+      For i = 0 To 256 ' Cal Maximum power
+        n = 128S - i
+        If e >= (2 ^ n) Then
+          mxExp = n
+          i = 256
+          found = True
+        End If
+      Next
+
+      If e = 0 OrElse (Not found) Then ' Set Max Power for String
+        aExp = 0
+      Else
+        aExp = 129S + mxExp
+        e = e - (2 ^ mxExp)
+      End If
+
+      For k = 1 To 55 ' Set Binary array
+        n = mxExp - k
+        If Conversion.Fix(e / (2 ^ n)) = 1 Then
+          d(k + 1) = 1
+          e = e - (2 ^ n)
+        Else : d(k + 1) = 0
+        End If
+      Next
+
+      n = 0
+      For j = 1 To 7 ' Divide - 8 bit bytes
+        For k = 1 To 8
+          n = n + 1S
+          v(j) = CByte(v(j) + d(n) * 2 ^ (8 - k))
+        Next
+      Next
+
+      ' Set-up String
+      Return ChrW(v(7)) + ChrW(v(6)) + ChrW(v(5)) + ChrW(v(4)) +
+             ChrW(v(3)) + ChrW(v(2)) + ChrW(v(1)) + ChrW(aExp)
     End Function
 
   End Class

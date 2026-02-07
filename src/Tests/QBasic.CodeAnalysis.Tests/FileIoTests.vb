@@ -1,11 +1,41 @@
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
 
+Imports QBLib
+
 Imports Xunit
 
 Namespace QBasic.CodeAnalysis.Tests
 
   Public Class FileIoTests
+
+    'Private Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
+    '  Using sw As New IO.StringWriter
+    '    Dim originalOut = Console.Out
+    '    Dim originalStdoutMode = Video.StdoutMode
+    '    Try
+    '      Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+    '      Console.SetOut(sw)
+    '      Dim variables = New Dictionary(Of String, Object)
+    '      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+    '      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+    '      Dim result = compilation.Evaluate(variables)
+    '      Dim output = sw.ToString
+    '      Return (result, output, variables)
+    '    Finally
+    '      Console.SetOut(originalOut)
+    '      Video.StdoutMode = originalStdoutMode ' Restore original mode
+    '    End Try
+    '  End Using
+    'End Function
+
+    Private Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)
+      Dim result = compilation.Evaluate(variables)
+      Return (result, variables)
+    End Function
 
     <Fact>
     Public Sub FreeFileReturnsValidFileNumber()
@@ -316,16 +346,20 @@ CLOSE f"
       If IO.File.Exists("test_double_open.txt") Then IO.File.Delete("test_double_open.txt")
 
       Dim test = "
+ON ERROR GOTO Handler
 LET f = FREEFILE
 OPEN ""test_double_open.txt"" FOR OUTPUT AS f
 OPEN ""test_double_open.txt"" FOR OUTPUT AS f
+END
+Handler:
+  e = ERR: END
 "
-      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
-      Dim comp As Compilation = Compilation.Create(tree)
-      Dim vars As New Dictionary(Of String, Object)()
 
-      ' Should throw error when trying to open already open file
-      Dim ex = Assert.ThrowsAny(Of Exception)(Sub() comp.Evaluate(vars))
+      Dim eval = Evaluate(test)
+      Dim result = eval.Result
+      Dim vars = eval.Variables
+
+      Assert.Equal($"55", $"{vars("e")}")
 
       '' Clean up if file was created
       'If IO.File.Exists("test_double_open.txt") Then
@@ -340,17 +374,21 @@ OPEN ""test_double_open.txt"" FOR OUTPUT AS f
       If IO.File.Exists("test_closed.txt") Then IO.File.Delete("test_closed.txt")
 
       Dim test = "
+ON ERROR GOTO Handler
 LET f = FREEFILE
 OPEN ""test_closed.txt"" FOR OUTPUT AS f
 CLOSE f
 PRINT #f, ""This should fail""
+END
+Handler:
+  e = ERR: END
 "
-      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
-      Dim comp As Compilation = Compilation.Create(tree)
-      Dim vars As New Dictionary(Of String, Object)()
 
-      ' Should throw error when accessing closed file
-      Dim ex = Assert.ThrowsAny(Of Exception)(Sub() comp.Evaluate(vars))
+      Dim eval = Evaluate(test)
+      Dim result = eval.Result
+      Dim vars = eval.Variables
+
+      Assert.Equal($"52", $"{vars("e")}")
 
       '' Clean up
       'If IO.File.Exists("test_closed.txt") Then
@@ -370,18 +408,21 @@ PRINT #f, ""This should fail""
       IO.File.WriteAllText("test_past_end.txt", contents)
 
       Dim test = "
+ON ERROR GOTO Handler
 LET f = FREEFILE
 OPEN ""test_past_end.txt"" FOR INPUT AS f
 LINE INPUT #f, dummy$
 LINE INPUT #f, dummy$  ' This should fail
+END
+Handler:
+  e = ERR: END
 "
-      Dim tree As SyntaxTree = SyntaxTree.Parse(test)
-      Dim comp As Compilation = Compilation.Create(tree)
-      Dim vars As New Dictionary(Of String, Object)()
 
-      ' Should throw error when reading past end
-      Dim ex = Assert.ThrowsAny(Of Exception)(Sub() comp.Evaluate(vars))
-      Assert.Contains("Input past end", ex.Message)
+      Dim eval = Evaluate(test)
+      Dim result = eval.Result
+      Dim vars = eval.Variables
+
+      Assert.Equal($"62", $"{vars("e")}")
 
       '' Clean up
       'If IO.File.Exists("test_past_end.txt") Then

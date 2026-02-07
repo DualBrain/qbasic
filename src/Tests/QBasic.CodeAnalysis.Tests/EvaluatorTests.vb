@@ -9,6 +9,26 @@ Namespace QBasic.CodeAnalysis.Tests
 
   Public Class EvaluatorTests
 
+    Private Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
+      Using sw As New IO.StringWriter
+        Dim originalOut = Console.Out
+        Dim originalStdoutMode = Video.StdoutMode
+        Try
+          Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+          Console.SetOut(sw)
+          Dim variables = New Dictionary(Of String, Object)
+          Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+          Dim compilation As Compilation = Compilation.Create(syntaxTree)
+          Dim result = compilation.Evaluate(variables)
+          Dim output = sw.ToString
+          Return (result, output, variables)
+        Finally
+          Console.SetOut(originalOut)
+          Video.StdoutMode = originalStdoutMode ' Restore original mode
+        End Try
+      End Using
+    End Function
+
     <Fact>
     Public Sub EvaluatesDefXxxVariableDeclarations()
 
@@ -2221,11 +2241,13 @@ x = 1
 HandlePen:
 x = 2
 RETURN"
-      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-      Dim compilation As Compilation = Compilation.Create(syntaxTree)
-      Dim variables = New Dictionary(Of String, Object)()
-      Dim ex = Assert.ThrowsAny(Of Exception)(Sub() compilation.Evaluate(variables))
-      Assert.Contains("RETURN without GOSUB", ex.Message)
+      Dim eval = Evaluate(text)
+      Dim result = eval.Result
+      Dim vars = eval.Variables
+      Dim out = eval.Output?.Trim
+
+      Assert.Equal("RETURN without GOSUB in 6", out)
+
     End Sub
 
   End Class

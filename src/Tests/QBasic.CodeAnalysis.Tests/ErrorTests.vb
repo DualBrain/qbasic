@@ -17,6 +17,26 @@ Namespace QBasic.CodeAnalysis.Tests
       Return (result, variables)
     End Function
 
+    'Private Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
+    '  Using sw As New IO.StringWriter
+    '    Dim originalOut = Console.Out
+    '    Dim originalStdoutMode = Video.StdoutMode
+    '    Try
+    '      Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+    '      Console.SetOut(sw)
+    '      Dim variables = New Dictionary(Of String, Object)
+    '      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+    '      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+    '      Dim result = compilation.Evaluate(variables)
+    '      Dim output = sw.ToString
+    '      Return (result, output, variables)
+    '    Finally
+    '      Console.SetOut(originalOut)
+    '      Video.StdoutMode = originalStdoutMode ' Restore original mode
+    '    End Try
+    '  End Using
+    'End Function
+
     <Fact>
     Public Sub Test_ERR_ERL_NoError()
       ' Test ERR and ERL functions return 0 when no error
@@ -44,18 +64,34 @@ Namespace QBasic.CodeAnalysis.Tests
        }
 
       For i = 0 To errorCodes.Length - 1
-        Dim errorCodeTest = $"ERROR {errorCodes(i)}"
-        Dim errorCodeTree As SyntaxTree = SyntaxTree.Parse(errorCodeTest)
-        Dim errorCodeComp As Compilation = Compilation.Create(errorCodeTree)
-        Dim errorCodeVars As New Dictionary(Of String, Object)()
-        Dim errorEx As Exception = Nothing
-        Try
-          errorCodeComp.Evaluate(errorCodeVars)
-        Catch e As Exception
-          errorEx = e
-        End Try
-        Assert.NotNull(errorEx)
-        Assert.Contains($"Error {errorCodes(i)}: {expectedMessages(i)}", errorEx.Message)
+        'Dim errorCodeTest = $"ERROR {errorCodes(i)}"
+        'Dim errorCodeTree As SyntaxTree = SyntaxTree.Parse(errorCodeTest)
+        'Dim errorCodeComp As Compilation = Compilation.Create(errorCodeTree)
+        'Dim errorCodeVars As New Dictionary(Of String, Object)()
+        'Dim errorEx As Exception = Nothing
+        'Try
+        '  errorCodeComp.Evaluate(errorCodeVars)
+        'Catch e As Exception
+        '  errorEx = e
+        'End Try
+        'Assert.NotNull(errorEx)
+        'Assert.Contains($"Error {errorCodes(i)}: {expectedMessages(i)}", errorEx.Message)
+
+        Dim test = $"
+ON ERROR GOTO Handler
+ERROR {errorCodes(i)}
+END
+Handler:
+  e = ERR: l = ERL
+  END"
+        Dim eval = Evaluate(test)
+        Dim result = eval.Result
+        Dim vars = eval.Variables
+        'Dim out = eval.Output?.Trim
+
+        Assert.Equal($"{errorCodes(i)}", $"{vars("e")}")
+        Assert.Equal("0", $"{vars("l")}")
+
       Next
 
     End Sub

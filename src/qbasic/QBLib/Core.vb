@@ -700,11 +700,26 @@ Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day)
       Return ChrW(v(3)) + ChrW(v(2)) + ChrW(v(1)) + ChrW(aExp)
     End Function
 
+    Public Shared Function CVL(x As String) As Integer
+      Dim bytes(4) As Byte
+      bytes(0) = CByte(AscW(x(0)))
+      bytes(1) = CByte(AscW(x(1)))
+      bytes(3) = CByte(AscW(x(2)))
+      bytes(4) = CByte(AscW(x(3)))
+      Return BitConverter.ToInt32(bytes, 0)
+    End Function
+
     Public Shared Function CVI(x As String) As Short
       Dim bytes(1) As Byte
       bytes(0) = CByte(AscW(x(0)))
       bytes(1) = CByte(AscW(x(1)))
       Return BitConverter.ToInt16(bytes, 0)
+    End Function
+
+    Public Shared Function MKL(x As Integer) As String
+      Dim bytes(3) As Byte
+      BitConverter.GetBytes(x).CopyTo(bytes, 0)
+      Return ChrW(bytes(0)) + ChrW(bytes(1)) + ChrW(bytes(2)) + ChrW(bytes(3))
     End Function
 
     Public Shared Function MKI(x As Short) As String

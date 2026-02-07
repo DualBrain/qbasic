@@ -52,7 +52,7 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
 
     ' Chain request state
-    Private m_chainRequest As ChainRequest = Nothing
+    Private ReadOnly m_chainRequest As ChainRequest = Nothing
 
     ' COM event state (channels 1-2)
     Private ReadOnly m_comHandlerTargets As Object() = {Nothing, Nothing} ' Targets for ON COM(n) GOSUB
@@ -2267,7 +2267,6 @@ Namespace Global.QB.CodeAnalysis
         End If
         Try
           Return QBLib.Core.QBAsc(value)
-          'Return Microsoft.VisualBasic.Strings.Asc(value)
         Catch ex As Exception
           Return Microsoft.VisualBasic.Chr(0)
         End Try
@@ -2309,9 +2308,8 @@ Namespace Global.QB.CodeAnalysis
         Return QBLib.Core.CVI(value)
       ElseIf node.Function Is BuiltinFunctions.Cvl Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
-        Return Nothing 'QBLib.Core.CVL(value)
+        Return QBLib.Core.CVL(value)
       ElseIf node.Function Is BuiltinFunctions.Cvs Then
-        ' CVS converts 4-byte binary string to single
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Core.CVS(value)
       ElseIf node.Function Is BuiltinFunctions.CvsMbf Then
@@ -2344,11 +2342,9 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
         End If
       ElseIf node.Function Is BuiltinFunctions.ErDev1 Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.ErDev2 Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Erl Then
         ' ERL returns the line number where the last error occurred (0 if no error)
         Return m_erl
@@ -2362,8 +2358,7 @@ Namespace Global.QB.CodeAnalysis
         'Return base ^ value
         Return CSng($"{MathF.Exp(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.FileAttr Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Fix Then
         'NOTE: FIX truncates a floating-point expression to its integer portion.
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
@@ -2399,7 +2394,7 @@ Namespace Global.QB.CodeAnalysis
         Else
           port = CInt(portValue)
         End If
-        If port < 0 Or port > 65535 Then
+        If port < 0 OrElse port > 65535 Then
           Throw New QBasicRuntimeException(ErrorCode.Overflow)
         End If
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
@@ -2426,8 +2421,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Int(value)
       ElseIf node.Function Is BuiltinFunctions.IoCtl Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.LCase Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return value?.ToLower
@@ -2471,8 +2465,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return CSng($"{MathF.Log(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.Lpos Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Ltrim Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.LTrim(value)
@@ -2486,21 +2479,18 @@ Namespace Global.QB.CodeAnalysis
         Dim length = CInt(EvaluateExpression(node.Arguments(2)))
         Return Microsoft.VisualBasic.Mid(value, start, length)
       ElseIf node.Function Is BuiltinFunctions.Mkd Then
-        ' MKD$ converts double to 8-byte binary string
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Core.MKD(value)
       ElseIf node.Function Is BuiltinFunctions.MkdMbf Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Core.MKDMBF(value)
       ElseIf node.Function Is BuiltinFunctions.Mki Then
-        ' MKI$ converts integer to 2-byte binary string
         Dim value = CShort(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Core.MKI(value)
       ElseIf node.Function Is BuiltinFunctions.Mkl Then
-        Stop
-        Return Nothing
+        Dim value = CInt(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Core.MKL(value)
       ElseIf node.Function Is BuiltinFunctions.Mks Then
-        ' MKS$ converts single to 4-byte binary string
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Core.MKS(value)
       ElseIf node.Function Is BuiltinFunctions.MksMbf Then
@@ -2510,19 +2500,15 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Oct(value)
       ElseIf node.Function Is BuiltinFunctions.Peek Then
-        Return 0
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Pen Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Play Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Pmap Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Point Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Pos Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Video.POS(value)
@@ -2565,8 +2551,7 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.RTrim(value)
       ElseIf node.Function Is BuiltinFunctions.Screen Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Seek Then
         ' SEEK function returns the same as LOC function
         Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
@@ -2606,8 +2591,7 @@ Namespace Global.QB.CodeAnalysis
           Return CSng($"{MathF.Sqrt(value):n6}")
         End If
       ElseIf node.Function Is BuiltinFunctions.Stick Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Str Then
         Dim value = EvaluateExpression(node.Arguments(0))
         Return Microsoft.VisualBasic.Str(value)
@@ -2648,14 +2632,11 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Val(value)
       ElseIf node.Function Is BuiltinFunctions.VarPtr1 Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.VarPtr2 Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.VarSeg Then
-        Stop
-        Return Nothing
+        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       Else
         Dim locals = New Dictionary(Of String, Object)
         For i = 0 To node.Arguments.Length - 1

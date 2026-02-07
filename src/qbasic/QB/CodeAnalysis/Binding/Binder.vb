@@ -1021,7 +1021,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       
       For i = 0 To syntax.Targets.Count - 1 Step 2
         Dim targetToken = syntax.Targets(i)
-        Dim value = targetToken.Text
+        Dim value = targetToken.Text.ToLower() ' Normalize to lowercase to match label definitions
         If IsNumeric(value) Then
           value = $"{GOTO_LABEL_PREFIX}{value}"
         End If
@@ -1038,7 +1038,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       
       For i = 0 To syntax.Targets.Count - 1 Step 2
         Dim targetToken = syntax.Targets(i)
-        Dim value = targetToken.Text
+        Dim value = targetToken.Text.ToLower() ' Normalize to lowercase to match label definitions
         If IsNumeric(value) Then
           value = $"{GOTO_LABEL_PREFIX}{value}"
         End If

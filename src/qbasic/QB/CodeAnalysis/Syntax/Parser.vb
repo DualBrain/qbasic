@@ -2384,7 +2384,12 @@ repeat:
               Dim gotoKeyword = MatchToken(SyntaxKind.GotoKeyword)
               Dim targets = New List(Of SyntaxToken)
               Do
-                targets.Add(MatchToken(SyntaxKind.NumberToken))
+                ' Accept either NumberToken (line numbers) or IdentifierToken (labels)
+                If Current.Kind = SyntaxKind.NumberToken Then
+                  targets.Add(MatchToken(SyntaxKind.NumberToken))
+                Else
+                  targets.Add(MatchToken(SyntaxKind.IdentifierToken))
+                End If
                 If Current.Kind <> SyntaxKind.CommaToken Then Exit Do
                 targets.Add(MatchToken(SyntaxKind.CommaToken))
               Loop

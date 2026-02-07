@@ -181,6 +181,32 @@ Namespace Global.QB.CodeAnalysis
       Return 0
     End Function
 
+    Private Function FindStatementIndexForLineNumber(targetLineNumber As Integer, statements As ImmutableArray(Of BoundStatement)) As Integer
+      ' Search through statements to find the one with the target line number
+      For i = 0 To statements.Length - 1
+        Dim stmt = statements(i)
+        
+        ' Check if this is a label statement with the target line number
+        If TypeOf stmt Is BoundLabelStatement Then
+          Dim labelStmt = CType(stmt, BoundLabelStatement)
+          Dim labelText = labelStmt.Label.Name
+          If IsNumeric(labelText) AndAlso CInt(labelText) = targetLineNumber Then
+            Return i
+          End If
+        End If
+        
+        ' Check if this statement has syntax with the target line number
+        If stmt.Syntax IsNot Nothing Then
+          Dim lineNumber = ExtractLineNumber(stmt.Syntax)
+          If lineNumber = targetLineNumber Then
+            Return i
+          End If
+        End If
+      Next
+      
+      Return -1 ' Not found
+    End Function
+
     Private Function HandlePendingError(ByRef index As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
       m_errorResumeIndex = index ' Save current index for RESUME
 
@@ -725,7 +751,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.EnvironStatement : EvaluateEnvironStatement(CType(s, BoundEnvironStatement)) : index += 1
             Case BoundNodeKind.EraseStatement : EvaluateEraseStatement(CType(s, BoundEraseStatement)) : index += 1
             Case BoundNodeKind.RedimStatement : EvaluateRedimStatement(CType(s, BoundRedimStatement)) : index += 1
-            Case BoundNodeKind.ResumeStatement : EvaluateResumeStatement(CType(s, BoundResumeStatement)) : index += 1
+            Case BoundNodeKind.ResumeStatement : EvaluateResumeStatement(CType(s, BoundResumeStatement), body.Statements) : index += 1
             Case BoundNodeKind.ResumeNextStatement : EvaluateResumeNextStatement(CType(s, BoundResumeNextStatement)) : index += 1
             Case BoundNodeKind.CallStatement : EvaluateCallStatement(CType(s, BoundCallStatement)) : index += 1
             Case BoundNodeKind.DataStatement : EvaluateDataStatement(CType(s, BoundDataStatement)) : index += 1
@@ -1328,16 +1354,29 @@ Namespace Global.QB.CodeAnalysis
       m_errorResumeNext = False
     End Sub
 
-    Private Sub EvaluateResumeStatement(node As BoundResumeStatement)
+Private Sub EvaluateResumeStatement(node As BoundResumeStatement, statements As ImmutableArray(Of BoundStatement))
       If Not m_errorPending AndAlso m_errorResumeIndex = -1 Then
         Throw New QBasicRuntimeException(ErrorCode.ResumeWithoutError)
       End If
 
-      ' For RESUME with label, we'd need to implement jumping to specific labels
-      ' For now, implement basic RESUME (return to error location)
-      If m_errorResumeIndex >= 0 Then
-        ' This will be handled by returning a special value to the main loop
-        Throw New ResumeException(m_errorResumeIndex)
+      If node.Target IsNot Nothing Then
+        ' RESUME <line> - jump to specific line number
+        Dim targetLine = EvaluateExpression(node.Target)
+        Dim targetLineNumber = CInt(targetLine)
+        
+' Find the statement index for the target line number
+        Dim targetIndex = FindStatementIndexForLineNumber(targetLineNumber, statements)
+        If targetIndex = -1 Then
+          Throw New QBasicRuntimeException(ErrorCode.UndefinedLineNumber)
+        End If
+        
+        ClearError()
+        Throw New ResumeException(targetIndex)
+      Else
+        ' Plain RESUME (return to error location)
+        If m_errorResumeIndex >= 0 Then
+          Throw New ResumeException(m_errorResumeIndex)
+        End If
       End If
     End Sub
 

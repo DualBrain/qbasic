@@ -1507,7 +1507,7 @@ Handler:
 1020 RESUME NEXT
 "
 
-      Dim expected = "5       20  DONE"
+      Dim expected = "5      20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1533,7 +1533,7 @@ Handler:
 1020 RESUME NEXT
 "
 
-      Dim expected = "5       20  DONE"
+      Dim expected = "5      20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3470,7 +3470,7 @@ Handler:
 1020 RESUME NEXT
 "
 
-      Dim expected = "5       20  DONE"
+      Dim expected = "5      20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -4559,12 +4559,12 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: RESUME (1)
 
       Dim sample = "
-    10 ON ERROR GOTO 1000
-    30 PRINT ""A"";
-    30 ERROR 5
-    40 PRINT ""B"";
-    50 END                       
-    1000 PRINT ""E1"";: RESUME NEXT
+10 ON ERROR GOTO 1000
+20 PRINT ""A"";
+30 ERROR 5
+40 PRINT ""B"";
+50 END                       
+1000 PRINT ""E1"";: RESUME NEXT
 "
 
       Dim expected = "AE1B"
@@ -4584,12 +4584,12 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: RESUME (2)
 
       Dim sample = "
-    10 ON ERROR GOTO 1000
-    30 PRINT ""A"";
-    30 ERROR 5
-    40 PRINT ""B"";
-    50 END                       
-    1000 PRINT ""E1"";: RESUME 50
+10 ON ERROR GOTO 1000
+20 PRINT ""A"";
+30 ERROR 5
+40 PRINT ""B"";
+50 END                       
+1000 PRINT ""E1"";: RESUME 50
 "
 
       Dim expected = "AE1"
@@ -4609,10 +4609,15 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: RESUME (3)
 
       Dim sample = "
-    RESUME
+ON ERROR GOTO Handler
+RESUME
+END
+Handler:
+  PRINT ""ERR =""; ERR
+  END
 "
 
-      Dim expected = "RESUME without error line 1"
+      Dim expected = "ERR = 20"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

@@ -386,8 +386,8 @@ Namespace Global.QB.CodeAnalysis.Lowering
           increment))
       Dim whileStatement = New BoundWhileStatement(condition, whileBody, node.ExitLabel, GenerateLabel)
       Dim result = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
-              variableDeclaration,
               upperBoundDeclaration,
+              variableDeclaration,
               whileStatement))
 
       Return RewriteStatement(result)

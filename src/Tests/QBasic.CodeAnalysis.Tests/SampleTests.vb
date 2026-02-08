@@ -2171,7 +2171,7 @@ PRINT FRE(x)
 
       ' Name: GOSUB...RETURN (2)
 
-Dim sample = "
+      Dim sample = "
 start:
 
   print ""start""

@@ -149,6 +149,22 @@ Namespace Global.QB.CodeAnalysis
     Public Sub ReportUndefinedFunction(location As TextLocation, name As String)
       ReportError(location, $"Function '{name}' doesn't exist.")
     End Sub
+    
+    Public Sub ReportNextWithoutFor(location As TextLocation, nextVariable As String)
+      If String.IsNullOrEmpty(nextVariable) Then
+        ReportError(location, "NEXT without FOR")
+      Else
+        ReportError(location, $"NEXT without FOR {nextVariable}")
+      End If
+    End Sub
+    
+    Public Sub ReportNextWithoutMatchingFor(location As TextLocation, nextVariable As String, forVariable As String)
+      ReportError(location, $"NEXT variable '{nextVariable}' doesn't match FOR variable '{forVariable}'")
+    End Sub
+    
+    Public Sub ReportForWithoutNext(location As TextLocation, forVariable As String)
+      ReportError(location, $"FOR Without NEXT {forVariable}")
+    End Sub
 
     Public Sub ReportExpressionMustHaveValue(location As TextLocation)
       ReportError(location, "Expression must have a value.")

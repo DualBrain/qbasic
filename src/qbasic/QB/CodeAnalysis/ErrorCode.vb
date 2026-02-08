@@ -80,7 +80,7 @@ Namespace Global.QB.CodeAnalysis
     PathNotFound = 76
   End Enum
 
-  Friend Class QBasicBuildException
+  Public Class QBasicBuildException
     Inherits Exception
 
     Public ReadOnly Property ErrorCode As ErrorCode

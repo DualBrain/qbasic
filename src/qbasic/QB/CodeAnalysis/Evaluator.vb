@@ -147,13 +147,13 @@ Namespace Global.QB.CodeAnalysis
           End If
         Next
       End If
-      
+
       ' Recursively check children
       For Each child As Syntax.SyntaxNode In node.GetChildren()
         Dim lineNumber = CheckNodeForLineNumber(child)
         If lineNumber > 0 Then Return lineNumber
       Next
-      
+
       Return 0
     End Function
 
@@ -161,13 +161,13 @@ Namespace Global.QB.CodeAnalysis
       ' Look backward from current statement to find the most recent line number
       For checkIndex = currentIndex To 0 Step -1
         Dim stmt = statements(checkIndex)
-        
+
         ' Check if this statement has syntax we can extract line number from
         If stmt.Syntax IsNot Nothing Then
           Dim lineNumber = ExtractLineNumber(stmt.Syntax)
           If lineNumber > 0 Then Return lineNumber
         End If
-        
+
         ' Check if this is a label statement with a numeric label
         If TypeOf stmt Is BoundLabelStatement Then
           Dim labelStmt = CType(stmt, BoundLabelStatement)
@@ -177,7 +177,7 @@ Namespace Global.QB.CodeAnalysis
           End If
         End If
       Next
-      
+
       Return 0
     End Function
 
@@ -185,7 +185,7 @@ Namespace Global.QB.CodeAnalysis
       ' Search through statements to find the one with the target line number
       For i = 0 To statements.Length - 1
         Dim stmt = statements(i)
-        
+
         ' Check if this is a label statement with the target line number
         If TypeOf stmt Is BoundLabelStatement Then
           Dim labelStmt = CType(stmt, BoundLabelStatement)
@@ -194,7 +194,7 @@ Namespace Global.QB.CodeAnalysis
             Return i
           End If
         End If
-        
+
         ' Check if this statement has syntax with the target line number
         If stmt.Syntax IsNot Nothing Then
           Dim lineNumber = ExtractLineNumber(stmt.Syntax)
@@ -203,7 +203,7 @@ Namespace Global.QB.CodeAnalysis
           End If
         End If
       Next
-      
+
       Return -1 ' Not found
     End Function
 
@@ -349,7 +349,10 @@ Namespace Global.QB.CodeAnalysis
           If TypeOf s Is BoundLabelStatement Then
             Dim label = CType(s, BoundLabelStatement).Label.Name
             If IsNumeric(label) Then
-              localLabelToIndex.Add(GOTO_LABEL_PREFIX & label, i)
+              Dim key = $"{GOTO_LABEL_PREFIX}{label}"
+              If Not localLabelToIndex.ContainsKey(key) Then
+                localLabelToIndex.Add(key, i)
+              End If
               '' Line numbers are handled differently
               'localLabelToIndex(GOTO_LABEL_PREFIX & label) = i
             Else
@@ -816,7 +819,7 @@ Namespace Global.QB.CodeAnalysis
             '  Case "Advanced feature unavailable" : m_err = ErrorCode.AdvancedFeature
             '  Case Else : m_err = ErrorCode.Internal
             'End Select
-End If
+          End If
           m_errorPending = True
           If HandlePendingError(index, localLabelToIndex, body.Statements) Then
             Continue While
@@ -1368,7 +1371,7 @@ End If
       m_errorResumeNext = False
     End Sub
 
-Private Sub EvaluateResumeStatement(node As BoundResumeStatement, statements As ImmutableArray(Of BoundStatement))
+    Private Sub EvaluateResumeStatement(node As BoundResumeStatement, statements As ImmutableArray(Of BoundStatement))
       If Not m_errorPending AndAlso m_errorResumeIndex = -1 Then
         Throw New QBasicRuntimeException(ErrorCode.ResumeWithoutError)
       End If
@@ -1377,13 +1380,13 @@ Private Sub EvaluateResumeStatement(node As BoundResumeStatement, statements As 
         ' RESUME <line> - jump to specific line number
         Dim targetLine = EvaluateExpression(node.Target)
         Dim targetLineNumber = CInt(targetLine)
-        
-' Find the statement index for the target line number
+
+        ' Find the statement index for the target line number
         Dim targetIndex = FindStatementIndexForLineNumber(targetLineNumber, statements)
         If targetIndex = -1 Then
           Throw New QBasicRuntimeException(ErrorCode.UndefinedLineNumber)
         End If
-        
+
         ClearError()
         Throw New ResumeException(targetIndex)
       Else
@@ -1403,22 +1406,22 @@ Private Sub EvaluateResumeStatement(node As BoundResumeStatement, statements As 
       Throw New ResumeException(m_errorResumeIndex + 1)
     End Sub
 
-Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As ImmutableArray(Of BoundStatement), index As Integer)
+    Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As ImmutableArray(Of BoundStatement), index As Integer)
       Dim errorCode = CType(CInt(EvaluateExpression(node.Expression)), ErrorCode)
-      
+
       ' Try to get line number from syntax, fall back to looking at nearby statements
       Dim lineNumber = ExtractLineNumber(node.Syntax)
-      
+
       ' If we can't get line number from syntax, try to find it from the statements list
       If lineNumber = 0 Then
         ' Look for the line number by checking statements around the current index
         lineNumber = FindLineNumberFromStatements(statements, index)
       End If
-      
+
       m_err = errorCode
       m_erl = lineNumber
       m_errorPending = True
-      
+
       'SetError(errorCode)
       Throw New QBasicRuntimeException(errorCode)
       ' Error will be handled by the main evaluation loop
@@ -3181,7 +3184,7 @@ Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As Im
       ' Evaluate the expression to get the index
       Dim result = EvaluateExpression(node.Expression)
       Dim selector As Integer
-      
+
       ' Convert to integer with rounding as per QBasic spec
       If TypeOf result Is Double Then
         selector = CInt(Math.Round(CDbl(result)))
@@ -3192,20 +3195,20 @@ Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As Im
       Else
         selector = CInt(CDbl(result))
       End If
-      
+
       ' Check bounds according to QBasic specification:
       ' - If selector <= 0 or > number of targets: continue to next statement
       ' - If selector < 0 or > 255: Illegal function call error
       If selector < 0 OrElse selector > 255 Then
         Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
       End If
-      
+
       If selector = 0 OrElse selector > node.Targets.Length Then
         ' Continue to next statement
         index += 1
         Return
       End If
-      
+
       ' Jump to the selected target (1-based indexing)
       Dim targetLabel = node.Targets(selector - 1)
       Dim targetIndex As Integer
@@ -3221,7 +3224,7 @@ Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As Im
       ' Evaluate the expression to get the index
       Dim result = EvaluateExpression(node.Expression)
       Dim selector As Integer
-      
+
       ' Convert to integer with rounding as per QBasic spec
       If TypeOf result Is Double Then
         selector = CInt(Math.Round(CDbl(result)))
@@ -3232,20 +3235,20 @@ Private Sub EvaluateErrorStatement(node As BoundErrorStatement, statements As Im
       Else
         selector = CInt(CDbl(result))
       End If
-      
+
       ' Check bounds according to QBasic specification:
       ' - If selector <= 0 or > number of targets: continue to next statement
       ' - If selector < 0 or > 255: Illegal function call error
       If selector < 0 OrElse selector > 255 Then
         Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
       End If
-      
+
       If selector = 0 OrElse selector > node.Targets.Length Then
         ' Continue to next statement
         index += 1
         Return
       End If
-      
+
       ' Jump to the selected target (1-based indexing) - like GOSUB
       Dim targetLabel = node.Targets(selector - 1)
       Dim targetIndex As Integer

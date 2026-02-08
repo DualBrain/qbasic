@@ -18,6 +18,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private ReadOnly m_function As FunctionSymbol
     Private ReadOnly Property Diagnostics As DiagnosticBag = New DiagnosticBag
     Private ReadOnly m_loopStack As New Stack(Of (ExitLabel As BoundLabel, ContinueLabel As BoundLabel))
+    Private ReadOnly m_forLoopStack As New Stack(Of SyntaxToken) ' Track FOR loop variables for NEXT validation
     Private m_labelCounter As Integer
     Private m_optionBase As Integer = 0 ' Default to 0 as per QBasic spec
     Private m_optionBaseDeclared As Boolean = False ' Track if OPTION BASE was already declared
@@ -150,6 +151,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         statements.Add(statement)
 
       Next
+
+      ' Check for unmatched FOR loops
+      While binder.m_forLoopStack.Count > 0
+        Dim unmatchedFor = binder.m_forLoopStack.Pop()
+        Throw New QBasicBuildException(ErrorCode.ForWithoutNext)
+      End While
 
       ' Check global statements.
 
@@ -990,6 +997,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim variable = BindVariableDeclaration(syntax.ControlVariable, True, TypeSymbol.Single)
       Dim exitLabel As BoundLabel = Nothing
       Dim continueLabel As BoundLabel = Nothing
+      
+      ' Push FOR loop variable to stack for NEXT validation
+      m_forLoopStack.Push(syntax.ControlVariable)
+      
       Dim body = BindLoopBody(syntax.Statements, exitLabel, continueLabel)
 
       m_scope = m_scope.Parent
@@ -2177,23 +2188,34 @@ Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
     End Function
 
     Private Function BindNextStatement(syntax As NextStatementSyntax) As BoundStatement
-      ' For now, we'll create a bound next statement that can handle multiple identifiers
-      ' The actual logic will need to be implemented to track FOR loops and validate matching
-      
-      ' Check if there are identifiers specified
+      ' Handle NEXT statement with or without identifiers
       If syntax.Identifiers.Count > 0 Then
-        ' Validate each identifier corresponds to a FOR loop variable
+        ' NEXT with identifiers - validate each corresponds to a FOR loop
         For Each identifier In syntax.Identifiers
-          Dim variable = BindVariableReference(identifier)
-          If variable Is Nothing Then
-            ' This will generate an appropriate error
-            Return New BoundErrorStatement(New BoundErrorExpression)
+          If m_forLoopStack.Count = 0 Then
+            ' NEXT without corresponding FOR
+            Throw New QBasicBuildException(ErrorCode.NextWithoutFor)
           End If
+          
+          Dim expectedForVariable = m_forLoopStack.Peek()
+          If StringComparer.OrdinalIgnoreCase.Compare(expectedForVariable.Text, identifier.Text) <> 0 Then
+            ' NEXT variable doesn't match FOR variable
+            Throw New QBasicBuildException(ErrorCode.NextWithoutFor)
+          End If
+          
+          ' Pop the matching FOR loop
+          m_forLoopStack.Pop()
         Next
+      Else
+        ' NEXT without identifiers - pop the most recent FOR loop
+        If m_forLoopStack.Count = 0 Then
+          Throw New QBasicBuildException(ErrorCode.NextWithoutFor)
+        End If
+        
+        m_forLoopStack.Pop()
       End If
       
-      ' For now, return a nop statement - the real implementation will need 
-      ' to handle loop stack management and validation
+      ' For now, return nop statement - the actual loop handling will be in lowering
       Return New BoundNopStatement()
     End Function
 

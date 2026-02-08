@@ -117,7 +117,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         For Each token In lineNumbers
           For Each trivia In token.LeadingTrivia
             If trivia.Kind = SyntaxKind.LineNumberTrivia Then
-              Dim value = CInt(trivia.Text)
+              Dim value = $"{CInt(trivia.Text)}".ToLower
               Dim label = New SyntaxToken(globalStatement.SyntaxTree, SyntaxKind.LabelStatement, token.Position, $"{GOTO_LABEL_PREFIX}{value}:", Nothing, ImmutableArray(Of SyntaxTrivia).Empty, ImmutableArray(Of SyntaxTrivia).Empty)
               Dim stmt = New LabelStatementSyntax(globalStatement.SyntaxTree, label)
               statements.Add(binder.BindGlobalStatement(stmt))
@@ -1007,7 +1007,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Shared Function BindGotoStatement(syntax As GotoStatementSyntax) As BoundStatement
-      Dim value = syntax.TargetToken.Text
+      Dim value = syntax.TargetToken.Text.ToLower()
       If IsNumeric(value) Then
         value = $"{GOTO_LABEL_PREFIX}{value}"
       End If
@@ -1620,7 +1620,8 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Shared Function BindReturnGosubStatement(syntax As ReturnGosubStatementSyntax) As BoundStatement
       Dim value = syntax.TargetToken?.Text
       If value IsNot Nothing AndAlso IsNumeric(value) Then
-        value = $"{GOTO_LABEL_PREFIX}{value}"
+        Dim text = $"{value}".ToLower
+        value = $"{GOTO_LABEL_PREFIX}{text}"
       End If
       Dim label = If(value IsNot Nothing, New BoundLabel(value), Nothing)
       Return New BoundReturnGosubStatement(label)
@@ -1714,7 +1715,8 @@ Namespace Global.QB.CodeAnalysis.Binding
               Dim value = CType(child, SyntaxToken).Text
               If IsNumeric(value) Then
                 ' An inferred GOTO... old school IF statement.
-                value = $"{GOTO_LABEL_PREFIX}{value}"
+                Dim text = $"{value}".ToLower
+                value = $"{GOTO_LABEL_PREFIX}{text}"
                 Dim label = New BoundLabel(value)
                 Dim statement As BoundStatement = New BoundGotoStatement(label)
                 statements = New BoundBlockStatement({statement}.ToImmutableArray)

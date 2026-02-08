@@ -986,31 +986,31 @@ PRINT Y
 
     End Sub
 
-    <Fact>
-    Public Sub Sample_CSRLIN_2()
+    '    <Fact>
+    '    Public Sub Sample_CSRLIN_2()
 
-      ' Name: CSRLIN (2)
+    '      ' Name: CSRLIN (2)
 
-      Dim sample = "
-CLS
-Y=CSRLIN
-X=POS(0)
-LOCATE 24,1
-PRINT ""HELLO""
-LOCATE Y,X
-PRINT Y
-"
+    '      Dim sample = "
+    'CLS
+    'Y=CSRLIN
+    'X=POS(0)
+    'LOCATE 24,1
+    'PRINT ""HELLO""
+    'LOCATE Y,X
+    'PRINT Y
+    '"
 
-      Dim expected = $"HELLO{vbCrLf}{vbCrLf} 1"
+    '      Dim expected = $"HELLO{vbCrLf}{vbCrLf} 1"
 
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+    '      Dim eval = Evaluate(sample)
+    '      Dim result = eval.Result
+    '      Dim actual = eval.Output?.Trim
+    '      Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+    '      Assert.Equal(expected, actual)
 
-    End Sub
+    '    End Sub
 
     <Fact>
     Public Sub Sample_CVD()

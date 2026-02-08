@@ -364,12 +364,13 @@ Namespace Global.QB.CodeAnalysis.Lowering
       Dim upperBoundSymbol = New LocalVariableSymbol("upperBound", True, TypeSymbol.Integer, node.UpperBound.ConstantValue)
       Dim upperBoundDeclaration = New BoundVariableDeclaration(upperBoundSymbol, node.UpperBound)
 
-      Dim condition = New BoundBinaryExpression(
-              variableExpression,
-              BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
-              New BoundVariableExpression(upperBoundSymbol))
+      Dim condition = New BoundBinaryExpression(variableExpression,
+                                                BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+                                                New BoundVariableExpression(upperBoundSymbol))
 
       Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)
+
+      Dim stepper = node.Stepper
 
       Dim increment = New BoundExpressionStatement(
               New BoundAssignmentExpression(
@@ -377,7 +378,7 @@ Namespace Global.QB.CodeAnalysis.Lowering
                 New BoundBinaryExpression(
                   variableExpression,
                   BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
-                  New BoundLiteralExpression(1))))
+                  If(stepper, New BoundLiteralExpression(1)))))
 
       Dim whileBody = New BoundBlockStatement(ImmutableArray.Create(Of BoundStatement)(
           node.Body,

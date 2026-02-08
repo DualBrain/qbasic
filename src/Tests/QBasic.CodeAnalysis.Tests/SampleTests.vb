@@ -1813,7 +1813,7 @@ FOR I%=1 TO K STEP 2
 NEXT
 "
 
-      Dim expected = "1 3 5 7 9"
+      Dim expected = "1  3  5  7  9"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1836,7 +1836,7 @@ FOR S=1 TO S+5
 NEXT
 "
 
-      Dim expected = "1 2 3 4 5 6 7 8 9 10"
+      Dim expected = "1  2  3  4  5  6  7  8  9  10"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1877,11 +1877,16 @@ NEXT
       ' Name: FOR...NEXT (4)
 
       Dim sample = "
+ON ERROR GOTO Handler
 R=0
 FOR S=1 TO R
   PRINT S;
 'NEXT S
 PRINT ""DONE""
+END
+Handler:
+  PRINT ""ERR =""; ERR
+  END
 "
 
       Dim expected = "FOR Without NEXT line 2"
@@ -1993,7 +1998,7 @@ PRINT ""SUCCESS""
 
     
 
-      goto exitfor
+      goto exit_for
 
     
 
@@ -2001,7 +2006,7 @@ PRINT ""SUCCESS""
 
     
 
-    exitfor:
+    exit_for:
 
     
 

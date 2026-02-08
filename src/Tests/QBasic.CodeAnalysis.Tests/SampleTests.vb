@@ -1998,7 +1998,7 @@ PRINT ""SUCCESS""
 
     
 
-      goto exit_for
+      goto exitfor
 
     
 
@@ -2006,7 +2006,7 @@ PRINT ""SUCCESS""
 
     
 
-    exit_for:
+    exitfor:
 
     
 
@@ -2171,36 +2171,36 @@ PRINT FRE(x)
 
       ' Name: GOSUB...RETURN (2)
 
-      Dim sample = "
-    start:
+Dim sample = "
+start:
 
-      print ""start""
+  print ""start""
 
-    
+  
 
-    dosomething:
+dosomething:
 
-      print ""pre-gosub""
+  print ""pre-gosub""
 
-      gosub output
+  gosub outputsub
 
-      print ""post-gosub""
+  print ""post-gosub""
 
-    
+  
 
-    finish:
+finish:
 
-      print ""finish""
+  print ""finish""
 
-      end
+  end
 
-    
+  
 
-    output:
+outputsub:
 
-      print ""**SUCCESS**""
+  print ""**SUCCESS**""
 
-      return
+  return
 "
 
       Dim expected = $"start{vbCrLf}pre-gosub{vbCrLf}**SUCCESS**{vbCrLf}post-gosub{vbCrLf}finish"

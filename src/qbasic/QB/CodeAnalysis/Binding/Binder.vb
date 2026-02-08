@@ -814,7 +814,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
 
       ' Not function, check for automatic array dimensioning
-      If variableSymbol Is Nothing AndAlso syntax.Arguments.Count = 1 Then
+      If variableSymbol Is Nothing AndAlso syntax.Arguments IsNot Nothing AndAlso syntax.Arguments.Count = 1 Then
         Dim index = BindExpression(syntax.Arguments(0))
         ' Create automatic array with bounds [OPTION BASE]-10
         Dim lowerBound = New BoundLiteralExpression(m_optionBase)

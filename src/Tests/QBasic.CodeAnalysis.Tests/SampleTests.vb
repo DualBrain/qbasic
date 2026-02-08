@@ -1129,7 +1129,7 @@ PRINT Y
     PRINT C$,S$,Z
 "
 
-      Dim expected = $"CITY      STATE   ZIP{vbCrLf}DENVER,       COLORADO       80211"
+      Dim expected = $"CITY      STATE   ZIP{vbCrLf}DENVER,        COLORADO           80211"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -2304,7 +2304,7 @@ ON ERROR GOTO 70
 70 PRINT ""ERR =""; ERR
 "
 
-      Dim expected = $"R = 5 AREA = 78.5{vbCrLf}R = 7 AREA = 153.86{vbCrLf}R = 12 AREA = 452.16{vbCrLf}ERR = 4"
+      Dim expected = $"R = 5  AREA = 78.5{vbCrLf}R = 7  AREA = 153.86{vbCrLf}R = 12  AREA = 452.16{vbCrLf}ERR = 4"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

@@ -339,6 +339,9 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
+      ' Preprocess all DATA statements before execution begins
+      PreprocessDataStatements()
+
       Dim func = If(m_program.MainFunction, m_program.ScriptFunction)
       If func Is Nothing Then
         Return Nothing
@@ -3318,6 +3321,41 @@ Namespace Global.QB.CodeAnalysis
         ' If label not found, continue to next statement
         index += 1
       End If
+    End Sub
+
+    ''' <summary>
+    ''' Preprocesses all DATA statements in the program before execution begins.
+    ''' This follows QBasic behavior where DATA statements are processed before program execution.
+    ''' </summary>
+    Private Sub PreprocessDataStatements()
+      ' Get all functions in the program hierarchy
+      Dim current = m_program
+      While current IsNot Nothing
+        For Each kv In current.Functions
+          Dim body = kv.Value
+          ' Walk through all statements in the function body
+          PreprocessDataStatementsInBlock(body)
+        Next
+        current = current.Previous
+      End While
+    End Sub
+
+    ''' <summary>
+    ''' Recursively processes DATA statements in a block statement.
+    ''' </summary>
+    Private Sub PreprocessDataStatementsInBlock(block As BoundBlockStatement)
+      For Each statement In block.Statements
+        If TypeOf statement Is BoundDataStatement Then
+          Dim dataStatement = CType(statement, BoundDataStatement)
+          ' Add all data values to the global data list
+          For Each value In dataStatement.Data
+            m_data.Add(value)
+          Next
+        ElseIf TypeOf statement Is BoundBlockStatement Then
+          ' Recursively process nested blocks
+          PreprocessDataStatementsInBlock(CType(statement, BoundBlockStatement))
+        End If
+      Next
     End Sub
 
   End Class

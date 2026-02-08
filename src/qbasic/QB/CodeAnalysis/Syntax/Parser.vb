@@ -2897,29 +2897,56 @@ repeat:
     Private Function ParseReadStatement() As ReadStatementSyntax
 
       'QBasic: READ variablelist
+      ' Variables can be simple identifiers or array accesses like A(I)
 
       Dim readKeyword = MatchToken(SyntaxKind.ReadKeyword)
 
-      Dim identifiersAndSeparators = ImmutableArray.CreateBuilder(Of SyntaxToken)()
+      Dim variables = ParseVariableList()
 
-      Dim parseNextIdentifier = True
-      While parseNextIdentifier AndAlso
-            Current.Kind <> SyntaxKind.EndOfFileToken
+      Return New ReadStatementSyntax(m_syntaxTree, readKeyword, variables)
 
-        Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
-        identifiersAndSeparators.Add(identifier)
+    End Function
+
+    Private Function ParseVariableList() As SeparatedSyntaxList(Of ExpressionSyntax)
+      ' Parse a comma-separated list of variable references (identifiers or array accesses)
+
+      Dim nodesAndSeparators = ImmutableArray.CreateBuilder(Of SyntaxNode)
+
+      Dim parseNextVariable = True
+      While parseNextVariable AndAlso
+            Current.Kind <> SyntaxKind.EndOfFileToken AndAlso
+            Current.Kind <> SyntaxKind.ColonToken AndAlso
+            Not IsEndOfStatement()
+
+        ' Parse a variable reference - this can be an identifier or array access
+        Dim variableExpression = ParseVariableReference()
+        nodesAndSeparators.Add(variableExpression)
 
         If Current.Kind = SyntaxKind.CommaToken Then
           Dim comma = MatchToken(SyntaxKind.CommaToken)
-          identifiersAndSeparators.Add(comma)
+          nodesAndSeparators.Add(comma)
         Else
-          parseNextIdentifier = False
+          parseNextVariable = False
         End If
 
       End While
 
-      Return New ReadStatementSyntax(m_syntaxTree, readKeyword, identifiersAndSeparators.ToImmutable())
+      Return New SeparatedSyntaxList(Of ExpressionSyntax)(nodesAndSeparators.ToImmutable)
 
+    End Function
+
+    Private Function ParseVariableReference() As ExpressionSyntax
+      ' Parse a variable reference - either a simple identifier or an array access
+      ' This is similar to ParseNameOrCallExpression but limited to variables
+
+      If Current.Kind = SyntaxKind.IdentifierToken AndAlso Peek(1).Kind = SyntaxKind.OpenParenToken Then
+        ' This could be an array access like A(I)
+        Return ParseCallExpression()
+      Else
+        ' Simple identifier
+        Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
+        Return New IdentifierExpressionSyntax(m_syntaxTree, identifier)
+      End If
     End Function
 
     Private Function ParseRedimStatement() As RedimStatementSyntax

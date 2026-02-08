@@ -957,18 +957,39 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateReadStatement(node As BoundReadStatement)
-      For Each variable In node.Variables
+      For Each expression In node.Expressions
         If m_dataIndex < m_data.Count Then
-          m_globals(variable.Name) = m_data(m_dataIndex)
+          Dim value = m_data(m_dataIndex)
+          
+          ' Assign the value to the expression (variable or array access)
+          AssignToExpression(expression, value)
+          
           m_dataIndex += 1
         Else
           ' Out of data error
-          'Throw New Exception("Out of DATA")
-          'SetError(ErrorCode.OutOfData)
           Throw New QBasicRuntimeException(ErrorCode.OutOfData)
-          ' Error will be handled by the main evaluation loop
         End If
       Next
+    End Sub
+
+    Private Sub AssignToExpression(target As BoundExpression, value As Object)
+      Select Case target.Kind
+        Case BoundNodeKind.VariableExpression
+          Dim variableExpression = CType(target, BoundVariableExpression)
+          m_globals(variableExpression.Variable.Name) = value
+          
+        Case BoundNodeKind.ArrayAccessExpression
+          Dim arrayAccess = CType(target, BoundArrayAccessExpression)
+          AssignToArrayAccess(arrayAccess, value)
+          
+        Case Else
+          Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+      End Select
+    End Sub
+
+    Private Sub AssignToArrayAccess(arrayAccess As BoundArrayAccessExpression, value As Object)
+      Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
+      tuple.Item1(tuple.Item2) = value
     End Sub
 
     Private Sub EvaluateDateStatement(node As BoundDateStatement)

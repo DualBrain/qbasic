@@ -2343,23 +2343,14 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindReadStatement(syntax As ReadStatementSyntax) As BoundStatement
-      Dim variables = ImmutableArray.CreateBuilder(Of VariableSymbol)()
-      Dim i = 0
-      While i < syntax.Tokens.Length
-        Dim token = syntax.Tokens(i)
-        If token.Kind = SyntaxKind.IdentifierToken Then
-          Dim variable = BindVariableReference(token)
-          If variable IsNot Nothing Then
-            variables.Add(variable)
-          End If
-        ElseIf token.Kind = SyntaxKind.CommaToken Then
-          ' skip
-        Else
-          ' Diagnostics.ReportInvalidReadVariable(token.Location, token.Text)
-        End If
-        i += 1
-      End While
-      Return New BoundReadStatement(variables.ToImmutable())
+      Dim expressions = ImmutableArray.CreateBuilder(Of BoundExpression)()
+      
+      For Each variableSyntax In syntax.Variables
+        Dim boundExpression = BindExpression(variableSyntax)
+        expressions.Add(boundExpression)
+      Next
+      
+      Return New BoundReadStatement(expressions.ToImmutable())
     End Function
 
     Private Function BindDateStatement(syntax As DateStatementSyntax) As BoundStatement

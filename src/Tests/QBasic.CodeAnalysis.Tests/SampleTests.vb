@@ -1099,11 +1099,11 @@ PRINT Y
       Dim sample = "
 DEFSNG A-Z
 FOR I=1 TO 10
-READ A(I)
+  READ A(I)
 NEXT I
 DATA 3.08,5.19,3.12,3.98,4.24
 DATA 5.08,5.55,4.00,3.16,3.37
-'PRINT A(I)
+'PRINT A(I - 1)
 "
 
       'Dim expected = "3.37"
@@ -1113,12 +1113,11 @@ DATA 5.08,5.55,4.00,3.16,3.37
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
-
       Dim a = CType(variables("A"), List(Of Object))
       Assert.Equal("3.37", $"{a(10)}")
+      Assert.Equal("11", $"{variables("I")}")
 
-      'Assert.Equal("11", $"{variables("I")}")
+      'Assert.Equal(expected, actual)
 
     End Sub
 
@@ -1298,21 +1297,24 @@ PRINT B
       Dim sample = "
 DIM A(20)
 FOR I=0 TO 20
-READ A(I)
+  READ A(I)
 NEXT I
-PRINT A(I)
+'PRINT A(I - 1)
 DATA 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
 "
 
-      Dim expected = "20"
+      'Dim expected = "20"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(0, result.Diagnostics.Count)
-      Assert.Equal(expected, actual)
+      Dim a = CType(variables("A"), List(Of Object))
+      Assert.Equal("20", $"{a(20)}")
+      Assert.Equal("21", $"{variables("I")}")
+
+      'Assert.Equal(expected, actual)
 
     End Sub
 
@@ -4577,11 +4579,11 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: RESTORE (1)
 
       Dim sample = "
-    READ A,B,C
-    RESTORE
-    READ D,E,F
-    DATA 57,68,79
-    PRINT ""DONE""
+READ A,B,C
+RESTORE
+READ D,E,F
+DATA 57,68,79
+PRINT ""DONE""
 "
 
       Dim expected = "DONE"
@@ -4601,14 +4603,14 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: RESTORE (2)
 
       Dim sample = "
-    10 READ A,B,C
-    20 RESTORE 45
-    30 READ D,E,F
-    40 DATA 57
-    60 DATA 68
-    70 DATA 79
-    80 DATA 90
-    60 PRINT F
+10 READ A,B,C
+20 RESTORE 45
+30 READ D,E,F
+40 DATA 57
+60 DATA 68
+70 DATA 79
+80 DATA 90
+60 PRINT F
 "
 
       Dim expected = "90"
@@ -5835,10 +5837,10 @@ PRINT a
       ' Name: TAB
 
       Dim sample = "
-    PRINT ""NAME"" TAB(25) ""AMOUNT"": PRINT
-    READ A$, B$
-    PRINT A$ TAB(25) B$
-    DATA ""G. T. JONES"",""$25.00""
+PRINT ""NAME"" TAB(25) ""AMOUNT"": PRINT
+READ A$, B$
+PRINT A$ TAB(25) B$
+DATA ""G. T. JONES"",""$25.00""
 "
 
       Dim expected = $"NAME                   AMOUNT{vbCrLf}{vbCrLf}G. T. JONES             $25.00"

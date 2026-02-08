@@ -7,12 +7,12 @@ Namespace Global.QB.CodeAnalysis.Binding
   Friend NotInheritable Class BoundReadStatement
     Inherits BoundStatement
 
-    Public Sub New(variables As ImmutableArray(Of VariableSymbol))
-      Me.Variables = variables
+    Public Sub New(expressions As ImmutableArray(Of BoundExpression))
+      Me.Expressions = expressions
     End Sub
 
     Public Overrides ReadOnly Property Kind As BoundNodeKind = BoundNodeKind.ReadStatement
-    Public ReadOnly Property Variables As ImmutableArray(Of VariableSymbol)
+    Public ReadOnly Property Expressions As ImmutableArray(Of BoundExpression)
 
   End Class
 

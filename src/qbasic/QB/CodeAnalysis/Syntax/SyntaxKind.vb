@@ -390,6 +390,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     RestoreStatement
     ResumeStatement
     ResumeNextStatement
+    NextStatement
     ReturnGosubStatement
     ReturnStatement
     RmDirStatement

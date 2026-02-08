@@ -582,6 +582,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.MidStatement : Return BindMidStatement(CType(syntax, MidStatementSyntax))
         Case SyntaxKind.MkDirStatement : Return BindMkDirStatement(CType(syntax, MkDirStatementSyntax))
         Case SyntaxKind.NameStatement : Return BindNameStatement(CType(syntax, NameStatementSyntax))
+        Case SyntaxKind.NextStatement : Return BindNextStatement(CType(syntax, NextStatementSyntax))
         Case SyntaxKind.OnErrorGotoStatement : Return BindOnErrorGotoStatement(CType(syntax, OnErrorGotoStatementSyntax))
         Case SyntaxKind.OnTimerGosubStatement : Return BindOnTimerGosubStatement(CType(syntax, OnTimerGosubStatementSyntax))
         Case SyntaxKind.OnComGosubStatement : Return BindOnComGosubStatement(CType(syntax, OnComGosubStatementSyntax))
@@ -2173,6 +2174,27 @@ Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
 
     Private Function BindResumeNextStatement(syntax As ResumeNextStatementSyntax) As BoundStatement
       Return New BoundResumeNextStatement()
+    End Function
+
+    Private Function BindNextStatement(syntax As NextStatementSyntax) As BoundStatement
+      ' For now, we'll create a bound next statement that can handle multiple identifiers
+      ' The actual logic will need to be implemented to track FOR loops and validate matching
+      
+      ' Check if there are identifiers specified
+      If syntax.Identifiers.Count > 0 Then
+        ' Validate each identifier corresponds to a FOR loop variable
+        For Each identifier In syntax.Identifiers
+          Dim variable = BindVariableReference(identifier)
+          If variable Is Nothing Then
+            ' This will generate an appropriate error
+            Return New BoundErrorStatement(New BoundErrorExpression)
+          End If
+        Next
+      End If
+      
+      ' For now, return a nop statement - the real implementation will need 
+      ' to handle loop stack management and validation
+      Return New BoundNopStatement()
     End Function
 
     Private Function BindVariableReference(identifierToken As SyntaxToken) As VariableSymbol

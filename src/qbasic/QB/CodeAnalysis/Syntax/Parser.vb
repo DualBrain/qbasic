@@ -199,6 +199,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.MkDirKeyword : Return ParseMkDirStatement()
         Case SyntaxKind.MidKeyword : Return ParseMidStatement()
         Case SyntaxKind.NameKeyword : Return ParseNameStatement()
+        Case SyntaxKind.NextKeyword : Return ParseNextStatement()
         Case SyntaxKind.OnKeyword : Return ParseOnStatement()
         Case SyntaxKind.OpenKeyword : Return ParseOpenStatement()
         Case SyntaxKind.OptionKeyword : Return ParseOptionStatement()
@@ -1519,18 +1520,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
         stepClause = New ForStepClause(m_syntaxTree, stepKeyword, stepValue)
       End If
       Dim statements = ParseBlockStatement(isTopLevel)
-      Dim nextKeyword As SyntaxToken '= Nothing
-      Dim optionalIdentifier As SyntaxToken = Nothing
-      If Peek(0).Kind = SyntaxKind.CommaToken Then
-        ' In theory, should be able to help handle: NEXT a, b, c
-        nextKeyword = MatchToken(SyntaxKind.CommaToken)
-        optionalIdentifier = MatchToken(SyntaxKind.IdentifierToken)
-      Else
-        nextKeyword = MatchToken(SyntaxKind.NextKeyword)
-        If Not IsEndOfStatement() Then
-          optionalIdentifier = MatchToken(SyntaxKind.IdentifierToken)
-        End If
-      End If
+      
+      ' For statements don't include NEXT anymore - NEXT is now a separate statement
       Return New ForStatementSyntax(m_syntaxTree, forKeyword,
                                     identifier,
                                     equalToken,
@@ -1539,8 +1530,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
                                     endValue,
                                     stepClause,
                                     statements,
-                                    nextKeyword,
-                                    optionalIdentifier)
+                                    Nothing,
+                                    Nothing)
     End Function
 
     Private Function ParseFunctionDeclaration() As MemberSyntax
@@ -3048,9 +3039,44 @@ repeat:
         Dim nextKeyword = MatchToken(SyntaxKind.NextKeyword)
         Return New ResumeNextStatementSyntax(m_syntaxTree, resumeKeyword, nextKeyword)
       Else
-        ' Plain RESUME without target
         Return New ResumeStatementSyntax(m_syntaxTree, resumeKeyword, Nothing)
       End If
+
+    End Function
+
+    Private Function ParseNextStatement() As NextStatementSyntax
+
+      'QBasic: NEXT [counter [,counter]...]
+      
+      Dim nextKeyword = MatchToken(SyntaxKind.NextKeyword)
+      
+      Dim identifiers = New List(Of SyntaxToken)
+      Dim separators = New List(Of SyntaxToken)
+      
+      If Not IsEndOfStatement() Then
+        identifiers.Add(MatchToken(SyntaxKind.IdentifierToken))
+        
+        While Current.Kind = SyntaxKind.CommaToken
+          separators.Add(MatchToken(SyntaxKind.CommaToken))
+          identifiers.Add(MatchToken(SyntaxKind.IdentifierToken))
+        End While
+      End If
+      
+      Dim separatedIdentifiers As SeparatedSyntaxList(Of SyntaxToken) = Nothing
+      If identifiers.Count > 0 Then
+        Dim nodesAndSeparators = New List(Of SyntaxNode)
+        For i = 0 To identifiers.Count - 1
+          nodesAndSeparators.Add(identifiers(i))
+          If i < separators.Count Then
+            nodesAndSeparators.Add(separators(i))
+          End If
+        Next
+        separatedIdentifiers = New SeparatedSyntaxList(Of SyntaxToken)(nodesAndSeparators.ToImmutableArray())
+      Else
+        separatedIdentifiers = New SeparatedSyntaxList(Of SyntaxToken)(ImmutableArray.Create(Of SyntaxNode)())
+      End If
+      
+      Return New NextStatementSyntax(m_syntaxTree, nextKeyword, separatedIdentifiers)
 
     End Function
 

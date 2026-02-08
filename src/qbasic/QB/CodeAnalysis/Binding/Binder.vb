@@ -1000,7 +1000,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Shared Function BindGosubStatement(syntax As GosubStatementSyntax) As BoundStatement
       Dim value = syntax.IdentifierToken.Text
       If IsNumeric(value) Then
-        value = $"GosubLabel{value}"
+        value = $"{GOTO_LABEL_PREFIX}{value}"
       End If
       Dim label = New BoundLabel(value)
       Return New BoundGosubStatement(label)

@@ -508,7 +508,6 @@ Namespace Global.QB.CodeAnalysis
                 m_gosubStack.Push(index + 1)
                 index = value
               Else
-                'Console.WriteLine("ERROR: GosubStatement label " & gs.Label.Name & " not found")
                 index += 1
               End If
 

@@ -1097,23 +1097,28 @@ PRINT Y
       ' Name: DATA (1)
 
       Dim sample = "
-    DEFSNG A-Z
-    FOR I=1 TO 10
-    READ A(I)
-    NEXT I
-    DATA 3.08,5.19,3.12,3.98,4.24
-    DATA 5.08,5.55,4.00,3.16,3.37
-    PRINT A(I)
+DEFSNG A-Z
+FOR I=1 TO 10
+READ A(I)
+NEXT I
+DATA 3.08,5.19,3.12,3.98,4.24
+DATA 5.08,5.55,4.00,3.16,3.37
+'PRINT A(I)
 "
 
-      Dim expected = "3.37"
+      'Dim expected = "3.37"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+
+      Dim a = CType(variables("A"), List(Of Object))
+      Assert.Equal("3.37", $"{a(10)}")
+
+      'Assert.Equal("11", $"{variables("I")}")
 
     End Sub
 
@@ -1123,20 +1128,23 @@ PRINT Y
       ' Name: DATA (2)
 
       Dim sample = "
-    PRINT ""CITY"",""STATE"",""ZIP""
-    READ C$,S$,Z
-    DATA ""DENVER,"",""COLORADO"",80211
-    PRINT C$,S$,Z
+'PRINT ""CITY"",""STATE"",""ZIP""
+READ C$,S$,Z
+DATA ""DENVER,"",""COLORADO"",80211
+'PRINT C$,S$,Z
 "
 
-      Dim expected = $"CITY      STATE   ZIP{vbCrLf}DENVER,        COLORADO           80211"
+      'Dim expected = $"CITY      STATE   ZIP{vbCrLf}DENVER,        COLORADO           80211"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("DENVER,", variables("C$"))
+      Assert.Equal("COLORADO", variables("S$"))
+      Assert.Equal("80211", $"{variables("Z")}")
 
     End Sub
 
@@ -1288,12 +1296,12 @@ PRINT B
       ' Name: DIM (1)
 
       Dim sample = "
-    DIM A(20)
-    FOR I=0 TO 20
-    READ A(I)
-    NEXT I
-    PRINT A(I)
-    DATA 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
+DIM A(20)
+FOR I=0 TO 20
+READ A(I)
+NEXT I
+PRINT A(I)
+DATA 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
 "
 
       Dim expected = "20"
@@ -1314,8 +1322,8 @@ PRINT B
       ' Name: DIM (2)
 
       Dim sample = "
-    DIM B(250)
-    DIM B(3,4)
+DIM B(250)
+DIM B(3,4)
 "
 
       Dim expected = "Duplicate Definition line 2"

@@ -214,7 +214,7 @@ Namespace Global.QB.CodeAnalysis.Binding
                 If elseBlock IsNot Nothing Then
                   Connect(current, elseBlock, elseCondition)
                 End If
-               Case BoundNodeKind.ReturnStatement
+              Case BoundNodeKind.ReturnStatement
                 Connect(current, m_end)
               Case BoundNodeKind.OnGotoStatement, BoundNodeKind.OnGosubStatement
                 ' For ON...GOTO and ON...GOSUB, we can't determine which target will be chosen at compile time
@@ -268,7 +268,10 @@ Namespace Global.QB.CodeAnalysis.Binding
 
 ScanAgain:
         For Each block In blocks
-          If Not block.Incoming.Any() Then
+          ' Don't remove blocks that have labels (they could be ON...GOTO / ON...GOSUB targets)
+          'TODO: Need to revisit this in the future to see if there is a way to "detect"
+          '      actual (or potential?) usage.
+          If Not block.Incoming.Any() AndAlso block.Statements.All(Function(s) Not (TypeOf s Is BoundLabelStatement)) Then
             RemoveBlock(blocks, block)
             GoTo ScanAgain
           End If

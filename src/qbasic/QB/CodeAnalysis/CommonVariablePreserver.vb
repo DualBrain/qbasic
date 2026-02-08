@@ -1,4 +1,5 @@
 Imports System.Collections.Immutable
+
 Imports QB.CodeAnalysis.Binding
 
 Namespace Global.QB.CodeAnalysis
@@ -10,7 +11,7 @@ Namespace Global.QB.CodeAnalysis
   ''' </summary>
   Friend NotInheritable Class CommonVariablePreserver
 
-    Private Shared m_preservedVariables As New Dictionary(Of String, Object)
+    Private Shared ReadOnly m_preservedVariables As New Dictionary(Of String, Object)
 
     ''' <summary>
     ''' Preserves COMMON variables from the current evaluator state.
@@ -19,7 +20,7 @@ Namespace Global.QB.CodeAnalysis
     ''' <param name="commonStatements">COMMON statements from the current compilation</param>
     Friend Shared Sub PreserveCommonVariables(evaluator As Evaluator, commonStatements As ImmutableArray(Of BoundCommonStatement))
       m_preservedVariables.Clear()
-      
+
       For Each commonStmt In commonStatements
         For Each declaration In commonStmt.Declarations
           Dim varName = declaration.Variable.Name
@@ -36,7 +37,7 @@ Namespace Global.QB.CodeAnalysis
     ''' <param name="evaluator">The new evaluator to receive the variables</param>
     Friend Shared Sub RestoreCommonVariables(evaluator As Evaluator)
       If m_preservedVariables Is Nothing Then Return
-      
+
       For Each kv In m_preservedVariables
         If evaluator.Globals.ContainsKey(kv.Key) Then
           evaluator.Globals(kv.Key) = kv.Value

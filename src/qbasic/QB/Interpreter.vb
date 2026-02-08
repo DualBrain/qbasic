@@ -50,13 +50,13 @@ Namespace Global.QB
           If result.ChainRequest.LineNumber.HasValue Then
             Console.WriteLine($"Chain to line: {result.ChainRequest.LineNumber.Value}")
           End If
-          
+
           ' Basic CHAIN handling for now - just indicate success
           ' Full implementation would require:
           ' 1. Load and parse target file
           ' 2. Reset all state except COMMON variables
           ' 3. Continue execution at target file (optionally at specific line)
-          
+
           Environment.Exit(0)
         End If
 

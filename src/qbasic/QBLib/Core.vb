@@ -553,13 +553,13 @@ Namespace Global.QBLib
     'End Sub
 
     Public Shared Function QBTimer() As Single
-Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day), Now)) '+ ((Now.Millisecond \ 10) * 0.01))
+      Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day), Now)) '+ ((Now.Millisecond \ 10) * 0.01))
     End Function
 
     Public Shared Function CVSMBF(x As String) As Single
       ' Convert 4-byte MBF string back to Single
       ' This reverses the MKSMBF operation
-      
+
       Dim d(24) As Byte, b(3) As Byte
       Dim i As Short, j As Short, k As Short
       Dim n As Short, y As Short, c As Short
@@ -628,7 +628,7 @@ Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day)
 
     Public Shared Function CVS(x As String) As Single
       ' Convert 4-byte IEEE 754 little-endian string back to Single
-      
+
       Dim bytes(3) As Byte
       For i As Integer = 0 To 3
         bytes(i) = CByte(AscW(x(i)))
@@ -638,17 +638,17 @@ Return CSng(DateDiff(DateInterval.Second, New Date(Now.Year, Now.Month, Now.Day)
 
     Public Shared Function MKS(x As Single) As String
       ' Convert Single to 4-byte string in IEEE 754 little-endian format
-      
+
       Dim bytes(3) As Byte
       BitConverter.GetBytes(x).CopyTo(bytes, 0)
-      
+
       ' Return as string in little-endian order
       Return ChrW(bytes(0)) + ChrW(bytes(1)) + ChrW(bytes(2)) + ChrW(bytes(3))
     End Function
 
     Public Shared Function MKSMBF(x As Single) As String
       ' Convert Single to 4-byte string in MBF format
-      
+
       Dim d(24) As Byte, v(3) As Byte
       Dim mxExp As Short, aExp As Short
       Dim i As Short, j As Short, k As Short

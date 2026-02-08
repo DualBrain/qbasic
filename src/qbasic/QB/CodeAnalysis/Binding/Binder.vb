@@ -997,10 +997,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim variable = BindVariableDeclaration(syntax.ControlVariable, True, TypeSymbol.Single)
       Dim exitLabel As BoundLabel = Nothing
       Dim continueLabel As BoundLabel = Nothing
-      
+
       ' Push FOR loop variable to stack for NEXT validation
       m_forLoopStack.Push(syntax.ControlVariable)
-      
+
       Dim body = BindLoopBody(syntax.Statements, exitLabel, continueLabel)
 
       m_scope = m_scope.Parent
@@ -1030,7 +1030,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindOnGotoStatement(syntax As OnGotoStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression, TypeSymbol.Single)
       Dim targetsBuilder = ImmutableArray.CreateBuilder(Of BoundLabel)
-      
+
       For i = 0 To syntax.Targets.Count - 1 Step 2
         Dim targetToken = syntax.Targets(i)
         Dim value = targetToken.Text.ToLower() ' Normalize to lowercase to match label definitions
@@ -1040,14 +1040,14 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim label = New BoundLabel(value)
         targetsBuilder.Add(label)
       Next
-      
+
       Return New BoundOnGotoStatement(syntax, expression, targetsBuilder.ToImmutable())
     End Function
 
     Private Function BindOnGosubStatement(syntax As OnGosubStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression, TypeSymbol.Single)
       Dim targetsBuilder = ImmutableArray.CreateBuilder(Of BoundLabel)
-      
+
       For i = 0 To syntax.Targets.Count - 1 Step 2
         Dim targetToken = syntax.Targets(i)
         Dim value = targetToken.Text.ToLower() ' Normalize to lowercase to match label definitions
@@ -1057,7 +1057,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim label = New BoundLabel(value)
         targetsBuilder.Add(label)
       Next
-      
+
       Return New BoundOnGosubStatement(syntax, expression, targetsBuilder.ToImmutable())
     End Function
 
@@ -1801,7 +1801,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         ' Validate array bounds at compile time if they are constants
         ValidateArrayBounds(syntax.Identifier, lower, upper)
       End If
-Dim isStaticArray = Not m_arrayModeDynamic
+      Dim isStaticArray = Not m_arrayModeDynamic
       If bounds Is Nothing Then
         Dim variable = If(m_function Is Nothing,
                        DirectCast(New GlobalVariableSymbol(name, False, type, Nothing), VariableSymbol),
@@ -1852,7 +1852,7 @@ Dim isStaticArray = Not m_arrayModeDynamic
       End If
     End Function
 
-Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, dimensionCount As Integer, Optional isStaticArray As Boolean = False, Optional isCommon As Boolean = False) As VariableSymbol
+    Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, dimensionCount As Integer, Optional isStaticArray As Boolean = False, Optional isCommon As Boolean = False) As VariableSymbol
       Dim name = If(identifier.Text, "?")
       Dim [declare] = Not identifier.IsMissing
       Dim variable = If(m_function Is Nothing,
@@ -1868,7 +1868,7 @@ Private Function BindArrayDeclaration(identifier As SyntaxToken, type As TypeSym
       Return BindVariableDeclarationWithSource(identifier, isReadOnly, type, VariableTypeSource.DefaultType, constant)
     End Function
 
-Private Function BindVariableDeclarationWithSource(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, typeSource As VariableTypeSource, Optional constant As BoundConstant = Nothing, Optional isCommon As Boolean = False) As VariableSymbol
+    Private Function BindVariableDeclarationWithSource(identifier As SyntaxToken, isReadOnly As Boolean, type As TypeSymbol, typeSource As VariableTypeSource, Optional constant As BoundConstant = Nothing, Optional isCommon As Boolean = False) As VariableSymbol
       Dim name = If(identifier.Text, "?")
       Dim [declare] = Not identifier.IsMissing
       Dim variable = If(m_function Is Nothing,
@@ -1897,7 +1897,7 @@ Private Function BindVariableDeclarationWithSource(identifier As SyntaxToken, is
         End If
       Next
 
-Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
+      Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
     End Function
 
     Private Function BindCommonStatement(syntax As CommonStatementSyntax) As BoundStatement
@@ -2038,7 +2038,7 @@ Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
       Dim dimension = CType(dimensions(0), DimensionClauseSyntax)
       Dim lowerSyntax = dimension.OptionalLower
       Dim upperSyntax = dimension.Upper
-        lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(0))
+      lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(0))
       upper = BindExpression(upperSyntax)
     End Sub
 
@@ -2196,13 +2196,13 @@ Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
             ' NEXT without corresponding FOR
             Throw New QBasicBuildException(ErrorCode.NextWithoutFor)
           End If
-          
+
           Dim expectedForVariable = m_forLoopStack.Peek()
           If StringComparer.OrdinalIgnoreCase.Compare(expectedForVariable.Text, identifier.Text) <> 0 Then
             ' NEXT variable doesn't match FOR variable
             Throw New QBasicBuildException(ErrorCode.NextWithoutFor)
           End If
-          
+
           ' Pop the matching FOR loop
           m_forLoopStack.Pop()
         Next
@@ -2211,10 +2211,10 @@ Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
         If m_forLoopStack.Count = 0 Then
           Throw New QBasicBuildException(ErrorCode.NextWithoutFor)
         End If
-        
+
         m_forLoopStack.Pop()
       End If
-      
+
       ' For now, return nop statement - the actual loop handling will be in lowering
       Return New BoundNopStatement()
     End Function

@@ -19,34 +19,34 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Select Case node.Kind
         ' Compilation unit
         Case SyntaxKind.CompilationUnit : Return RewriteCompilationUnit(DirectCast(node, CompilationUnitSyntax))
-        
+
         ' Statements (only Public accessible types)
         Case SyntaxKind.PrintStatement : Return RewritePrintStatement(DirectCast(node, PrintStatementSyntax))
         Case SyntaxKind.ExpressionStatement : Return RewriteExpressionStatement(DirectCast(node, ExpressionStatementSyntax))
         Case SyntaxKind.GotoStatement : Return RewriteGotoStatement(DirectCast(node, GotoStatementSyntax))
         Case SyntaxKind.GosubStatement : Return RewriteGosubStatement(DirectCast(node, GosubStatementSyntax))
-        
+
         ' Control structures
         Case SyntaxKind.IfStatement : Return RewriteIfStatement(DirectCast(node, IfStatementSyntax))
         Case SyntaxKind.ForStatement : Return RewriteForStatement(DirectCast(node, ForStatementSyntax))
         Case SyntaxKind.DoWhileStatement : Return RewriteDoWhileStatement(DirectCast(node, DoWhileStatementSyntax))
         Case SyntaxKind.DoUntilStatement : Return RewriteDoUntilStatement(DirectCast(node, DoUntilStatementSyntax))
         Case SyntaxKind.BlockStatement : Return RewriteBlockStatement(DirectCast(node, BlockStatementSyntax))
-        
+
         ' Declarations
         Case SyntaxKind.DimStatement : Return RewriteDimStatement(DirectCast(node, DimStatementSyntax))
         Case SyntaxKind.FunctionDeclaration : Return RewriteFunctionDeclaration(DirectCast(node, FunctionDeclarationSyntax))
         Case SyntaxKind.VariableDeclaration : Return RewriteVariableDeclaration(DirectCast(node, VariableDeclarationSyntax))
-        
+
         ' Expressions
         Case SyntaxKind.CallExpression : Return RewriteCallExpression(DirectCast(node, CallExpressionSyntax))
         Case SyntaxKind.AssignmentExpression : Return RewriteAssignmentExpression(DirectCast(node, AssignmentExpressionSyntax))
         Case SyntaxKind.BinaryExpression : Return RewriteBinaryExpression(DirectCast(node, BinaryExpressionSyntax))
         Case SyntaxKind.IdentifierSyntax : Return RewriteIdentifier(DirectCast(node, IdentifierSyntax))
         Case SyntaxKind.LiteralExpression : Return RewriteLiteralExpression(DirectCast(node, LiteralExpressionSyntax))
-        
+
         ' Friend types - handle generically
-        Case SyntaxKind.CallStatement, 
+        Case SyntaxKind.CallStatement,
              SyntaxKind.InputStatement,
              SyntaxKind.ExitStatement,
              SyntaxKind.ContinueStatement,
@@ -55,7 +55,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
              SyntaxKind.EndStatement,
              SyntaxKind.LabelStatement
           : Return RewriteFriendStatement(node)
-        
+
         Case Else
           Return node
       End Select
@@ -66,11 +66,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' </summary>
     Protected Overridable Function RewriteNodes(nodes As ImmutableArray(Of SyntaxNode)) As ImmutableArray(Of SyntaxNode)
       Dim builder As ImmutableArray(Of SyntaxNode).Builder = Nothing
-      
+
       For i = 0 To nodes.Length - 1
         Dim oldNode = nodes(i)
         Dim newNode = Rewrite(oldNode)
-        
+
         If newNode IsNot oldNode Then
           If builder Is Nothing Then
             builder = ImmutableArray.CreateBuilder(Of SyntaxNode)(nodes.Length)
@@ -79,16 +79,16 @@ Namespace Global.QB.CodeAnalysis.Syntax
             Next
           End If
         End If
-        
+
         If builder IsNot Nothing Then
           builder.Add(newNode)
         End If
       Next
-      
+
       If builder Is Nothing Then
         Return nodes
       End If
-      
+
       Return builder.MoveToImmutable()
     End Function
 
@@ -97,11 +97,11 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ''' </summary>
     Protected Overridable Function RewriteStatements(statements As ImmutableArray(Of StatementSyntax)) As ImmutableArray(Of StatementSyntax)
       Dim builder As ImmutableArray(Of StatementSyntax).Builder = Nothing
-      
+
       For i = 0 To statements.Length - 1
         Dim oldStatement = statements(i)
         Dim newStatement = DirectCast(Rewrite(oldStatement), StatementSyntax)
-        
+
         If newStatement IsNot oldStatement Then
           If builder Is Nothing Then
             builder = ImmutableArray.CreateBuilder(Of StatementSyntax)(statements.Length)
@@ -110,16 +110,16 @@ Namespace Global.QB.CodeAnalysis.Syntax
             Next
           End If
         End If
-        
+
         If builder IsNot Nothing Then
           builder.Add(newStatement)
         End If
       Next
-      
+
       If builder Is Nothing Then
         Return statements
       End If
-      
+
       Return builder.MoveToImmutable()
     End Function
 
@@ -129,17 +129,17 @@ Namespace Global.QB.CodeAnalysis.Syntax
       If newMembers.Equals(node.Members) Then
         Return node
       End If
-      
+
       Return New CompilationUnitSyntax(node.SyntaxTree, newMembers, node.EndOfFileToken)
     End Function
 
     Protected Overridable Function RewriteMembers(members As ImmutableArray(Of MemberSyntax)) As ImmutableArray(Of MemberSyntax)
       Dim builder As ImmutableArray(Of MemberSyntax).Builder = Nothing
-      
+
       For i = 0 To members.Length - 1
         Dim oldMember = members(i)
         Dim newMember = DirectCast(Rewrite(oldMember), MemberSyntax)
-        
+
         If newMember IsNot oldMember Then
           If builder Is Nothing Then
             builder = ImmutableArray.CreateBuilder(Of MemberSyntax)(members.Length)
@@ -148,16 +148,16 @@ Namespace Global.QB.CodeAnalysis.Syntax
             Next
           End If
         End If
-        
+
         If builder IsNot Nothing Then
           builder.Add(newMember)
         End If
       Next
-      
+
       If builder Is Nothing Then
         Return members
       End If
-      
+
       Return builder.MoveToImmutable()
     End Function
 
@@ -167,15 +167,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
       If newNodes.Equals(node.Nodes) Then
         Return node
       End If
-      
-      Return New PrintStatementSyntax(node.SyntaxTree, 
-                                     node.PrintKeyword, 
-                                     node.Pound, 
-                                     node.FileNumber, 
-                                     node.Comma, 
-                                     node.UsingKeyword, 
-                                     node.Usingformat, 
-                                     node.UsingSemicolon, 
+
+      Return New PrintStatementSyntax(node.SyntaxTree,
+                                     node.PrintKeyword,
+                                     node.Pound,
+                                     node.FileNumber,
+                                     node.Comma,
+                                     node.UsingKeyword,
+                                     node.Usingformat,
+                                     node.UsingSemicolon,
                                      newNodes)
     End Function
 
@@ -229,7 +229,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Protected Overridable Function RewriteFriendStatement(node As SyntaxNode) As SyntaxNode
       ' For Friend types, we can only rewrite child nodes, not create new instances
       Dim hadChanges = False
-      
+
       ' Check all child nodes for changes
       For Each child In node.GetChildren()
         Dim newChild = Rewrite(child)
@@ -238,7 +238,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
           Exit For
         End If
       Next
-      
+
       ' For Friend types, we can't create new instances, so return original
       ' In derived classes, override specific methods to handle transformation logic
       Return node

@@ -26,7 +26,7 @@ Namespace Global.QB.CodeAnalysis
     Public ReadOnly Property ErrorDiagnostics As ImmutableArray(Of Diagnostic)
     Public ReadOnly Property WarningDiagnostics As ImmutableArray(Of Diagnostic)
     Public ReadOnly Property Value As Object
-    
+
     ''' <summary>
     ''' Contains chain request information if execution requested CHAIN.
     ''' </summary>

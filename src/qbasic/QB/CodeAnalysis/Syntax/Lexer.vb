@@ -386,7 +386,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       ' Handle &H (hex), &O (octal), &B (binary) literals
       m_position += 1 ' Skip the & character
-      
+
       ' Check what kind of literal this is
       If m_position >= m_text.Length Then
         ' Just & alone, treat as bad token
@@ -423,7 +423,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
              (Current >= "A"c AndAlso Current <= "F"c) OrElse
              (Current >= "a"c AndAlso Current <= "f"c) OrElse
              Current = "_"c)
-        
+
         If Current <> "_"c Then
           hasDigits = True
         End If
@@ -439,10 +439,10 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim length = m_position - m_start
       Dim text = m_text.ToString(m_start, length)
       Dim hexPart = text.Substring(2) ' Skip &H
-      
+
       ' Remove underscores for parsing
       hexPart = hexPart.Replace("_", "")
-      
+
       Dim intValue As Integer
       Dim longValue As Long
       If Integer.TryParse(hexPart, Globalization.NumberStyles.HexNumber, Globalization.CultureInfo.InvariantCulture, intValue) Then
@@ -463,7 +463,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim hasDigits = False
       While m_position < m_text.Length AndAlso
             (Current >= "0"c AndAlso Current <= "7"c OrElse Current = "_"c)
-        
+
         If Current <> "_"c Then
           hasDigits = True
         End If
@@ -479,10 +479,10 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim length = m_position - m_start
       Dim text = m_text.ToString(m_start, length)
       Dim octalPart = text.Substring(2) ' Skip &O
-      
+
       ' Remove underscores for parsing
       octalPart = octalPart.Replace("_", "")
-      
+
       Try
         Dim intValue = Convert.ToInt32(octalPart, 8)
         m_value = intValue
@@ -508,7 +508,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim hasDigits = False
       While m_position < m_text.Length AndAlso
             (Current = "0"c OrElse Current = "1"c OrElse Current = "_"c)
-        
+
         If Current <> "_"c Then
           hasDigits = True
         End If
@@ -524,10 +524,10 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Dim length = m_position - m_start
       Dim text = m_text.ToString(m_start, length)
       Dim binaryPart = text.Substring(2) ' Skip &B
-      
+
       ' Remove underscores for parsing
       binaryPart = binaryPart.Replace("_", "")
-      
+
       Try
         Dim intValue = Convert.ToInt32(binaryPart, 2)
         m_value = intValue

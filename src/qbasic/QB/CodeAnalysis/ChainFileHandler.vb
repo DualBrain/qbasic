@@ -1,4 +1,5 @@
 Imports System.IO
+
 Imports QB.CodeAnalysis.Syntax
 
 Namespace Global.QB.CodeAnalysis
@@ -22,7 +23,7 @@ Namespace Global.QB.CodeAnalysis
 
       ' Remove quotes if present
       filename = filename.Trim().Trim(""""c)
-      
+
       ' Add .BAS extension if not present
       If Not Path.HasExtension(filename) Then
         filename &= ".BAS"
@@ -74,7 +75,7 @@ Namespace Global.QB.CodeAnalysis
     ''' <returns>True if line exists, False otherwise</returns>
     Friend Shared Function ValidateLineNumber(tree As SyntaxTree, lineNumber As Integer) As Boolean
       If lineNumber <= 0 Then Return False
-      
+
       ' This is simplified - in full implementation we'd need to map line numbers
       ' to actual syntax nodes. For now, just basic validation.
       Return lineNumber <= tree.Root.Members.Count

@@ -60,7 +60,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Property TypeSource As VariableTypeSource
     Public ReadOnly Property IsCommon As Boolean
 
-Public Overrides Function ToString() As String
+    Public Overrides Function ToString() As String
       Dim typeSourceStr = ""
       Select Case TypeSource
         Case VariableTypeSource.DefaultType : typeSourceStr = " [default]"
@@ -68,7 +68,7 @@ Public Overrides Function ToString() As String
         Case VariableTypeSource.DimAsClause : typeSourceStr = " [DIM AS]"
         Case VariableTypeSource.TypeCharacter : typeSourceStr = " [suffix]"
       End Select
-      
+
       If IsArray Then
         Return $"DIM {Name}({Lower} TO {Upper}): {Type}{typeSourceStr}"
       Else

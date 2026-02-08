@@ -1520,7 +1520,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         stepClause = New ForStepClause(m_syntaxTree, stepKeyword, stepValue)
       End If
       Dim statements = ParseBlockStatement(isTopLevel)
-      
+
       ' For statements don't include NEXT anymore - NEXT is now a separate statement
       Return New ForStatementSyntax(m_syntaxTree, forKeyword,
                                     identifier,
@@ -3047,21 +3047,21 @@ repeat:
     Private Function ParseNextStatement() As NextStatementSyntax
 
       'QBasic: NEXT [counter [,counter]...]
-      
+
       Dim nextKeyword = MatchToken(SyntaxKind.NextKeyword)
-      
+
       Dim identifiers = New List(Of SyntaxToken)
       Dim separators = New List(Of SyntaxToken)
-      
+
       If Not IsEndOfStatement() Then
         identifiers.Add(MatchToken(SyntaxKind.IdentifierToken))
-        
+
         While Current.Kind = SyntaxKind.CommaToken
           separators.Add(MatchToken(SyntaxKind.CommaToken))
           identifiers.Add(MatchToken(SyntaxKind.IdentifierToken))
         End While
       End If
-      
+
       Dim separatedIdentifiers As SeparatedSyntaxList(Of SyntaxToken) = Nothing
       If identifiers.Count > 0 Then
         Dim nodesAndSeparators = New List(Of SyntaxNode)
@@ -3075,7 +3075,7 @@ repeat:
       Else
         separatedIdentifiers = New SeparatedSyntaxList(Of SyntaxToken)(ImmutableArray.Create(Of SyntaxNode)())
       End If
-      
+
       Return New NextStatementSyntax(m_syntaxTree, nextKeyword, separatedIdentifiers)
 
     End Function

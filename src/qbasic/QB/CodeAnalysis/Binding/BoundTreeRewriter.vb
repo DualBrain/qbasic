@@ -227,7 +227,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Dim isLastExpression = (i = node.Nodes.Length - 1)
             Dim hasNextSemicolon = (nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso CType(nextEntry, BoundSymbol).Value = ";"c)
             Dim hasNextComma = (nextEntry IsNot Nothing AndAlso TypeOf nextEntry Is BoundSymbol AndAlso CType(nextEntry, BoundSymbol).Value = ","c)
-            
+
             Dim noCr As Boolean = Not isLastExpression OrElse hasNextSemicolon OrElse hasNextComma
             Dim expression = RewriteExpression(CType(entry, BoundExpression))
             builder.Add(New BoundHandlePrintStatement(expression, noCr))

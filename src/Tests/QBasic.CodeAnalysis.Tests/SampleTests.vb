@@ -2868,20 +2868,21 @@ PRINT LOG(2);"","";LOG(1)
       ' Name: LSET
 
       Dim sample = "
-    N$=""HELLO""
-    A$=SPACE$(20)
-    LSET A$=N$
-    PRINT A$
+N$=""HELLO""
+A$=SPACE$(20)
+LSET A$=N$
+'PRINT A$
 "
 
-      Dim expected = "HELLO"
+      'Dim expected = "HELLO"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("'HELLO               '", $"'{variables("A$")}'")
 
     End Sub
 
@@ -4648,14 +4649,14 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: RESET
 
       Dim sample = "
-    open ""test.txt"" for output as #1
-    print #1, ""Hello World!""
-    reset
-    open ""test.txt"" for input as #1
-    line input #1, a$
-    reset
-    print a$
-    end
+open ""test.txt"" for output as #1
+print #1, ""Hello World!""
+reset
+open ""test.txt"" for input as #1
+line input #1, a$
+reset
+print a$
+end
 "
 
       Dim expected = "Hello World!"
@@ -4958,20 +4959,22 @@ Handler:
       ' Name: RSET
 
       Dim sample = "
-    N$=""HELLO""
-    A$=SPACE$(20)
-    RSET A$=N$
-    PRINT A$
+N$=""HELLO""
+A$=SPACE$(20)
+RSET A$=N$
+'PRINT A$
 "
 
-      Dim expected = "HELLO"
+      'Dim expected = "HELLO"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+
+      Assert.Equal("'               HELLO'", $"'{variables("A$")}'")
 
     End Sub
 
@@ -5491,19 +5494,20 @@ PRINT ""WHATEVER""
       ' Name: STR$ (1)
 
       Dim sample = "
-    N=5555
-    A$=STR$(N)
-    PRINT A$
+N=5555
+A$=STR$(N)
+'PRINT A$
 "
 
-      Dim expected = "5555"
+      'Dim expected = "5555"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal(" 5555", variables("A$"))
 
     End Sub
 
@@ -5876,18 +5880,19 @@ a=""AA""<>""BB""
       ' Name: STRING$
 
       Dim sample = "
-    X$= STRING$(10,45)
-    PRINT X$""MONTHLY REPORT"" X$
+X$= STRING$(10,45)
+A$ = X$ + ""MONTHLY REPORT"" + X$
 "
 
-      Dim expected = "----------MONTHLY REPORT----------"
+      'Dim expected = "----------MONTHLY REPORT----------"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("----------MONTHLY REPORT----------", variables("A$"))
 
     End Sub
 

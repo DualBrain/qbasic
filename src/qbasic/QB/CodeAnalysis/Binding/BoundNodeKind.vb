@@ -37,6 +37,8 @@ Namespace Global.QB.CodeAnalysis.Binding
     KillStatement
     LabelStatement
     LetStatement
+    LsetStatement
+    RsetStatement
     LineStatement
     LocateStatement
     MidStatement

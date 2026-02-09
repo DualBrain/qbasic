@@ -677,6 +677,8 @@ Namespace Global.QB.CodeAnalysis
                 EvaluateLetStatement(CType(s, BoundLetStatement))
               End If
               index += 1
+            Case BoundNodeKind.LsetStatement : EvaluateLsetStatement(CType(s, BoundLsetStatement)) : index += 1
+            Case BoundNodeKind.RsetStatement : EvaluateRsetStatement(CType(s, BoundRsetStatement)) : index += 1
 
             'EvaluateLetStatement(CType(s, BoundLetStatement)) : index += 1
 
@@ -1648,6 +1650,80 @@ Namespace Global.QB.CodeAnalysis
       Debug.Assert(value IsNot Nothing)
       m_lastValue = value
       Assign(node.Variable, value)
+    End Sub
+
+    Private Sub EvaluateLsetStatement(node As BoundLsetStatement)
+      Dim value = EvaluateExpression(node.Expression)
+      Debug.Assert(value IsNot Nothing)
+      m_lastValue = value
+
+      ' Get the target string variable
+      Dim targetValue As String = Nothing
+      If node.Variable.Kind = SymbolKind.GlobalVariable Then
+        If m_globals.ContainsKey(node.Variable.Name) Then
+          targetValue = CStr(m_globals(node.Variable.Name))
+        End If
+      Else
+        Dim locals = m_locals.Peek
+        If locals.ContainsKey(node.Variable.Name) Then
+          targetValue = CStr(locals(node.Variable.Name))
+        End If
+      End If
+
+      ' Convert value to string if needed
+      Dim sourceValue = CStr(value)
+
+      ' Perform left-justification
+      If targetValue IsNot Nothing Then
+        ' LSET: left-justify the string within the fixed-width field
+        If sourceValue.Length >= targetValue.Length Then
+          ' Source is longer or equal, truncate to fit
+          m_globals(node.Variable.Name) = sourceValue.Substring(0, targetValue.Length)
+        Else
+          ' Source is shorter, pad with spaces on the right
+          m_globals(node.Variable.Name) = sourceValue & New String(" "c, targetValue.Length - sourceValue.Length)
+        End If
+      Else
+        ' Variable doesn't exist yet, just assign the value
+        Assign(node.Variable, sourceValue)
+      End If
+    End Sub
+
+    Private Sub EvaluateRsetStatement(node As BoundRsetStatement)
+      Dim value = EvaluateExpression(node.Expression)
+      Debug.Assert(value IsNot Nothing)
+      m_lastValue = value
+
+      ' Get the target string variable
+      Dim targetValue As String = Nothing
+      If node.Variable.Kind = SymbolKind.GlobalVariable Then
+        If m_globals.ContainsKey(node.Variable.Name) Then
+          targetValue = CStr(m_globals(node.Variable.Name))
+        End If
+      Else
+        Dim locals = m_locals.Peek
+        If locals.ContainsKey(node.Variable.Name) Then
+          targetValue = CStr(locals(node.Variable.Name))
+        End If
+      End If
+
+      ' Convert value to string if needed
+      Dim sourceValue = CStr(value)
+
+      ' Perform right-justification
+      If targetValue IsNot Nothing Then
+        ' RSET: right-justify the string within the fixed-width field
+        If sourceValue.Length >= targetValue.Length Then
+          ' Source is longer or equal, truncate to fit
+          m_globals(node.Variable.Name) = sourceValue.Substring(0, targetValue.Length)
+        Else
+          ' Source is shorter, pad with spaces on the left
+          m_globals(node.Variable.Name) = New String(" "c, targetValue.Length - sourceValue.Length) & sourceValue
+        End If
+      Else
+        ' Variable doesn't exist yet, just assign the value
+        Assign(node.Variable, sourceValue)
+      End If
     End Sub
 
     Private Shared Sub EvaluateHandleCommaStatement(node As BoundHandleCommaStatement)

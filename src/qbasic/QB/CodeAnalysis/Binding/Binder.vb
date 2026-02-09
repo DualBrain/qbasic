@@ -583,6 +583,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.KillStatement : Return BindKillStatement(CType(syntax, KillStatementSyntax))
         Case SyntaxKind.LabelStatement : Return BindLabelStatement(CType(syntax, LabelStatementSyntax))
         Case SyntaxKind.LetStatement : Return BindLetStatement(CType(syntax, LetStatementSyntax))
+        Case SyntaxKind.LsetStatement : Return BindLsetStatement(CType(syntax, LSetStatementSyntax))
+        Case SyntaxKind.RsetStatement : Return BindRsetStatement(CType(syntax, RSetStatementSyntax))
         Case SyntaxKind.LineStatement : Return BindLineStatement(CType(syntax, LineStatementSyntax))
         Case SyntaxKind.LineInputFileStatement : Return BindLineInputFileStatement(CType(syntax, LineInputFileStatementSyntax))
         Case SyntaxKind.LocateStatement : Return BindLocateStatement(CType(syntax, LocateStatementSyntax))
@@ -1203,47 +1205,121 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Return Nothing
 
-      'Dim name = CType(syntax.Identifiers(0), SyntaxToken).Text
-
-      'Dim variable = DetermineVariableReference(CType(syntax.Identifiers(0), SyntaxToken))
-      'If variable Is Nothing Then
-      '  If OPTION_EXPLICIT Then
-      '    ' Variable appears to not have been already declared, 
-      '    ' run through the normal process in order to generate
-      '    ' the appropriate error(s).
-      '    variable = BindVariableReference(CType(syntax.Identifiers(0), SyntaxToken))
-      '  Else
-      '    ' Variable has not been declared, let's go ahead and do so.
-      '    Dim type As TypeSymbol '= TypeSymbol.String
-      '    Dim suffix = CType(syntax.Identifiers(0), SyntaxToken).Text.Last
-      '    Select Case suffix
-      '      Case "%"c : type = TypeSymbol.Integer
-      '      Case "&"c : type = TypeSymbol.Long
-      '      Case "!"c : type = TypeSymbol.Single
-      '      Case "#"c : type = TypeSymbol.Double
-      '      Case "$"c : type = TypeSymbol.String
-      '      Case Else
-      '        'TODO: This needs to be set based on current DEFINT, etc.
-      '        type = TypeSymbol.Single
-      '        'TODO: Infer????
-      '        'type = boundExpression.Type
-      '    End Select
-      '    variable = BindVariableDeclaration(CType(syntax.Identifiers(0), SyntaxToken), False, type)
-      '  End If
-      'End If
-      'If variable Is Nothing Then
-      '  Return Nothing
-      'End If
-
-      'If variable.IsReadOnly Then
-      '  Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
-      'End If
-
-      'Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
-
-      'Return New BoundLetStatement(variable, convertedExpression)
-
     End Function
+
+    Private Function BindLsetStatement(syntax As LSetStatementSyntax) As BoundStatement
+      Dim boundExpression = BindExpression(syntax.Expression)
+
+      Dim identifier = syntax.Identifier
+      Dim name = identifier.Identifier.Text
+      Dim variable = DetermineVariableReference(identifier.Identifier)
+
+      If variable Is Nothing Then
+        If OPTION_EXPLICIT Then
+          variable = BindVariableReference(identifier.Identifier)
+        Else
+          ' Variable has not been declared, let's go ahead and do so.
+          Dim type As TypeSymbol
+          Dim suffix = identifier.Identifier.Text.Last
+          Select Case suffix
+            Case "%"c : type = TypeSymbol.Integer
+            Case "&"c : type = TypeSymbol.Long
+            Case "!"c : type = TypeSymbol.Single
+            Case "#"c : type = TypeSymbol.Double
+            Case "$"c : type = TypeSymbol.String
+            Case Else
+              type = boundExpression.Type
+          End Select
+          variable = BindVariableDeclaration(identifier.Identifier, False, type)
+        End If
+      End If
+
+      If variable.IsReadOnly Then
+        Diagnostics.ReportCannotAssign(syntax.Equal.Location, name)
+      End If
+
+      ' Bind conversion if needed
+      Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type, allowExplicit:=True)
+
+      Return New BoundLsetStatement(variable, convertedExpression)
+    End Function
+
+    Private Function BindRsetStatement(syntax As RSetStatementSyntax) As BoundStatement
+      Dim boundExpression = BindExpression(syntax.Expression)
+
+      Dim identifier = syntax.Identifier
+      Dim name = identifier.Identifier.Text
+      Dim variable = DetermineVariableReference(identifier.Identifier)
+
+      If variable Is Nothing Then
+        If OPTION_EXPLICIT Then
+          variable = BindVariableReference(identifier.Identifier)
+        Else
+          ' Variable has not been declared, let's go ahead and do so.
+          Dim type As TypeSymbol
+          Dim suffix = identifier.Identifier.Text.Last
+          Select Case suffix
+            Case "%"c : type = TypeSymbol.Integer
+            Case "&"c : type = TypeSymbol.Long
+            Case "!"c : type = TypeSymbol.Single
+            Case "#"c : type = TypeSymbol.Double
+            Case "$"c : type = TypeSymbol.String
+            Case Else
+              type = boundExpression.Type
+          End Select
+          variable = BindVariableDeclaration(identifier.Identifier, False, type)
+        End If
+      End If
+
+      If variable.IsReadOnly Then
+        Diagnostics.ReportCannotAssign(syntax.Equal.Location, name)
+      End If
+
+      ' Bind conversion if needed
+      Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type, allowExplicit:=True)
+
+      Return New BoundRsetStatement(variable, convertedExpression)
+    End Function
+
+    'Dim name = CType(syntax.Identifiers(0), SyntaxToken).Text
+
+    'Dim variable = DetermineVariableReference(CType(syntax.Identifiers(0), SyntaxToken))
+    'If variable Is Nothing Then
+    '  If OPTION_EXPLICIT Then
+    '    ' Variable appears to not have been already declared, 
+    '    ' run through the normal process in order to generate
+    '    ' the appropriate error(s).
+    '    variable = BindVariableReference(CType(syntax.Identifiers(0), SyntaxToken))
+    '  Else
+    '    ' Variable has not been declared, let's go ahead and do so.
+    '    Dim type As TypeSymbol '= TypeSymbol.String
+    '    Dim suffix = CType(syntax.Identifiers(0), SyntaxToken).Text.Last
+    '    Select Case suffix
+    '      Case "%"c : type = TypeSymbol.Integer
+    '      Case "&"c : type = TypeSymbol.Long
+    '      Case "!"c : type = TypeSymbol.Single
+    '      Case "#"c : type = TypeSymbol.Double
+    '      Case "$"c : type = TypeSymbol.String
+    '      Case Else
+    '        'TODO: This needs to be set based on current DEFINT, etc.
+    '        type = TypeSymbol.Single
+    '        'TODO: Infer????
+    '        'type = boundExpression.Type
+    '    End Select
+    '    variable = BindVariableDeclaration(CType(syntax.Identifiers(0), SyntaxToken), False, type)
+    '  End If
+    'End If
+    'If variable Is Nothing Then
+    '  Return Nothing
+    'End If
+
+    'If variable.IsReadOnly Then
+    '  Diagnostics.ReportCannotAssign(syntax.EqualToken.Location, name)
+    'End If
+
+    'Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type)
+
+    'Return New BoundLetStatement(variable, convertedExpression)
 
     Private Shared Function BindLiteralExpression(syntax As LiteralExpressionSyntax) As BoundExpression
       Dim value = If(syntax.Value, 0)

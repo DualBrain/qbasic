@@ -1986,7 +1986,7 @@ result = count
     End Sub
 
     <Fact>
-Public Sub EvaluatesGotoAcrossLoopBoundaries()
+    Public Sub EvaluatesGotoAcrossLoopBoundaries()
       Dim text = "
 c = 0
 for x = 1 to 10

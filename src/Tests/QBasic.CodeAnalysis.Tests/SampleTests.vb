@@ -26,7 +26,7 @@ Namespace QBasic.CodeAnalysis.Tests
           Try
             compilation = Compilation.Create(syntaxTree)
             result = compilation.Evaluate(variables)
-            
+
             ' Print compilation diagnostics if there are any
             If result.Diagnostics.HasErrors Then
               For Each diagnostic In result.Diagnostics
@@ -1580,7 +1580,7 @@ a$ = ""Success""
     Public Sub Sample_ERASE_5()
 
       ' Name: ERASE (5)
-      
+
       ' Test static array element reset to defaults
 
       Dim sample = "
@@ -1610,7 +1610,7 @@ result3 = numbers(2)
     Public Sub Sample_ERASE_6()
 
       ' Name: ERASE (6)
-      
+
       ' Test string array element reset to empty strings
 
       Dim sample = "
@@ -1640,7 +1640,7 @@ result3$ = names(2)
     Public Sub Sample_ERASE_7()
 
       ' Name: ERASE (7)
-      
+
       ' Test ERASE on different numeric types
 
       Dim sample = "
@@ -1676,7 +1676,7 @@ result4& = lngArray&(0)
     Public Sub Sample_ERASE_8()
 
       ' Name: ERASE (8)
-      
+
       ' Test ERASE on non-array variable should produce error
 
       Dim sample = "
@@ -1701,7 +1701,7 @@ ERASE x
     Public Sub Sample_ERASE_9()
 
       ' Name: ERASE (9)
-      
+
       ' Test multiple arrays in single ERASE statement
 
       Dim sample = "

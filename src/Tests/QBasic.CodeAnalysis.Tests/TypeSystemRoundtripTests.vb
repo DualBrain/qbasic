@@ -14,7 +14,7 @@ Namespace QBasic.CodeAnalysis.Tests
       Try
         Dim originalText = text
         Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(originalText)
-        
+
         If syntaxTree.Diagnostics.Any(Function(d) d.IsError) Then
           Dim errorMessages = String.Join(vbCrLf, syntaxTree.Diagnostics.Where(Function(d) d.IsError).Select(Function(d) d.Message))
           Return (False, originalText, "", $"Syntax errors in original text: {errorMessages}")
@@ -22,12 +22,12 @@ Namespace QBasic.CodeAnalysis.Tests
 
         Dim roundtrippedText = WriteSyntaxTreeToText(syntaxTree.Root)
         Dim success = originalText = roundtrippedText
-        
+
         Dim diffInfo As String = ""
         If Not success Then
           diffInfo = GenerateDifferenceReport(originalText, roundtrippedText)
         End If
-        
+
         Return (success, originalText, roundtrippedText, diffInfo)
       Catch ex As Exception
         Return (False, text, "", $"Exception during roundtrip: {ex.Message}")
@@ -63,7 +63,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
     Private Function GenerateDifferenceReport(original As String, roundtripped As String) As String
       Dim report = "Differences detected:" & vbCrLf
-      
+
       For i = 0 To Math.Min(original.Length, roundtripped.Length) - 1
         If original(i) <> roundtripped(i) Then
           report &= $"Position {i}: Original '{original(i)}' ≠ Roundtripped '{roundtripped(i)}'" & vbCrLf
@@ -80,17 +80,17 @@ Namespace QBasic.CodeAnalysis.Tests
 
     Private Sub AssertRoundtripSuccess(text As String, Optional description As String = Nothing)
       Dim result = PerformRoundtripTest(text)
-      
+
       ' Note: Removed Console.WriteLine to avoid test isolation issues with Console.Out redirection
-      
+
       Assert.True(result.Success, $"Roundtrip failed: {result.Differences}")
     End Sub
 
     Private Sub AssertRoundtripFails(text As String, Optional description As String = Nothing)
       Dim result = PerformRoundtripTest(text)
-      
+
       ' Note: Removed Console.WriteLine to avoid test isolation issues with Console.Out redirection
-      
+
       Assert.False(result.Success, "Expected roundtrip to fail but it succeeded")
     End Sub
 
@@ -294,13 +294,13 @@ Namespace QBasic.CodeAnalysis.Tests
     Public Sub Roundtrip_TypeKeywordsNormalization()
       Dim text = "dim a as INTEGER" & vbCrLf & "DIM b AS Long" & vbCrLf & "dim c as SINGLE" & vbCrLf & "DIM d AS double" & vbCrLf & "DIM e AS string"
       Dim result = PerformRoundtripTest(text)
-      
+
       ' Type keywords should normalize to uppercase
-      Assert.True(result.Success OrElse 
-                (result.Roundtripped.Contains("INTEGER") AndAlso 
-                 result.Roundtripped.Contains("LONG") AndAlso 
-                 result.Roundtripped.Contains("SINGLE") AndAlso 
-                 result.Roundtripped.Contains("DOUBLE") AndAlso 
+      Assert.True(result.Success OrElse
+                (result.Roundtripped.Contains("INTEGER") AndAlso
+                 result.Roundtripped.Contains("LONG") AndAlso
+                 result.Roundtripped.Contains("SINGLE") AndAlso
+                 result.Roundtripped.Contains("DOUBLE") AndAlso
                  result.Roundtripped.Contains("STRING")), "Type keywords should normalize to uppercase")
     End Sub
 

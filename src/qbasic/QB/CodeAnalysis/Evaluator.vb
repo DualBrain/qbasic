@@ -960,10 +960,10 @@ Namespace Global.QB.CodeAnalysis
       For Each expression In node.Expressions
         If m_dataIndex < m_data.Count Then
           Dim value = m_data(m_dataIndex)
-          
+
           ' Assign the value to the expression (variable or array access)
           AssignToExpression(expression, value)
-          
+
           m_dataIndex += 1
         Else
           ' Out of data error
@@ -977,11 +977,11 @@ Namespace Global.QB.CodeAnalysis
         Case BoundNodeKind.VariableExpression
           Dim variableExpression = CType(target, BoundVariableExpression)
           m_globals(variableExpression.Variable.Name) = value
-          
+
         Case BoundNodeKind.ArrayAccessExpression
           Dim arrayAccess = CType(target, BoundArrayAccessExpression)
           AssignToArrayAccess(arrayAccess, value)
-          
+
         Case Else
           Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
       End Select

@@ -766,7 +766,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           ' Multi-dimensional arrays should have one argument per dimension
           Return New BoundErrorExpression()
         End If
-        
+
         ' For multi-dimensional arrays, we need to combine the indices
         ' For now, just bind the first argument (single dimension arrays)
         ' TODO: Implement proper multi-dimensional index calculation
@@ -2047,7 +2047,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             Else
               Dim boundVariable = New BoundVariableExpression(variableSymbol)
               boundVariables.Add(boundVariable)
-              
+
               ' For dynamic arrays, remove from scope to allow redeclaration
               If Not variableSymbol.IsStaticArray Then
                 m_scope.TryRemoveVariable(variableSymbol.Name)
@@ -2384,12 +2384,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindReadStatement(syntax As ReadStatementSyntax) As BoundStatement
       Dim expressions = ImmutableArray.CreateBuilder(Of BoundExpression)()
-      
+
       For Each variableSyntax In syntax.Variables
         Dim boundExpression = BindExpression(variableSyntax)
         expressions.Add(boundExpression)
       Next
-      
+
       Return New BoundReadStatement(expressions.ToImmutable())
     End Function
 

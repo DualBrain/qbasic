@@ -1720,14 +1720,41 @@ Namespace Global.QB.CodeAnalysis.Syntax
       '  END IF
       '
       '  IF condition THEN statements [ELSE statements]
+      '
+      '  IF condition GOTO line_number
+      '  IF condition THEN line_number
 
       Dim ifKeyword = MatchToken(SyntaxKind.IfKeyword)
       Dim condition = ParseBinaryExpression(allowAssignment:=False)
+
+      ' Check for IF...GOTO pattern (no THEN keyword)
+      If Current.Kind = SyntaxKind.GotoKeyword Then
+        Dim gotoKeyword = MatchToken(SyntaxKind.GotoKeyword)
+        Dim targetToken As SyntaxToken
+
+        If Current.Kind = SyntaxKind.NumberToken Then
+          targetToken = MatchToken(SyntaxKind.NumberToken)
+        Else
+          targetToken = MatchToken(SyntaxKind.IdentifierToken)
+        End If
+
+        Dim gotoStatement = New GotoStatementSyntax(m_syntaxTree, gotoKeyword, targetToken)
+        Return New SingleLineIfStatementSyntax(m_syntaxTree, ifKeyword, condition, Nothing, gotoStatement, Nothing)
+      End If
+
       Dim thenKeyword = MatchToken(SyntaxKind.ThenKeyword)
 
       Dim thenLine = m_text.GetLineIndex(thenKeyword.Span.Start)
       Dim peekLine = m_text.GetLineIndex(Peek(0).Span.Start)
       Dim multiLine = Current.Kind = SyntaxKind.EndOfFileToken OrElse peekLine > thenLine
+
+      ' Check for IF...THEN line_number pattern (only in single-line context)
+      If Not multiLine AndAlso Current.Kind = SyntaxKind.NumberToken Then
+        Dim lineNumberToken = MatchToken(SyntaxKind.NumberToken)
+        ' Create an implicit GOTO statement using THEN as the keyword (hack but works)
+        Dim gotoStatement = New GotoStatementSyntax(m_syntaxTree, thenKeyword, lineNumberToken)
+        Return New SingleLineIfStatementSyntax(m_syntaxTree, ifKeyword, condition, thenKeyword, gotoStatement, Nothing)
+      End If
 
       Dim statements = ParseBlockStatement(isTopLevel, Not multiLine)
 

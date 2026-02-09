@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Partial Public NotInheritable Class GotoStatementSyntax
     Inherits StatementSyntax
@@ -10,8 +10,8 @@
     End Sub
 
     Public Overrides ReadOnly Property Kind() As SyntaxKind = SyntaxKind.GotoStatement
-    Public ReadOnly Property GotoKeyword() As SyntaxToken
-    Public ReadOnly Property TargetToken() As SyntaxToken
+    Public ReadOnly Property GotoKeyword As SyntaxToken
+    Public ReadOnly Property TargetToken As SyntaxToken
 
   End Class
 

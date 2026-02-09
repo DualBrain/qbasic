@@ -52,18 +52,36 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Select Case op.Kind
         Case BoundBinaryOperatorKind.Raise
+          ' Check for invalid exponentiation operations that should not be folded
+          ' 0 raised to negative power = division by zero (1/0)
+          Dim lDouble = CDbl(l)
+          Dim rDouble = CDbl(r)
+
+          If lDouble = 0 AndAlso rDouble < 0 Then
+            ' Don't fold - should be evaluated at runtime to trigger error
+            Return Nothing
+          End If
+
+          ' Compute the result
+          Dim result = lDouble ^ rDouble
+
+          ' Don't fold if result is infinity or NaN
+          If Double.IsInfinity(result) OrElse Double.IsNaN(result) Then
+            Return Nothing
+          End If
+
           Select Case TypeSymbol.TypeSymbolToType(op.Type)
-            Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(l) ^ CDec(r))
-            Case TypeSymbol.Type.Double : Return New BoundConstant(CDbl(l) ^ CDbl(r))
-            Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(l) ^ CSng(r))
-            Case TypeSymbol.Type.ULong64 : Return New BoundConstant(CULng(l) ^ CULng(r))
-            Case TypeSymbol.Type.Long64 : Return New BoundConstant(CLng(l) ^ CLng(r))
-            Case TypeSymbol.Type.ULong : Return New BoundConstant(CUInt(l) ^ CUInt(r))
-            Case TypeSymbol.Type.Long : Return New BoundConstant(CInt(l) ^ CInt(r))
-            Case TypeSymbol.Type.UInteger : Return New BoundConstant(CUShort(l) ^ CUShort(r))
-            Case TypeSymbol.Type.Integer : Return New BoundConstant(CShort(l) ^ CShort(r))
-            Case TypeSymbol.Type.SByte : Return New BoundConstant(CSByte(l) ^ CSByte(r))
-            Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(l) ^ CByte(r))
+            Case TypeSymbol.Type.Decimal : Return New BoundConstant(CDec(result))
+            Case TypeSymbol.Type.Double : Return New BoundConstant(result)
+            Case TypeSymbol.Type.Single : Return New BoundConstant(CSng(result))
+            Case TypeSymbol.Type.ULong64 : Return New BoundConstant(CULng(result))
+            Case TypeSymbol.Type.Long64 : Return New BoundConstant(CLng(result))
+            Case TypeSymbol.Type.ULong : Return New BoundConstant(CUInt(result))
+            Case TypeSymbol.Type.Long : Return New BoundConstant(CInt(result))
+            Case TypeSymbol.Type.UInteger : Return New BoundConstant(CUShort(result))
+            Case TypeSymbol.Type.Integer : Return New BoundConstant(CShort(result))
+            Case TypeSymbol.Type.SByte : Return New BoundConstant(CSByte(result))
+            Case TypeSymbol.Type.Byte : Return New BoundConstant(CByte(result))
           End Select
         Case BoundBinaryOperatorKind.Addition
           Select Case TypeSymbol.TypeSymbolToType(op.Type)

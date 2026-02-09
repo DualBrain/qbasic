@@ -2183,6 +2183,7 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Private Function EvaluateBinaryExpression(node As BoundBinaryExpression) As Object
+
       Dim left = EvaluateExpression(node.Left)
       Dim right = EvaluateExpression(node.Right)
 
@@ -2205,18 +2206,36 @@ Namespace Global.QB.CodeAnalysis
 ' 01 IMP
 
         Case BoundBinaryOperatorKind.Raise
+          ' Check for invalid exponentiation operations
+          Dim leftDouble = CDbl(left)
+          Dim rightDouble = CDbl(right)
+
+          ' Check for 0 raised to negative power (division by zero)
+          ' Use epsilon for floating point comparison
+          If Math.Abs(leftDouble) < Double.Epsilon AndAlso rightDouble < 0 Then
+            Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+          End If
+
+          ' Perform the exponentiation
+          Dim result = leftDouble ^ rightDouble
+
+          ' Check for infinity or NaN results
+          If Double.IsInfinity(result) OrElse Double.IsNaN(result) Then
+            Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+          End If
+
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
-            Case TypeSymbol.Type.Decimal : Return (CDec(left) ^ CDec(right))
-            Case TypeSymbol.Type.Double : Return (CDbl(left) ^ CDbl(right))
-            Case TypeSymbol.Type.Single : Return (CSng(left) ^ CSng(right))
-            Case TypeSymbol.Type.ULong64 : Return (CULng(left) ^ CULng(right))
-            Case TypeSymbol.Type.Long64 : Return (CLng(left) ^ CLng(right))
-            Case TypeSymbol.Type.ULong : Return (CUInt(left) ^ CUInt(right))
-            Case TypeSymbol.Type.Long : Return (CInt(left) ^ CInt(right))
-            Case TypeSymbol.Type.UInteger : Return (CUShort(left) ^ CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) ^ CShort(right))
-            Case TypeSymbol.Type.SByte : Return (CSByte(left) ^ CSByte(right))
-            Case TypeSymbol.Type.Byte : Return (CByte(left) ^ CByte(right))
+            Case TypeSymbol.Type.Decimal : Return CDec(result)
+            Case TypeSymbol.Type.Double : Return result
+            Case TypeSymbol.Type.Single : Return CSng(result)
+            Case TypeSymbol.Type.ULong64 : Return CULng(result)
+            Case TypeSymbol.Type.Long64 : Return CLng(result)
+            Case TypeSymbol.Type.ULong : Return CUInt(result)
+            Case TypeSymbol.Type.Long : Return CInt(result)
+            Case TypeSymbol.Type.UInteger : Return CUShort(result)
+            Case TypeSymbol.Type.Integer : Return CShort(result)
+            Case TypeSymbol.Type.SByte : Return CSByte(result)
+            Case TypeSymbol.Type.Byte : Return CByte(result)
           End Select
 
         Case BoundBinaryOperatorKind.Multiplication

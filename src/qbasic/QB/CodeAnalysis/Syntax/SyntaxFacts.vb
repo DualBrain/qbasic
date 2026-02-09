@@ -1,8 +1,8 @@
 ' Presedence
 ' -------------------------
 ' 14 ()
+' 14 - (negation "unary") 
 ' 13 ^
-' 12 - (negation "unary")
 ' 11 */
 ' 10 \
 ' 09 MOD
@@ -14,6 +14,9 @@
 ' 03 XOR
 ' 02 EQV
 ' 01 IMP
+
+'NOTE: Originally had `- (negation "unary") at 12; but looks like it needs to be higher than the ^ operator...
+'      Thus the moving it to a 14.
 
 'TODO: Consider additional operators...
 
@@ -31,7 +34,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     <Extension()>
     Public Function GetUnaryOperatorPrecedence(kind As SyntaxKind) As Integer
       Select Case kind
-        Case SyntaxKind.PlusToken, SyntaxKind.MinusToken : Return 12
+        Case SyntaxKind.PlusToken, SyntaxKind.MinusToken : Return 14
         Case SyntaxKind.NotKeyword : Return 6
         Case Else
           Return 0

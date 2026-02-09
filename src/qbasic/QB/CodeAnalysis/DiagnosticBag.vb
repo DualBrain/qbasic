@@ -74,6 +74,10 @@ Namespace Global.QB.CodeAnalysis
       ReportError(location, $"Variable '{name}' doesn't exist.")
     End Sub
 
+    Public Sub ReportUndefinedArray(location As TextLocation, name As String)
+      ReportError(location, $"Array not defined")
+    End Sub
+
     Public Sub ReportInvalidFunctionName(location As TextLocation, name As String)
       ReportError(location, $"Function '{name}' is invalid.")
     End Sub
@@ -99,7 +103,7 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Public Sub ReportArrayAlreadyDimensioned(name As String)
-      ReportError(Nothing, $"Array '{name}' is already dimensioned.")
+      ReportError(Nothing, $"Array already dimensioned")
     End Sub
 
     Public Sub ReportInvalidArrayBounds(location As TextLocation, lower As Integer, upper As Integer)
@@ -116,6 +120,10 @@ Namespace Global.QB.CodeAnalysis
 
     Public Sub ReportRedimDimensionCountMismatch(location As TextLocation, name As String, existingDimensions As Integer, newDimensions As Integer)
       ReportError(location, $"REDIM cannot change the number of dimensions of array '{name}' from {existingDimensions} to {newDimensions}.")
+    End Sub
+
+    Public Sub ReportArrayDimensionCountMismatch(location As TextLocation, name As String, existingDimensions As Integer, newDimensions As Integer)
+      ReportError(location, $"Wrong number of dimensions")
     End Sub
 
     Public Sub ReportArgumentMustBeArray(location As TextLocation, functionName As String)

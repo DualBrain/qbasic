@@ -18,6 +18,18 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return TryDeclareSymbol(variable)
     End Function
 
+    Public Function TryRemoveVariable(name As String) As Boolean
+      Return TryRemoveSymbol(name.ToLower)
+    End Function
+
+    Private Function TryRemoveSymbol(name As String) As Boolean
+      If m_symbols IsNot Nothing AndAlso m_symbols.ContainsKey(name) Then
+        m_symbols.Remove(name)
+        Return True
+      End If
+      Return False
+    End Function
+
     Public Function TryDeclareFunction(f As FunctionSymbol) As Boolean
       Return TryDeclareSymbol(f)
     End Function

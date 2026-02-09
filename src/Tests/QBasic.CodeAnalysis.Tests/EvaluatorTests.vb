@@ -1657,13 +1657,14 @@ Handler:
 
       ' Test with REDIM arrays
       Dim redimTest = "
- DIM arr(1 TO 3)
- LET result1 = LBOUND(arr)
- LET result2 = UBOUND(arr)
- REDIM arr(5 TO 8)
- LET result3 = LBOUND(arr)
- LET result4 = UBOUND(arr)
- "
+'$DYNAMIC
+DIM arr(1 TO 3)
+LET result1 = LBOUND(arr)
+LET result2 = UBOUND(arr)
+REDIM arr(5 TO 8)
+LET result3 = LBOUND(arr)
+LET result4 = UBOUND(arr)
+"
       Dim redimTree As SyntaxTree = SyntaxTree.Parse(redimTest)
       Dim redimComp As Compilation = Compilation.Create(redimTree)
       Dim redimVars As New Dictionary(Of String, Object)()

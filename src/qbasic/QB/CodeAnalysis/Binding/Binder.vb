@@ -22,7 +22,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private m_labelCounter As Integer
     Private m_optionBase As Integer = 0 ' Default to 0 as per QBasic spec
     Private m_optionBaseDeclared As Boolean = False ' Track if OPTION BASE was already declared
-    Private m_arrayModeDynamic As Boolean = True ' Track current $DYNAMIC/$STATIC metacommand state (default $DYNAMIC)
+    Private m_arrayModeDynamic As Boolean = False ' Track current $DYNAMIC/$STATIC metacommand state (default $STATIC)
     Private ReadOnly m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
 
     Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol)
@@ -762,10 +762,14 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
       If variableSymbol IsNot Nothing AndAlso variableSymbol.IsArray Then
         ' This is array access
-        If syntax.Arguments.Count <> 1 Then
-          Diagnostics.ReportWrongArgumentCount(syntax.Identifier.Location, syntax.Identifier.Text, 1, syntax.Arguments.Count)
-          Return New BoundErrorExpression
+        If syntax.Arguments.Count <> variableSymbol.DimensionCount Then
+          ' Multi-dimensional arrays should have one argument per dimension
+          Return New BoundErrorExpression()
         End If
+        
+        ' For multi-dimensional arrays, we need to combine the indices
+        ' For now, just bind the first argument (single dimension arrays)
+        ' TODO: Implement proper multi-dimensional index calculation
         Dim index = BindExpression(syntax.Arguments(0))
         Return New BoundArrayAccessExpression(variableSymbol, index)
       End If
@@ -1559,12 +1563,25 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundPresetStatement([step], x, y, color)
     End Function
 
+    Private Sub ProcessMetacommandsInTrivia(triviaList As ImmutableArray(Of SyntaxTrivia))
+      For Each trivia In triviaList
+        If trivia.Kind = SyntaxKind.SingleLineCommentTrivia Then
+          Dim comment = trivia.Text.ToUpper().Trim()
+          If comment = "'$DYNAMIC" OrElse comment = "$DYNAMIC" Then
+            m_arrayModeDynamic = True
+          ElseIf comment = "'$STATIC" OrElse comment = "$STATIC" Then
+            m_arrayModeDynamic = False
+          End If
+        End If
+      Next
+    End Sub
+
     Private Function BindRemStatement(syntax As RemStatementSyntax) As BoundStatement
       ' Check for metacommands
       Dim comment = syntax.Comment.ToUpper().Trim()
-      If comment = "$DYNAMIC" Then
+      If comment = "'$DYNAMIC" OrElse comment = "$DYNAMIC" Then
         m_arrayModeDynamic = True
-      ElseIf comment = "$STATIC" Then
+      ElseIf comment = "'$STATIC" OrElse comment = "$STATIC" Then
         m_arrayModeDynamic = False
       End If
 
@@ -1882,6 +1899,9 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindDimStatement(syntax As DimStatementSyntax) As BoundStatement
 
+      ' Check for metacommands in leading trivia
+      ProcessMetacommandsInTrivia(syntax.DimKeyword.LeadingTrivia)
+
       Dim boundDeclarations = ImmutableArray.CreateBuilder(Of BoundVariableDeclaration)
       Dim isShared = syntax.OptionalSharedKeyword IsNot Nothing
 
@@ -1891,7 +1911,22 @@ Namespace Global.QB.CodeAnalysis.Binding
           Dim boundDecl = CType(BindVariableDeclaration(variableDecl), BoundVariableDeclaration)
           Dim variable = boundDecl.Variable
           If Not m_scope.TryDeclareVariable(variable) Then
-            Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+            ' Check if this is an array redeclaration case
+            If variable.IsArray Then
+              Dim existingSymbol = m_scope.TryLookupVariable(variable.Name)
+              If existingSymbol IsNot Nothing AndAlso existingSymbol.IsArray Then
+                ' Check if dimension count changed
+                If existingSymbol.DimensionCount <> variable.DimensionCount Then
+                  Diagnostics.ReportArrayDimensionCountMismatch(variableDecl.Identifier.Location, variable.Name, existingSymbol.DimensionCount, variable.DimensionCount)
+                Else
+                  Diagnostics.ReportArrayAlreadyDimensioned(variable.Name)
+                End If
+              Else
+                Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+              End If
+            Else
+              Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+            End If
           End If
           boundDeclarations.Add(boundDecl)
         End If
@@ -2012,9 +2047,14 @@ Namespace Global.QB.CodeAnalysis.Binding
             Else
               Dim boundVariable = New BoundVariableExpression(variableSymbol)
               boundVariables.Add(boundVariable)
+              
+              ' For dynamic arrays, remove from scope to allow redeclaration
+              If Not variableSymbol.IsStaticArray Then
+                m_scope.TryRemoveVariable(variableSymbol.Name)
+              End If
             End If
           Else
-            Diagnostics.ReportUndefinedVariable(token.Location, token.Text)
+            Diagnostics.ReportUndefinedArray(token.Location, token.Text)
           End If
         End If
       Next

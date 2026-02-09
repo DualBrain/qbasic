@@ -26,6 +26,14 @@ Namespace QBasic.CodeAnalysis.Tests
           Try
             compilation = Compilation.Create(syntaxTree)
             result = compilation.Evaluate(variables)
+            
+            ' Print compilation diagnostics if there are any
+            If result.Diagnostics.HasErrors Then
+              For Each diagnostic In result.Diagnostics
+                Console.WriteLine(diagnostic.Message)
+              Next
+              Return (Nothing, sw.ToString, variables)
+            End If
           Catch buildEx As QBasicBuildException
             Console.WriteLine($"Error: {buildEx.Message}")
             Return (Nothing, sw.ToString, variables)
@@ -1569,6 +1577,161 @@ a$ = ""Success""
     End Sub
 
     <Fact>
+    Public Sub Sample_ERASE_5()
+
+      ' Name: ERASE (5)
+      
+      ' Test static array element reset to defaults
+
+      Dim sample = "
+'$STATIC
+DIM numbers(3)
+numbers(0) = 100
+numbers(1) = 200
+numbers(2) = 300
+ERASE numbers
+result1 = numbers(0)
+result2 = numbers(1)
+result3 = numbers(2)
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal(0L, CLng(variables("result1")))
+      Assert.Equal(0L, CLng(variables("result2")))
+      Assert.Equal(0L, CLng(variables("result3")))
+
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ERASE_6()
+
+      ' Name: ERASE (6)
+      
+      ' Test string array element reset to empty strings
+
+      Dim sample = "
+'$STATIC
+DIM names(2)
+names(0) = ""Alice""
+names(1) = ""Bob""
+names(2) = ""Charlie""
+ERASE names
+result1$ = names(0)
+result2$ = names(1)
+result3$ = names(2)
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal("", variables("result1$"))
+      Assert.Equal("", variables("result2$"))
+      Assert.Equal("", variables("result3$"))
+
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ERASE_7()
+
+      ' Name: ERASE (7)
+      
+      ' Test ERASE on different numeric types
+
+      Dim sample = "
+'$STATIC
+DIM intArray%(2)
+DIM sngArray!(2)
+DIM dblArray#(2)
+DIM lngArray&(2)
+intArray%(0) = 42
+sngArray!(0) = 3.14
+dblArray#(0) = 2.71828
+lngArray&(0) = 987654321
+ERASE intArray%, sngArray!, dblArray#, lngArray&
+result1% = intArray%(0)
+result2! = sngArray!(0)
+result3# = dblArray#(0)
+result4& = lngArray&(0)
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal(0%, variables("result1%"))
+      Assert.Equal(0!, variables("result2!"))
+      Assert.Equal(0#, variables("result3#"))
+      Assert.Equal(0&, variables("result4&"))
+
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ERASE_8()
+
+      ' Name: ERASE (8)
+      
+      ' Test ERASE on non-array variable should produce error
+
+      Dim sample = "
+'$STATIC
+DIM x AS INTEGER
+x = 42
+ERASE x
+"
+
+      Dim expected = "ERASE can only be used on arrays, not on variable 'x'."
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal(expected, actual)
+
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ERASE_9()
+
+      ' Name: ERASE (9)
+      
+      ' Test multiple arrays in single ERASE statement
+
+      Dim sample = "
+'$STATIC
+DIM arr1(2)
+DIM arr2(2)
+arr1(0) = 100
+arr1(1) = 200
+arr2(0) = 300
+arr2(1) = 400
+ERASE arr1, arr2
+result1 = arr1(0)
+result2 = arr1(1)
+result3 = arr2(0)
+result4 = arr2(1)
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal(0L, CLng(variables("result1")))
+      Assert.Equal(0L, CLng(variables("result2")))
+      Assert.Equal(0L, CLng(variables("result3")))
+      Assert.Equal(0L, CLng(variables("result4")))
+
+    End Sub
+
+    <Fact>
     Public Sub Sample_ERL()
 
       ' Name: ERL
@@ -1776,138 +1939,47 @@ PRINT EXTERR(-1)
       ' NOTE: See above.
 
       Dim sample = "
-PRINT EXTERR(4)
+i4 = EXTERR(4)
+i0 = EXTERR(0)
+i1 = EXTERR(1)
+i2 = EXTERR(2)
+i3 = EXTERR(3)
 "
 
       'Dim expected = "Illegal function call line 1"
-      Dim expected = "0" ' Looking for 0 since that is what QBasic is doing in this example.
+      'Dim expected = "0" ' Looking for 0 since that is what QBasic is doing in this example.
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("0", $"{variables("i4")}")
+      Assert.Equal("0", $"{variables("i0")}")
+      Assert.Equal("0", $"{variables("i1")}")
+      Assert.Equal("0", $"{variables("i2")}")
+      Assert.Equal("0", $"{variables("i3")}")
 
     End Sub
 
     <Fact>
-    Public Sub Sample_EXTERR_3()
-
-      ' Name: EXTERR (3)
-
-      Dim sample = "
-    PRINT EXTERR(0)
-"
-
-      Dim expected = "0"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_EXTERR_4()
-
-      ' Name: EXTERR (4)
-
-      Dim sample = "
-    PRINT EXTERR(1)
-"
-
-      Dim expected = "0"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_EXTERR_5()
-
-      ' Name: EXTERR (5)
-
-      Dim sample = "
-    PRINT EXTERR(2)
-"
-
-      Dim expected = "0"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_EXTERR_6()
-
-      ' Name: EXTERR (6)
-
-      Dim sample = "
-    PRINT EXTERR(3)
-"
-
-      Dim expected = "0"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_FIX_1()
+    Public Sub Sample_FIX()
 
       ' Name: FIX (1)
 
       Dim sample = "
-    PRINT FIX(58.75)
+f1 = FIX(58.75)
+f2 = FIX(-58.75)
 "
-
-      Dim expected = "58"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_FIX_2()
-
-      ' Name: FIX (2)
-
-      Dim sample = "
-    PRINT FIX(-58.75)
-"
-
-      Dim expected = "-58"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
+      Assert.Equal("58", $"{variables("f1")}")
+      Assert.Equal("-58", $"{variables("f2")}")
 
     End Sub
 

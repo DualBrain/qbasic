@@ -1478,13 +1478,10 @@ B = A / B
       ' Name: ERASE (1)
 
       Dim sample = "
-    DIM B (250)
-    ERASE A,B
-    DIM B(3,4)
-    PRINT ""SUCCESS""
+ERASE A
 "
 
-      Dim expected = "Illegal function call line 2"
+      Dim expected = "Array not defined"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1500,14 +1497,17 @@ B = A / B
 
       ' Name: ERASE (2)
 
+      ' Doesn't matter if '$STATIC or '$DYNAMIC
+      ' Arrays appear to not be able to have dimension
+      ' changed after initialized; even after ERASE
+
       Dim sample = "
-    DIM B (250)
-    ERASE B
-    DIM B(3,4)
-    PRINT ""SUCCESS""
+DIM B(250)
+ERASE B
+DIM B(3,4)
 "
 
-      Dim expected = "SUCCESS"
+      Dim expected = "Wrong number of dimensions"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -1515,6 +1515,56 @@ B = A / B
       Dim variables = eval.Variables
 
       Assert.Equal(expected, actual)
+
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ERASE_3()
+
+      ' Name: ERASE (2)
+
+      ' With '$STATIC (the default), arrays elements are reset to default
+      ' With `$DYNAMIC, the array is reset - requiring a new DIM statement.
+
+      Dim sample = "
+'$STATIC
+DIM B(250)
+ERASE B
+DIM B(3)
+"
+
+      Dim expected = "Array already dimensioned"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal(expected, actual)
+
+    End Sub
+
+    <Fact>
+    Public Sub Sample_ERASE_4()
+
+      ' Name: ERASE (2)
+
+      ' Test '$DYNAMIC ERASE/DIM
+
+      Dim sample = "
+'$DYNAMIC
+DIM B(250)
+ERASE B
+DIM B(3)
+a$ = ""Success""
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim actual = eval.Output?.Trim
+      Dim variables = eval.Variables
+
+      Assert.Equal("Success", variables("a$"))
 
     End Sub
 
@@ -3132,17 +3182,17 @@ PRINT""SUCCESS
       Assert.Equal(0, b2)
 
       Dim sample = "
-PRINT CVI(MKI$(5))
+i = CVI(MKI$(5))
+l = CVL(MKL$(5))
 "
-
-      Dim expected = "5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("5", $"{variables("i")}")
+      Assert.Equal("5", $"{variables("l")}")
 
     End Sub
 
@@ -3432,62 +3482,24 @@ PRINT a# '7654321.1234
     End Sub
 
     <Fact>
-    Public Sub Sample_OCTStr_1()
+    Public Sub Sample_OCT()
 
       ' Name: OCT$ (1)
 
       Dim sample = "
-    PRINT OCT$(18)
+a1$ = OCT$(18)
+a2$ = OCT$(-32768.1)
+a3$ = OCT$(65535.1)
 "
-
-      Dim expected = "22"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_OCTStr_2()
-
-      ' Name: OCT$ (2)
-
-      Dim sample = "
-PRINT OCT$(-32768.1)
-"
-
-      Dim expected = "37777700000"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
-
-    End Sub
-
-    <Fact>
-    Public Sub Sample_OCTStr_3()
-
-      ' Name: OCT$ (3)
-
-      Dim sample = "
-PRINT OCT$(65535.1)
-"
-
-      Dim expected = "177777"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      Assert.Equal(expected, actual)
+      Assert.Equal("22", $"{variables("a1$")}")
+      Assert.Equal("37777700000", $"{variables("a2$")}")
+      Assert.Equal("177777", $"{variables("a3$")}")
 
     End Sub
 

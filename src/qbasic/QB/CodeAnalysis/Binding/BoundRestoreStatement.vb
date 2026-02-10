@@ -19,4 +19,3 @@ Namespace Global.QB.CodeAnalysis.Binding
   End Class
 
 End Namespace
-

@@ -4239,12 +4239,12 @@ PRINT 3-2-5; 3-(2-5)
 
       Dim sample = "
 A$=""LOOK"":B$=""OUT""
-PRINT USING ""!"";A$;B$
-PRINT USING""\   \"";A$;B$
-PRINT USING""\    \"";A$;B$;""!!""
+PRINT ""'""; : PRINT USING ""!"";A$;B$; : PRINT ""'""
+PRINT ""'""; : PRINT USING""\   \"";A$;B$; : PRINT ""'""
+PRINT ""'""; : PRINT USING""\    \"";A$;B$;""!!""; : PRINT ""'""
 "
 
-      Dim expected = $"LO{vbCrLf}LOOK OUT  {vbCrLf}LOOK  OUT   !!"
+      Dim expected = $"'LO'{vbCrLf}'LOOK OUT  '{vbCrLf}'LOOK  OUT   !!    '"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -4261,9 +4261,14 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (10)
 
       Dim sample = "
-    PRINT USING ""**$##.##"";2.34
+PRINT USING ""**$##.##"";2.34
 "
 
+      ' Please note that the following matches the original QBasic
+      ' v1.1 output and appears that the $ is always aligned just before
+      ' the number and if the number is less than the width of the ##
+      ' then the asterisk is used to fill (rather than a space character)
+      ' since we have the `*` characters in the formatting.
       Dim expected = "***$2.34"
 
       Dim eval = Evaluate(sample)
@@ -4281,7 +4286,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (11)
 
       Dim sample = "
-    PRINT USING ""####.##"";1234.5
+PRINT USING ""####.##"";1234.5
 "
 
       Dim expected = "1234.50"
@@ -4301,7 +4306,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (12)
 
       Dim sample = "
-    PRINT USING ""##.##^^^^"";234.56
+PRINT USING ""##.##^^^^"";234.56
 "
 
       Dim expected = "2.35E+02"
@@ -4321,7 +4326,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (13)
 
       Dim sample = "
-    PRINT USING "".####^^^^-"";888888
+PRINT USING "".####^^^^-"";888888
 "
 
       Dim expected = ".8889E+06"
@@ -4341,7 +4346,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (14)
 
       Dim sample = "
-    PRINT USING ""+.##^^^^"";123
+PRINT USING ""+.##^^^^"";123
 "
 
       Dim expected = "+.12E+03"
@@ -4361,7 +4366,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (15)
 
       Dim sample = "
-    PRINT USING ""_!##.##_!"";12.34
+PRINT USING ""_!##.##_!"";12.34
 "
 
       Dim expected = "!12.34!"
@@ -4381,7 +4386,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (16)
 
       Dim sample = "
-    PRINT USING ""##.##"";111.22
+PRINT USING ""##.##"";111.22
 "
 
       Dim expected = "%111.22"
@@ -4401,7 +4406,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (17)
 
       Dim sample = "
-    PRINT USING "".##"";.999
+PRINT USING "".##"";.999
 "
 
       Dim expected = "%1.00"
@@ -4421,9 +4426,9 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (2)
 
       Dim sample = "
-    A$=""LOOK"":B$=""OUT""
-    PRINT USING ""!"";A$
-    PRINT USING ""&"";B$
+A$=""LOOK"":B$=""OUT""
+PRINT USING ""!"";A$
+PRINT USING ""&"";B$
 "
 
       Dim expected = $"L{vbCrLf}OUT"
@@ -4443,7 +4448,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (3)
 
       Dim sample = "
-    PRINT USING ""##.##"";.78
+PRINT USING ""##.##"";.78
 "
 
       Dim expected = "0.78"
@@ -4463,7 +4468,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (4)
 
       Dim sample = "
-    PRINT USING ""###.##"";987.654
+PRINT USING ""###.##"";987.654
 "
 
       Dim expected = "987.65"
@@ -4483,9 +4488,14 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (5)
 
       Dim sample = "
-    PRINT USING ""##.##"";10.2,5.3,66.789,.234
+PRINT USING ""##.##"";10.2,5.3,66.789,.234
 "
 
+      'NOTE: Appears that if ## is before the . character, that
+      '      if not a number available for the "first digit"
+      '      placeholder, then a blank space is used.
+      '      Also, the following is exactly what the result is
+      '      in the original QBasic v1.1.
       Dim expected = "10.20 5.3066.79 0.23"
 
       Dim eval = Evaluate(sample)
@@ -4503,9 +4513,16 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (6)
 
       Dim sample = "
-    PRINT USING ""+##.##"";-68.95,2.4,55.6,-9
+PRINT USING ""+##.##"";-68.95,2.4,55.6,-9
 "
 
+      'NOTE: Appears that if ## is before the . character, that
+      '      if not a number available for the "first digit"
+      '      placeholder, then a blank space is used.
+      '      Also, the following is exactly what the result is
+      '      in the original QBasic v1.1. Very similar to test #5 (above);
+      '      however, the +/- character is "bumped over", shifting
+      '      the space to the left of the +/-.
       Dim expected = "-68.95 +2.40+55.60 -9.00"
 
       Dim eval = Evaluate(sample)
@@ -4523,9 +4540,16 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (7)
 
       Dim sample = "
-    PRINT USING ""##.##-"";-68.95,22.449,-7.01
+PRINT USING ""##.##-"";-68.95,22.449,-7.01
 "
 
+      'NOTE: Appears that if ## is before the . character, that
+      '      if not a number available for the "first digit"
+      '      placeholder, then a blank space is used.
+      '      Also, the following is exactly what the result is
+      '      in the original QBasic v1.1. Very similar to test #5 (above);
+      '      however, the +/- character is placed to the right of the number
+      '      and, in the case of the + sign, if a plus sign, then use a space.
       Dim expected = "68.95-22.45  7.01-"
 
       Dim eval = Evaluate(sample)
@@ -4543,9 +4567,15 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (8)
 
       Dim sample = "
-    PRINT USING ""**#.#"";12.39,-0.9,765.1
+PRINT USING ""**#.#"";12.39,-0.9,765.1
 "
 
+      'NOTE: Appears that if **# is before the . character, that
+      '      if not a number available for the "first digit"
+      '      placeholder, then a `*` character is used.
+      '      Also, the following is exactly what the result is
+      '      in the original QBasic v1.1. Very similar to test #5 (above);
+      '      but instead of "spaces", the `*` character is used.
       Dim expected = "*12.4*-0.9765.1"
 
       Dim eval = Evaluate(sample)
@@ -4563,7 +4593,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT USING (9)
 
       Dim sample = "
-    PRINT USING ""$$###.##"";456.78
+PRINT USING ""$$###.##"";456.78
 "
 
       Dim expected = "$456.78"
@@ -4583,7 +4613,7 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT "Hello World!"
 
       Dim sample = "
-    PRINT ""Hello World!""
+PRINT ""Hello World!""
 "
 
       Dim expected = "Hello World!"
@@ -4603,8 +4633,8 @@ PRINT USING""\    \"";A$;B$;""!!""
       ' Name: PRINT
 
       Dim sample = "
-    X$= STRING$(10,45)
-    PRINT X$""MONTHLY REPORT"" X$
+X$= STRING$(10,45)
+PRINT X$""MONTHLY REPORT"" X$
 "
 
       Dim expected = "----------MONTHLY REPORT----------"

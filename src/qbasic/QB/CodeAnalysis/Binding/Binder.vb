@@ -1570,8 +1570,8 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
 
       Dim format As BoundExpression = Nothing
-      If syntax.Usingformat IsNot Nothing Then
-        format = BindExpression(syntax.Usingformat)
+      If syntax.UsingKeyword IsNot Nothing AndAlso syntax.Usingformat IsNot Nothing Then
+        format = BindExpression(syntax.Usingformat, TypeSymbol.String)
       End If
 
       If fileNumber IsNot Nothing Then
@@ -1601,7 +1601,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Next
         Return New BoundPrintFileStatement(fileNumber, format, nodes.ToImmutableArray())
       Else
-        ' For screen print, keep the original behavior
+        ' For screen print
         Dim nodes = New List(Of BoundNode)
         For Each entry In syntax.Nodes
           If entry.Kind = SyntaxKind.SemicolonToken Then
@@ -1620,7 +1620,11 @@ Namespace Global.QB.CodeAnalysis.Binding
             nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
           End If
         Next
-        Return New BoundPrintStatement(nodes.ToImmutableArray)
+        Dim suppressCr As Boolean = False
+        If nodes.Count > 0 AndAlso nodes.Last.Kind = BoundNodeKind.Symbol Then
+          suppressCr = True
+        End If
+        Return New BoundPrintStatement(nodes.ToImmutableArray(), format, suppressCr)
       End If
 
     End Function

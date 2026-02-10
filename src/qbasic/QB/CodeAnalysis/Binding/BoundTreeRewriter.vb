@@ -176,6 +176,11 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Protected Overridable Function RewritePrintStatement(node As BoundPrintStatement) As BoundStatement
 
+      ' Handle PRINT USING statements - don't lower them, just return as-is
+      If node.Format IsNot Nothing Then
+        Return node
+      End If
+
       'TODO: need to lower the parameter(s) of
       '      the print statement into individual, 
       '      simplistic `print [expression][;]`

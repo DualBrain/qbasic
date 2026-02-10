@@ -4685,18 +4685,19 @@ reset
 open ""test.txt"" for input as #1
 line input #1, a$
 reset
-print a$
+'print a$
 end
 "
 
-      Dim expected = "Hello World!"
+      'Dim expected = "Hello World!"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("Hello World!", variables("a$"))
 
     End Sub
 

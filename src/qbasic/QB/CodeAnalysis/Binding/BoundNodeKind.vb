@@ -62,6 +62,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     PenStatement
     OpenStatement
     CloseStatement
+    ResetStatement
     LineInputFileStatement
     PrintFileStatement
     SeekStatement

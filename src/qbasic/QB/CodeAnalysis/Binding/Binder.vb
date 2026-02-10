@@ -610,6 +610,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OnGosubStatement : Return BindOnGosubStatement(CType(syntax, OnGosubStatementSyntax))
         Case SyntaxKind.OpenStatement : Return BindOpenStatement(CType(syntax, OpenStatementSyntax))
         Case SyntaxKind.CloseStatement : Return BindCloseStatement(CType(syntax, CloseStatementSyntax))
+        Case SyntaxKind.ResetStatement : Return BindResetStatement(CType(syntax, ResetStatementSyntax))
         Case SyntaxKind.SeekStatement : Return BindSeekStatement(CType(syntax, SeekStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
@@ -2286,6 +2287,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         fileNumbers = ImmutableArray(Of BoundExpression).Empty
       End If
       Return New BoundCloseStatement(fileNumbers)
+    End Function
+
+    Private Function BindResetStatement(syntax As ResetStatementSyntax) As BoundStatement
+      Return New BoundResetStatement()
     End Function
 
     Private Function BindSeekStatement(syntax As SeekStatementSyntax) As BoundStatement

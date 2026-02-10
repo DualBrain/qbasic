@@ -843,6 +843,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.PenStatement : EvaluatePenStatement(CType(s, BoundPenStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.OpenStatement : EvaluateOpenStatement(CType(s, BoundOpenStatement)) : index += 1
             Case BoundNodeKind.CloseStatement : EvaluateCloseStatement(CType(s, BoundCloseStatement)) : index += 1
+            Case BoundNodeKind.ResetStatement : EvaluateResetStatement(CType(s, BoundResetStatement)) : index += 1
             Case BoundNodeKind.LineInputFileStatement : EvaluateLineInputFileStatement(CType(s, BoundLineInputFileStatement)) : index += 1
             Case BoundNodeKind.PrintFileStatement : EvaluatePrintFileStatement(CType(s, BoundPrintFileStatement)) : index += 1
             Case BoundNodeKind.SeekStatement : EvaluateSeekStatement(CType(s, BoundSeekStatement)) : index += 1
@@ -3729,6 +3730,11 @@ Namespace Global.QB.CodeAnalysis
         'Next
         m_textWriters.Clear()
       End If
+    End Sub
+
+    Private Sub EvaluateResetStatement(node As BoundResetStatement)
+      Dim emptyClose = New BoundCloseStatement(ImmutableArray(Of BoundExpression).Empty)
+      EvaluateCloseStatement(emptyClose)
     End Sub
 
     Private Sub EvaluateClearStatement(node As BoundClearStatement)

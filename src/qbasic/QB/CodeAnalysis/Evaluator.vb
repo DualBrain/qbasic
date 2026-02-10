@@ -95,6 +95,7 @@ Namespace Global.QB.CodeAnalysis
 
     Private ReadOnly m_data As New List(Of Object)
     Private m_dataIndex As Integer = 0
+    Private ReadOnly m_restoreTargets As New Dictionary(Of Integer, Integer)
 
     Private m_lastValue As Object
 
@@ -818,6 +819,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
             Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement), body.Statements, index) : index += 1
             Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
+            Case BoundNodeKind.RestoreStatement : EvaluateRestoreStatement(CType(s, BoundRestoreStatement)) : index += 1
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
             Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.OnTimerGosubStatement : EvaluateOnTimerGosubStatement(CType(s, BoundOnTimerGosubStatement)) : index += 1
@@ -953,6 +955,9 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateDataStatement(node As BoundDataStatement)
+      If Not m_restoreTargets.ContainsKey(node.LineNumber) Then
+        m_restoreTargets(node.LineNumber) = m_data.Count
+      End If
       For Each value In node.Data
         m_data.Add(value)
       Next
@@ -972,6 +977,29 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.OutOfData)
         End If
       Next
+    End Sub
+
+    Private Sub EvaluateRestoreStatement(node As BoundRestoreStatement)
+      If node.HasTarget Then
+        Dim targetName = node.Target.Name
+        If IsNumeric(targetName) Then
+          Dim lineNumber = Integer.Parse(targetName)
+          If m_restoreTargets.ContainsKey(lineNumber) Then
+            m_dataIndex = m_restoreTargets(lineNumber)
+          Else
+            Dim nearestLine = m_restoreTargets.Keys.Where(Function(k) k >= lineNumber).DefaultIfEmpty(-1).Min()
+            If nearestLine > 0 Then
+              m_dataIndex = m_restoreTargets(nearestLine)
+            Else
+              m_dataIndex = 0
+            End If
+          End If
+        Else
+          m_dataIndex = 0
+        End If
+      Else
+        m_dataIndex = 0
+      End If
     End Sub
 
     Private Sub AssignToExpression(target As BoundExpression, value As Object)
@@ -3463,12 +3491,13 @@ Namespace Global.QB.CodeAnalysis
       For Each statement In block.Statements
         If TypeOf statement Is BoundDataStatement Then
           Dim dataStatement = CType(statement, BoundDataStatement)
-          ' Add all data values to the global data list
+          If Not m_restoreTargets.ContainsKey(dataStatement.LineNumber) Then
+            m_restoreTargets(dataStatement.LineNumber) = m_data.Count
+          End If
           For Each value In dataStatement.Data
             m_data.Add(value)
           Next
         ElseIf TypeOf statement Is BoundBlockStatement Then
-          ' Recursively process nested blocks
           PreprocessDataStatementsInBlock(CType(statement, BoundBlockStatement))
         End If
       Next

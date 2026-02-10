@@ -24,6 +24,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private m_optionBaseDeclared As Boolean = False ' Track if OPTION BASE was already declared
     Private m_arrayModeDynamic As Boolean = False ' Track current $DYNAMIC/$STATIC metacommand state (default $STATIC)
     Private ReadOnly m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
+    Private m_currentLineNumber As Integer = 0 ' Track current line number for DATA statements
 
     Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol)
       m_scope = New BoundScope(parent)
@@ -535,6 +536,12 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindGlobalStatement(syntax As StatementSyntax) As BoundStatement
+      If TypeOf syntax Is LabelStatementSyntax Then
+        Dim labelSyntax = CType(syntax, LabelStatementSyntax)
+        If labelSyntax.Label.Kind = SyntaxKind.NumberToken AndAlso IsNumeric(labelSyntax.Label.Text) Then
+          m_currentLineNumber = CInt(labelSyntax.Label.Text)
+        End If
+      End If
       Return BindStatement(syntax, True)
     End Function
 
@@ -627,6 +634,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ErrorStatement : Return BindErrorStatement(CType(syntax, ErrorStatementSyntax))
         Case SyntaxKind.DateStatement : Return BindDateStatement(CType(syntax, DateStatementSyntax))
         Case SyntaxKind.ReadStatement : Return BindReadStatement(CType(syntax, ReadStatementSyntax))
+        Case SyntaxKind.RestoreStatement : Return BindRestoreStatement(CType(syntax, RestoreStatementSyntax))
         Case SyntaxKind.TimeStatement : Return BindTimeStatement(CType(syntax, TimeStatementSyntax))
         Case SyntaxKind.SleepStatement : Return BindSleepStatement(CType(syntax, SleepStatementSyntax))
         Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
@@ -2455,7 +2463,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
         i += 1
       End While
-      Return New BoundDataStatement(data.ToImmutable())
+
+      Return New BoundDataStatement(data.ToImmutable(), m_currentLineNumber)
     End Function
 
     Private Function BindReadStatement(syntax As ReadStatementSyntax) As BoundStatement
@@ -2467,6 +2476,15 @@ Namespace Global.QB.CodeAnalysis.Binding
       Next
 
       Return New BoundReadStatement(expressions.ToImmutable())
+    End Function
+
+    Private Function BindRestoreStatement(syntax As RestoreStatementSyntax) As BoundStatement
+      If syntax.NumberToken IsNot Nothing Then
+        Dim value = syntax.NumberToken.Text.ToLower()
+        Dim label = New BoundLabel(value)
+        Return New BoundRestoreStatement(label)
+      End If
+      Return New BoundRestoreStatement(Nothing)
     End Function
 
     Private Function BindDateStatement(syntax As DateStatementSyntax) As BoundStatement

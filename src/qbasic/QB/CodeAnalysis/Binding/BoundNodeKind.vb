@@ -92,6 +92,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     ErrorStatement
     ReadStatement
     RedimStatement
+    RestoreStatement
     SleepStatement
     TimeStatement
     TimerStatement

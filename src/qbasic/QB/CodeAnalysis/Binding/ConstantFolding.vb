@@ -5,16 +5,31 @@ Namespace Global.QB.CodeAnalysis.Binding
   Friend Module ConstantFolding
 
     Public Function ComputeConstant(op As BoundUnaryOperator, operand As BoundExpression) As BoundConstant
-      If operand.ConstantValue IsNot Nothing AndAlso TypeOf operand.ConstantValue.Value Is Integer Then
+      If operand.ConstantValue IsNot Nothing Then
+        Dim constVal = operand.ConstantValue.Value
         Select Case op.Kind
           Case BoundUnaryOperatorKind.Identity
-            Return New BoundConstant(CInt(operand.ConstantValue.Value))
+            If TypeOf constVal Is Integer Then
+              Return New BoundConstant(CInt(constVal))
+            ElseIf TypeOf constVal Is Single Then
+              Return New BoundConstant(CSng(constVal))
+            End If
           Case BoundUnaryOperatorKind.Negation
-            Return New BoundConstant(-CInt(operand.ConstantValue.Value))
+            If TypeOf constVal Is Integer Then
+              Return New BoundConstant(-CInt(constVal))
+            ElseIf TypeOf constVal Is Single Then
+              Return New BoundConstant(-CSng(constVal))
+            End If
           Case BoundUnaryOperatorKind.LogicalNegation
-            Return New BoundConstant(Not CBool(operand.ConstantValue.Value))
+            If TypeOf constVal Is Boolean Then
+              Return New BoundConstant(Not CBool(constVal))
+            ElseIf TypeOf constVal Is Integer Then
+              Return New BoundConstant(Not CInt(constVal))
+            End If
           Case BoundUnaryOperatorKind.BitwiseComplement
-            Return New BoundConstant(Not CInt(operand.ConstantValue.Value))
+            If TypeOf constVal Is Integer Then
+              Return New BoundConstant(Not CInt(constVal))
+            End If
           Case Else
             Throw New Exception($"Unexpected unary operator {op.Kind}")
         End Select

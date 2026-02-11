@@ -1767,21 +1767,24 @@ result4 = arr2(1)
       Dim sample = "
 10 ON ERROR GOTO 1000
 20 ERROR 5
-30 PRINT "" DONE""
+30 FIN = 1 'PRINT "" DONE""
 40 END
 1000 A=ERR:B=ERL
-1010 PRINT A,B;
+1010 'PRINT A,B;
 1020 RESUME NEXT
 "
 
-      Dim expected = "5      20  DONE"
+      'Dim expected = "5      20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("5", $"{variables("A")}")
+      Assert.Equal("20", $"{variables("B")}")
 
     End Sub
 
@@ -1793,21 +1796,24 @@ result4 = arr2(1)
       Dim sample = "
 10 ON ERROR GOTO 1000
 20 ERROR 5
-30 PRINT "" DONE""
+30 FIN = 1 'PRINT "" DONE""
 40 END
 1000 A=ERR:B=ERL
-1010 PRINT A,B;
+1010 'PRINT A,B;
 1020 RESUME NEXT
 "
 
-      Dim expected = "5      20  DONE"
+      'Dim expected = "5      20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("5", $"{variables("A")}")
+      Assert.Equal("20", $"{variables("B")}")
 
     End Sub
 
@@ -1870,20 +1876,22 @@ Handler:
 110 ON ERROR GOTO 400
 120 B=5001: ' INPUT ""WHAT IS YOUR BET"";B
 130 IF B > 5000 THEN ERROR 210
-140 PRINT ""DONE""
+140 FIN = 1 'PRINT ""DONE""
 150 END
-400 IF ERR=210 THEN PRINT ""HOUSE LIMIT IS $5000""
+400 IF ERR=210 THEN E1 = 1 'PRINT ""HOUSE LIMIT IS $5000""
 410 IF ERL=130 THEN RESUME 140
 "
 
-      Dim expected = $"HOUSE LIMIT IS $5000{vbCrLf}DONE"
+      'Dim expected = $"HOUSE LIMIT IS $5000{vbCrLf}DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("1", $"{variables("E1")}")
 
     End Sub
 
@@ -2064,20 +2072,22 @@ NEXT
 
       Dim sample = "
     R=0
+    T=0
     FOR S=1 TO R
-      PRINT S;
+      T = T + S 'PRINT S;
     NEXT S
-    PRINT ""DONE""
+    'PRINT ""DONE""
 "
 
-      Dim expected = "DONE"
+      'Dim expected = "DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("0", $"{variables("T")}")
 
     End Sub
 
@@ -2092,10 +2102,11 @@ R=0
 FOR S=1 TO R
   PRINT S;
 'NEXT S
-PRINT ""DONE""
+'PRINT ""DONE""
 END
 Handler:
-  PRINT ""ERR =""; ERR
+  'PRINT ""ERR =""; ERR
+  E1 = ERR
   END
 "
 
@@ -2107,6 +2118,7 @@ Handler:
       Dim variables = eval.Variables
 
       Assert.Equal(expected, actual)
+      'Assert.Equal("26", $"{variables("E1")}")
 
     End Sub
 
@@ -2280,35 +2292,43 @@ PRINT FRE(x)
       ' Name: GET/PUT (Files) (1)
 
       Dim sample = "
-    open ""r"",#1,""infofile.txt"",32
-    field #1,20 as n$,4 as a$, 8 as P$
-    for entry = 1 to 3
-      READ CODE%,X$,AMT,TEL$
-      LSET n$=x$
-      LSET a$=MKS$(AMT)
-      lset p$=tel$
-      put #1,code%
-    next
-    for code%=5 to 1 step -3
-      get #1, code%
-      print code%,n$;
-      print using ""$$###.##"";cvs(a$);
-      print p$
-    next
-    end
-    DATA 01,NAME1,1.00,555-0001
-    DATA 05,NAME5,5.00,555-0005
-    DATA 02,NAME2,2.00,555-0002
+open ""r"",#1,""infofile.txt"",32
+field #1,20 as n$,4 as a$, 8 as p$
+for entry = 1 to 3
+  READ code%,x$,amt,tel$
+  LSET n$=x$
+  LSET a$=MKS$(amt)
+  lset p$=tel$
+  put #1,code%
+next
+for code%=5 to 1 step -3
+  get #1, code%
+  print code%,n$;
+  print using ""$$###.##"";cvs(a$);
+  print p$
+next
+end
+DATA 01,NAME1,1.00,555-0001
+DATA 05,NAME5,5.00,555-0005
+DATA 02,NAME2,2.00,555-0002
 "
 
-      Dim expected = $"5            NAME5                  $5.00555-0005{vbCrLf} 2            NAME2                  $2.00555-0002"
+      'Dim expected = $"5            NAME5                  $5.00555-0005{vbCrLf} 2            NAME2                  $2.00555-0002"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+
+      Assert.Equal("NAME2               ", $"{variables("n$")}")
+      Assert.Equal(2.0, QBLib.Core.CVS($"{variables("a$")}"))
+      Assert.Equal("555-0002", $"{variables("p$")}")
+      Assert.Equal("-1", $"{variables("code%")}")
+      Assert.Equal("NAME2", $"{variables("x$")}")
+      Assert.Equal("2", $"{variables("amt")}")
+      Assert.Equal("555-0002", $"{variables("tel$")}")
 
     End Sub
 
@@ -2318,35 +2338,42 @@ PRINT FRE(x)
       ' Name: GET/PUT (Files) (2)
 
       Dim sample = "
-    open ""infofile.txt"" for random access read write as #1 len = 32
-    field #1,20 as n$,4 as a$, 8 as P$
-    for entry = 1 to 3
-      READ CODE%,X$,AMT,TEL$
-      LSET n$=x$
-      LSET a$=MKS$(AMT)
-      lset p$=tel$
-      put #1,code%
-    next
-    for code%=5 to 1 step -3
-      get #1, code%
-      print code%,n$;
-      print using ""$$###.##"";cvs(a$);
-      print p$
-    next
-    end
-    DATA 01,NAME1,1.00,555-0001
-    DATA 05,NAME5,5.00,555-0005
-    DATA 02,NAME2,2.00,555-0002
+open ""infofile.txt"" for random access read write as #1 len = 32
+field #1,20 as n$,4 as a$, 8 as p$
+for entry = 1 to 3
+  READ code%,x$,amt,tel$
+  LSET n$=x$
+  LSET a$=MKS$(amt)
+  lset p$=tel$
+  put #1,code%
+next
+for code%=5 to 1 step -3
+  get #1, code%
+  'print code%,n$;
+  'print using ""$$###.##"";cvs(a$);
+  'print p$
+next
+end
+DATA 01,NAME1,1.00,555-0001
+DATA 05,NAME5,5.00,555-0005
+DATA 02,NAME2,2.00,555-0002
 "
 
-      Dim expected = $"5            NAME5                  $5.00555-0005{vbCrLf} 2            NAME2                  $2.00555-0002"
+      'Dim expected = $"5            NAME5                  $5.00555-0005{vbCrLf} 2            NAME2                  $2.00555-0002"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("NAME2               ", $"{variables("n$")}")
+      Assert.Equal(2.0, QBLib.Core.CVS($"{variables("a$")}"))
+      Assert.Equal("555-0002", $"{variables("p$")}")
+      Assert.Equal("-1", $"{variables("code%")}")
+      Assert.Equal("NAME2", $"{variables("x$")}")
+      Assert.Equal("2", $"{variables("amt")}")
+      Assert.Equal("555-0002", $"{variables("tel$")}")
 
     End Sub
 
@@ -3662,25 +3689,27 @@ ON ERROR GOTO Handler
 ERROR 5
     
 ' Print that we have completed
-PRINT "" DONE""
+FIN = 1 'PRINT "" DONE""
     
 ' End the program
 END
     
 Handler:
   A=ERR:B=ERL
-  PRINT A;
+  'PRINT A;
   RESUME NEXT
 "
 
-      Dim expected = "5  DONE"
+      'Dim expected = "5  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("5", $"{variables("A")}")
 
     End Sub
 
@@ -3692,21 +3721,24 @@ Handler:
       Dim sample = "
 10 ON ERROR GOTO 1000
 20 ERROR 5
-30 PRINT "" DONE""
+30 FIN = 1 'PRINT "" DONE""
 40 END
 1000 A=ERR:B=ERL
-1010 PRINT A,B;
+1010 'PRINT A,B;
 1020 RESUME NEXT
 "
 
-      Dim expected = "5      20  DONE"
+      'Dim expected = "5      20  DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("5", $"{variables("A")}")
+      Assert.Equal("20", $"{variables("B")}")
 
     End Sub
 
@@ -3718,20 +3750,24 @@ Handler:
       Dim sample = "
 10 ON ERROR GOTO 1000
 20 ERROR 5
-30 PRINT ""DONE""
+30 FIN = 1 'PRINT ""DONE""
 40 END
-1000 PRINT ""ERL=""; ERL; ""ERR=""; ERR
+1000 A=ERR: B=ERL 'PRINT ""ERL=""; ERL; ""ERR=""; ERR
 1010 RESUME NEXT
 "
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       ' Verify that ERL contains the correct line number (20)
-      Assert.Contains("ERL= 20", actual)
-      Assert.Contains("ERR= 5", actual)
+      'Assert.Contains("ERL= 20", actual)
+      'Assert.Contains("ERR= 5", actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("5", $"{variables("A")}")
+      Assert.Equal("20", $"{variables("B")}")
+
     End Sub
 
     <Fact>
@@ -3742,21 +3778,23 @@ Handler:
       Dim sample = "
 10 X=3
 20 ON X GOSUB 100, 200, 300
-30 PRINT "" DONE""
+30 FIN = 1 'PRINT "" DONE""
 40 END
-100 PRINT ""100"";: RETURN
-200 PRINT ""200"";: RETURN
-300 PRINT ""300"";: RETURN
+100 A=100: RETURN 'PRINT ""100"";: RETURN
+200 A=200: RETURN 'PRINT ""200"";: RETURN
+300 A=300: RETURN 'PRINT ""300"";: RETURN
 "
 
-      Dim expected = "300 DONE"
+      'Dim expected = "300 DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("300", $"{variables("A")}")
 
     End Sub
 
@@ -3768,11 +3806,11 @@ Handler:
       Dim sample = "
 10 X=-1
 20 ON X GOSUB 100, 200, 300
-30 PRINT "" DONE""
+30 FIN = 1 'PRINT "" DONE""
 40 END
-100 PRINT ""100"";: RETURN
-200 PRINT ""200"";: RETURN
-300 PRINT ""300"";: RETURN
+100 A=100: RETURN 'PRINT ""100"";: RETURN
+200 A=200: RETURN 'PRINT ""200"";: RETURN
+300 A=300: RETURN 'PRINT ""300"";: RETURN
 "
 
       Dim expected = "Illegal function call in 20"
@@ -3820,21 +3858,22 @@ Handler:
       Dim sample = "
 10 X=0
 20 ON X GOSUB 100, 200, 300
-30 PRINT "" DONE""
+30 FIN = 1 'PRINT "" DONE""
 40 END
 100 PRINT ""100"";: RETURN
 200 PRINT ""200"";: RETURN
 300 PRINT ""300"";: RETURN
 "
 
-      Dim expected = "DONE"
+      'Dim expected = "DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
 
     End Sub
 
@@ -3846,21 +3885,22 @@ Handler:
       Dim sample = "
 10 X=255
 20 ON X GOSUB 100, 200, 300
-30 PRINT "" DONE""
+30 FIN=1 'PRINT "" DONE""
 40 END
 100 PRINT ""100"";: RETURN
 200 PRINT ""200"";: RETURN
 300 PRINT ""300"";: RETURN
 "
 
-      Dim expected = "DONE"
+      'Dim expected = "DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
 
     End Sub
 
@@ -3875,28 +3915,30 @@ X=3
 ON X GOSUB entrya, entryB, ENTRYC
     
 Done:
-  PRINT "" DONE""
+  FIN=1 'PRINT "" DONE""
     
 END
     
 EntryA:
-  PRINT ""100"";: RETURN
+  A=100: RETURN 'PRINT ""100"";: RETURN
     
 EntryB:
-  PRINT ""200"";: RETURN
+  A=200: RETURN 'PRINT ""200"";: RETURN
     
 EntryC:
-  PRINT ""300"";: RETURN
+  A=300: RETURN 'PRINT ""300"";: RETURN
 "
 
-      Dim expected = "300 DONE"
+      'Dim expected = "300 DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
+      Assert.Equal("300", $"{variables("A")}")
 
     End Sub
 

@@ -2485,23 +2485,31 @@ repeat:
       Dim openKeyword = MatchToken(SyntaxKind.OpenKeyword)
       Dim firstExpr = ParseExpression()
 
-      ' Check for shorthand form: OPEN mode$, [#]filenumber%, filename$
+      ' Check for shorthand form: OPEN mode$, [#]filenumber%, filename$ [, record_length]
       ' In shorthand form, after the first expression we see a comma (not FOR keyword)
       If Current.Kind = SyntaxKind.CommaToken Then
         Dim comma1 = MatchToken(SyntaxKind.CommaToken)
         Dim pound1 = TryMatchToken(SyntaxKind.PoundToken)
-        Dim fileNumber1 = ParseExpression()
+        Dim shorthandFileNumber = ParseExpression()
         Dim comma2 = MatchToken(SyntaxKind.CommaToken)
-        Dim filename = ParseExpression()
+        Dim shorthandFilename = ParseExpression()
+
+        ' Optional record length
+        Dim shorthandRecLen As ExpressionSyntax = Nothing
+        If Current.Kind = SyntaxKind.CommaToken Then
+          Dim comma3 = MatchToken(SyntaxKind.CommaToken)
+          shorthandRecLen = ParseExpression()
+        End If
 
         Return New OpenStatementSyntax(m_syntaxTree,
                                         openKeyword,
                                         firstExpr,
                                         comma1,
                                         pound1,
-                                        fileNumber1,
+                                        shorthandFileNumber,
                                         comma2,
-                                        filename)
+                                        shorthandFilename,
+                                        shorthandRecLen)
       End If
 
       ' Full form: OPEN file$ [FOR mode] ... AS [#]filenumber% ...

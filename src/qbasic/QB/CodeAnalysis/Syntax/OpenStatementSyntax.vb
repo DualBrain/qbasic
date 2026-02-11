@@ -23,17 +23,14 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Me.IsShorthandForm = False
     End Sub
 
-    Public Sub New(tree As SyntaxTree, openKeyword As SyntaxToken, mode As ExpressionSyntax, comma1 As SyntaxToken, pound1 As SyntaxToken, fileNumber1 As ExpressionSyntax, comma2 As SyntaxToken, filename As ExpressionSyntax)
+    Public Sub New(tree As SyntaxTree, openKeyword As SyntaxToken, mode As ExpressionSyntax, comma1 As SyntaxToken, pound1 As SyntaxToken, fileNumber1 As ExpressionSyntax, comma2 As SyntaxToken, filename As ExpressionSyntax, Optional recLen As ExpressionSyntax = Nothing)
       MyBase.New(tree)
+      ' For shorthand form OPEN "mode",#filenum,"filename",len:
+      ' - first expression (mode) is the mode string like "r"
+      ' - third expression (filename) is the actual file path
+      ' We swap them in the constructor to match BoundOpenStatement expectations
       Me.OpenKeyword = openKeyword
-      Me.Mode = mode
-      Me.Comma1 = comma1
-      Me.Pound1 = pound1
-      Me.FileNumber1 = fileNumber1
-      Me.Comma2 = comma2
-      Me.Filename = filename
-      Me.IsShorthandForm = True
-      Me.File = Nothing
+      Me.File = filename
       Me.ForKeyword = Nothing
       Me.ModeKeyword = Nothing
       Me.AccessKeyword = Nothing
@@ -44,7 +41,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Me.FileNumber = Nothing
       Me.LenKeyword = Nothing
       Me.Equal = Nothing
-      Me.RecLen = Nothing
+      Me.RecLen = recLen
+      ' Shorthand-specific properties
+      Me.IsShorthandForm = True
+      Me.Mode = mode
+      Me.Comma1 = comma1
+      Me.Pound1 = pound1
+      Me.FileNumber1 = fileNumber1
+      Me.Comma2 = comma2
+      Me.Filename = mode ' Store mode in Filename property (will be used as mode in binding)
     End Sub
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.OpenStatement

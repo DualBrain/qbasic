@@ -472,9 +472,6 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Function
 
-    'TODO: Moved from s_operators (shared variable and 'one-time' initialization)
-    '      to "just in time" initialization due to running tests failing due to
-    '      either s_operators being nothing or the array was changed runtime errors.
     Public Shared Function Bind(SyntaxKind As SyntaxKind, leftType As TypeSymbol, rightType As TypeSymbol) As BoundBinaryOperator
 
       'If s_operators.Count = 0 Then
@@ -485,8 +482,6 @@ Namespace Global.QB.CodeAnalysis.Binding
                     Where op.SyntaxKind = SyntaxKind AndAlso
                           op.LeftType Is leftType AndAlso
                           op.RightType Is rightType).FirstOrDefault
-
-
 
       Return result
 

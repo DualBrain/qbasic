@@ -349,11 +349,11 @@ Namespace Global.QB.CodeAnalysis.Lowering
       ' next
       '
       '  ------>
-      ' 
+      '
       ' dim <var> = <lower>
-      ' while <var> <= <upper>
+      ' while <var> <= <upper> (for positive step) or <var> >= <upper> (for negative step)
       '   <body>
-      '   <var> = <var> + 1
+      '   <var> = <var> + <stepper>
       ' wend
       '
 
@@ -364,8 +364,18 @@ Namespace Global.QB.CodeAnalysis.Lowering
       Dim upperBoundSymbol = New LocalVariableSymbol("upperBound", True, TypeSymbol.Integer, node.UpperBound.ConstantValue)
       Dim upperBoundDeclaration = New BoundVariableDeclaration(upperBoundSymbol, node.UpperBound)
 
+      ' Determine if step is negative
+      Dim stepValue As Integer = 1
+      If node.Stepper IsNot Nothing AndAlso node.Stepper.ConstantValue IsNot Nothing Then
+        stepValue = CInt(node.Stepper.ConstantValue.Value)
+      End If
+      Dim isNegativeStep As Boolean = stepValue < 0
+
+      ' Use LessThanOrEqual for positive step, GreaterThanOrEqual for negative step
+      Dim conditionOperator As SyntaxKind = If(isNegativeStep, SyntaxKind.GreaterThanEqualToken, SyntaxKind.LessThanEqualToken)
+
       Dim condition = New BoundBinaryExpression(variableExpression,
-                                                BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+                                                BoundBinaryOperator.Bind(conditionOperator, node.Variable.Type, upperBoundSymbol.Type),
                                                 New BoundVariableExpression(upperBoundSymbol))
 
       Dim continueLabelStatement = New BoundLabelStatement(node.ContinueLabel)

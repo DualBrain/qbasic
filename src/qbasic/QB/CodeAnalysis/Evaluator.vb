@@ -18,6 +18,7 @@ Namespace Global.QB.CodeAnalysis
   End Enum
 
   Friend NotInheritable Class Evaluator
+    Implements IDisposable
 
     Private ReadOnly m_program As BoundProgram
     Private ReadOnly m_globalStatements As ImmutableArray(Of BoundStatement)
@@ -85,6 +86,7 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_recordLengths As New Dictionary(Of Integer, Integer) ' File number to record length mapping (for RANDOM files)
     Private ReadOnly m_textReaders As New Dictionary(Of Integer, StreamReader) ' File number to StreamReader mapping for INPUT files
     Private ReadOnly m_textWriters As New Dictionary(Of Integer, StreamWriter) ' File number to StreamWriter mapping for OUTPUT/APPEND files
+    Private ReadOnly m_fieldDefinitions As New Dictionary(Of Integer, List(Of (VariableName As String, Offset As Integer, Width As Integer))) ' File number to field definitions mapping
 
     'Private m_labelToIndex As Dictionary(Of String, Integer) = Nothing ' Label to m_currentIndex mapping
     'Private m_currentIndex As Integer = 0 ' Current statement m_currentIndex being executed
@@ -893,6 +895,9 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.PrintFileStatement : EvaluatePrintFileStatement(CType(s, BoundPrintFileStatement)) : index += 1
             Case BoundNodeKind.WriteStatement : EvaluateWriteStatement(CType(s, BoundWriteStatement)) : index += 1
             Case BoundNodeKind.SeekStatement : EvaluateSeekStatement(CType(s, BoundSeekStatement)) : index += 1
+            Case BoundNodeKind.FieldStatement : EvaluateFieldStatement(CType(s, BoundFieldStatement)) : index += 1
+            Case BoundNodeKind.GetFileStatement : EvaluateGetFileStatement(CType(s, BoundGetFileStatement)) : index += 1
+            Case BoundNodeKind.PutFileStatement : EvaluatePutFileStatement(CType(s, BoundPutFileStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
@@ -2567,24 +2572,39 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateIfStatement(node As BoundIfStatement, labelToIndex As Dictionary(Of String, Integer))
-      Dim conditionValue = CBool(EvaluateExpression(node.Expression))
-      If conditionValue Then
-        EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
-      Else
-        Dim executed = False
-        For Each elseIfClause In node.ElseIfStatements
-          If Not executed Then
-            Dim elseIfCondition = CBool(EvaluateExpression(elseIfClause.Expression))
-            If elseIfCondition Then
-              EvaluateStatement(CType(elseIfClause.Statements, BoundBlockStatement))
-              executed = True
+        Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+        If conditionValue Then
+            If TypeOf node.Statements Is BoundBlockStatement Then
+                EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
+            Else
+                Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(node.Statements))
+                EvaluateStatement(tempBlock, labelToIndex)
             End If
-          End If
-        Next
-        If Not executed AndAlso node.ElseStatement IsNot Nothing Then
-          EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement), labelToIndex)
+        Else
+            Dim executed = False
+            For Each elseIfClause In node.ElseIfStatements
+                If Not executed Then
+                    Dim elseIfCondition = CBool(EvaluateExpression(elseIfClause.Expression))
+                    If elseIfCondition Then
+                        If TypeOf elseIfClause.Statements Is BoundBlockStatement Then
+                            EvaluateStatement(CType(elseIfClause.Statements, BoundBlockStatement))
+                        Else
+                            Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(elseIfClause.Statements))
+                            EvaluateStatement(tempBlock)
+                        End If
+                        executed = True
+                    End If
+                End If
+            Next
+            If Not executed AndAlso node.ElseStatement IsNot Nothing Then
+                If TypeOf node.ElseStatement Is BoundBlockStatement Then
+                    EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement), labelToIndex)
+                Else
+                    Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(node.ElseStatement))
+                    EvaluateStatement(tempBlock, labelToIndex)
+                End If
+            End If
         End If
-      End If
     End Sub
 
     Private Sub EvaluateVariableDeclaration(node As BoundVariableDeclaration)
@@ -3867,12 +3887,16 @@ Namespace Global.QB.CodeAnalysis
            modeString.ToUpper() = "APPEND" OrElse modeString.ToUpper() = "A" Then
           m_textWriters.Add(fileNumber, New StreamWriter(stream, leaveOpen:=True))
         End If
+      Catch ex As FileNotFoundException
+        Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
+      Catch ex As DirectoryNotFoundException
+        Throw New QBasicRuntimeException(ErrorCode.PathNotFound)
+      Catch ex As UnauthorizedAccessException
+        Throw New QBasicRuntimeException(ErrorCode.PermissionDenied)
+      Catch ex As IOException
+        Throw New QBasicRuntimeException(ErrorCode.DiskFull)
       Catch ex As Exception
-        If modeString.ToUpper() = "OUTPUT" OrElse modeString.ToUpper() = "O" Then
-          Throw New QBasicRuntimeException(ErrorCode.FileAlreadyExists)
-        Else
-          Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
-        End If
+        Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
       End Try
     End Sub
 
@@ -4144,6 +4168,127 @@ Namespace Global.QB.CodeAnalysis
       End Select
     End Sub
 
+    Private Sub EvaluateFieldStatement(node As BoundFieldStatement)
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+
+      Dim fieldDefs As New List(Of (VariableName As String, Offset As Integer, Width As Integer))
+      Dim currentOffset As Integer = 0
+
+      For Each fieldDef In node.FieldDefinitions
+        Dim varName = fieldDef.VariableName
+        Dim width = CInt(EvaluateExpression(fieldDef.Width))
+        fieldDefs.Add((varName, currentOffset, width))
+        currentOffset += width
+
+        ' Create the variable in scope if it doesn't exist
+        If Not m_globals.ContainsKey(varName) Then
+          ' Initialize with spaces (padded to field width)
+          m_globals(varName) = New String(" "c, width)
+        End If
+      Next
+
+      m_fieldDefinitions(fileNumber) = fieldDefs
+    End Sub
+
+    Private Sub EvaluateGetFileStatement(node As BoundGetFileStatement)
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+
+      If Not m_openFiles.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+      End If
+
+      If Not m_fieldDefinitions.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
+      End If
+
+      Dim stream = m_openFiles(fileNumber)
+      Dim recLen = m_recordLengths(fileNumber)
+
+      ' Calculate record number (1-based)
+      Dim recordNumber As Long = 1
+      If node.OptionalRecord IsNot Nothing Then
+        recordNumber = CLng(EvaluateExpression(node.OptionalRecord))
+      End If
+
+      ' Position to the correct record
+      Dim position As Long = (recordNumber - 1) * recLen
+      If position < stream.Length Then
+        stream.Position = position
+      End If
+
+      ' Read the record into a buffer
+      Dim buffer(recLen - 1) As Byte
+      Dim bytesRead As Integer = stream.Read(buffer, 0, recLen)
+
+      ' Copy buffer data to field variables
+      Dim fieldDefs = m_fieldDefinitions(fileNumber)
+      For Each fieldDef In fieldDefs
+        Dim varName = fieldDef.VariableName
+        Dim offset = fieldDef.Offset
+        Dim width = fieldDef.Width
+
+        ' Extract string from buffer and set variable
+        Dim chars(width - 1) As Char
+        For i As Integer = 0 To width - 1
+          If offset + i < bytesRead Then
+            chars(i) = ChrW(buffer(offset + i))
+          Else
+            chars(i) = " "c
+          End If
+        Next
+        m_globals(varName) = New String(chars)
+      Next
+    End Sub
+
+    Private Sub EvaluatePutFileStatement(node As BoundPutFileStatement)
+      Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+
+      If Not m_openFiles.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+      End If
+
+      If Not m_fieldDefinitions.ContainsKey(fileNumber) Then
+        Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
+      End If
+
+      Dim stream = m_openFiles(fileNumber)
+      Dim recLen = m_recordLengths(fileNumber)
+
+      ' Calculate record number (1-based)
+      Dim recordNumber As Long = 1
+      If node.OptionalRecord IsNot Nothing Then
+        recordNumber = CLng(EvaluateExpression(node.OptionalRecord))
+      End If
+
+      ' Position to the correct record
+      Dim position As Long = (recordNumber - 1) * recLen
+      stream.Position = position
+
+      ' Create buffer from field variables
+      Dim buffer(recLen - 1) As Byte
+      Dim fieldDefs = m_fieldDefinitions(fileNumber)
+      For Each fieldDef In fieldDefs
+        Dim varName = fieldDef.VariableName
+        Dim offset = fieldDef.Offset
+        Dim width = fieldDef.Width
+
+        ' Get variable value and copy to buffer
+        Dim value = m_globals(varName)
+        Dim strValue As String = If(value?.ToString(), "")
+        For i As Integer = 0 To width - 1
+          If i < strValue.Length Then
+            buffer(offset + i) = CByte(AscW(strValue(i)))
+          Else
+            buffer(offset + i) = 32 ' Space character
+          End If
+        Next
+      Next
+
+      ' Write buffer to file
+      stream.Write(buffer, 0, recLen)
+      stream.Flush()
+    End Sub
+
     Private Sub EvaluateOnGotoStatement(node As BoundOnGotoStatement, labelToIndex As Dictionary(Of String, Integer), ByRef index As Integer)
       ' Evaluate the expression to get the index
       Dim result = EvaluateExpression(node.Expression)
@@ -4243,7 +4388,7 @@ Namespace Global.QB.CodeAnalysis
       For Each statement In block.Statements
         If TypeOf statement Is BoundDataStatement Then
           Dim dataStatement = CType(statement, BoundDataStatement)
-          If Not m_restoreTargets.ContainsKey(dataStatement.LineNumber) Then
+           If Not m_restoreTargets.ContainsKey(dataStatement.LineNumber) Then
             m_restoreTargets(dataStatement.LineNumber) = m_data.Count
           End If
           For Each value In dataStatement.Data
@@ -4253,6 +4398,29 @@ Namespace Global.QB.CodeAnalysis
           PreprocessDataStatementsInBlock(CType(statement, BoundBlockStatement))
         End If
       Next
+    End Sub
+
+    Public Sub Dispose() Implements IDisposable.Dispose
+
+      ' Close all open files when the Evaluator is disposed
+      For Each reader In m_textReaders.Values
+        reader.Close()
+        reader.Dispose()
+      Next
+      m_textReaders.Clear()
+
+      For Each writer In m_textWriters.Values
+        writer.Close()
+        writer.Dispose()
+      Next
+      m_textWriters.Clear()
+
+      For Each stream In m_openFiles.Values
+        stream.Close()
+        stream.Dispose()
+      Next
+      m_openFiles.Clear()
+
     End Sub
 
   End Class

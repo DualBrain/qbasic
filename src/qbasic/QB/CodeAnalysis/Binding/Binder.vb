@@ -582,8 +582,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.EndStatement : Return BindEndStatement(CType(syntax, EndStatementSyntax))
         Case SyntaxKind.ExitStatement : Return BindExitStatement(CType(syntax, ExitStatementSyntax))
         Case SyntaxKind.ExpressionStatement : Return BindExpressionStatement(CType(syntax, ExpressionStatementSyntax))
+        Case SyntaxKind.FieldStatement : Return BindFieldStatement(CType(syntax, FieldStatementSyntax))
         Case SyntaxKind.ForStatement : Return BindForStatement(CType(syntax, ForStatementSyntax))
         Case SyntaxKind.GosubStatement : Return BindGosubStatement(CType(syntax, GosubStatementSyntax))
+        Case SyntaxKind.GetFileStatement : Return BindGetFileStatement(CType(syntax, GetFileStatementSyntax))
         Case SyntaxKind.GotoStatement : Return BindGotoStatement(CType(syntax, GotoStatementSyntax))
         Case SyntaxKind.IfStatement : Return BindIfStatement(CType(syntax, IfStatementSyntax))
         Case SyntaxKind.InputStatement : Return BindInputStatement(CType(syntax, InputStatementSyntax))
@@ -615,6 +617,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
+        Case SyntaxKind.PutFileStatement : Return BindPutFileStatement(CType(syntax, PutFileStatementSyntax))
         Case SyntaxKind.WriteStatement : Return BindWriteStatement(CType(syntax, WriteStatementSyntax))
         Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
@@ -1024,6 +1027,78 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Return New BoundForStatement(variable, lowerBound, upperBound, stepper, body, exitLabel, continueLabel)
 
+    End Function
+
+    Private Function BindFieldStatement(syntax As FieldStatementSyntax) As BoundStatement
+      Dim fileNumber = BindExpression(syntax.Filenumber)
+
+      Dim fieldDefinitions As New List(Of (Width As BoundExpression, VariableName As String))
+
+      ' The identifiers list contains: width, AS, identifier, comma [, width, AS, identifier, comma ...]
+      ' Pattern: Expression, AS keyword, Identifier, [Comma]
+      ' Commas are not part of the field definition - they're just separators
+      For i As Integer = 0 To syntax.Identifiers.Count - 1
+        Dim node = syntax.Identifiers(i)
+
+        ' Skip commas
+        If TypeOf node Is SyntaxToken AndAlso DirectCast(node, SyntaxToken).Kind = SyntaxKind.CommaToken Then
+          Continue For
+        End If
+
+        ' Each field definition starts with a width expression
+        ' Pattern: width (Expression), AS (Token), identifier (Token)
+        If TypeOf node IsNot ExpressionSyntax Then
+          Continue For
+        End If
+
+        Dim widthNode = DirectCast(node, ExpressionSyntax)
+        Dim asTokenIndex = i + 1
+        Dim varTokenIndex = i + 2
+
+        ' Check if we have enough tokens for a complete field definition
+        If asTokenIndex >= syntax.Identifiers.Count OrElse varTokenIndex >= syntax.Identifiers.Count Then
+          Exit For
+        End If
+
+        Dim asToken = syntax.Identifiers(asTokenIndex)
+        Dim varToken = syntax.Identifiers(varTokenIndex)
+
+        ' Skip commas that might appear
+        If TypeOf asToken Is SyntaxToken AndAlso DirectCast(asToken, SyntaxToken).Kind = SyntaxKind.CommaToken Then
+          Continue For
+        End If
+        If TypeOf varToken Is SyntaxToken AndAlso DirectCast(varToken, SyntaxToken).Kind = SyntaxKind.CommaToken Then
+          Continue For
+        End If
+
+        If TypeOf asToken IsNot SyntaxToken Then Continue For
+        If TypeOf varToken IsNot SyntaxToken Then Continue For
+
+        Dim asKeyword = DirectCast(asToken, SyntaxToken)
+        If asKeyword.Kind <> SyntaxKind.AsKeyword Then Continue For
+
+        Dim identifier = DirectCast(varToken, SyntaxToken)
+        If identifier.Kind <> SyntaxKind.IdentifierToken Then Continue For
+
+        Dim width = BindExpression(widthNode)
+        fieldDefinitions.Add((width, identifier.Text))
+      Next
+
+      Return New BoundFieldStatement(fileNumber, fieldDefinitions.ToImmutableArray())
+    End Function
+
+    Private Function BindGetFileStatement(syntax As GetFileStatementSyntax) As BoundStatement
+      Dim fileNumber = BindExpression(syntax.FileNumber)
+      Dim optionalRecord = If(syntax.OptionalRecord IsNot Nothing, BindExpression(syntax.OptionalRecord), Nothing)
+      Dim optionalVariable = If(syntax.OptionalVariable IsNot Nothing, syntax.OptionalVariable.Text, Nothing)
+      Return New BoundGetFileStatement(fileNumber, optionalRecord, optionalVariable)
+    End Function
+
+    Private Function BindPutFileStatement(syntax As PutFileStatementSyntax) As BoundStatement
+      Dim fileNumber = BindExpression(syntax.FileNumber)
+      Dim optionalRecord = If(syntax.OptionalRecord IsNot Nothing, BindExpression(syntax.OptionalRecord), Nothing)
+      Dim optionalVariable = If(syntax.OptionalVariable IsNot Nothing, syntax.OptionalVariable.Identifier.Text, Nothing)
+      Return New BoundPutFileStatement(fileNumber, optionalRecord, optionalVariable)
     End Function
 
     Private Shared Function BindGosubStatement(syntax As GosubStatementSyntax) As BoundStatement
@@ -2342,19 +2417,30 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindOpenStatement(syntax As OpenStatementSyntax) As BoundStatement
       If syntax.IsShorthandForm Then
+        ' For shorthand OPEN "mode",#filenum,"filename",len:
+        ' - syntax.Mode = first expression = mode string (like "r")
+        ' - syntax.Filename = filename expression (we store mode there for backward compat)
+        ' - syntax.File = filename (we swapped in constructor)
         Dim shorthandMode = BindExpression(syntax.Mode)
         Dim shorthandFileNumber = BindExpression(syntax.FileNumber1)
-        Dim shorthandFile = BindExpression(syntax.Filename)
-        Return New BoundOpenStatement(shorthandFile, shorthandMode, ImmutableArray(Of BoundExpression).Empty, ImmutableArray(Of BoundExpression).Empty, shorthandFileNumber, Nothing)
+        Dim shorthandFile = BindExpression(syntax.File)
+        Dim shorthandRecLen = If(syntax.RecLen IsNot Nothing, BindExpression(syntax.RecLen), Nothing)
+        Return New BoundOpenStatement(shorthandFile, shorthandMode, ImmutableArray(Of BoundExpression).Empty, ImmutableArray(Of BoundExpression).Empty, shorthandFileNumber, shorthandRecLen)
       End If
 
       Dim file = BindExpression(syntax.File)
       Dim mode = If(syntax.ModeKeyword IsNot Nothing, New BoundLiteralExpression(syntax.ModeKeyword.Text), Nothing)
-      Dim access = syntax.Access.Select(Function(a) BindExpression(DirectCast(a, ExpressionSyntax))).ToImmutableArray()
-      Dim lock = syntax.Lock.Select(Function(l) BindExpression(DirectCast(l, ExpressionSyntax))).ToImmutableArray()
+      Dim access As New List(Of BoundExpression)
+      For Each a In syntax.Access
+        access.Add(New BoundLiteralExpression(DirectCast(a, SyntaxToken).Text))
+      Next
+      Dim lock As New List(Of BoundExpression)
+      For Each l In syntax.Lock
+        lock.Add(New BoundLiteralExpression(DirectCast(l, SyntaxToken).Text))
+      Next
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim recLen = If(syntax.RecLen IsNot Nothing, BindExpression(syntax.RecLen), Nothing)
-      Return New BoundOpenStatement(file, mode, access, lock, fileNumber, recLen)
+      Return New BoundOpenStatement(file, mode, access.ToImmutableArray(), lock.ToImmutableArray(), fileNumber, recLen)
     End Function
 
     Private Function BindCloseStatement(syntax As CloseStatementSyntax) As BoundStatement

@@ -24,8 +24,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     EndStatement
     ElseIfStatement
     ExpressionStatement
+    FieldStatement
     ForStatement
     GosubStatement
+    GetFileStatement
     GotoStatement
     HandleCommaStatement
     HandlePrintLineStatement
@@ -69,6 +71,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     SeekStatement
     OptionStatement
     PrintStatement
+    PutFileStatement
     PokeStatement
     OutStatement
     PsetStatement

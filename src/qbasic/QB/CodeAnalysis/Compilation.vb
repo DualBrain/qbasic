@@ -182,10 +182,11 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs)
+      Dim evaluator As Evaluator = Nothing
       Dim value As Object = Nothing
       Dim chainRequest As ChainRequest = Nothing
       Try
+        evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs)
         value = evaluator.Evaluate
       Catch ex As ChainRequest
         chainRequest = ex
@@ -217,8 +218,12 @@ Namespace Global.QB.CodeAnalysis
           CommonVariablePreserver.PreserveCommonVariables(evaluator, commonStatements)
         End Try
       Finally
+        ' Ensure evaluator is disposed to close any open files
+        If evaluator IsNot Nothing Then
+          evaluator.Dispose()
+        End If
         ' Copy the evaluator's globals back to the caller's variables dictionary
-        If evaluator.Globals IsNot Nothing AndAlso evaluator.Globals.Count > 0 Then
+        If evaluator IsNot Nothing AndAlso evaluator.Globals IsNot Nothing AndAlso evaluator.Globals.Count > 0 Then
           For Each kv In evaluator.Globals
             variables(kv.Key) = kv.Value
           Next

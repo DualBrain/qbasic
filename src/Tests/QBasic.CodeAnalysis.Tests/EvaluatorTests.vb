@@ -1038,7 +1038,11 @@ LET result$ = a$ + ""..."""
     <Fact>
     Public Sub EvaluatesIfElseVariations()
       ' Test single-line IF/THEN/ELSE
-      Dim singleLineTest = "LET result = 0" & vbCrLf & "IF 5 > 3 THEN LET result = 1 ELSE LET result = 0"
+      Dim singleLineTest = "
+LET result = 0
+LET test = 5
+IF test > 3 THEN LET result = 1 ELSE LET result = 0
+"
       Dim singleLineTree As SyntaxTree = SyntaxTree.Parse(singleLineTest)
       Dim singleLineComp As Compilation = Compilation.Create(singleLineTree)
       Dim singleLineVars As New Dictionary(Of String, Object)()
@@ -1060,7 +1064,8 @@ END IF"
       ' Test IF/ELSE
       Dim elseTest = "
 LET result = 0
-IF 3 > 5 THEN
+LET test = 3
+IF test > 5 THEN
   LET result = 1
 ELSE
   LET result = 2
@@ -1074,9 +1079,10 @@ END IF"
       ' Test ELSEIF
       Dim elseifTest = "
 LET result = 0
-IF 5 < 3 THEN
+LET test = 5
+IF test < 3 THEN
   LET result = 1
-ELSEIF 5 > 3 THEN
+ELSEIF test > 3 THEN
   LET result = 2
 ELSE
   LET result = 3
@@ -1090,8 +1096,10 @@ END IF"
       ' Test nested IF statements
       Dim nestedTest = "
 LET result = 0
-IF 10 > 5 THEN
-  IF 3 > 1 THEN
+LET test1 = 10
+LET test2 = 3
+IF test1 > 5 THEN
+  IF test2 > 1 THEN
     LET result = 100
   ELSE
     LET result = 200

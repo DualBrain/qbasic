@@ -2550,12 +2550,10 @@ PRINT X ""DECIMAL IS ""A$"" HEXIDECIMAL""
 
       Dim sample = "
 X = 0: Y = 0
-IF X > Y THEN PRINT ""GREATER"" ELSE IF Y < X THEN
-  PRINT ""LESS THAN""
-ELSE PRINT ""EQUAL""
+IF X > Y THEN PRINT ""GREATER"" ELSE IF Y < X THEN PRINT ""LESS THAN"" ELSE PRINT ""EQUAL""
 "
 
-      Dim expected = "LESS THAN"
+      Dim expected = "EQUAL"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result

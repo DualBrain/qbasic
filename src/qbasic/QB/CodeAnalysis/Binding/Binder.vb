@@ -631,6 +631,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
+        Case SyntaxKind.WendStatement : Return BindWendStatement(CType(syntax, WendStatementSyntax))
         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
         Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
         Case SyntaxKind.ErrorStatement : Return BindErrorStatement(CType(syntax, ErrorStatementSyntax))
@@ -2493,6 +2494,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim statements = BindLoopBody(syntax.Statements, exitLabel, continueLabel)
       Return New BoundWhileStatement(condition, statements, exitLabel, continueLabel)
 
+    End Function
+
+    Private Function BindWendStatement(syntax As WendStatementSyntax) As BoundStatement
+      Throw New QBasicBuildException(ErrorCode.WendWithoutWhile)
     End Function
 
     Private Function DetermineVariableReference(identifierToken As SyntaxToken) As VariableSymbol

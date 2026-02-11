@@ -249,6 +249,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.ViewKeyword : Return ParseViewStatement()
         Case SyntaxKind.WaitKeyword : Return ParseWaitStatement()
         Case SyntaxKind.WhileKeyword : Return ParseWhileStatement(isTopLevel)
+        Case SyntaxKind.WendKeyword : Return ParseWendStatement()
         Case SyntaxKind.WidthKeyword : Return ParseWidthStatement()
         Case SyntaxKind.WindowKeyword : Return ParseWindowStatement()
         Case SyntaxKind.WriteKeyword : Return ParseWriteStatement()
@@ -3794,6 +3795,11 @@ repeat:
       'TODO: Need to decide how to handle WEND and END WHILE...
       Return New WhileStatementSyntax(m_syntaxTree, whileKeyword, expression, body, wendKeyword)
 
+    End Function
+
+    Private Function ParseWendStatement() As WendStatementSyntax
+      Dim wendKeyword = MatchToken(SyntaxKind.WendKeyword)
+      Return New WendStatementSyntax(m_syntaxTree, wendKeyword)
     End Function
 
     Private Function ParseWidthStatement() As StatementSyntax

@@ -418,6 +418,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ViewPrintStatement
     WaitStatement
     WhileStatement
+    WendStatement
     WidthStatement
     WidthFileStatement
     WidthLprintStatement

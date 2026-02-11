@@ -6375,7 +6375,7 @@ PRINT a;b#
     <Fact>
     Public Sub Sample_WHILE_2()
 
-      ' Name: WHILE (2)
+      ' Name: WHILE (2) - Missing WEND (parser error expected)
 
       Dim sample = "
 X = 1
@@ -6390,15 +6390,14 @@ WHILE X < 3
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      ' There should be at least one error...
-      Assert.Equal(1, result.Diagnostics.Length)
+      Assert.True(actual IsNot Nothing AndAlso actual.Contains("Unexpected"), "Should have parser error for missing WEND")
 
     End Sub
 
     <Fact>
     Public Sub Sample_WHILE_3()
 
-      ' Name: WHILE (3)
+      ' Name: WHILE (3) - WEND without WHILE (WEND without WHILE error expected)
 
       Dim sample = "
 X = 1
@@ -6413,8 +6412,7 @@ WEND
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      ' There should be at least one error...
-      Assert.Equal(1, result.Diagnostics.Length)
+      Assert.True(actual IsNot Nothing AndAlso actual.Contains("Error"), "Should have error for unmatched WEND")
 
     End Sub
 

@@ -1895,20 +1895,20 @@ Namespace Global.QB.CodeAnalysis
       End If
     End Sub
 
-    Private Sub EvaluatePrintUsingStatement(node As BoundPrintStatement)
-      If node.Format Is Nothing Then
-        Return
+    Private Function FormatUsingOutput(nodes As ImmutableArray(Of BoundNode), format As BoundExpression) As String
+      If format Is Nothing Then
+        Return Nothing
       End If
 
-      Dim formatString = CStr(EvaluateExpression(node.Format))
+      Dim formatString = CStr(EvaluateExpression(format))
       Dim formatSpecifiers = ParsePrintUsingFormat(formatString)
       Dim output As String = ""
 
       Dim valueIndex = 0
       Dim specIndex = 0
 
-      While valueIndex < node.Nodes.Length
-        Dim item = node.Nodes(valueIndex)
+      While valueIndex < nodes.Length
+        Dim item = nodes(valueIndex)
 
         If item.Kind = BoundNodeKind.Symbol Then
           If CType(item, BoundSymbol).Value = ";"c OrElse CType(item, BoundSymbol).Value = ","c Then
@@ -1963,7 +1963,18 @@ Namespace Global.QB.CodeAnalysis
         specIndex += 1
       End While
 
-      QBLib.Video.PRINT(output, node.SuppressCr)
+      Return output
+    End Function
+
+    Private Sub EvaluatePrintUsingStatement(node As BoundPrintStatement)
+      If node.Format Is Nothing Then
+        Return
+      End If
+
+      Dim output = FormatUsingOutput(node.Nodes, node.Format)
+      If output IsNot Nothing Then
+        QBLib.Video.PRINT(output, node.SuppressCr)
+      End If
     End Sub
 
     Private Sub EvaluateWriteStatement(node As BoundWriteStatement)
@@ -4049,16 +4060,24 @@ Namespace Global.QB.CodeAnalysis
       End If
 
       Dim writer = m_textWriters(fileNumber)
-      For Each boundNode In node.Nodes
-        If TypeOf boundNode Is BoundExpression Then
-          Dim value = EvaluateExpression(DirectCast(boundNode, BoundExpression))
-          writer.Write(CStr(value))
-          writer.Flush()
+
+      If node.Format IsNot Nothing Then
+        ' Use USING format
+        Dim output = FormatUsingOutput(node.Nodes, node.Format)
+        If output IsNot Nothing Then
+          writer.Write(output)
+          writer.WriteLine()
         End If
-        ' TODO: Handle separators like ; and , for formatting
-      Next
-      ' For simplicity, always add newline for now
-      writer.WriteLine()
+      Else
+        ' No USING format - output raw values
+        For Each boundNode In node.Nodes
+          If TypeOf boundNode Is BoundExpression Then
+            Dim value = EvaluateExpression(DirectCast(boundNode, BoundExpression))
+            writer.Write(CStr(value))
+          End If
+        Next
+        writer.WriteLine()
+      End If
       writer.Flush()
     End Sub
 

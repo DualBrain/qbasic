@@ -2836,20 +2836,23 @@ close #1
 open ""test.txt"" for input as #1
 line input #1, a$
 print a$
-line input #1, a$
-print a$
+line input #1, b$
+print b$
 close #1
 end
 "
 
-      Dim expected = $"$0.00.   $0.00.   $0.00.{vbCrLf}   $1.00.   $1.00.   $1.00."
+      'Dim expected = $"$0.00.   $0.00.   $0.00.{vbCrLf}   $1.00.   $1.00.   $1.00."
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+
+      Assert.Equal("   $0.00.   $0.00.   $0.00.", variables("a$"))
+      Assert.Equal("   $1.00.   $1.00.   $1.00.", variables("b$"))
 
     End Sub
 

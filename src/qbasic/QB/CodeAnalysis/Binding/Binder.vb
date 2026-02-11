@@ -1611,29 +1611,49 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
 
       If fileNumber IsNot Nothing Then
-        ' For file print, skip the file number part (pound, fileNumber expr, comma) and collect remaining nodes
+        ' For file print, parse the nodes after the file number/using clause
         Dim nodes = New List(Of BoundNode)
-        Dim skipCount = 3 ' #, expression, comma
-        Dim index = 0
+        Dim inUsingSection As Boolean = False
+        Dim usingSemicolonProcessed As Boolean = False
+
         For Each entry In syntax.Nodes
-          If index >= skipCount Then
-            If entry.Kind = SyntaxKind.SemicolonToken Then
-              nodes.Add(New BoundSymbol(";"c))
-            ElseIf entry.Kind = SyntaxKind.CommaToken Then
-              nodes.Add(New BoundSymbol(","c))
-            ElseIf entry.Kind = SyntaxKind.SpcFunction Then
-              Dim spc = CType(entry, SpcFunctionSyntax)
-              Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
-              nodes.Add(New BoundSpcFunction(expr))
-            ElseIf entry.Kind = SyntaxKind.TabFunction Then
-              Dim tab = CType(entry, TabFunctionSyntax)
-              Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
-              nodes.Add(New BoundTabFunction(expr))
-            ElseIf TypeOf entry Is ExpressionSyntax Then
-              nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
+          If Not inUsingSection Then
+            ' Skip until we hit the comma after file number
+            If entry.Kind = SyntaxKind.CommaToken Then
+              inUsingSection = True
+            End If
+          Else
+            ' After comma, skip format-related tokens
+            If entry.Kind = SyntaxKind.UsingKeyword Then
+              ' Skip the USING keyword
+              Continue For
+            ElseIf entry.Kind = SyntaxKind.StringToken AndAlso Not usingSemicolonProcessed Then
+              ' This is the format string, skip it
+              usingSemicolonProcessed = True
+              Continue For
+            ElseIf entry.Kind = SyntaxKind.SemicolonToken AndAlso Not usingSemicolonProcessed Then
+              ' This is the semicolon after format string, skip it
+              usingSemicolonProcessed = True
+              Continue For
+            Else
+              ' Process actual expression tokens
+              If entry.Kind = SyntaxKind.SemicolonToken Then
+                nodes.Add(New BoundSymbol(";"c))
+              ElseIf entry.Kind = SyntaxKind.CommaToken Then
+                nodes.Add(New BoundSymbol(","c))
+              ElseIf entry.Kind = SyntaxKind.SpcFunction Then
+                Dim spc = CType(entry, SpcFunctionSyntax)
+                Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
+                nodes.Add(New BoundSpcFunction(expr))
+              ElseIf entry.Kind = SyntaxKind.TabFunction Then
+                Dim tab = CType(entry, TabFunctionSyntax)
+                Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
+                nodes.Add(New BoundTabFunction(expr))
+              ElseIf TypeOf entry Is ExpressionSyntax Then
+                nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
+              End If
             End If
           End If
-          index += 1
         Next
         Return New BoundPrintFileStatement(fileNumber, format, nodes.ToImmutableArray())
       Else

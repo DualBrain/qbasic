@@ -254,41 +254,41 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Public Sub ReportUnreachableCode(node As SyntaxNode)
-        Select Case node.Kind
-            Case SyntaxKind.BlockStatement
-                Dim firstStatement = CType(node, BlockStatementSyntax).Statements.FirstOrDefault()
-                ' Report just for non empty blocks.
-                If firstStatement IsNot Nothing Then ReportUnreachableCode(firstStatement)
-            Case SyntaxKind.VariableDeclarationStatement
-                ReportUnreachableCode(CType(node, VariableDeclarationSyntax).Identifier.Location)
-            Case SyntaxKind.IfStatement
-                ReportUnreachableCode(CType(node, IfStatementSyntax).IfKeyword.Location)
-            Case SyntaxKind.WhileStatement
-                ReportUnreachableCode(CType(node, WhileStatementSyntax).WhileKeyword.Location)
-            Case SyntaxKind.DoWhileStatement
-                ReportUnreachableCode(CType(node, DoWhileStatementSyntax).DoKeyword.Location)
-            Case SyntaxKind.ForStatement
-                ReportUnreachableCode(CType(node, ForStatementSyntax).ForKeyword.Location)
-            Case SyntaxKind.ExitStatement
-                ReportUnreachableCode(CType(node, ExitStatementSyntax).ExitKeyword.Location)
-            Case SyntaxKind.ContinueStatement
-                ReportUnreachableCode(CType(node, ContinueStatementSyntax).ContinueKeyword.Location)
-            Case SyntaxKind.ReturnStatement
-                ReportUnreachableCode(CType(node, ReturnStatementSyntax).ReturnKeyword.Location)
-            Case SyntaxKind.ExpressionStatement
-                ReportUnreachableCode(CType(node, ExpressionStatementSyntax).Expression)
-            Case SyntaxKind.CallExpression
-                ReportUnreachableCode(CType(node, CallExpressionSyntax).Identifier.Location)
-            Case SyntaxKind.LetStatement
-                ReportUnreachableCode(CType(node, LetStatementSyntax).LetToken.Location)
-            Case SyntaxKind.PrintStatement
-                ReportUnreachableCode(CType(node, PrintStatementSyntax).PrintKeyword.Location)
-            Case SyntaxKind.InputStatement
-                ReportUnreachableCode(CType(node, InputStatementSyntax).InputKeyword.Location)
-            Case Else
-                ' Don't throw - just use the node's location directly
-                ReportWarning(node.Location, $"Unreachable code detected.")
-        End Select
+      Select Case node.Kind
+        Case SyntaxKind.BlockStatement
+          Dim firstStatement = CType(node, BlockStatementSyntax).Statements.FirstOrDefault()
+          ' Report just for non empty blocks.
+          If firstStatement IsNot Nothing Then ReportUnreachableCode(firstStatement)
+        Case SyntaxKind.VariableDeclarationStatement
+          ReportUnreachableCode(CType(node, VariableDeclarationSyntax).Identifier.Location)
+        Case SyntaxKind.IfStatement
+          ReportUnreachableCode(CType(node, IfStatementSyntax).IfKeyword.Location)
+        Case SyntaxKind.WhileStatement
+          ReportUnreachableCode(CType(node, WhileStatementSyntax).WhileKeyword.Location)
+        Case SyntaxKind.DoWhileStatement
+          ReportUnreachableCode(CType(node, DoWhileStatementSyntax).DoKeyword.Location)
+        Case SyntaxKind.ForStatement
+          ReportUnreachableCode(CType(node, ForStatementSyntax).ForKeyword.Location)
+        Case SyntaxKind.ExitStatement
+          ReportUnreachableCode(CType(node, ExitStatementSyntax).ExitKeyword.Location)
+        Case SyntaxKind.ContinueStatement
+          ReportUnreachableCode(CType(node, ContinueStatementSyntax).ContinueKeyword.Location)
+        Case SyntaxKind.ReturnStatement
+          ReportUnreachableCode(CType(node, ReturnStatementSyntax).ReturnKeyword.Location)
+        Case SyntaxKind.ExpressionStatement
+          ReportUnreachableCode(CType(node, ExpressionStatementSyntax).Expression)
+        Case SyntaxKind.CallExpression
+          ReportUnreachableCode(CType(node, CallExpressionSyntax).Identifier.Location)
+        Case SyntaxKind.LetStatement
+          ReportUnreachableCode(CType(node, LetStatementSyntax).LetToken.Location)
+        Case SyntaxKind.PrintStatement
+          ReportUnreachableCode(CType(node, PrintStatementSyntax).PrintKeyword.Location)
+        Case SyntaxKind.InputStatement
+          ReportUnreachableCode(CType(node, InputStatementSyntax).InputKeyword.Location)
+        Case Else
+          ' Don't throw - just use the node's location directly
+          ReportWarning(node.Location, $"Unreachable code detected.")
+      End Select
     End Sub
 
   End Class

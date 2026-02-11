@@ -2572,39 +2572,39 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateIfStatement(node As BoundIfStatement, labelToIndex As Dictionary(Of String, Integer))
-        Dim conditionValue = CBool(EvaluateExpression(node.Expression))
-        If conditionValue Then
-            If TypeOf node.Statements Is BoundBlockStatement Then
-                EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
-            Else
-                Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(node.Statements))
-                EvaluateStatement(tempBlock, labelToIndex)
-            End If
+      Dim conditionValue = CBool(EvaluateExpression(node.Expression))
+      If conditionValue Then
+        If TypeOf node.Statements Is BoundBlockStatement Then
+          EvaluateStatement(CType(node.Statements, BoundBlockStatement), labelToIndex)
         Else
-            Dim executed = False
-            For Each elseIfClause In node.ElseIfStatements
-                If Not executed Then
-                    Dim elseIfCondition = CBool(EvaluateExpression(elseIfClause.Expression))
-                    If elseIfCondition Then
-                        If TypeOf elseIfClause.Statements Is BoundBlockStatement Then
-                            EvaluateStatement(CType(elseIfClause.Statements, BoundBlockStatement))
-                        Else
-                            Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(elseIfClause.Statements))
-                            EvaluateStatement(tempBlock)
-                        End If
-                        executed = True
-                    End If
-                End If
-            Next
-            If Not executed AndAlso node.ElseStatement IsNot Nothing Then
-                If TypeOf node.ElseStatement Is BoundBlockStatement Then
-                    EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement), labelToIndex)
-                Else
-                    Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(node.ElseStatement))
-                    EvaluateStatement(tempBlock, labelToIndex)
-                End If
-            End If
+          Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(node.Statements))
+          EvaluateStatement(tempBlock, labelToIndex)
         End If
+      Else
+        Dim executed = False
+        For Each elseIfClause In node.ElseIfStatements
+          If Not executed Then
+            Dim elseIfCondition = CBool(EvaluateExpression(elseIfClause.Expression))
+            If elseIfCondition Then
+              If TypeOf elseIfClause.Statements Is BoundBlockStatement Then
+                EvaluateStatement(CType(elseIfClause.Statements, BoundBlockStatement))
+              Else
+                Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(elseIfClause.Statements))
+                EvaluateStatement(tempBlock)
+              End If
+              executed = True
+            End If
+          End If
+        Next
+        If Not executed AndAlso node.ElseStatement IsNot Nothing Then
+          If TypeOf node.ElseStatement Is BoundBlockStatement Then
+            EvaluateStatement(CType(node.ElseStatement, BoundBlockStatement), labelToIndex)
+          Else
+            Dim tempBlock = New BoundBlockStatement(ImmutableArray.Create(node.ElseStatement))
+            EvaluateStatement(tempBlock, labelToIndex)
+          End If
+        End If
+      End If
     End Sub
 
     Private Sub EvaluateVariableDeclaration(node As BoundVariableDeclaration)
@@ -4388,7 +4388,7 @@ Namespace Global.QB.CodeAnalysis
       For Each statement In block.Statements
         If TypeOf statement Is BoundDataStatement Then
           Dim dataStatement = CType(statement, BoundDataStatement)
-           If Not m_restoreTargets.ContainsKey(dataStatement.LineNumber) Then
+          If Not m_restoreTargets.ContainsKey(dataStatement.LineNumber) Then
             m_restoreTargets(dataStatement.LineNumber) = m_data.Count
           End If
           For Each value In dataStatement.Data

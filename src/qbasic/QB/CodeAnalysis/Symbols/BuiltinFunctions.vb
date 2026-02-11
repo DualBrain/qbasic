@@ -51,7 +51,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Pos As New FunctionSymbol("pos", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly Rnd1 As New FunctionSymbol("rnd", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.Single)
     Public ReadOnly Rnd2 As New FunctionSymbol("rnd", ImmutableArray.Create(New ParameterSymbol("opt", TypeSymbol.Double, 0)), TypeSymbol.Single)
-    Public ReadOnly Screen As New FunctionSymbol("screen", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Long)
+    'Public ReadOnly Screen As New FunctionSymbol("screen", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Long)
     Public ReadOnly Seek As New FunctionSymbol("seek", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Long)
     Public ReadOnly Sgn As New FunctionSymbol("sgn", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Long)
     Public ReadOnly Sin As New FunctionSymbol("sin", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)
@@ -64,6 +64,9 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Val As New FunctionSymbol("val", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
     Public ReadOnly VarPtr1 As New FunctionSymbol("varptr", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
     Public ReadOnly VarSeg As New FunctionSymbol("varseg", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
+
+    Public ReadOnly Screen1 As New FunctionSymbol("screen", ImmutableArray.Create(New ParameterSymbol("row", TypeSymbol.Single), New ParameterSymbol("column", TypeSymbol.Single)), TypeSymbol.Integer)
+    Public ReadOnly Screen2 As New FunctionSymbol("screen", ImmutableArray.Create(New ParameterSymbol("row", TypeSymbol.Single), New ParameterSymbol("column", TypeSymbol.Single), New ParameterSymbol("colr", TypeSymbol.Single)), TypeSymbol.Integer)
 
     Public ReadOnly Chr As New FunctionSymbol("chr$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Command As New FunctionSymbol("command$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
@@ -89,7 +92,6 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Rtrim As New FunctionSymbol("rtrim$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.String)
     Public ReadOnly Space As New FunctionSymbol("space$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Str As New FunctionSymbol("str$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Single)), TypeSymbol.String)
-    'Public ReadOnly Time As New FunctionSymbol("time$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly Time As New FunctionSymbol("time$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly UCase As New FunctionSymbol("ucase$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.String)
     Public ReadOnly VarPtr2 As New FunctionSymbol("varptr$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.String)

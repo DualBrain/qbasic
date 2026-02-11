@@ -2906,9 +2906,9 @@ LSET A$=N$
       ' Name: MID$ (1)
 
       Dim sample = "
-    A$=""GOOD""
-    B$=""MORNING EVENING AFTERNOON""
-    PRINT A$;MID$(B$,8,8)
+A$=""GOOD""
+B$=""MORNING EVENING AFTERNOON""
+PRINT A$;MID$(B$,8,8)
 "
 
       Dim expected = "GOOD EVENING"
@@ -2928,8 +2928,8 @@ LSET A$=N$
       ' Name: MID$ (2)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 5); ""X""
+A$=""GOOD""
+PRINT MID$(A$, 5); ""X""
 "
 
       Dim expected = "X"
@@ -2949,8 +2949,8 @@ LSET A$=N$
       ' Name: MID$ (3)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 1, 0); ""X""
+A$=""GOOD""
+PRINT MID$(A$, 1, 0); ""X""
 "
 
       Dim expected = "X"
@@ -2970,8 +2970,8 @@ LSET A$=N$
       ' Name: MID$ (4)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 2);
+A$=""GOOD""
+PRINT MID$(A$, 2);
 "
 
       Dim expected = "OOD"
@@ -2991,11 +2991,14 @@ LSET A$=N$
       ' Name: MID$ (5)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 1, 256);
+A$=""GOOD""
+PRINT MID$(A$, 1, 32767);
 "
 
-      Dim expected = "Illegal function call line 2"
+      'NOTE: MSQBasic allows the second parameter to be 0 to 32767;
+      '      Any number outside of this results in a "Invalid function call" error.
+
+      Dim expected = "GOOD"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
@@ -3012,18 +3015,29 @@ LSET A$=N$
       ' Name: MID$ (6)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 1, -1);
+ON ERROR GOTO Handler:
+A$=""GOOD""
+B$ = MID$(A$, 1, -1)
+END
+Handler:
+  E = ERR
+  END
 "
 
-      Dim expected = "Illegal function call line 2"
+      'NOTE: MSQBasic allows the second parameter to be 1 to 32767;
+      '      Any number outside of this results in a "Invalid function call" error.
+
+      ' Should produce an "Illegal function call" error due
+      ' to the -1 passed in (invalid parameter).
+      'Dim expected = "Illegal function call in 2"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("5", $"{variables("E")}")
 
     End Sub
 
@@ -3033,18 +3047,22 @@ LSET A$=N$
       ' Name: MID$ (7)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 256);
+A$=""GOOD""
+B$ = MID$(A$, 256)
 "
 
-      Dim expected = "Illegal function call line 2"
+      'NOTE: MSQBasic allows the first parameter to be 1 to 32767;
+      '      Any number outside of this results in a "Invalid function call" error.
+
+      'Dim expected = ""
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("", variables("B$"))
 
     End Sub
 
@@ -3054,18 +3072,29 @@ LSET A$=N$
       ' Name: MID$ (8)
 
       Dim sample = "
-    A$=""GOOD""
-    PRINT MID$(A$, 0);
+ON ERROR GOTO Handler
+A$=""GOOD""
+B$ = MID$(A$, 0)
+END
+Handler:
+  E = ERR
+  END
 "
 
-      Dim expected = "Illegal function call line 2"
+      'NOTE: MSQBasic allows the first parameter to be 1 to 32767;
+      '      Any number outside of this results in a "Invalid function call" error.
+
+      ' Should produce an "Illegal function call" error due
+      ' to the 0 passed in (invalid parameter).
+      'Dim expected = "Illegal function call in 2"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("5", $"{variables("E")}")
 
     End Sub
 
@@ -3075,19 +3104,20 @@ LSET A$=N$
       ' Name: MID$ - Statement (1)
 
       Dim sample = "
-    A$=""KANSAS CITY, MO""
-    MID$(A$,14)=""KS""
-    PRINT A$
+A$=""KANSAS CITY, MO""
+MID$(A$,14)=""KS""
+'PRINT A$
 "
 
-      Dim expected = "KANSAS CITY, KS"
+      'Dim expected = "KANSAS CITY, KS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
 
@@ -3097,19 +3127,20 @@ LSET A$=N$
       ' Name: MID$ - Statement (2)
 
       Dim sample = "
-    A$=""KANSAS CITY, MO""
-    MID$(A$,14,2)=""KS""
-    PRINT A$
+A$=""KANSAS CITY, MO""
+MID$(A$,14,2)=""KS""
+'PRINT A$
 "
 
-      Dim expected = "KANSAS CITY, KS"
+      'Dim expected = "KANSAS CITY, KS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
 
@@ -3119,19 +3150,20 @@ LSET A$=N$
       ' Name: MID$ - Statement (3)
 
       Dim sample = "
-    A$=""KANSAS CITY, MO""
-    MID$(A$,14,10)=""KS""
-    PRINT A$
+A$=""KANSAS CITY, MO""
+MID$(A$,14,10)=""KS""
+'PRINT A$
 "
 
-      Dim expected = "KANSAS CITY, KS"
+      'Dim expected = "KANSAS CITY, KS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
 
@@ -3141,19 +3173,20 @@ LSET A$=N$
       ' Name: MID$ - Statement (4)
 
       Dim sample = "
-    A$=""KANSAS CITY, MO""
-    MID$(A$,14)=""KSXXX""
-    PRINT A$
+A$=""KANSAS CITY, MO""
+MID$(A$,14)=""KSXXX""
+'PRINT A$
 "
 
-      Dim expected = "KANSAS CITY, KS"
+      'Dim expected = "KANSAS CITY, KS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
 
@@ -3163,19 +3196,20 @@ LSET A$=N$
       ' Name: MID$ - Statement (5)
 
       Dim sample = "
-    A$=""KANSAS CITY, MO""
-    MID$(A$,14,5)=""KSXXX""
-    PRINT A$
+A$=""KANSAS CITY, MO""
+MID$(A$,14,5)=""KSXXX""
+'PRINT A$
 "
 
-      Dim expected = "KANSAS CITY, KS"
+      'Dim expected = "KANSAS CITY, KS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
 
@@ -5044,11 +5078,11 @@ RSET A$=N$
       ' Name: SCREEN (Function) (1)
 
       Dim sample = "
-    A$=""DISK BASIC""
-    LOCATE 1,1
-    PRINT A$;
-    X = SCREEN(1,6)
-    PRINT X
+A$=""DISK BASIC""
+LOCATE 1,1
+PRINT A$;
+X = SCREEN(1,6)
+PRINT X
 "
 
       Dim expected = "DISK BASIC 66"

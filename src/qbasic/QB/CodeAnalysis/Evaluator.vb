@@ -3521,12 +3521,21 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Mid1 Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Dim start = CInt(EvaluateExpression(node.Arguments(1)))
-        Return Microsoft.VisualBasic.Mid(value, start)
+        If start.Between(1, 32767) Then
+          Return Microsoft.VisualBasic.Mid(value, start)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Mid2 Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Dim start = CInt(EvaluateExpression(node.Arguments(1)))
         Dim length = CInt(EvaluateExpression(node.Arguments(2)))
-        Return Microsoft.VisualBasic.Mid(value, start, length)
+        If start.Between(1, 32767) AndAlso
+           length.Between(0, 32767) Then
+          Return Microsoft.VisualBasic.Mid(value, start, length)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Mkd Then
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Core.MKD(value)
@@ -3599,8 +3608,26 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Rtrim Then
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.RTrim(value)
-      ElseIf node.Function Is BuiltinFunctions.Screen Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+      ElseIf node.Function Is BuiltinFunctions.Screen1 Then
+        Dim row = CInt(EvaluateExpression(node.Arguments(0)))
+        Dim column = CInt(EvaluateExpression(node.Arguments(1)))
+        If row.Between(1, QBLib.Video.m_textH) AndAlso
+           column.Between(0, QBLib.Video.m_textW) Then
+          Return QBLib.Video.SCREEN(row, column)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
+      ElseIf node.Function Is BuiltinFunctions.Screen2 Then
+        Dim row = CInt(EvaluateExpression(node.Arguments(0)))
+        Dim column = CInt(EvaluateExpression(node.Arguments(1)))
+        Dim colr = CInt(EvaluateExpression(node.Arguments(2)))
+        If row.Between(1, QBLib.Video.m_textH) AndAlso
+           column.Between(0, QBLib.Video.m_textW) AndAlso
+           colr.Between(0, 1) Then
+          Return QBLib.Video.SCREEN(row, column, colr)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Seek Then
         ' SEEK function returns the same as LOC function
         Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))

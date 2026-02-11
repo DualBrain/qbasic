@@ -3985,19 +3985,19 @@ repeat:
     ' DEFINATELY getting here to evaluate that some words are actually
     ' needing to be parsed/identified as functions without parameters (or open/close parentheses).
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
-      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword) AndAlso
+      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword OrElse Current.Kind = SyntaxKind.ScreenKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
         Return ParseCallExpression()
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
-                                                                 Current.Text.ToLower = "csrlin" OrElse
-                                                                 Current.Text.ToLower = "date$" OrElse
-                                                                 Current.Text.ToLower = "erl" OrElse
-                                                                 Current.Text.ToLower = "err" OrElse
-                                                                 Current.Text.ToLower = "freefile" OrElse
-                                                                 Current.Text.ToLower = "inkey$" OrElse
-                                                                 Current.Text.ToLower = "rnd" OrElse
-                                                                 Current.Text.ToLower = "time$" OrElse
-                                                                 Current.Text.ToLower = "timer")) OrElse
+                                                                  Current.Text.ToLower = "csrlin" OrElse
+                                                                  Current.Text.ToLower = "date$" OrElse
+                                                                  Current.Text.ToLower = "erl" OrElse
+                                                                  Current.Text.ToLower = "err" OrElse
+                                                                  Current.Text.ToLower = "freefile" OrElse
+                                                                  Current.Text.ToLower = "inkey$" OrElse
+                                                                  Current.Text.ToLower = "rnd" OrElse
+                                                                  Current.Text.ToLower = "time$" OrElse
+                                                                  Current.Text.ToLower = "timer")) OrElse
           Current.Kind = SyntaxKind.DateKeyword OrElse
           Current.Kind = SyntaxKind.TimeKeyword OrElse
           Current.Kind = SyntaxKind.TimerKeyword Then
@@ -4021,7 +4021,9 @@ repeat:
     End Function
 
     Private Function MatchIdentifierOrKeyword() As SyntaxToken
-      If Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword Then
+      If Current.Kind = SyntaxKind.IdentifierToken OrElse
+         Current.Kind = SyntaxKind.MidKeyword OrElse
+         Current.Kind = SyntaxKind.ScreenKeyword Then
         Return NextToken()
       End If
       ' For error, return missing identifier

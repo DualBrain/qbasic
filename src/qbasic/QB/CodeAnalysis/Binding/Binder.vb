@@ -1613,48 +1613,36 @@ Namespace Global.QB.CodeAnalysis.Binding
       If fileNumber IsNot Nothing Then
         ' For file print, parse the nodes after the file number/using clause
         Dim nodes = New List(Of BoundNode)
-        Dim inUsingSection As Boolean = False
-        Dim usingSemicolonProcessed As Boolean = False
 
         For Each entry In syntax.Nodes
-          If Not inUsingSection Then
-            ' Skip until we hit the comma after file number
-            If entry.Kind = SyntaxKind.CommaToken Then
-              inUsingSection = True
-            End If
-          Else
-            ' After comma, skip format-related tokens
-            If entry.Kind = SyntaxKind.UsingKeyword Then
-              ' Skip the USING keyword
-              Continue For
-            ElseIf entry.Kind = SyntaxKind.StringToken AndAlso Not usingSemicolonProcessed Then
-              ' This is the format string, skip it
-              usingSemicolonProcessed = True
-              Continue For
-            ElseIf entry.Kind = SyntaxKind.SemicolonToken AndAlso Not usingSemicolonProcessed Then
-              ' This is the semicolon after format string, skip it
-              usingSemicolonProcessed = True
-              Continue For
-            Else
-              ' Process actual expression tokens
-              If entry.Kind = SyntaxKind.SemicolonToken Then
-                nodes.Add(New BoundSymbol(";"c))
-              ElseIf entry.Kind = SyntaxKind.CommaToken Then
-                nodes.Add(New BoundSymbol(","c))
-              ElseIf entry.Kind = SyntaxKind.SpcFunction Then
-                Dim spc = CType(entry, SpcFunctionSyntax)
-                Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
-                nodes.Add(New BoundSpcFunction(expr))
-              ElseIf entry.Kind = SyntaxKind.TabFunction Then
-                Dim tab = CType(entry, TabFunctionSyntax)
-                Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
-                nodes.Add(New BoundTabFunction(expr))
-              ElseIf TypeOf entry Is ExpressionSyntax Then
-                nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
-              End If
-            End If
+          ' Process tokens - handle separators and expressions
+          If entry.Kind = SyntaxKind.SemicolonToken Then
+            nodes.Add(New BoundSymbol(";"c))
+          ElseIf entry.Kind = SyntaxKind.CommaToken Then
+            nodes.Add(New BoundSymbol(","c))
+          ElseIf entry.Kind = SyntaxKind.SpcFunction Then
+            Dim spc = CType(entry, SpcFunctionSyntax)
+            Dim expr = BindExpression(spc.Expression, TypeSymbol.Long)
+            nodes.Add(New BoundSpcFunction(expr))
+          ElseIf entry.Kind = SyntaxKind.TabFunction Then
+            Dim tab = CType(entry, TabFunctionSyntax)
+            Dim expr = BindExpression(tab.Expression, TypeSymbol.Long)
+            nodes.Add(New BoundTabFunction(expr))
+          ElseIf TypeOf entry Is ExpressionSyntax Then
+            nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
           End If
         Next
+
+        ' Check if this is a USING format statement (has format and expressions)
+        ' For PRINT #filenumber USING, we need to handle format specially
+        ' But for regular PRINT #filenumber, all nodes should be processed
+        If syntax.UsingKeyword IsNot Nothing AndAlso syntax.Usingformat IsNot Nothing Then
+          ' This is USING format - need to handle differently
+          ' The format is in Usingformat, and expressions are in nodes
+          ' For USING, we need to pass format and expressions separately
+          ' Actually, BoundPrintFileStatement handles this via the Format property
+        End If
+
         Return New BoundPrintFileStatement(fileNumber, format, nodes.ToImmutableArray())
       Else
         ' For screen print
@@ -2450,6 +2438,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         Return TryCast(s, VariableSymbol)
       ElseIf s Is Nothing Then
         If Not OPTION_EXPLICIT Then
+          If String.IsNullOrEmpty(identifierToken.Text) Then
+            Diagnostics.ReportUndefinedVariable(identifierToken.Location, name)
+            Return Nothing
+          End If
           Dim type As QB.CodeAnalysis.Symbols.TypeSymbol = ResolveVariableType(identifierToken.Text)
           Dim typeSource As VariableTypeSource
 
@@ -2543,24 +2535,21 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindDataStatement(syntax As DataStatementSyntax) As BoundStatement
       Dim data = ImmutableArray.CreateBuilder(Of Object)()
-      Dim i = 0
-      While i < syntax.Tokens.Length
-        Dim token = syntax.Tokens(i)
-        If token.Kind = SyntaxKind.NumberToken Then
-          If i > 0 AndAlso syntax.Tokens(i - 1).Kind = SyntaxKind.MinusToken Then
-            data.Add(-CDbl(token.Value))
-          Else
-            data.Add(token.Value)
-          End If
-        ElseIf token.Kind = SyntaxKind.StringToken Then
-          data.Add(token.Value)
-        ElseIf token.Kind = SyntaxKind.CommaToken OrElse token.Kind = SyntaxKind.MinusToken Then
-          ' skip separators
+
+      For Each value As String In syntax.Data
+        If String.IsNullOrWhiteSpace(value) Then
+          data.Add(value)
         Else
-          ' Diagnostics.ReportInvalidDataConstant(token.Location, token.Text)
+          ' Try to parse as a number first
+          Dim trimmedValue = value.Trim()
+          Dim doubleValue As Double
+          If Double.TryParse(trimmedValue, doubleValue) Then
+            data.Add(doubleValue)
+          Else
+            data.Add(trimmedValue)
+          End If
         End If
-        i += 1
-      End While
+      Next
 
       Return New BoundDataStatement(data.ToImmutable(), m_currentLineNumber)
     End Function

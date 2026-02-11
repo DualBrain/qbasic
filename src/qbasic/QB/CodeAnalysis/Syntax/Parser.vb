@@ -1,6 +1,8 @@
 Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices.Marshalling
 
+Imports Basic.Utils
+
 Namespace Global.QB.CodeAnalysis.Syntax
 
   Friend NotInheritable Class Parser
@@ -1126,36 +1128,40 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Private Function ParseDataStatement() As DataStatementSyntax
 
       'QBasic: DATA constant[,constant]...
+      ' Uses CsvSplit to properly handle comma-separated values including quoted strings
 
       Dim dataKeyword = MatchToken(SyntaxKind.DataKeyword)
 
-      Dim constantsAndSeparators = ImmutableArray.CreateBuilder(Of SyntaxToken)()
+      ' Capture the rest of the line as text - use dataKeyword.Span.End to get position after the keyword
+      Dim startPosition = dataKeyword.Span.End
+      Dim lineIndex = m_text.GetLineIndex(startPosition)
+      Dim lineEndPosition = m_text.Lines(lineIndex).End
+      Dim rawDataText As String
+      If lineEndPosition > startPosition Then
+        rawDataText = m_text.ToString(Text.TextSpan.FromBounds(startPosition, lineEndPosition))
+      Else
+        rawDataText = ""
+      End If
 
-      Dim parseNextConstant = True
-      While parseNextConstant AndAlso
-            Current.Kind <> SyntaxKind.EndOfFileToken
+      ' Use CsvSplit to parse the data values
+      Dim dataValues = CsvSplit.CsvSplit(rawDataText)
 
-        If Current.Kind = SyntaxKind.MinusToken Then
-          constantsAndSeparators.Add(MatchToken(SyntaxKind.MinusToken))
-        End If
-
-        Dim kind = SyntaxKind.NumberToken
-        If Current.Kind = SyntaxKind.StringToken Then
-          kind = Current.Kind
-        End If
-        Dim constant = MatchToken(kind)
-        constantsAndSeparators.Add(constant)
-
-        If Current.Kind = SyntaxKind.CommaToken Then
-          Dim comma = MatchToken(SyntaxKind.CommaToken)
-          constantsAndSeparators.Add(comma)
-        Else
-          parseNextConstant = False
-        End If
-
+      ' Skip all tokens until we hit the end of line (LineBreakTrivia)
+      ' This ensures the parser doesn't try to parse remaining tokens as separate statements
+      While Current.Kind <> SyntaxKind.EndOfFileToken
+        Dim currentTrailingTrivia = Current.TrailingTrivia
+        Dim hasLineBreak = False
+        For Each trivia In currentTrailingTrivia
+          If trivia.Kind = SyntaxKind.LineBreakTrivia Then
+            hasLineBreak = True
+            Exit For
+          End If
+        Next
+        NextToken()
+        If hasLineBreak Then Exit While
       End While
 
-      Return New DataStatementSyntax(m_syntaxTree, dataKeyword, constantsAndSeparators.ToImmutable)
+      Return New DataStatementSyntax(m_syntaxTree, dataKeyword, dataValues.ToImmutableArray())
 
     End Function
 
@@ -2782,9 +2788,8 @@ repeat:
       If pound IsNot Nothing Then
         fileNumber = ParseExpression()
         comma = MatchToken(SyntaxKind.CommaToken)
-        nodes.Add(pound)
-        nodes.Add(fileNumber)
-        nodes.Add(comma)
+        ' Note: pound, fileNumber, and comma are stored as properties of PrintStatementSyntax
+        ' They should NOT be added to the nodes array
       End If
 
       Dim usingKeyword As SyntaxToken = Nothing

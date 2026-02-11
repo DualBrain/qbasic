@@ -1,6 +1,8 @@
 Imports System.Collections.Immutable
 Imports System.IO
 
+Imports Basic.Utils
+
 Imports QB.CodeAnalysis.Binding
 Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
@@ -18,6 +20,7 @@ Namespace Global.QB.CodeAnalysis
   Friend NotInheritable Class Evaluator
 
     Private ReadOnly m_program As BoundProgram
+    Private ReadOnly m_globalStatements As ImmutableArray(Of BoundStatement)
     ''' <summary>
     ''' Keeps track of the **order** that variables are encountered as part of a COMMON statement.
     ''' </summary>
@@ -290,9 +293,10 @@ Namespace Global.QB.CodeAnalysis
       End Get
     End Property
 
-    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), Optional commandLineArgs As String() = Nothing)
+    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), globalStatements As ImmutableArray(Of BoundStatement), Optional commandLineArgs As String() = Nothing)
 
       m_program = program
+      m_globalStatements = globalStatements
       m_globals = New Dictionary(Of String, Object)
       For Each kv In variables
         m_globals(kv.Key.Name) = kv.Value
@@ -599,47 +603,10 @@ Namespace Global.QB.CodeAnalysis
                   End If
                 End If
 
-                ' Parse the line - WRITE outputs: "CAMERA","93604-1"
-                ' So we need to parse quoted strings and numbers
+                ' Parse the line - use CsvSplit for proper CSV parsing (handles quoted strings, unquoted strings, numbers)
                 line = line.Trim()
 
-                Dim values As New List(Of String)
-                Dim i = 0
-                While i < line.Length
-                  If line(i) = """"c Then
-                    ' Quoted string
-                    i += 1
-                    Dim start = i
-                    While i < line.Length AndAlso line(i) <> """"c
-                      i += 1
-                    End While
-                    Dim value As String
-                    If i < line.Length AndAlso line(i) = """"c Then
-                      ' Found closing quote
-                      value = line.Substring(start, i - start)
-                      i += 1 ' Skip closing quote
-                    Else
-                      ' No closing quote - take rest of line
-                      value = line.Substring(start)
-                    End If
-                    values.Add(value)
-                  ElseIf Char.IsDigit(line(i)) OrElse line(i) = "-"c OrElse line(i) = "+"c Then
-                    ' Number
-                    Dim start = i
-                    While i < line.Length AndAlso (Char.IsDigit(line(i)) OrElse line(i) = "."c OrElse line(i) = "E"c OrElse line(i) = "e"c OrElse (i = start AndAlso (line(i) = "-"c OrElse line(i) = "+"c)))
-                      i += 1
-                    End While
-                    values.Add(line.Substring(start, i - start))
-                  Else
-                    ' Skip other characters (commas, spaces)
-                    i += 1
-                  End If
-
-                  ' Skip commas and spaces
-                  While i < line.Length AndAlso (line(i) = ","c OrElse Char.IsWhiteSpace(line(i)))
-                    i += 1
-                  End While
-                End While
+                Dim values As New List(Of String)(CsvSplit.CsvSplit(line))
 
                 ' Assign each value to the corresponding variable
                 For varIndex = 0 To input.Variables.Length - 1
@@ -3386,7 +3353,12 @@ Namespace Global.QB.CodeAnalysis
         Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
         If m_openFiles.ContainsKey(fileNumber) Then
           Dim stream = m_openFiles(fileNumber)
-          Return stream.Position >= stream.Length
+          ' If using StreamReader (INPUT mode), check its position, not the underlying stream
+          If m_textReaders.ContainsKey(fileNumber) Then
+            Return m_textReaders(fileNumber).EndOfStream
+          Else
+            Return stream.Position >= stream.Length
+          End If
         Else
           Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
         End If
@@ -3896,7 +3868,11 @@ Namespace Global.QB.CodeAnalysis
           m_textWriters.Add(fileNumber, New StreamWriter(stream, leaveOpen:=True))
         End If
       Catch ex As Exception
-        Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
+        If modeString.ToUpper() = "OUTPUT" OrElse modeString.ToUpper() = "O" Then
+          Throw New QBasicRuntimeException(ErrorCode.FileAlreadyExists)
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
+        End If
       End Try
     End Sub
 
@@ -3921,27 +3897,27 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-        ' If no file numbers specified, close all files
-        If node.FileNumbers.Length = 0 Then
-          For Each kvp In m_textWriters
-            kvp.Value.Flush()
-            kvp.Value.Dispose()
-          Next
-          For Each kvp In m_openFiles
-            kvp.Value.Close()
-          Next
-          m_openFiles.Clear()
-          m_fileModes.Clear()
-          m_recordLengths.Clear()
-          'For Each kvp In m_textReaders
-          '  kvp.Value.Dispose()
-          'Next
-          m_textReaders.Clear()
-          'For Each kvp In m_textWriters
-          '  kvp.Value.Dispose()
-          'Next
-          m_textWriters.Clear()
-        End If
+      ' If no file numbers specified, close all files
+      If node.FileNumbers.Length = 0 Then
+        For Each kvp In m_textWriters
+          kvp.Value.Flush()
+          kvp.Value.Dispose()
+        Next
+        For Each kvp In m_openFiles
+          kvp.Value.Close()
+        Next
+        m_openFiles.Clear()
+        m_fileModes.Clear()
+        m_recordLengths.Clear()
+        'For Each kvp In m_textReaders
+        '  kvp.Value.Dispose()
+        'Next
+        m_textReaders.Clear()
+        'For Each kvp In m_textWriters
+        '  kvp.Value.Dispose()
+        'Next
+        m_textWriters.Clear()
+      End If
     End Sub
 
     Private Sub EvaluateResetStatement(node As BoundResetStatement)
@@ -4124,6 +4100,13 @@ Namespace Global.QB.CodeAnalysis
           If TypeOf boundNode Is BoundExpression Then
             Dim value = EvaluateExpression(DirectCast(boundNode, BoundExpression))
             writer.Write(CStr(value))
+          ElseIf TypeOf boundNode Is BoundSymbol Then
+            ' Handle comma separator - semicolon suppresses spacing (don't output)
+            Dim symbol = CType(boundNode, BoundSymbol)
+            If symbol.Value = "," Then
+              writer.Write(",")
+            End If
+            ' Semicolon (";") suppresses spacing - don't output anything
           End If
         Next
         writer.WriteLine()
@@ -4249,16 +4232,8 @@ Namespace Global.QB.CodeAnalysis
     ''' This follows QBasic behavior where DATA statements are processed before program execution.
     ''' </summary>
     Private Sub PreprocessDataStatements()
-      ' Get all functions in the program hierarchy
-      Dim current = m_program
-      While current IsNot Nothing
-        For Each kv In current.Functions
-          Dim body = kv.Value
-          ' Walk through all statements in the function body
-          PreprocessDataStatementsInBlock(body)
-        Next
-        current = current.Previous
-      End While
+      ' Process DATA statements from global scope (before lowering removes unreachable statements)
+      PreprocessDataStatementsInBlock(New BoundBlockStatement(m_globalStatements))
     End Sub
 
     ''' <summary>

@@ -182,7 +182,7 @@ Namespace Global.QB.CodeAnalysis
         End If
       Next
 
-      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, commandLineArgs)
+      Dim evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs)
       Dim value As Object = Nothing
       Dim chainRequest As ChainRequest = Nothing
       Try

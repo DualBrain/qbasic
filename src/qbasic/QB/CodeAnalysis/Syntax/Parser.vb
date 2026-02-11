@@ -1843,6 +1843,34 @@ Namespace Global.QB.CodeAnalysis.Syntax
       'QBasic: INPUT #filenumber%, variablelist
 
       Dim inputKeyword = MatchToken(SyntaxKind.InputKeyword)
+
+      ' Check for file input form: INPUT #filenumber, variablelist
+      SkipWhitespace()
+      Dim pound = TryMatchToken(SyntaxKind.PoundToken)
+      If pound IsNot Nothing Then
+        Dim fileNum = ParseExpression()
+        Dim commaToken = MatchToken(SyntaxKind.CommaToken)
+
+        Dim fileIdentifiers = ImmutableArray.CreateBuilder(Of SyntaxToken)()
+
+        Dim fileParseNext = True
+        While fileParseNext AndAlso
+              Current.Kind <> SyntaxKind.EndOfFileToken
+
+          Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
+          fileIdentifiers.Add(identifier)
+
+          If Current.Kind = SyntaxKind.CommaToken Then
+            Dim comma2 = MatchToken(SyntaxKind.CommaToken)
+            fileIdentifiers.Add(comma2)
+          Else
+            fileParseNext = False
+          End If
+        End While
+
+        Return New InputStatementSyntax(m_syntaxTree, inputKeyword, pound, fileNum, commaToken, fileIdentifiers.ToImmutable())
+      End If
+
       Dim optionalSemiColonToken As SyntaxToken = Nothing
       If Current.Kind = SyntaxKind.SemicolonToken Then optionalSemiColonToken = MatchToken(SyntaxKind.SemicolonToken)
       Dim optionalPromptExpression As ExpressionSyntax = Nothing
@@ -1869,10 +1897,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Else
           parseNextIdentifier = False
         End If
-
       End While
 
-      Return New InputStatementSyntax(m_syntaxTree, inputKeyword, optionalSemiColonToken, optionalPromptExpression, semiColonOrCommaToken, identifiersAndSeparators.ToImmutable())
+      Return New InputStatementSyntax(m_syntaxTree, inputKeyword, optionalSemiColonToken, optionalPromptExpression, semiColonOrCommaToken, identifiersAndSeparators.ToImmutable(), False)
 
     End Function
 
@@ -2446,13 +2473,31 @@ repeat:
 
       'QBasic: OPEN file$ [FOR mode] [ACCESS access] [lock] AS [#]filenumber% [LEN=reclen%]
       'QBasic: OPEN "COMn: optlist1 optlist2" [FOR mode] AS [#]filenum% [LEN=reclen%]
+      'QBasic: OPEN mode$, [len,] [#]filenumber%, filename$  (shorthand form)
 
       Dim openKeyword = MatchToken(SyntaxKind.OpenKeyword)
-      Dim file = ParseExpression()
+      Dim firstExpr = ParseExpression()
 
-      'TODO: If file is a string expression and
-      '      starts with "COMn: " then this an
-      '      COM related statement.
+      ' Check for shorthand form: OPEN mode$, [#]filenumber%, filename$
+      ' In shorthand form, after the first expression we see a comma (not FOR keyword)
+      If Current.Kind = SyntaxKind.CommaToken Then
+        Dim comma1 = MatchToken(SyntaxKind.CommaToken)
+        Dim pound1 = TryMatchToken(SyntaxKind.PoundToken)
+        Dim fileNumber1 = ParseExpression()
+        Dim comma2 = MatchToken(SyntaxKind.CommaToken)
+        Dim filename = ParseExpression()
+
+        Return New OpenStatementSyntax(m_syntaxTree,
+                                        openKeyword,
+                                        firstExpr,
+                                        comma1,
+                                        pound1,
+                                        fileNumber1,
+                                        comma2,
+                                        filename)
+      End If
+
+      ' Full form: OPEN file$ [FOR mode] ... AS [#]filenumber% ...
 
       Dim forKeyword = TryMatchToken(SyntaxKind.ForKeyword)
       ' APPEND, BINARY, INPUT, OUTPUT, RANDOM
@@ -2517,7 +2562,7 @@ repeat:
 
       Return New OpenStatementSyntax(m_syntaxTree,
                                      openKeyword,
-                                     file,
+                                     firstExpr,
                                      forKeyword,
                                      modeKeyword,
                                      accessKeyword,
@@ -3839,8 +3884,7 @@ repeat:
       Dim pound = TryMatchToken(SyntaxKind.PoundToken)
       Dim fileNumber As ExpressionSyntax = Nothing
       Dim comma As SyntaxToken = Nothing
-      If pound IsNot Nothing OrElse
-         Peek(1).Kind = SyntaxKind.CommaToken Then
+      If pound IsNot Nothing Then
         fileNumber = ParseExpression()
         comma = MatchToken(SyntaxKind.CommaToken)
       End If
@@ -4358,6 +4402,12 @@ repeat:
       Next
       Return Nothing
     End Function
+
+    Private Sub SkipWhitespace()
+      While Current.Kind = SyntaxKind.WhitespaceTrivia
+        m_position += 1
+      End While
+    End Sub
 
     Private Function TryParseExpression() As ExpressionSyntax
       If Not IsEndOfStatement() Then

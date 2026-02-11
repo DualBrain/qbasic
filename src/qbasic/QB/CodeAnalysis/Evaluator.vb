@@ -576,62 +576,140 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.InputStatement
 
               Dim input = CType(s, BoundInputStatement)
-              Dim suppressCr = input.SuppressCr
-              Dim suppressQuestionMark = input.SuppressQuestionMark
-              Dim prompt As String = Nothing
-              If input.PromptExpression IsNot Nothing Then
-                Dim value = CStr(EvaluateExpression(input.PromptExpression))
-                prompt = value
-              End If
-              Do
-                If Not String.IsNullOrEmpty(prompt) Then
-                  QBLib.Video.PRINT(prompt, True)
+
+              If input.IsFileInput Then
+                ' INPUT #filenumber, variable[, variable...]
+                Dim fileNumber = CInt(EvaluateExpression(input.FileNumber))
+
+                If Not m_openFiles.ContainsKey(fileNumber) Then
+                  Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
                 End If
-                If Not suppressQuestionMark Then
-                  QBLib.Video.PRINT("? ", True)
+
+                ' Read ONE line from the file (all variables are read from this line)
+                Dim line As String = ""
+
+                If m_textReaders.ContainsKey(fileNumber) Then
+                  line = m_textReaders(fileNumber).ReadLine()
+                Else
+                  Dim stream = m_openFiles(fileNumber)
+                  Dim bytes(127) As Byte
+                  Dim bytesRead = stream.Read(bytes, 0, 128)
+                  If bytesRead > 0 Then
+                    line = System.Text.Encoding.UTF8.GetString(bytes, 0, bytesRead).Trim()
+                  End If
                 End If
-                Dim potential = QBLib.Video.InputAsync().GetAwaiter.GetResult
-                Dim potentials = Split(potential, ",")
-                If potentials.Length = input.Variables.Length Then
-                  For i = 0 To input.Variables.Length - 1
-                    Dim value = potentials(i)
-                    If input.Variables(i).Type Is TypeSymbol.Double OrElse
-                       input.Variables(i).Type Is TypeSymbol.Single OrElse
-                       input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
-                       input.Variables(i).Type Is TypeSymbol.Long64 OrElse
-                       input.Variables(i).Type Is TypeSymbol.ULong OrElse
-                       input.Variables(i).Type Is TypeSymbol.Long OrElse
-                       input.Variables(i).Type Is TypeSymbol.UInteger OrElse
-                       input.Variables(i).Type Is TypeSymbol.Integer OrElse
-                       input.Variables(i).Type Is TypeSymbol.SByte OrElse
-                       input.Variables(i).Type Is TypeSymbol.Byte Then
-                      If IsNumeric(value) Then
-                        If value.Contains("."c) Then
-                          If input.Variables(i).Type Is TypeSymbol.Single OrElse
-                         input.Variables(i).Type Is TypeSymbol.Double Then
-                            Assign(input.Variables(i), value)
+
+                ' Parse the line - WRITE outputs: "CAMERA","93604-1"
+                ' So we need to parse quoted strings and numbers
+                line = line.Trim()
+
+                Dim values As New List(Of String)
+                Dim i = 0
+                While i < line.Length
+                  If line(i) = """"c Then
+                    ' Quoted string
+                    i += 1
+                    Dim start = i
+                    While i < line.Length AndAlso line(i) <> """"c
+                      i += 1
+                    End While
+                    Dim value As String
+                    If i < line.Length AndAlso line(i) = """"c Then
+                      ' Found closing quote
+                      value = line.Substring(start, i - start)
+                      i += 1 ' Skip closing quote
+                    Else
+                      ' No closing quote - take rest of line
+                      value = line.Substring(start)
+                    End If
+                    values.Add(value)
+                  ElseIf Char.IsDigit(line(i)) OrElse line(i) = "-"c OrElse line(i) = "+"c Then
+                    ' Number
+                    Dim start = i
+                    While i < line.Length AndAlso (Char.IsDigit(line(i)) OrElse line(i) = "."c OrElse line(i) = "E"c OrElse line(i) = "e"c OrElse (i = start AndAlso (line(i) = "-"c OrElse line(i) = "+"c)))
+                      i += 1
+                    End While
+                    values.Add(line.Substring(start, i - start))
+                  Else
+                    ' Skip other characters (commas, spaces)
+                    i += 1
+                  End If
+
+                  ' Skip commas and spaces
+                  While i < line.Length AndAlso (line(i) = ","c OrElse Char.IsWhiteSpace(line(i)))
+                    i += 1
+                  End While
+                End While
+
+                ' Assign each value to the corresponding variable
+                For varIndex = 0 To input.Variables.Length - 1
+                  If varIndex < values.Count Then
+                    Assign(input.Variables(varIndex), values(varIndex))
+                  Else
+                    Assign(input.Variables(varIndex), "")
+                  End If
+                Next
+
+                index += 1
+              Else
+                ' Regular keyboard INPUT
+                Dim suppressCr = input.SuppressCr
+                Dim suppressQuestionMark = input.SuppressQuestionMark
+                Dim prompt As String = Nothing
+                If input.PromptExpression IsNot Nothing Then
+                  Dim value = CStr(EvaluateExpression(input.PromptExpression))
+                  prompt = value
+                End If
+                Do
+                  If Not String.IsNullOrEmpty(prompt) Then
+                    QBLib.Video.PRINT(prompt, True)
+                  End If
+                  If Not suppressQuestionMark Then
+                    QBLib.Video.PRINT("? ", True)
+                  End If
+                  Dim potential = QBLib.Video.InputAsync().GetAwaiter.GetResult
+                  Dim potentials = Split(potential, ",")
+                  If potentials.Length = input.Variables.Length Then
+                    For i = 0 To input.Variables.Length - 1
+                      Dim value = potentials(i)
+                      If input.Variables(i).Type Is TypeSymbol.Double OrElse
+                         input.Variables(i).Type Is TypeSymbol.Single OrElse
+                         input.Variables(i).Type Is TypeSymbol.ULong64 OrElse
+                         input.Variables(i).Type Is TypeSymbol.Long64 OrElse
+                         input.Variables(i).Type Is TypeSymbol.ULong OrElse
+                         input.Variables(i).Type Is TypeSymbol.Long OrElse
+                         input.Variables(i).Type Is TypeSymbol.UInteger OrElse
+                         input.Variables(i).Type Is TypeSymbol.Integer OrElse
+                         input.Variables(i).Type Is TypeSymbol.SByte OrElse
+                         input.Variables(i).Type Is TypeSymbol.Byte Then
+                        If IsNumeric(value) Then
+                          If value.Contains("."c) Then
+                            If input.Variables(i).Type Is TypeSymbol.Single OrElse
+                           input.Variables(i).Type Is TypeSymbol.Double Then
+                              Assign(input.Variables(i), value)
+                            Else
+                              QBLib.Video.PRINT() : Continue Do
+                            End If
                           Else
-                            QBLib.Video.PRINT() : Continue Do
+                            'TODO: Check in-range for values/types.
+                            Assign(input.Variables(i), value)
                           End If
                         Else
-                          'TODO: Check in-range for values/types.
-                          Assign(input.Variables(i), value)
+                          QBLib.Video.PRINT() : Continue Do
                         End If
                       Else
-                        QBLib.Video.PRINT() : Continue Do
+                        Assign(input.Variables(i), value)
                       End If
-                    Else
-                      Assign(input.Variables(i), value)
-                    End If
-                  Next
-                  QBLib.Video.PRINT()
-                  Exit Do
-                Else
-                  QBLib.Video.PRINT()
-                End If
-              Loop
+                    Next
+                    QBLib.Video.PRINT()
+                    Exit Do
+                  Else
+                    QBLib.Video.PRINT()
+                  End If
+                Loop
 
-              index += 1
+                index += 1
+              End If
 
             Case BoundNodeKind.KillStatement
               Dim kill = CType(s, BoundKillStatement)
@@ -846,6 +924,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.ResetStatement : EvaluateResetStatement(CType(s, BoundResetStatement)) : index += 1
             Case BoundNodeKind.LineInputFileStatement : EvaluateLineInputFileStatement(CType(s, BoundLineInputFileStatement)) : index += 1
             Case BoundNodeKind.PrintFileStatement : EvaluatePrintFileStatement(CType(s, BoundPrintFileStatement)) : index += 1
+            Case BoundNodeKind.WriteStatement : EvaluateWriteStatement(CType(s, BoundWriteStatement)) : index += 1
             Case BoundNodeKind.SeekStatement : EvaluateSeekStatement(CType(s, BoundSeekStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoStatement : EvaluateOnErrorGotoStatement(CType(s, BoundOnErrorGotoStatement)) : index += 1
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
@@ -1885,6 +1964,65 @@ Namespace Global.QB.CodeAnalysis
       End While
 
       QBLib.Video.PRINT(output, node.SuppressCr)
+    End Sub
+
+    Private Sub EvaluateWriteStatement(node As BoundWriteStatement)
+      If node.FileNumber IsNot Nothing Then
+        Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
+        If Not m_openFiles.ContainsKey(fileNumber) Then
+          Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
+        End If
+
+        Dim output As String = ""
+        For i = 0 To node.Expressions.Length - 1
+          Dim value = EvaluateExpression(node.Expressions(i))
+          If i > 0 Then
+            output &= ","
+          End If
+
+          If value Is Nothing Then
+            output &= ""
+          ElseIf TypeOf value Is String Then
+            output &= """" & CStr(value).Replace("""", """""") & """"
+          ElseIf TypeOf value Is Boolean Then
+            output &= If(CBool(value), "-1", "0")
+          Else
+            output &= CStr(value)
+          End If
+        Next
+
+        If Not node.SuppressCr Then
+          output &= vbCrLf
+        End If
+
+        If m_textWriters.ContainsKey(fileNumber) Then
+          m_textWriters(fileNumber).Write(output)
+        Else
+          Dim bytes = System.Text.Encoding.UTF8.GetBytes(output)
+          Dim stream = m_openFiles(fileNumber)
+          stream.Write(bytes, 0, bytes.Length)
+        End If
+      Else
+        Dim output As String = ""
+        For i = 0 To node.Expressions.Length - 1
+          Dim value = EvaluateExpression(node.Expressions(i))
+          If i > 0 Then
+            output &= ","
+          End If
+
+          If value Is Nothing Then
+            output &= ""
+          ElseIf TypeOf value Is String Then
+            output &= """" & CStr(value).Replace("""", """""") & """"
+          ElseIf TypeOf value Is Boolean Then
+            output &= If(CBool(value), "-1", "0")
+          Else
+            output &= CStr(value)
+          End If
+        Next
+
+        QBLib.Video.PRINT(output, node.SuppressCr)
+      End If
     End Sub
 
     Private Enum UsingFormatType
@@ -3646,20 +3784,21 @@ Namespace Global.QB.CodeAnalysis
       Dim access As FileAccess = FileAccess.ReadWrite
       Dim modeString = If(node.Mode IsNot Nothing, CStr(EvaluateExpression(node.Mode)), "RANDOM")
 
+      ' Handle single-letter mode codes (shorthand form: O=OUTPUT, I=INPUT, A=APPEND, R=RANDOM, B=BINARY)
       Select Case modeString.ToUpper()
-        Case "INPUT"
+        Case "I", "INPUT"
           access = FileAccess.Read
           mode = FileMode.Open
-        Case "OUTPUT"
+        Case "O", "OUTPUT"
           access = FileAccess.Write
           mode = FileMode.Create
-        Case "APPEND"
+        Case "A", "APPEND"
           access = FileAccess.Write
           mode = FileMode.Append
-        Case "BINARY"
+        Case "B", "BINARY"
           access = FileAccess.ReadWrite
           mode = FileMode.OpenOrCreate
-        Case "RANDOM"
+        Case "R", "RANDOM"
           access = FileAccess.ReadWrite
           mode = FileMode.OpenOrCreate
         Case Else
@@ -3686,8 +3825,14 @@ Namespace Global.QB.CodeAnalysis
         m_recordLengths.Add(fileNumber, recLen)
 
         ' For INPUT files, create a StreamReader
-        If modeString.ToUpper() = "INPUT" Then
+        If modeString.ToUpper() = "INPUT" OrElse modeString.ToUpper() = "I" Then
           m_textReaders.Add(fileNumber, New StreamReader(stream, leaveOpen:=True))
+        End If
+
+        ' For OUTPUT and APPEND files, create a StreamWriter
+        If modeString.ToUpper() = "OUTPUT" OrElse modeString.ToUpper() = "O" OrElse
+           modeString.ToUpper() = "APPEND" OrElse modeString.ToUpper() = "A" Then
+          m_textWriters.Add(fileNumber, New StreamWriter(stream, leaveOpen:=True))
         End If
       Catch ex As Exception
         Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
@@ -3698,38 +3843,44 @@ Namespace Global.QB.CodeAnalysis
       For Each fileNumberExpr In node.FileNumbers
         Dim fileNumber = CInt(EvaluateExpression(fileNumberExpr))
         If m_openFiles.ContainsKey(fileNumber) Then
+          ' Flush and dispose StreamWriter/StreamReader first before closing the FileStream
+          If m_textWriters.ContainsKey(fileNumber) Then
+            m_textWriters(fileNumber).Flush()
+            m_textWriters(fileNumber).Dispose()
+            m_textWriters.Remove(fileNumber)
+          End If
+          If m_textReaders.ContainsKey(fileNumber) Then
+            m_textReaders(fileNumber).Dispose()
+            m_textReaders.Remove(fileNumber)
+          End If
           m_openFiles(fileNumber).Close()
           m_openFiles.Remove(fileNumber)
           m_fileModes.Remove(fileNumber)
           m_recordLengths.Remove(fileNumber)
-          If m_textReaders.ContainsKey(fileNumber) Then
-            'm_textReaders(fileNumber).Dispose()
-            m_textReaders.Remove(fileNumber)
-          End If
-          If m_textWriters.ContainsKey(fileNumber) Then
-            'm_textWriters(fileNumber).Dispose()
-            m_textWriters.Remove(fileNumber)
-          End If
         End If
       Next
 
-      ' If no file numbers specified, close all files
-      If node.FileNumbers.Length = 0 Then
-        For Each kvp In m_openFiles
-          kvp.Value.Close()
-        Next
-        m_openFiles.Clear()
-        m_fileModes.Clear()
-        m_recordLengths.Clear()
-        'For Each kvp In m_textReaders
-        '  kvp.Value.Dispose()
-        'Next
-        m_textReaders.Clear()
-        'For Each kvp In m_textWriters
-        '  kvp.Value.Dispose()
-        'Next
-        m_textWriters.Clear()
-      End If
+        ' If no file numbers specified, close all files
+        If node.FileNumbers.Length = 0 Then
+          For Each kvp In m_textWriters
+            kvp.Value.Flush()
+            kvp.Value.Dispose()
+          Next
+          For Each kvp In m_openFiles
+            kvp.Value.Close()
+          Next
+          m_openFiles.Clear()
+          m_fileModes.Clear()
+          m_recordLengths.Clear()
+          'For Each kvp In m_textReaders
+          '  kvp.Value.Dispose()
+          'Next
+          m_textReaders.Clear()
+          'For Each kvp In m_textWriters
+          '  kvp.Value.Dispose()
+          'Next
+          m_textWriters.Clear()
+        End If
     End Sub
 
     Private Sub EvaluateResetStatement(node As BoundResetStatement)

@@ -552,16 +552,39 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Const suffixChars As String = "%!#&$"
 
-      While Char.IsLetterOrDigit(Current) OrElse
-            Current = "_"c OrElse Current = "."c OrElse
-            suffixChars.Contains(Current) 'Current = "$"c
-        If suffixChars.Contains(Current) Then
-          m_position += 1
-          Exit While
+      ' First, read only alphanumeric, underscore, and dot characters
+      While (Char.IsLetterOrDigit(Current) OrElse
+             Current = "_"c OrElse Current = "."c) AndAlso
+            Current <> """"c
+        m_position += 1
+      End While
+
+      ' Now check if the next character is a suffix character
+      If suffixChars.Contains(Current) Then
+        ' Check if the base text (without suffix) is a file-related keyword
+        ' File keywords like INPUT, OUTPUT, GET, PUT, LINE INPUT can be followed by #
+        ' If so, don't include the suffix
+        Dim baseText = m_text.ToString(m_start, m_position - m_start)
+        Dim baseKind = SyntaxFacts.GetKeywordKind(baseText)
+
+        Dim isFileKeyword As Boolean = False
+        Select Case baseKind
+          Case SyntaxKind.InputKeyword,
+               SyntaxKind.OutputKeyword,
+               SyntaxKind.GetKeyword,
+               SyntaxKind.PutKeyword,
+               SyntaxKind.LineInputKeyword
+            isFileKeyword = True
+        End Select
+
+        If isFileKeyword AndAlso Current = "#"c Then
+          ' Don't include # for file keywords (INPUT #, OUTPUT #, GET #, PUT #)
+          ' But DO include other suffixes like % for type-declared variables (input%)
         Else
+          ' Include the suffix as part of the identifier
           m_position += 1
         End If
-      End While
+      End If
 
       Dim length = m_position - m_start
       Dim text = m_text.ToString(m_start, length)

@@ -1,4 +1,4 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 
 Namespace Global.QB.CodeAnalysis.Syntax
 
@@ -20,6 +20,31 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Me.LenKeyword = lenKeyword
       Me.Equal = equal
       Me.RecLen = recLen
+      Me.IsShorthandForm = False
+    End Sub
+
+    Public Sub New(tree As SyntaxTree, openKeyword As SyntaxToken, mode As ExpressionSyntax, comma1 As SyntaxToken, pound1 As SyntaxToken, fileNumber1 As ExpressionSyntax, comma2 As SyntaxToken, filename As ExpressionSyntax)
+      MyBase.New(tree)
+      Me.OpenKeyword = openKeyword
+      Me.Mode = mode
+      Me.Comma1 = comma1
+      Me.Pound1 = pound1
+      Me.FileNumber1 = fileNumber1
+      Me.Comma2 = comma2
+      Me.Filename = filename
+      Me.IsShorthandForm = True
+      Me.File = Nothing
+      Me.ForKeyword = Nothing
+      Me.ModeKeyword = Nothing
+      Me.AccessKeyword = Nothing
+      Me.Access = ImmutableArray(Of SyntaxNode).Empty
+      Me.Lock = ImmutableArray(Of SyntaxNode).Empty
+      Me.AsKeyword = Nothing
+      Me.Pound = Nothing
+      Me.FileNumber = Nothing
+      Me.LenKeyword = Nothing
+      Me.Equal = Nothing
+      Me.RecLen = Nothing
     End Sub
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.OpenStatement
@@ -36,6 +61,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
     Public ReadOnly Property LenKeyword As SyntaxToken
     Public ReadOnly Property Equal As SyntaxToken
     Public ReadOnly Property RecLen As ExpressionSyntax
+    Public ReadOnly Property IsShorthandForm As Boolean
+
+    ' Shorthand form properties
+    Public ReadOnly Property Mode As ExpressionSyntax
+    Public ReadOnly Property Comma1 As SyntaxToken
+    Public ReadOnly Property Pound1 As SyntaxToken
+    Public ReadOnly Property FileNumber1 As ExpressionSyntax
+    Public ReadOnly Property Comma2 As SyntaxToken
+    Public ReadOnly Property Filename As ExpressionSyntax
   End Class
 
 End Namespace

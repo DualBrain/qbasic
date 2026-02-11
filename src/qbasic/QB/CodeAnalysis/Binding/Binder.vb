@@ -615,6 +615,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
+        Case SyntaxKind.WriteStatement : Return BindWriteStatement(CType(syntax, WriteStatementSyntax))
         Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
@@ -1103,6 +1104,40 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindInputStatement(syntax As InputStatementSyntax) As BoundStatement
+
+      If syntax.IsFileInput Then
+        Dim fileNumber = BindExpression(syntax.FileNumber)
+
+        Dim fileVariables As New List(Of VariableSymbol)
+        For Each token In syntax.Tokens
+          If token.Kind <> SyntaxKind.CommaToken Then
+            Dim variable = DetermineVariableReference(token)
+            If variable Is Nothing Then
+              If OPTION_EXPLICIT Then
+                variable = BindVariableReference(token)
+              Else
+                Dim type As TypeSymbol
+                Dim suffix = token.Text.Last
+                Select Case suffix
+                  Case "%"c : type = TypeSymbol.Integer
+                  Case "&"c : type = TypeSymbol.Long
+                  Case "!"c : type = TypeSymbol.Single
+                  Case "#"c : type = TypeSymbol.Double
+                  Case "$"c : type = TypeSymbol.String
+                  Case Else
+                    type = TypeSymbol.Single
+                End Select
+                variable = BindVariableDeclaration(token, False, type)
+              End If
+            End If
+            If variable Is Nothing Then
+              Return Nothing
+            End If
+            fileVariables.Add(variable)
+          End If
+        Next
+        Return New BoundInputStatement(fileNumber, fileVariables.ToImmutableArray())
+      End If
 
       Dim suppressCr = syntax.OptionalSemiColonToken IsNot Nothing
       Dim suppressQuestionMark = If(syntax.SemiColonOrCommaToken?.Kind = SyntaxKind.CommaToken, False)
@@ -1628,6 +1663,33 @@ Namespace Global.QB.CodeAnalysis.Binding
         Return New BoundPrintStatement(nodes.ToImmutableArray(), format, suppressCr)
       End If
 
+    End Function
+
+    Private Function BindWriteStatement(syntax As WriteStatementSyntax) As BoundStatement
+      Dim fileNumber As BoundExpression = Nothing
+      If syntax.FileNumber IsNot Nothing Then
+        fileNumber = BindExpression(syntax.FileNumber)
+      End If
+
+      Dim nodes = New List(Of BoundExpression)
+      For Each entry In syntax.Expressions
+        If TypeOf entry Is ExpressionSyntax Then
+          nodes.Add(BindExpression(DirectCast(entry, ExpressionSyntax), TypeSymbol.Any))
+        End If
+      Next
+
+      Dim suppressCr As Boolean = False
+      If syntax.Expressions.Count > 0 Then
+        Dim lastEntry = syntax.Expressions.Last
+        If TypeOf lastEntry Is SyntaxToken Then
+          Dim lastToken = CType(lastEntry, SyntaxToken)
+          If lastToken.Kind = SyntaxKind.SemicolonToken Then
+            suppressCr = True
+          End If
+        End If
+      End If
+
+      Return New BoundWriteStatement(fileNumber, nodes.ToImmutableArray(), suppressCr)
     End Function
 
     Private Function BindPsetStatement(syntax As PsetStatementSyntax) As BoundStatement
@@ -2270,6 +2332,13 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindOpenStatement(syntax As OpenStatementSyntax) As BoundStatement
+      If syntax.IsShorthandForm Then
+        Dim shorthandMode = BindExpression(syntax.Mode)
+        Dim shorthandFileNumber = BindExpression(syntax.FileNumber1)
+        Dim shorthandFile = BindExpression(syntax.Filename)
+        Return New BoundOpenStatement(shorthandFile, shorthandMode, ImmutableArray(Of BoundExpression).Empty, ImmutableArray(Of BoundExpression).Empty, shorthandFileNumber, Nothing)
+      End If
+
       Dim file = BindExpression(syntax.File)
       Dim mode = If(syntax.ModeKeyword IsNot Nothing, New BoundLiteralExpression(syntax.ModeKeyword.Text), Nothing)
       Dim access = syntax.Access.Select(Function(a) BindExpression(DirectCast(a, ExpressionSyntax))).ToImmutableArray()

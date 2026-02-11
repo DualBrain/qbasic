@@ -181,18 +181,22 @@ Namespace QBasic.CodeAnalysis.Tests
       ' Name: ABS (2)
 
       Dim sample = "
-PRINT ""Absolute value of -3 * 5 is""; ABS(-3 * 5)
-PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
+'PRINT ""Absolute value of -3 * 5 is""; ABS(-3 * 5)
+'PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
+a1 = ABS(-3 * 5)
+a2 = ABS(3 * 5)
 "
 
-      Dim expected = $"Absolute value of -3 * 5 is 15{vbCrLf}Absolute value of 3 * 5 is 15"
+      'Dim expected = $"Absolute value of -3 * 5 is 15{vbCrLf}Absolute value of 3 * 5 is 15"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("15", $"{variables("a1")}")
+      Assert.Equal("15", $"{variables("a2")}")
 
     End Sub
 
@@ -202,17 +206,18 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: ABS
 
       Dim sample = "
-    PRINT ABS(7*(-5))
+a = ABS(7*(-5))
 "
 
-      Dim expected = "35"
+      'Dim expected = "35"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("35", $"{variables("a")}")
 
     End Sub
 
@@ -222,20 +227,21 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: Add 2 strings
 
       Dim sample = "
-    A$=""HELLO""
-    B$=""WORLD""
-    C$=A$+"" ""+B$
-    PRINT C$
+A$=""HELLO""
+B$=""WORLD""
+C$=A$+"" ""+B$
+'PRINT C$
 "
 
-      Dim expected = "HELLO WORLD"
+      'Dim expected = "HELLO WORLD"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("HELLO WORLD", variables("C$"))
 
     End Sub
 
@@ -245,17 +251,19 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: Addition (1)
 
       Dim sample = "
-    PRINT 2+2
+'PRINT 2+2
+a=2+2
 "
 
-      Dim expected = "4"
+      'Dim expected = "4"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("4", $"{variables("a")}")
 
     End Sub
 
@@ -265,19 +273,20 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: Addition (2)
 
       Dim sample = "
-    A = 1: B=2
-    B = B + A
-    PRINT B
+A = 1: B=2
+B = B + A
+'PRINT B
 "
 
-      Dim expected = "3"
+      'Dim expected = "3"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("3", $"{variables("B")}")
 
     End Sub
 
@@ -287,18 +296,20 @@ PRINT ""Absolute value of 3 * 5 is""; ABS(3 *5)
       ' Name: Addition (3)
 
       Dim sample = "
-    x = 3
-    PRINT 2 + X
+x = 3
+'PRINT 2 + X
+y = 2 + X
 "
 
-      Dim expected = "5"
+      'Dim expected = "5"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("5", $"{variables("y")}")
 
     End Sub
 
@@ -3230,22 +3241,37 @@ PRINT CVD(MKD$(5.5)); CVDMBF(MKDMBF$(5.5))
 
       ' Name: MKDIR/CHDIR/RMDIR
 
+      If IO.Directory.Exists("TEST999B") Then
+        IO.Directory.Delete("TEST999B", True)
+      End If
+
       Dim sample = "
-MKDIR""TEST9999
-CHDIR""TEST9999
+a=1
+MKDIR""TEST999B
+a=2
+CHDIR""TEST999B
+a=3
 CHDIR""..
-RMDIR""TEST9999
+a=4
+RMDIR""TEST999B
+a=5
 PRINT""SUCCESS
+a=6
 "
 
-      Dim expected = "SUCCESS"
+      'Dim expected = "SUCCESS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      If IO.Directory.Exists("TEST999B") Then
+        Assert.Equal(True, False)
+      End If
+
+      'Assert.Equal(expected, actual)
+      Assert.Equal("6", $"{variables("a")}")
 
     End Sub
 
@@ -5038,22 +5064,42 @@ RSET A$=N$
 
       ' Name: Sequential File (1)
 
+      If IO.Directory.Exists("TEST999A") Then
+        IO.Directory.Delete("TEST999A", True)
+      End If
+
       Dim sample = "
-    A$=""CAMERA"":B$=""93604-1""
-    MKDIR""TEST9999
-    CHDIR""TEST9999
-    OPEN ""O"",#1,""TEST.TXT""
-    WRITE #1,A$,B$
-    CLOSE #1
-    A$="""":B$=""""
-    OPEN ""I"",#1,""TEST.TXT""
-    INPUT #1,A$,B$
-    CLOSE #1
-    NAME ""TEST.TXT"" AS ""TEST1.TXT""
-    KILL ""TEST1.TXT""
-    CHDIR""..""
-    RMDIR""TEST9999
-    WRITE A$,B$
+l=1
+A$=""CAMERA"":B$=""93604-1""
+l=2
+MKDIR""TEST999A
+l=3
+CHDIR""TEST999A
+l=4
+OPEN ""O"",#1,""TEST.TXT""
+l=5
+WRITE #1,A$,B$
+l=6
+CLOSE #1
+l=7
+A$="""":B$=""""
+l=8
+OPEN ""I"",#1,""TEST.TXT""
+l=9
+INPUT #1,A$,B$
+l=11
+CLOSE #1
+l=12
+NAME ""TEST.TXT"" AS ""TEST1.TXT""
+l=13
+KILL ""TEST1.TXT""
+l=14
+CHDIR""..""
+l=15
+RMDIR""TEST999A
+l=16
+WRITE A$,B$
+l=17
 "
 
       Dim expected = """CAMERA"",""93604-1"""
@@ -5063,6 +5109,11 @@ RSET A$=N$
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
+      If IO.Directory.Exists("TEST999A") Then
+        Assert.Equal(True, False)
+      End If
+
+      Assert.Equal("17", $"{variables("l")}")
       Assert.Equal(expected, actual)
 
     End Sub

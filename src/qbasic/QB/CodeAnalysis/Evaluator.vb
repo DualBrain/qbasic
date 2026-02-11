@@ -2055,6 +2055,7 @@ Namespace Global.QB.CodeAnalysis
       Public LeadingSign As Boolean = False
       Public TrailingSign As Boolean = False
       Public UseDollarSign As Boolean = False
+      Public FloatingDollarSign As Boolean = False
       Public UseAsterisks As Boolean = False
       Public UseCommas As Boolean = False
       Public UseExponential As Boolean = False
@@ -2166,16 +2167,19 @@ Namespace Global.QB.CodeAnalysis
       If i + 1 < formatString.Length Then
         If formatString(i) = "$"c AndAlso formatString(i + 1) = "$"c Then
           spec.UseDollarSign = True
+          spec.FloatingDollarSign = True
           i += 2
         ElseIf formatString(i) = "*"c AndAlso formatString(i + 1) = "*"c Then
           spec.UseAsterisks = True
           i += 2
           If i < formatString.Length AndAlso formatString(i) = "$"c Then
             spec.UseDollarSign = True
+            spec.FloatingDollarSign = False
             i += 1
           End If
         ElseIf formatString(i) = "$"c Then
           spec.UseDollarSign = True
+          spec.FloatingDollarSign = False
           i += 1
         ElseIf formatString(i) = "*"c Then
           spec.UseAsterisks = True
@@ -2184,6 +2188,7 @@ Namespace Global.QB.CodeAnalysis
       ElseIf i < formatString.Length Then
         If formatString(i) = "$"c Then
           spec.UseDollarSign = True
+          spec.FloatingDollarSign = False
           i += 1
         ElseIf formatString(i) = "*"c Then
           spec.UseAsterisks = True
@@ -2467,8 +2472,26 @@ Namespace Global.QB.CodeAnalysis
           Else
             outputStr = "$" & outputStr
           End If
+        ElseIf spec.FloatingDollarSign Then
+          ' For  format (floating dollar sign), the $ floats immediately before the number
+          ' Spaces go BEFORE the dollar sign to position it correctly
+
+          '' Calculate format width including dollar sign
+          'Dim dollarFormatWidth = formatIntDigits + 1  ' +1 for the dollar sign
+          '' Total output width includes format + decimal + decimal places
+          'Dim totalWidth = dollarFormatWidth + If(spec.DecimalPlaces > 0, 1 + spec.DecimalPlaces, 0)
+          '' Spaces needed before the dollar sign to achieve correct positioning
+          'Dim dollarSpaces = Math.Max(0, totalWidth - 3 - numIntDigits - 1)  ' -3 for "0.00" part, -1 for dollar sign
+
+          ' Calculate format width: dollarSign + digitPositions + decimalPoint + decimalPlaces
+          ' The dollar sign floats, so spaces go before it to achieve proper alignment
+          Dim totalWidth = formatIntDigits + 1 + If(spec.DecimalPlaces > 0, 1 + spec.DecimalPlaces, 0)
+          ' Spaces needed before the dollar sign: format width - minimum value width (3 for "0.00") - actual integer digits
+          Dim dollarSpaces = Math.Max(0, totalWidth - 3 - numIntDigits)
+
+          outputStr = New String(" "c, dollarSpaces) & "$" & numPart
         Else
-          outputStr = "$" & outputStr
+          ' For $ format (fixed dollar sign), the $ goes BEFORE leading spaces          outputStr = "$" & outputStr
         End If
       End If
 

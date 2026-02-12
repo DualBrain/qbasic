@@ -826,8 +826,8 @@ Friend Class QBasic
     'Dim basePath = Path.GetDirectoryName(Assembly.GetEntryAssembly.Location)
     Dim basePath = System.IO.Path.GetDirectoryName(Process.GetCurrentProcess.MainModule.FileName)
 
-    Dim includeTrs80gp = File.Exists(System.IO.Path.Combine(basePath, "extras\trs80gp.exe"))
-    Dim includeQbjs = True
+    Dim includeTrs80gp = False 'File.Exists(System.IO.Path.Combine(basePath, "extras\trs80gp.exe"))
+    Dim includeQbjs = False 'True
 
     Dim fbcPath As String = Nothing
 
@@ -847,7 +847,7 @@ Friend Class QBasic
       Next
     End If
 
-    Dim includeFbc = fbcPath IsNot Nothing
+    Dim includeFbc = False 'fbcPath IsNot Nothing
 
     If includeQbjs OrElse includeFbc OrElse includeTrs80gp Then
       Menu.Items(4).Items.Add(New MenuItem("-"))
@@ -868,7 +868,9 @@ Friend Class QBasic
     Document1.Focused = True
     Document2.Visible = False
 
-    m_context = New WelcomeDialog()
+    If Not Debugger.IsAttached Then
+      m_context = New WelcomeDialog()
+    End If
 
     DrawScreen()
 
@@ -2435,6 +2437,7 @@ To get help on a QBasic keyword in the list below:
   End Sub
 
   Private Sub RunnerBs()
+    QBLib.Video.KeyClear()
     g_display = Nothing : m_abort = False : m_running = True
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token

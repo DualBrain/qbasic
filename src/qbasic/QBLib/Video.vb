@@ -817,6 +817,10 @@ Namespace Global.QBLib
       Next
     End Sub
 
+    Friend Shared Sub KeyClear()
+      s_keys.Clear()
+    End Sub
+
     Friend Shared Sub KeyPush(key As String) 'System.Windows.Forms.KeyEventArgs)
       s_keys.Push(key)
     End Sub

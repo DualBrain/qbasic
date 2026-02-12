@@ -16,6 +16,8 @@ Imports VbPixelGameEngine
 
 Friend Module Program
 
+  Friend ReadOnly s_syncObject As New Object
+
   Sub Main(args As String())
     If Today > New Date(2026, 3, 1) Then Return
     Dim commandLineArgs As String() = Nothing
@@ -1257,10 +1259,12 @@ Tip: These topics are also available from the Help menu.
             '      Capture the current screen mode? Width?
             ReDim m_scrn0(Screen0.Length - 1)
             ReDim m_buffer(Buffer.Length - 1)
-            SyncLock Me
-              Array.Copy(Screen0, 0, m_scrn0, 0, Screen0.Length)
-              Array.Copy(Buffer, 0, m_buffer, 0, Buffer.Length)
-            End SyncLock
+            If QBLib.Video.ScreenMode = m_outputState.ScreenMode Then
+              SyncLock s_syncObject
+                Array.Copy(Screen0, 0, m_scrn0, 0, Screen0.Length)
+                Array.Copy(Buffer, 0, m_buffer, 0, Buffer.Length)
+              End SyncLock
+            End If
             m_outputState.FgColor = QBLib.Video.m_fgColor
             m_outputState.BgColor = QBLib.Video.m_bgColor
             m_outputState.CursorRow = QBLib.Video.CursorRow
@@ -1685,20 +1689,22 @@ Tip: These topics are also available from the Help menu.
 
       If g_display IsNot Nothing Then
 
-        Dim p = g_display.Pixels(g_display.VisualPage)
-        Dim w = g_display.ScreenWidth
-        Dim h = g_display.ScreenHeight
-        Dim pxl As Pixel
-        For y = 0 To h - 1
-          For x = 0 To w - 1
-            Dim c = p(y * w + x)
-            pxl.I = c
-            If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
-              Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
-            End If
-            Draw(x, y, pxl)
+        SyncLock s_syncObject
+          Dim p = g_display.Pixels(g_display.VisualPage)
+          Dim w = g_display.ScreenWidth
+          Dim h = g_display.ScreenHeight
+          Dim pxl As Pixel
+          For y = 0 To h - 1
+            For x = 0 To w - 1
+              Dim c = p(y * w + x)
+              pxl.I = c
+              If pxl.R <> 0 OrElse pxl.B <> 0 Then ' swap the red and blue
+                Dim b = pxl.R : pxl.R = pxl.B : pxl.B = b
+              End If
+              Draw(x, y, pxl)
+            Next
           Next
-        Next
+        End SyncLock
 
       Else
 
@@ -2402,7 +2408,7 @@ To get help on a QBasic keyword in the list below:
     'm_display = New Display()
 
     If m_scrn0 IsNot Nothing Then
-      SyncLock Me
+      SyncLock s_syncObject
         Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
         Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
       End SyncLock
@@ -2433,13 +2439,16 @@ To get help on a QBasic keyword in the list below:
     s_cancelTokenSource = New System.Threading.CancellationTokenSource()
     s_cancelToken = s_cancelTokenSource.Token
     If m_scrn0 IsNot Nothing Then
-      If m_outputState.ScreenMode > 0 Then SCREEN(m_outputState.ScreenMode)
-      SyncLock Me
-        Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
-        Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
-      End SyncLock
-      QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
-      QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)
+      If m_outputState.ScreenMode > 0 Then
+        SCREEN(m_outputState.ScreenMode)
+      Else
+        SyncLock s_syncObject
+          Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
+          Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+        End SyncLock
+        QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
+        QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)
+      End If
       m_scrn0 = Nothing
       m_buffer = Nothing
     Else

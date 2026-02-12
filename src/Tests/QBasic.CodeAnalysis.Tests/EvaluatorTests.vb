@@ -672,81 +672,6 @@ LET result$ = a$ + ""..."""
     End Sub
 
     <Fact>
-    Public Sub EvaluatesBuiltInFunctions()
-      Dim testCases = New(String, Object)() {
-          ("LET result = LEN(""hello"")", 5),
-          ("LET result = ABS(-5%)", 5),
-          ("LET result = ABS(5%)", 5),
-          ("LET result = SGN(-5%)", -1),
-          ("LET result = SGN(0%)", 0),
-          ("LET result = SGN(5%)", 1),
-          ("LET result = INT(3.7!)", 3),
-          ("LET result = FIX(3.7!)", 3),
-          ("LET result = FIX(-3.7!)", -3)
-      }
-
-      For Each testCase In testCases
-        Dim text = testCase.Item1
-        Dim expected = testCase.Item2
-        Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-        Dim compilation As Compilation = Compilation.Create(syntaxTree)
-        Dim variables = New Dictionary(Of String, Object)()
-        Dim result = compilation.Evaluate(variables)
-        Dim v = If(variables.ContainsKey("result"), variables("result"), 0)
-        Assert.Equal($"{expected}", $"{v}")
-      Next
-
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesMathematicalFunctions()
-      Dim testCases = New(String, Double)() {
-          ("LET result = SQR(4)", 2.0),
-          ("LET result = SQR(9)", 3.0),
-          ("LET result = SIN(0)", 0.0),
-          ("LET result = COS(0)", 1.0),
-          ("LET result = TAN(0)", 0.0),
-          ("LET result = EXP(0)", 1.0),
-          ("LET result = LOG(1)", 0.0),
-          ("LET result = ATN(0)", 0.0)
-      }
-
-      For Each testCase In testCases
-        Dim text = testCase.Item1
-        Dim expected = testCase.Item2
-        Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-        Dim compilation As Compilation = Compilation.Create(syntaxTree)
-        Dim variables = New Dictionary(Of String, Object)()
-        Dim result = compilation.Evaluate(variables)
-        Dim v = If(variables.ContainsKey("result"), CDbl(variables("result")), 0.00#)
-        Assert.Equal(expected, v, 0.0001) ' Allow small floating point differences
-      Next
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesStringFunctions()
-      Dim testCases = New(String, String)() {
-          ("LET result$ = UCASE$(""hello"")", "HELLO"),
-          ("LET result$ = LCASE$(""HELLO"")", "hello"),
-          ("LET result$ = LEFT$(""hello"", 2)", "he"),
-          ("LET result$ = RIGHT$(""hello"", 2)", "lo"),
-          ("LET result$ = MID$(""hello"", 2, 2)", "el"),
-          ("LET result$ = STR$(123)", " 123"),
-          ("LET result$ = SPACE$(3)", "   ")
-      }
-
-      For Each testCase In testCases
-        Dim text = testCase.Item1
-        Dim expected = testCase.Item2
-        Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-        Dim compilation As Compilation = Compilation.Create(syntaxTree)
-        Dim variables = New Dictionary(Of String, Object)()
-        Dim result = compilation.Evaluate(variables)
-        Assert.Equal(expected, variables("result$"))
-      Next
-    End Sub
-
-    <Fact>
     Public Sub EvaluatesComplexExpression()
       Dim text = "LET result = ((2 + 3) * 4 - 6) / 2 + 1"
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
@@ -1179,68 +1104,7 @@ END IF"
     'End Sub
 
     <Fact>
-    Public Sub EvaluatesAdditionalMathAndSystemFunctions_TIMER()
-      ' Test TIMER function
-      Dim timerTest = "LET result = TIMER"
-      Dim timerTree As SyntaxTree = SyntaxTree.Parse(timerTest)
-      Dim timerComp As Compilation = Compilation.Create(timerTree)
-      Dim timerVars As New Dictionary(Of String, Object)()
-      Dim timerResult = timerComp.Evaluate(timerVars)
-      ' TIMER should return seconds since midnight as a number
-      Assert.IsType(GetType(Single), timerVars("result"))
-      Dim timerValue = CDbl(timerVars("result"))
-      Assert.True(timerValue >= 0 And timerValue < 86400) ' Less than 24 hours in seconds
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesDateTimeFunctions()
-      ' Test DATE$ function
-      Dim dateTest = "LET result$ = DATE$"
-      Dim dateTree As SyntaxTree = SyntaxTree.Parse(dateTest)
-      Dim dateComp As Compilation = Compilation.Create(dateTree)
-      Dim dateVars As New Dictionary(Of String, Object)()
-      Dim dateResult = dateComp.Evaluate(dateVars)
-      ' DATE$ should return a string in MM-DD-YYYY format
-      Assert.IsType(GetType(String), dateVars("result$"))
-      Dim dateStr = CStr(dateVars("result$"))
-      ' Should be in format MM-DD-YYYY
-      Assert.True(dateStr.Length >= 8)
-
-      ' Test TIME$ function
-      Dim timeTest = "LET result$ = TIME$"
-      Dim timeTree As SyntaxTree = SyntaxTree.Parse(timeTest)
-      Dim timeComp As Compilation = Compilation.Create(timeTree)
-      Dim timeVars As New Dictionary(Of String, Object)()
-      Dim timeResult = timeComp.Evaluate(timeVars)
-      ' TIME$ should return a string in HH:MM:SS format
-      Assert.IsType(GetType(String), timeVars("result$"))
-      Dim timeStr = CStr(timeVars("result$"))
-      ' Should be in format HH:MM:SS
-      Assert.True(timeStr.Length >= 7)
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesErrorAndSystemFunctions()
-      ' Test ERR function (current error number)
-      Dim errTest = "LET result = ERR"
-      Dim errTree As SyntaxTree = SyntaxTree.Parse(errTest)
-      Dim errComp As Compilation = Compilation.Create(errTree)
-      Dim errVars As New Dictionary(Of String, Object)()
-      Dim errResult = errComp.Evaluate(errVars)
-      ' ERR should return an integer (0 if no error)
-      Assert.IsType(GetType(Integer), errVars("result"))
-      Assert.True(CInt(errVars("result")) >= 0)
-
-      ' Test ERL function (line number where error occurred)
-      Dim erlTest = "LET result = ERL"
-      Dim erlTree As SyntaxTree = SyntaxTree.Parse(erlTest)
-      Dim erlComp As Compilation = Compilation.Create(erlTree)
-      Dim erlVars As New Dictionary(Of String, Object)()
-      Dim erlResult = erlComp.Evaluate(erlVars)
-      ' ERL should return an integer (0 if no error)
-      Assert.IsType(GetType(Integer), erlVars("result"))
-      Assert.True(CInt(erlVars("result")) >= 0)
-
+    Public Sub EvaluatesSystemFunction()
       ' Test INKEY$ function (read key press, should return empty string when no key)
       Dim inkeyTest = "LET result$ = INKEY$"
       Dim inkeyTree As SyntaxTree = SyntaxTree.Parse(inkeyTest)
@@ -1249,162 +1113,6 @@ END IF"
       Dim inkeyResult = inkeyComp.Evaluate(inkeyVars)
       ' INKEY$ should return a string (empty if no key pressed)
       Assert.IsType(GetType(String), inkeyVars("result$"))
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesAdvancedMathExpressions()
-      ' Test compound mathematical expressions from the maths.md appendix
-
-      ' Test Secant: SEC(X) = 1/COS(X)
-      Dim secTest = "LET result = 1/COS(0.5)"
-      Dim secTree As SyntaxTree = SyntaxTree.Parse(secTest)
-      Dim secComp As Compilation = Compilation.Create(secTree)
-      Dim secVars As New Dictionary(Of String, Object)()
-      Dim secResult = secComp.Evaluate(secVars)
-      Assert.True(TypeOf secVars("result") Is Double Or TypeOf secVars("result") Is Single)
-
-      ' Test Cosecant: CSC(X) = 1/SIN(X)
-      Dim cscTest = "LET result = 1/SIN(0.5)"
-      Dim cscTree As SyntaxTree = SyntaxTree.Parse(cscTest)
-      Dim cscComp As Compilation = Compilation.Create(cscTree)
-      Dim cscVars As New Dictionary(Of String, Object)()
-      Dim cscResult = cscComp.Evaluate(cscVars)
-      Assert.True(TypeOf cscVars("result") Is Double Or TypeOf cscVars("result") Is Single)
-
-      ' Test Cotangent: COT(X) = 1/TAN(X)
-      Dim cotTest = "LET result = 1/TAN(0.5)"
-      Dim cotTree As SyntaxTree = SyntaxTree.Parse(cotTest)
-      Dim cotComp As Compilation = Compilation.Create(cotTree)
-      Dim cotVars As New Dictionary(Of String, Object)()
-      Dim cotResult = cotComp.Evaluate(cotVars)
-      Assert.True(TypeOf cotVars("result") Is Double Or TypeOf cotVars("result") Is Single)
-
-      ' Test Hyperbolic Sine: SINH(X) = (EXP(X) - EXP(-X)) / 2
-      Dim sinhTest = "LET result = (EXP(1.0) - EXP(-1.0)) / 2"
-      Dim sinhTree As SyntaxTree = SyntaxTree.Parse(sinhTest)
-      Dim sinhComp As Compilation = Compilation.Create(sinhTree)
-      Dim sinhVars As New Dictionary(Of String, Object)()
-      Dim sinhResult = sinhComp.Evaluate(sinhVars)
-      Assert.True(TypeOf sinhVars("result") Is Double Or TypeOf sinhVars("result") Is Single)
-
-      ' Test Hyperbolic Cosine: COSH(X) = (EXP(X) + EXP(-X)) / 2
-      Dim coshTest = "LET result = (EXP(1.0) + EXP(-1.0)) / 2"
-      Dim coshTree As SyntaxTree = SyntaxTree.Parse(coshTest)
-      Dim coshComp As Compilation = Compilation.Create(coshTree)
-      Dim coshVars As New Dictionary(Of String, Object)()
-      Dim coshResult = coshComp.Evaluate(coshVars)
-      Assert.True(TypeOf coshVars("result") Is Double Or TypeOf coshVars("result") Is Single)
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesStringCreationFunctions()
-      ' Test STRING$ function - creates string of repeated characters
-      Dim stringTestCases = New(String, String)() {
-          ("LET result$ = STRING$(5, 65)", "AAAAA"),  ' A repeated 5 times (ASCII 65)
-          ("LET result$ = STRING$(3, ""*"")", "***"),   ' * repeated 3 times
-          ("LET result$ = STRING$(0, 42)", ""),       ' Empty string for 0 count
-          ("LET result$ = STRING$(4, ""AB"")", "AAAA") ' Uses first character of string
-      }
-
-      For Each testCase In stringTestCases
-        Dim inputText As String = testCase.Item1
-        Dim expectedResult As String = testCase.Item2
-        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
-        Dim comp As Compilation = Compilation.Create(tree)
-        Dim vars As New Dictionary(Of String, Object)()
-        Dim evalResult = comp.Evaluate(vars)
-        Assert.Equal(expectedResult, CStr(vars("result$")))
-      Next
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesHexOctFunctions()
-      ' Test HEX$ function - converts numbers to hexadecimal strings
-      Dim hexTestCases = New(String, String)() {
-          ("LET result$ = HEX$(255)", "FF"),
-          ("LET result$ = HEX$(16)", "10"),
-          ("LET result$ = HEX$(0)", "0"),
-          ("LET result$ = HEX$(4096)", "1000")
-      }
-
-      For Each testCase In hexTestCases
-        Dim inputText As String = testCase.Item1
-        Dim expectedResult As String = testCase.Item2
-        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
-        Dim comp As Compilation = Compilation.Create(tree)
-        Dim vars As New Dictionary(Of String, Object)()
-        Dim evalResult = comp.Evaluate(vars)
-        Assert.Equal(expectedResult, CStr(vars("result$")))
-      Next
-
-      ' Test OCT$ function - converts numbers to octal strings
-      Dim octTestCases = New(String, String)() {
-          ("LET result$ = OCT$(8)", "10"),
-          ("LET result$ = OCT$(16)", "20"),
-          ("LET result$ = OCT$(0)", "0"),
-          ("LET result$ = OCT$(63)", "77")
-      }
-
-      For Each testCase In octTestCases
-        Dim inputText As String = testCase.Item1
-        Dim expectedResult As String = testCase.Item2
-        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
-        Dim comp As Compilation = Compilation.Create(tree)
-        Dim vars As New Dictionary(Of String, Object)()
-        Dim evalResult = comp.Evaluate(vars)
-        Assert.Equal(expectedResult, CStr(vars("result$")))
-      Next
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesBinaryConversionFunctions()
-      ' Test MKI$ function - converts integer to 2-byte binary string
-      Dim mkiTest = "LET result$ = MKI$(12345)"
-      Dim mkiTree As SyntaxTree = SyntaxTree.Parse(mkiTest)
-      Dim mkiComp As Compilation = Compilation.Create(mkiTree)
-      Dim mkiVars As New Dictionary(Of String, Object)()
-      Dim mkiResult = mkiComp.Evaluate(mkiVars)
-      ' MKI$ should return a 2-byte string
-      Assert.Equal(2, CStr(mkiVars("result$")).Length)
-
-      ' Test MKS$ function - converts single to 4-byte binary string
-      Dim mksTest = "LET result$ = MKS$(3.14159!)"
-      Dim mksTree As SyntaxTree = SyntaxTree.Parse(mksTest)
-      Dim mksComp As Compilation = Compilation.Create(mksTree)
-      Dim mksVars As New Dictionary(Of String, Object)()
-      Dim mksResult = mksComp.Evaluate(mksVars)
-      ' MKS$ should return a 4-byte string
-      Assert.Equal(4, CStr(mksVars("result$")).Length)
-
-      ' Test MKD$ function - converts double to 8-byte binary string
-      Dim mkdTest = "LET result$ = MKD$(3.14159265358979#)"
-      Dim mkdTree As SyntaxTree = SyntaxTree.Parse(mkdTest)
-      Dim mkdComp As Compilation = Compilation.Create(mkdTree)
-      Dim mkdVars As New Dictionary(Of String, Object)()
-      Dim mkdResult = mkdComp.Evaluate(mkdVars)
-      ' MKD$ should return an 8-byte string
-      Assert.Equal(8, CStr(mkdVars("result$")).Length)
-
-      ' Test round-trip conversions
-      ' MKI$/CVI round trip
-      Dim roundTripTest = "
-LET bin$ = MKI$(12345)
-LET result = CVI(bin$)"
-      Dim roundTripTree As SyntaxTree = SyntaxTree.Parse(roundTripTest)
-      Dim roundTripComp As Compilation = Compilation.Create(roundTripTree)
-      Dim roundTripVars As New Dictionary(Of String, Object)()
-      Dim roundTripResult = roundTripComp.Evaluate(roundTripVars)
-      Assert.Equal(12345, CInt(roundTripVars("result")))
-
-      ' MKS$/CVS round trip
-      Dim singleRoundTripTest = "
-LET bin$ = MKS$(3.14)
-LET result = CVS(bin$)"
-      Dim singleRoundTripTree As SyntaxTree = SyntaxTree.Parse(singleRoundTripTest)
-      Dim singleRoundTripComp As Compilation = Compilation.Create(singleRoundTripTree)
-      Dim singleRoundTripVars As New Dictionary(Of String, Object)()
-      Dim singleRoundTripResult = singleRoundTripComp.Evaluate(singleRoundTripVars)
-      Assert.Equal(3.14F, CSng(singleRoundTripVars("result")), 0.01F)
     End Sub
 
     '<Fact>
@@ -1426,7 +1134,6 @@ LET result = CVS(bin$)"
       Dim originalStdoutMode = Video.StdoutMode
       Try
         Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-
         ' Test TAB function in PRINT statements
         Dim tabTest = "PRINT TAB(10); ""Hello"""
         Dim tabTree As SyntaxTree = SyntaxTree.Parse(tabTest)
@@ -1434,7 +1141,6 @@ LET result = CVS(bin$)"
         Dim tabVars As New Dictionary(Of String, Object)()
         Dim tabResult = tabComp.Evaluate(tabVars)
         Assert.Empty(tabTree.Diagnostics)
-
         ' Test SPC function in PRINT statements
         Dim spcTest = "PRINT SPC(5); ""World"""
         Dim spcTree As SyntaxTree = SyntaxTree.Parse(spcTest)
@@ -1447,74 +1153,7 @@ LET result = CVS(bin$)"
       End Try
     End Sub
 
-    <Fact>
-    Public Sub EvaluatesEnvironmentAndSystemFunctions()
-      ' Test ENVIRON$ function - gets environment variables
-      Dim environTest = "LET result$ = ENVIRON$(""PATH"")"
-      Dim environTree As SyntaxTree = SyntaxTree.Parse(environTest)
-      Dim environComp As Compilation = Compilation.Create(environTree)
-      Dim environVars As New Dictionary(Of String, Object)()
-      Dim environResult = environComp.Evaluate(environVars)
-      ' ENVIRON$ should return a string (empty if variable doesn't exist)
-      Assert.IsType(GetType(String), environVars("result$"))
-
-      ' Test ENVIRON$ with numeric index
-      Dim environNumTest = "LET result$ = ENVIRON$(1)"
-      Dim environNumTree As SyntaxTree = SyntaxTree.Parse(environNumTest)
-      Dim environNumComp As Compilation = Compilation.Create(environNumTree)
-      Dim environNumVars As New Dictionary(Of String, Object)()
-      Dim environNumResult = environNumComp.Evaluate(environNumVars)
-      ' ENVIRON$ with number should return a string
-      Assert.IsType(GetType(String), environNumVars("result$"))
-
-      ' Test ENVIRON statement (setting environment variables)
-      Dim environSetTest = "ENVIRON ""QBTEST_VAR=test_value"""
-      Dim environSetTree As SyntaxTree = SyntaxTree.Parse(environSetTest)
-      Dim environSetComp As Compilation = Compilation.Create(environSetTree)
-      Dim environSetVars As New Dictionary(Of String, Object)()
-      Dim environSetResult = environSetComp.Evaluate(environSetVars)
-
-      ' Now read it back
-      Dim environReadTest = "LET result$ = ENVIRON$(""QBTEST_VAR"")"
-      Dim environReadTree As SyntaxTree = SyntaxTree.Parse(environReadTest)
-      Dim environReadComp As Compilation = Compilation.Create(environReadTree)
-      Dim environReadVars As New Dictionary(Of String, Object)()
-      Dim environReadResult = environReadComp.Evaluate(environReadVars)
-
-      Assert.IsType(GetType(String), environReadVars("result$"))
-      Assert.Equal("test_value", CStr(environReadVars("result$")))
-
-      ' Test file I/O functions (EOF, LOF, LOC) - these will error since no files are open
-      ' but we test that they exist and have correct signatures
-      Dim eofTest = "LET result = EOF(1)"
-      Dim eofTree As SyntaxTree = SyntaxTree.Parse(eofTest)
-      Dim eofComp As Compilation = Compilation.Create(eofTree)
-      ' Should compile without errors
-      Assert.NotNull(eofComp)
-
-      Dim lofTest = "LET result = LOF(1)"
-      Dim lofTree As SyntaxTree = SyntaxTree.Parse(lofTest)
-      Dim lofComp As Compilation = Compilation.Create(lofTree)
-      Assert.NotNull(lofComp)
-
-      Dim locTest = "LET result = LOC(1)"
-      Dim locTree As SyntaxTree = SyntaxTree.Parse(locTest)
-      Dim locComp As Compilation = Compilation.Create(locTree)
-      Assert.NotNull(locComp)
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesCommandLineFunction()
-      ' Test COMMAND$ function - gets command line arguments
-      Dim commandTest = "LET result$ = COMMAND$"
-      Dim commandTree As SyntaxTree = SyntaxTree.Parse(commandTest)
-      Dim commandComp As Compilation = Compilation.Create(commandTree)
-      Dim commandVars As New Dictionary(Of String, Object)()
-      Dim commandResult = commandComp.Evaluate(commandVars)
-      ' COMMAND$ should return a string
-      Assert.IsType(GetType(String), commandVars("result$"))
-    End Sub
-
+    'TODO: Need to mrege with COMMAND$ (in FunctionTests)...
     <Fact>
     Public Sub EvaluatesCommandFunctionWithArguments()
       ' Test COMMAND$ function with different argument scenarios
@@ -1597,23 +1236,7 @@ LET result = CVS(bin$)"
     End Sub
 
     <Fact>
-    Public Sub EvaluatesPeekPokeFunctions()
-      ' Test PEEK function - reads memory location
-      Dim peekTest = "
-ON ERROR GOTO Handler
-LET result = PEEK(0)
-END
-Handler:
-  result = -1
-  END"
-      Dim peekTree As SyntaxTree = SyntaxTree.Parse(peekTest)
-      Dim peekComp As Compilation = Compilation.Create(peekTree)
-      Dim peekVars As New Dictionary(Of String, Object)()
-      Dim peekResult = peekComp.Evaluate(peekVars)
-      ' PEEK should return an integer (0-255)
-      Assert.Equal(-1, peekVars("result"))
-      'Assert.IsType(GetType(Integer), peekVars("result"))
-
+    Public Sub EvaluatesPokeCommand()
       ' Test POKE statement - writes to memory location
       Dim pokeTest = "POKE 1000, 42"
       Dim pokeTree As SyntaxTree = SyntaxTree.Parse(pokeTest)
@@ -1621,66 +1244,6 @@ Handler:
       Dim pokeVars As New Dictionary(Of String, Object)()
       Dim pokeResult = pokeComp.Evaluate(pokeVars)
       Assert.Empty(pokeTree.Diagnostics)
-    End Sub
-
-    <Fact>
-    Public Sub EvaluatesLBoundUBoundFunctions()
-      ' Test LBOUND function with arrays
-      Dim lboundTestCases = New(String, Long)() {
-          ("DIM arr(1 TO 5) : LET result = LBOUND(arr)", 1L),
-          ("DIM arr(0 TO 10) : LET result = LBOUND(arr)", 0L),
-          ("DIM arr(-5 TO 5) : LET result = LBOUND(arr)", -5L),
-          ("DIM arr(10 TO 20) : LET result = LBOUND(arr)", 10L)
-      }
-
-      For Each testCase In lboundTestCases
-        Dim inputText As String = testCase.Item1
-        Dim expectedResult As Long = testCase.Item2
-        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
-        Dim comp As Compilation = Compilation.Create(tree)
-        Dim vars As New Dictionary(Of String, Object)()
-        Dim evalResult = comp.Evaluate(vars)
-        Assert.Equal(expectedResult, CLng(vars("result")))
-      Next
-
-      ' Test UBOUND function with arrays
-      Dim uboundTestCases = New(String, Long)() {
-          ("DIM arr(1 TO 5) : LET result = UBOUND(arr)", 5L),
-          ("DIM arr(0 TO 10) : LET result = UBOUND(arr)", 10L),
-          ("DIM arr(-5 TO 5) : LET result = UBOUND(arr)", 5L),
-          ("DIM arr(10 TO 20) : LET result = UBOUND(arr)", 20L)
-      }
-
-      For Each testCase In uboundTestCases
-        Dim inputText As String = testCase.Item1
-        Dim expectedResult As Long = testCase.Item2
-        Dim tree As SyntaxTree = SyntaxTree.Parse(inputText)
-        Dim comp As Compilation = Compilation.Create(tree)
-        Dim vars As New Dictionary(Of String, Object)()
-        Dim evalResult = comp.Evaluate(vars)
-        Assert.Equal(expectedResult, CLng(vars("result")))
-      Next
-
-      ' Test LBOUND/UBOUND on non-array variables (TODO: implement this)
-
-      ' Test with REDIM arrays
-      Dim redimTest = "
-'$DYNAMIC
-DIM arr(1 TO 3)
-LET result1 = LBOUND(arr)
-LET result2 = UBOUND(arr)
-REDIM arr(5 TO 8)
-LET result3 = LBOUND(arr)
-LET result4 = UBOUND(arr)
-"
-      Dim redimTree As SyntaxTree = SyntaxTree.Parse(redimTest)
-      Dim redimComp As Compilation = Compilation.Create(redimTree)
-      Dim redimVars As New Dictionary(Of String, Object)()
-      Dim redimResult = redimComp.Evaluate(redimVars)
-      Assert.Equal(1L, CLng(redimVars("result1")))
-      Assert.Equal(3L, CLng(redimVars("result2")))
-      Assert.Equal(5L, CLng(redimVars("result3")))
-      Assert.Equal(8L, CLng(redimVars("result4")))
     End Sub
 
     <Fact>

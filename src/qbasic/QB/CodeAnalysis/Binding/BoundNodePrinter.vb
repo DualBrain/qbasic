@@ -166,7 +166,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Sub WriteMidStatement(node As BoundMidStatement, writer As IndentedTextWriter)
       writer.WriteKeyword(SyntaxKind.MidKeyword)
       writer.WritePunctuation(SyntaxKind.OpenParenToken)
-      writer.WriteIdentifier(node.Variable.Name)
+      node.TargetExpression.WriteTo(writer)
       writer.WritePunctuation(SyntaxKind.CommaToken)
       writer.WriteSpace
       node.PositionExpression.WriteTo(writer)

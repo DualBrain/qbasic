@@ -2199,7 +2199,7 @@ repeat:
 
       Dim midKeyword = MatchToken(SyntaxKind.MidKeyword)
       Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
-      Dim identifierToken = MatchToken(SyntaxKind.IdentifierToken)
+      Dim targetExpression = ParseExpression()
       Dim positionCommaToken = MatchToken(SyntaxKind.CommaToken)
       Dim position = ParseExpression()
       Dim lengthCommaToken As SyntaxToken = Nothing
@@ -2211,7 +2211,7 @@ repeat:
       Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
       Dim equalToken = MatchToken(SyntaxKind.EqualToken)
       Dim expression = ParseExpression()
-      Return New MidStatementSyntax(m_syntaxTree, midKeyword, openParen, identifierToken, positionCommaToken, position, lengthCommaToken, length, closeParen, equalToken, expression)
+      Return New MidStatementSyntax(m_syntaxTree, midKeyword, openParen, targetExpression, positionCommaToken, position, lengthCommaToken, length, closeParen, equalToken, expression)
     End Function
 
     Private Function ParseLprintStatement() As LprintStatementSyntax

@@ -49,6 +49,9 @@ Namespace Global.QB.CodeAnalysis.Binding
       If [from] Is TypeSymbol.SByte AndAlso [to] Is TypeSymbol.Single Then Return Conversion.Implicit
       If [from] Is TypeSymbol.Byte AndAlso [to] Is TypeSymbol.Single Then Return Conversion.Implicit
 
+      ' QBasic compatibility: implicit conversion from Double to Single
+      If [from] Is TypeSymbol.Double AndAlso [to] Is TypeSymbol.Single Then Return Conversion.Implicit
+
       If [from] Is TypeSymbol.Long64 AndAlso [to] Is TypeSymbol.ULong64 Then Return Conversion.Implicit
       If [from] Is TypeSymbol.UInteger AndAlso [to] Is TypeSymbol.ULong64 Then Return Conversion.Implicit
       If [from] Is TypeSymbol.Byte AndAlso [to] Is TypeSymbol.ULong64 Then Return Conversion.Implicit
@@ -73,6 +76,15 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       If [from] Is TypeSymbol.SByte AndAlso [to] Is TypeSymbol.Integer Then Return Conversion.Implicit
       If [from] Is TypeSymbol.Byte AndAlso [to] Is TypeSymbol.Integer Then Return Conversion.Implicit
+
+      ' QBasic compatibility: implicit conversion from Single to Integer (truncates decimal part)
+      ' This is needed for array subscripts and bitwise operations
+      If [from] Is TypeSymbol.Single AndAlso [to] Is TypeSymbol.Integer Then Return Conversion.Implicit
+      If [from] Is TypeSymbol.Double AndAlso [to] Is TypeSymbol.Integer Then Return Conversion.Implicit
+
+      ' QBasic compatibility: implicit conversion from Single/Double to Long
+      If [from] Is TypeSymbol.Single AndAlso [to] Is TypeSymbol.Long Then Return Conversion.Implicit
+      If [from] Is TypeSymbol.Double AndAlso [to] Is TypeSymbol.Long Then Return Conversion.Implicit
 
       If [from] IsNot TypeSymbol.Nothing AndAlso [to] Is TypeSymbol.Any Then
         Return Conversion.Implicit

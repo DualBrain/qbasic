@@ -29,6 +29,10 @@ Namespace Global.QB.CodeAnalysis.Binding
           Case BoundUnaryOperatorKind.BitwiseComplement
             If TypeOf constVal Is Integer Then
               Return New BoundConstant(Not CInt(constVal))
+            ElseIf TypeOf constVal Is Single Then
+              Return New BoundConstant(Not CInt(CSng(constVal)))
+            ElseIf TypeOf constVal Is Double Then
+              Return New BoundConstant(Not CInt(CDbl(constVal)))
             End If
           Case Else
             Throw New Exception($"Unexpected unary operator {op.Kind}")

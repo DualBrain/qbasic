@@ -646,6 +646,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
         Case SyntaxKind.ComStatement : Return BindComStatement(CType(syntax, ComStatementSyntax))
         Case SyntaxKind.KeyEventStatement : Return BindKeyEventStatement(CType(syntax, KeyEventStatementSyntax))
+        Case SyntaxKind.KeyOffStatement : Return BindKeyOffStatement(CType(syntax, KeyOffStatementSyntax))
         Case SyntaxKind.StrigStatement : Return BindStrigStatement(CType(syntax, StrigStatementSyntax))
         Case SyntaxKind.PlayEventStatement : Return BindPlayEventStatement(CType(syntax, PlayEventStatementSyntax))
         Case SyntaxKind.PenStatement : Return BindPenStatement(CType(syntax, PenStatementSyntax))
@@ -1492,11 +1493,11 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindMidStatement(syntax As MidStatementSyntax) As BoundStatement
-      Dim variable = DetermineVariableReference(syntax.IdentifierToken)
+      Dim targetExpression = BindExpression(syntax.TargetExpression)
       Dim positionExpression = If(syntax.PositionExpression Is Nothing, Nothing, BindExpression(syntax.PositionExpression))
       Dim lengthExpression = If(syntax.LengthExpression Is Nothing, Nothing, BindExpression(syntax.LengthExpression))
       Dim expression = If(syntax.Expression Is Nothing, Nothing, BindExpression(syntax.Expression))
-      Return New BoundMidStatement(variable, positionExpression, lengthExpression, expression)
+      Return New BoundMidStatement(targetExpression, positionExpression, lengthExpression, expression)
     End Function
 
     Private Function BindMkDirStatement(syntax As MkDirStatementSyntax) As BoundStatement
@@ -2695,6 +2696,10 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindKeyEventStatement(syntax As KeyEventStatementSyntax) As BoundStatement
       Dim keyNumber = BindExpression(syntax.KeyNumber)
       Return New BoundKeyEventStatement(keyNumber, syntax.Verb.Kind)
+    End Function
+
+    Private Function BindKeyOffStatement(syntax As KeyOffStatementSyntax) As BoundStatement
+      Return New BoundKeyOffStatement()
     End Function
 
     Private Function BindStrigStatement(syntax As StrigStatementSyntax) As BoundStatement

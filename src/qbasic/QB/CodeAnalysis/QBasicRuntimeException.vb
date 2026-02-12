@@ -13,6 +13,11 @@ Namespace Global.QB.CodeAnalysis
       Me.ErrorCode = errorCode
     End Sub
 
+    Public Sub New(errorCode As ErrorCode, message As String)
+      MyBase.New(message)
+      Me.ErrorCode = errorCode
+    End Sub
+
     Private Shared Function GetErrorMessage(errorCode As ErrorCode) As String
       Select Case errorCode
         Case ErrorCode.None : Return "No error"

@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Partial Public NotInheritable Class MidStatementSyntax
     Inherits StatementSyntax
@@ -6,7 +6,7 @@
     Public Sub New(tree As SyntaxTree,
                    midKeyword As SyntaxToken,
                    openParen As SyntaxToken,
-                   identifierToken As SyntaxToken,
+                   targetExpression As ExpressionSyntax,
                    positionCommaToken As SyntaxToken,
                    position As ExpressionSyntax,
                    lengthCommaToken As SyntaxToken,
@@ -17,7 +17,7 @@
       MyBase.New(tree)
       Me.MidKeyword = midKeyword
       Me.OpenParen = openParen
-      Me.IdentifierToken = identifierToken
+      Me.TargetExpression = targetExpression
       Me.PositionCommaToken = positionCommaToken
       Me.PositionExpression = position
       Me.LengthCommaToken = lengthCommaToken
@@ -30,7 +30,7 @@
     Public Overrides ReadOnly Property Kind() As SyntaxKind = SyntaxKind.MidStatement
     Public ReadOnly Property MidKeyword() As SyntaxToken
     Public ReadOnly Property OpenParen As SyntaxToken
-    Public ReadOnly Property IdentifierToken As SyntaxToken
+    Public ReadOnly Property TargetExpression As ExpressionSyntax
     Public ReadOnly Property PositionCommaToken As SyntaxToken
     Public ReadOnly Property PositionExpression As ExpressionSyntax
     Public ReadOnly Property LengthCommaToken As SyntaxToken

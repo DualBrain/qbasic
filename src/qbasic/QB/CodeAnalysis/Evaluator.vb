@@ -887,6 +887,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.TimerStatement : EvaluateTimerStatement(CType(s, BoundTimerStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.ComStatement : EvaluateComStatement(CType(s, BoundComStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.KeyEventStatement : EvaluateKeyEventStatement(CType(s, BoundKeyEventStatement), index, localLabelToIndex) : index += 1
+            Case BoundNodeKind.KeyOffStatement : EvaluateKeyOffStatement(CType(s, BoundKeyOffStatement)) : index += 1
             Case BoundNodeKind.StrigStatement : EvaluateStrigStatement(CType(s, BoundStrigStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.PlayEventStatement : EvaluatePlayEventStatement(CType(s, BoundPlayEventStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.PenStatement : EvaluatePenStatement(CType(s, BoundPenStatement), index, localLabelToIndex) : index += 1
@@ -962,11 +963,14 @@ Namespace Global.QB.CodeAnalysis
               m_err = ErrorCode.BadFileMode
             ElseIf ex.GetType = GetType(ObjectDisposedException) Then
               m_err = ErrorCode.BadFileMode
+            ElseIf ex.GetType() = GetType(OverflowException) Then
+              m_err = ErrorCode.Overflow
             ElseIf TypeOf ex Is ChainRequest Then
               ' Don't set error for ChainRequest - let it propagate
               Throw
             Else
               m_err = ErrorCode.Internal
+              Throw New QBasicRuntimeException(ErrorCode.Internal, $"Internal error: {ex.GetType().Name}: {ex.Message}")
             End If
           End If
           m_errorPending = True
@@ -1336,6 +1340,17 @@ Namespace Global.QB.CodeAnalysis
         Case SyntaxKind.StopKeyword
           m_keyStates(keyNumber) = TimerState.Stop
       End Select
+    End Sub
+
+    Private Sub EvaluateKeyOffStatement(node As BoundKeyOffStatement)
+      ' KEY OFF - turns off key display
+      ' This is primarily a display-related statement in QBasic
+      ' In our implementation, we don't have a display, so this is a no-op
+      ' However, we should ensure all key states are turned off
+      For i As Integer = 1 To 20
+        m_keyStates(i) = TimerState.Off
+        m_keyHandlerTargets(i) = Nothing
+      Next
     End Sub
 
     Private Sub EvaluateStrigStatement(node As BoundStrigStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
@@ -1720,17 +1735,20 @@ Namespace Global.QB.CodeAnalysis
       Dim positionValue = CInt(EvaluateExpression(node.PositionExpression))
       Dim lengthValue = CInt(If(node.LengthExpression Is Nothing, Integer.MaxValue, EvaluateExpression(node.LengthExpression)))
       Dim value = CStr(EvaluateExpression(node.Expression))
-      'Assign(node.Variable, value)
-      If node.Variable.Kind = SymbolKind.GlobalVariable Then
-        Dim temp = CStr(m_globals(node.Variable.Name))
+
+      If TypeOf node.TargetExpression Is BoundVariableExpression Then
+        Dim varExpr = CType(node.TargetExpression, BoundVariableExpression)
+        Dim temp = CStr(EvaluateExpression(node.TargetExpression))
         Mid(temp, positionValue, lengthValue) = value
-        m_globals(node.Variable.Name) = temp
+        Assign(varExpr.Variable, temp)
+      ElseIf TypeOf node.TargetExpression Is BoundArrayAccessExpression Then
+        Dim arrayAccess = CType(node.TargetExpression, BoundArrayAccessExpression)
+        Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
+        Dim temp = CStr(tuple.Item1(tuple.Item2))
+        Mid(temp, positionValue, lengthValue) = value
+        tuple.Item1(tuple.Item2) = temp
       Else
-        Dim locals = m_locals.Peek
-        locals(node.Variable.Name) = value
-        Dim temp = CStr(locals(node.Variable.Name))
-        Mid(temp, positionValue, lengthValue) = value
-        locals(node.Variable.Name) = temp
+        Throw New Exception("MID$ target must be a variable or array access")
       End If
     End Sub
 
@@ -2993,7 +3011,10 @@ Namespace Global.QB.CodeAnalysis
           If TypeOf operand Is SByte Then Return -CSByte(operand)
           Throw New Exception($"Unexpected negation operation")
         Case BoundUnaryOperatorKind.LogicalNegation : Return Not CBool(operand)
-        Case BoundUnaryOperatorKind.BitwiseComplement : Return Not CInt(operand)
+        Case BoundUnaryOperatorKind.BitwiseComplement
+          If TypeOf operand Is Single Then Return Not CInt(CSng(operand))
+          If TypeOf operand Is Double Then Return Not CInt(CDbl(operand))
+          Return Not CInt(operand)
         Case Else
           Throw New Exception($"Unexpected unary operator {node.Op}")
       End Select
@@ -3228,7 +3249,11 @@ Namespace Global.QB.CodeAnalysis
             Case TypeSymbol.Type.ULong : Return (CUInt(left) And CUInt(right))
             Case TypeSymbol.Type.Long : Return (CInt(left) And CInt(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) And CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) And CShort(right))
+            Case TypeSymbol.Type.Integer
+              ' Use Integer for bitwise operations to avoid overflow
+              Dim l = CInt(left)
+              Dim r = CInt(right)
+              Return CInt(l And r)
             Case TypeSymbol.Type.SByte : Return (CSByte(left) And CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) And CByte(right))
             Case TypeSymbol.Type.Boolean : Return (CBool(left) And CBool(right))
@@ -3244,7 +3269,11 @@ Namespace Global.QB.CodeAnalysis
             Case TypeSymbol.Type.ULong : Return (CUInt(left) Or CUInt(right))
             Case TypeSymbol.Type.Long : Return (CInt(left) Or CInt(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) Or CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) Or CShort(right))
+            Case TypeSymbol.Type.Integer
+              ' Use Integer for bitwise operations to avoid overflow
+              Dim l = CInt(left)
+              Dim r = CInt(right)
+              Return CInt(l Or r)
             Case TypeSymbol.Type.SByte : Return (CSByte(left) Or CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) Or CByte(right))
             Case TypeSymbol.Type.Boolean : Return (CBool(left) Or CBool(right))
@@ -3260,7 +3289,11 @@ Namespace Global.QB.CodeAnalysis
             Case TypeSymbol.Type.ULong : Return (CUInt(left) Xor CUInt(right))
             Case TypeSymbol.Type.Long : Return (CInt(left) Xor CInt(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) Xor CUShort(right))
-            Case TypeSymbol.Type.Integer : Return (CShort(left) Xor CShort(right))
+            Case TypeSymbol.Type.Integer
+              ' Mask to byte range (0-255) and ensure proper conversion
+              Dim l = CInt(left)
+              Dim r = CInt(right)
+              Return CShort((l And &HFF) Xor (r And &HFF))
             Case TypeSymbol.Type.SByte : Return (CSByte(left) Xor CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) Xor CByte(right))
             Case TypeSymbol.Type.Boolean : Return (CBool(left) Xor CBool(right))

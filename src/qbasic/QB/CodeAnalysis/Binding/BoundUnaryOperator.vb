@@ -1,4 +1,4 @@
-﻿Imports QB.CodeAnalysis.Symbols
+Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Namespace Global.QB.CodeAnalysis.Binding
@@ -30,6 +30,8 @@ Namespace Global.QB.CodeAnalysis.Binding
        New BoundUnaryOperator(SyntaxKind.NotKeyword, BoundUnaryOperatorKind.BitwiseComplement, TypeSymbol.Integer),
        New BoundUnaryOperator(SyntaxKind.NotKeyword, BoundUnaryOperatorKind.BitwiseComplement, TypeSymbol.SByte),
        New BoundUnaryOperator(SyntaxKind.NotKeyword, BoundUnaryOperatorKind.BitwiseComplement, TypeSymbol.Byte),
+       New BoundUnaryOperator(SyntaxKind.NotKeyword, BoundUnaryOperatorKind.BitwiseComplement, TypeSymbol.Single, TypeSymbol.Integer),
+       New BoundUnaryOperator(SyntaxKind.NotKeyword, BoundUnaryOperatorKind.BitwiseComplement, TypeSymbol.Double, TypeSymbol.Integer),
        New BoundUnaryOperator(SyntaxKind.NotKeyword, BoundUnaryOperatorKind.LogicalNegation, TypeSymbol.Boolean),
        New BoundUnaryOperator(SyntaxKind.PlusToken, BoundUnaryOperatorKind.Identity, TypeSymbol.SByte),
        New BoundUnaryOperator(SyntaxKind.PlusToken, BoundUnaryOperatorKind.Identity, TypeSymbol.Decimal),

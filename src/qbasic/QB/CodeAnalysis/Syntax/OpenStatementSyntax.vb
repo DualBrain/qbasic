@@ -49,7 +49,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
       Me.Pound1 = pound1
       Me.FileNumber1 = fileNumber1
       Me.Comma2 = comma2
-      Me.Filename = mode ' Store mode in Filename property (will be used as mode in binding)
+      Me.Filename = filename
     End Sub
 
     Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.OpenStatement

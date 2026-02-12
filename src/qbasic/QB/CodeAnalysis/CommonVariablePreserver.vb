@@ -1,6 +1,8 @@
 Imports System.Collections.Immutable
+Imports System.Linq
 
 Imports QB.CodeAnalysis.Binding
+Imports QB.CodeAnalysis.Symbols
 
 Namespace Global.QB.CodeAnalysis
 
@@ -12,6 +14,7 @@ Namespace Global.QB.CodeAnalysis
   Friend NotInheritable Class CommonVariablePreserver
 
     Private Shared ReadOnly m_preservedVariables As New Dictionary(Of String, Object)
+    Private Shared ReadOnly m_preservedEntries As New List(Of CommonVariableInfo)
 
     ''' <summary>
     ''' Preserves COMMON variables from the current evaluator state.
@@ -20,12 +23,14 @@ Namespace Global.QB.CodeAnalysis
     ''' <param name="commonStatements">COMMON statements from the current compilation</param>
     Friend Shared Sub PreserveCommonVariables(evaluator As Evaluator, commonStatements As ImmutableArray(Of BoundCommonStatement))
       m_preservedVariables.Clear()
+      m_preservedEntries.Clear()
 
       For Each commonStmt In commonStatements
         For Each declaration In commonStmt.Declarations
           Dim varName = declaration.Variable.Name
           If evaluator.Globals.ContainsKey(varName) Then
             m_preservedVariables(varName) = evaluator.Globals(varName)
+            m_preservedEntries.Add(New CommonVariableInfo(varName, declaration.Variable.Type, evaluator.Globals(varName)))
           End If
         Next
       Next
@@ -35,14 +40,24 @@ Namespace Global.QB.CodeAnalysis
     ''' Restores preserved COMMON variables to a new evaluator.
     ''' </summary>
     ''' <param name="evaluator">The new evaluator to receive the variables</param>
-    Friend Shared Sub RestoreCommonVariables(evaluator As Evaluator)
-      If m_preservedVariables Is Nothing Then Return
-
-      For Each kv In m_preservedVariables
-        If evaluator.Globals.ContainsKey(kv.Key) Then
-          evaluator.Globals(kv.Key) = kv.Value
-        End If
-      Next
+    Friend Shared Sub RestoreCommonVariables(evaluator As Evaluator, commonStatements As ImmutableArray(Of BoundCommonStatement))
+      If m_preservedEntries.Count = 0 Then
+        For Each kv In m_preservedVariables
+          If evaluator.Globals.ContainsKey(kv.Key) Then
+            evaluator.Globals(kv.Key) = kv.Value
+          End If
+        Next
+      Else
+        Dim newDeclarations = commonStatements.SelectMany(Function(stmt) stmt.Declarations).ToImmutableArray()
+        Dim count = Math.Min(m_preservedEntries.Count, newDeclarations.Length)
+        For i = 0 To count - 1
+          Dim entry = m_preservedEntries(i)
+          Dim decl = newDeclarations(i)
+          If entry.Type.Equals(decl.Variable.Type) Then
+            evaluator.Globals(decl.Variable.Name) = entry.Value
+          End If
+        Next
+      End If
     End Sub
 
     ''' <summary>
@@ -50,6 +65,7 @@ Namespace Global.QB.CodeAnalysis
     ''' </summary>
     Friend Shared Sub ClearPreservedVariables()
       m_preservedVariables.Clear()
+      m_preservedEntries.Clear()
     End Sub
 
     ''' <summary>
@@ -58,6 +74,32 @@ Namespace Global.QB.CodeAnalysis
     Friend Shared Function GetPreservedVariables() As Dictionary(Of String, Object)
       Return New Dictionary(Of String, Object)(m_preservedVariables)
     End Function
+
+    Friend Shared Function HasPreservedEntries() As Boolean
+      Return m_preservedEntries.Count > 0
+    End Function
+
+    ''' <summary>
+    ''' Gets ordered preserved COMMON entries (name, type, value).
+    ''' </summary>
+    Friend Shared Function GetPreservedEntries() As ImmutableArray(Of CommonVariableInfo)
+      Return m_preservedEntries.ToImmutableArray()
+    End Function
+
+    ''' <summary>
+    ''' Entry representing a COMMON variable's metadata.
+    ''' </summary>
+    Friend NotInheritable Class CommonVariableInfo
+      Public ReadOnly Property Name As String
+      Public ReadOnly Property Type As TypeSymbol
+      Public ReadOnly Property Value As Object
+
+      Public Sub New(name As String, type As TypeSymbol, value As Object)
+        Me.Name = name
+        Me.Type = type
+        Me.Value = value
+      End Sub
+    End Class
 
   End Class
 

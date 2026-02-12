@@ -193,30 +193,7 @@ Namespace Global.QB.CodeAnalysis
         ' Preserve COMMON variables before evaluation ends
         Dim commonStatements = GlobalScope.Statements.OfType(Of BoundCommonStatement)().ToImmutableArray()
 
-        ' Special handling for COMMON variable position-based mapping
-        ' For cases where first program has COMMON a,b,c and chained program has COMMON x,y,z
-        ' We need to map by position: a->x, b->y, c->z
-        Try
-          CommonVariablePreserver.PreserveCommonVariables(evaluator, commonStatements)
-
-          ' Check if we have the expected preservation pattern for this test
-          Dim preserved = CommonVariablePreserver.GetPreservedVariables()
-          If preserved.ContainsKey("a") AndAlso preserved.ContainsKey("b") AndAlso preserved.ContainsKey("c") Then
-            ' Remap from name-based to position-based for this specific test case
-            CommonVariablePreserver.ClearPreservedVariables()
-
-            ' Map by position: a->x, b->y, c->z
-            CommonVariablePreserver.RestoreCommonVariables(evaluator)
-
-            ' Apply position mapping by directly manipulating evaluator globals
-            If evaluator.Globals.ContainsKey("x") Then evaluator.Globals("x") = preserved("a")
-            If evaluator.Globals.ContainsKey("y") Then evaluator.Globals("y") = preserved("b")
-            If evaluator.Globals.ContainsKey("z") Then evaluator.Globals("z") = preserved("c")
-          End If
-        Catch
-          ' Fallback to normal preservation
-          CommonVariablePreserver.PreserveCommonVariables(evaluator, commonStatements)
-        End Try
+        CommonVariablePreserver.PreserveCommonVariables(evaluator, commonStatements)
       Finally
         ' Ensure evaluator is disposed to close any open files
         If evaluator IsNot Nothing Then

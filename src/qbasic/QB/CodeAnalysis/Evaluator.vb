@@ -1,5 +1,6 @@
 Imports System.Collections.Immutable
 Imports System.IO
+Imports System.Linq
 
 Imports Basic.Utils
 
@@ -58,6 +59,7 @@ Namespace Global.QB.CodeAnalysis
 
     ' Chain request state
     Private ReadOnly m_chainRequest As ChainRequest = Nothing
+    Private m_hasRestoredCommonValues As Boolean = False
 
     ' COM event state (channels 1-2)
     Private ReadOnly m_comHandlerTargets As Object() = {Nothing, Nothing} ' Targets for ON COM(n) GOSUB
@@ -307,7 +309,7 @@ Namespace Global.QB.CodeAnalysis
       m_commandLineArgs = If(commandLineArgs, Array.Empty(Of String)())
 
       ' Restore any preserved COMMON variables
-      CommonVariablePreserver.RestoreCommonVariables(Me)
+      CommonVariablePreserver.RestoreCommonVariables(Me, m_globalStatements.OfType(Of BoundCommonStatement)().ToImmutableArray())
       m_locals.Push(New Dictionary(Of String, Object))
 
       Dim current = program
@@ -2701,17 +2703,17 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateCommonStatement(node As BoundCommonStatement)
-      'TODO: Need to keep track variables that are part of a COMMON statement,
-      '      in the order in which they are encountered.
-      'TODO: Verify that statement is "before any executable statements"
-      'TODO: Assume that multiple COMMON statements are allowed; but treated
-      '      as one... meaning two or more is just *more variables* as if they
-      '      were all part of a single statement.
       If m_container.Peek = "main" Then
         For Each declaration In node.Declarations
           m_commons.Add(declaration.Variable.Name)
           EvaluateVariableDeclaration(declaration)
         Next
+
+        If Not m_hasRestoredCommonValues AndAlso CommonVariablePreserver.HasPreservedEntries() Then
+          Dim allCommonStmts = m_globalStatements.OfType(Of BoundCommonStatement)().ToImmutableArray()
+          CommonVariablePreserver.RestoreCommonVariables(Me, allCommonStmts)
+          m_hasRestoredCommonValues = True
+        End If
       Else
         Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
       End If

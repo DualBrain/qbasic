@@ -4010,6 +4010,8 @@ repeat:
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
                                                                   Current.Text.ToLower = "csrlin" OrElse
                                                                   Current.Text.ToLower = "date$" OrElse
+                                                                  Current.Text.ToLower = "erdev" OrElse
+                                                                  Current.Text.ToLower = "erdev$" OrElse
                                                                   Current.Text.ToLower = "erl" OrElse
                                                                   Current.Text.ToLower = "err" OrElse
                                                                   Current.Text.ToLower = "freefile" OrElse
@@ -4179,7 +4181,7 @@ repeat:
       ' In QBasic, certain functions can be called without parentheses
       ' These are typically functions that don't require parameters or have default behavior
       Select Case name?.ToUpper()
-        Case "CSRLIN", "DATE$", "FREEFILE", "RND", "TIME$", "TIMER"
+        Case "CSRLIN", "DATE$", "ERDEV", "ERDEV$", "FREEFILE", "RND", "TIME$", "TIMER"
           Return True
         Case Else
           Return False

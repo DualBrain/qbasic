@@ -3418,9 +3418,9 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
         End If
       ElseIf node.Function Is BuiltinFunctions.ErDev1 Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        Return 0
       ElseIf node.Function Is BuiltinFunctions.ErDev2 Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        Return ""
       ElseIf node.Function Is BuiltinFunctions.Erl Then
         ' ERL returns the line number where the last error occurred (0 if no error)
         Return m_erl

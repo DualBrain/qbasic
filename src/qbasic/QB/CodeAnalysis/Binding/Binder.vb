@@ -1544,6 +1544,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         ElseIf name.ToLower = "date$" Then
           Dim func = BuiltinFunctions.Date
           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+        ElseIf name.ToLower = "erdev" Then
+          Dim func = BuiltinFunctions.ErDev1
+          Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
+        ElseIf name.ToLower = "erdev$" Then
+          Dim func = BuiltinFunctions.ErDev2
+          Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)
         ElseIf name.ToLower = "freefile" Then
           Dim func = BuiltinFunctions.FreeFile
           Return New BoundCallExpression(func, ImmutableArray.Create(Of BoundExpression)(), syntax)

@@ -26,7 +26,8 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly CvsMbf As New FunctionSymbol("cvsmbf", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String, 0)), TypeSymbol.Single)
     ' exp
     Public ReadOnly Eof As New FunctionSymbol("eof", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
-    Public ReadOnly ErDev1 As New FunctionSymbol("erdev", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
+    Public ReadOnly ErDev1 As New FunctionSymbol("erdev", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.Integer)
+    Public ReadOnly ErDev2 As New FunctionSymbol("erdev$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly Erl As New FunctionSymbol("erl", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.Integer)
     Public ReadOnly Err As New FunctionSymbol("err", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.Integer)
     Public ReadOnly Exp As New FunctionSymbol("exp", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Single, 0)), TypeSymbol.Single)
@@ -73,7 +74,6 @@ Namespace Global.QB.CodeAnalysis.Symbols
     'Public ReadOnly [Date] As New FunctionSymbol("date$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)
     Public ReadOnly [Date] As New FunctionSymbol("date$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly Environ As New FunctionSymbol("environ$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.String)
-    Public ReadOnly ErDev2 As New FunctionSymbol("erdev$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Double, 0)), TypeSymbol.Double)
     Public ReadOnly Hex As New FunctionSymbol("hex$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Inkey As New FunctionSymbol("inkey$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly Input As New FunctionSymbol("input$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Long)), TypeSymbol.String)

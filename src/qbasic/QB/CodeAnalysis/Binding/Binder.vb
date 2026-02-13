@@ -1575,7 +1575,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         If syntax.OpenParen IsNot Nothing Then
           ' Implicit array - declare in current compilation's global scope
           Dim arrayType = TypeSymbol.Single
-          variable = New GlobalArraySymbol(name, arrayType, New BoundLiteralExpression(0), New BoundLiteralExpression(10), True, 1)
+          variable = New GlobalArraySymbol(name, arrayType, New BoundLiteralExpression(m_optionBase), New BoundLiteralExpression(10), True, 1)
           ' Find the current compilation's global scope to declare automatic arrays
           Dim globalScope = m_scope
           While globalScope.Parent IsNot Nothing AndAlso globalScope.Parent.Parent IsNot Nothing
@@ -2320,7 +2320,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim dimension = CType(dimensions(0), DimensionClauseSyntax)
       Dim lowerSyntax = dimension.OptionalLower
       Dim upperSyntax = dimension.Upper
-      lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(0))
+      lower = If(lowerSyntax IsNot Nothing, BindExpression(lowerSyntax), New BoundLiteralExpression(m_optionBase))
       upper = BindExpression(upperSyntax)
     End Sub
 

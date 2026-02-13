@@ -9,94 +9,117 @@ Namespace QBasic.CodeAnalysis.Tests
 
   Public Class SampleTests
 
-    Private Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
-      Using sw As New IO.StringWriter
-        Dim originalOut = Console.Out
-        Dim originalStdoutMode = Video.StdoutMode
-        Try
-          Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-          Console.SetOut(sw)
-          Dim variables = New Dictionary(Of String, Object)
+    Private Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
 
-          ' Handle chaining like the Interpreter does
-          Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-          Dim compilation As Compilation
-          Dim result As EvaluationResult
+      Dim variables = New Dictionary(Of String, Object)
 
+      ' Handle chaining like the Interpreter does
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation
+      Dim result As EvaluationResult
+
+      compilation = Compilation.Create(syntaxTree)
+      result = compilation.Evaluate(variables)
+
+
+      Return (result, variables)
+
+    End Function
+
+    Private Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
+
+      SyncLock s_syncObject
+
+        Using sw As New IO.StringWriter
+          Dim originalOut = Console.Out
+          Dim originalStdoutMode = Video.StdoutMode
           Try
-            compilation = Compilation.Create(syntaxTree)
-            result = compilation.Evaluate(variables)
+            Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+            Console.SetOut(sw)
+            Dim variables = New Dictionary(Of String, Object)
 
-            ' Print compilation diagnostics if there are any
-            If result.Diagnostics.HasErrors Then
-              For Each diagnostic In result.Diagnostics
-                Console.WriteLine(diagnostic.Message)
-              Next
-              Return (Nothing, sw.ToString, variables)
-            End If
-          Catch buildEx As QBasicBuildException
-            Console.WriteLine($"Error: {buildEx.Message}")
-            Return (Nothing, sw.ToString, variables)
-          End Try
+            ' Handle chaining like the Interpreter does
+            Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+            Dim compilation As Compilation
+            Dim result As EvaluationResult
 
-          ' If there's a chain request, handle it
-          If result.ChainRequest IsNot Nothing AndAlso Not result.Diagnostics.HasErrors Then
-            ' Let the built-in COMMON variable preservation work
-            ' The variables should be preserved by CommonVariablePreserver
-            ' and restored automatically when chained program executes
-            ' No manual mapping needed
-            ' Try to load and execute the chained file
             Try
-              Dim filename = result.ChainRequest.Filename.Trim().Trim(""""c)
-              ' Add .BAS extension if not present
-              If Not IO.Path.HasExtension(filename) Then
-                filename &= ".BAS"
+              compilation = Compilation.Create(syntaxTree)
+              result = compilation.Evaluate(variables)
+
+              ' Print compilation diagnostics if there are any
+              If result.Diagnostics.HasErrors Then
+                For Each diagnostic In result.Diagnostics
+                  Console.WriteLine(diagnostic.Message)
+                Next
+                Return (Nothing, sw.ToString, variables)
               End If
-              Dim currentDir = IO.Directory.GetCurrentDirectory()
-              Dim targetPath = IO.Path.Combine(currentDir, filename)
-              targetPath = IO.Path.GetFullPath(targetPath)
-
-              If Not IO.File.Exists(targetPath) Then
-                Console.WriteLine("File not found")
-                ' Try to find the file in current directory
-                Dim files = IO.Directory.GetFiles(IO.Directory.GetCurrentDirectory(), "*.BAS")
-                Console.WriteLine($"Available .BAS files: {String.Join(", ", files)}")
-              Else
-                ' Ensure file operations complete
-                Threading.Thread.Sleep(10) ' Give file operations time to complete
-                Dim targetCode = IO.File.ReadAllText(targetPath)
-
-                ' Parse and execute the chained file
-                Dim chainedTree = SyntaxTree.Parse(targetCode)
-                ' Flush output to ensure first program's output is captured
-                Console.Out.Flush()
-
-                Dim chainedCompilation = Compilation.Create(chainedTree)
-
-                ' Execute chained program - COMMON variable restoration should be automatic
-                Dim chainedResult = chainedCompilation.Evaluate(variables)
-
-                ' Don't check for further chain requests in test environment
-                result = chainedResult
-              End If
-            Catch chainEx As QBasicRuntimeException
-              Console.WriteLine($"CHAIN error: {chainEx.Message}")
-            Catch ex As Exception
-              Console.WriteLine($"CHAIN system error: {ex.Message}")
+            Catch buildEx As QBasicBuildException
+              Console.WriteLine($"Error: {buildEx.Message}")
+              Return (Nothing, sw.ToString, variables)
             End Try
-          End If
 
-          Dim output = sw.ToString
-          Return (result, output, variables)
-        Finally
-          Console.SetOut(originalOut)
-          Video.StdoutMode = originalStdoutMode ' Restore original mode
-        End Try
-      End Using
+            ' If there's a chain request, handle it
+            If result.ChainRequest IsNot Nothing AndAlso Not result.Diagnostics.HasErrors Then
+              ' Let the built-in COMMON variable preservation work
+              ' The variables should be preserved by CommonVariablePreserver
+              ' and restored automatically when chained program executes
+              ' No manual mapping needed
+              ' Try to load and execute the chained file
+              Try
+                Dim filename = result.ChainRequest.Filename.Trim().Trim(""""c)
+                ' Add .BAS extension if not present
+                If Not IO.Path.HasExtension(filename) Then
+                  filename &= ".BAS"
+                End If
+                Dim currentDir = IO.Directory.GetCurrentDirectory()
+                Dim targetPath = IO.Path.Combine(currentDir, filename)
+                targetPath = IO.Path.GetFullPath(targetPath)
+
+                If Not IO.File.Exists(targetPath) Then
+                  Console.WriteLine("File not found")
+                  ' Try to find the file in current directory
+                  Dim files = IO.Directory.GetFiles(IO.Directory.GetCurrentDirectory(), "*.BAS")
+                  Console.WriteLine($"Available .BAS files: {String.Join(", ", files)}")
+                Else
+                  ' Ensure file operations complete
+                  Threading.Thread.Sleep(10) ' Give file operations time to complete
+                  Dim targetCode = IO.File.ReadAllText(targetPath)
+
+                  ' Parse and execute the chained file
+                  Dim chainedTree = SyntaxTree.Parse(targetCode)
+                  ' Flush output to ensure first program's output is captured
+                  Console.Out.Flush()
+
+                  Dim chainedCompilation = Compilation.Create(chainedTree)
+
+                  ' Execute chained program - COMMON variable restoration should be automatic
+                  Dim chainedResult = chainedCompilation.Evaluate(variables)
+
+                  ' Don't check for further chain requests in test environment
+                  result = chainedResult
+                End If
+              Catch chainEx As QBasicRuntimeException
+                Console.WriteLine($"CHAIN error: {chainEx.Message}")
+              Catch ex As Exception
+                Console.WriteLine($"CHAIN system error: {ex.Message}")
+              End Try
+            End If
+
+            Dim output = sw.ToString
+            Return (result, output, variables)
+          Finally
+            Console.SetOut(originalOut)
+            Video.StdoutMode = originalStdoutMode ' Restore original mode
+          End Try
+        End Using
+
+      End SyncLock
+
     End Function
 
     <Fact>
-    Public Sub Sample_Hex_Hnn()
+    Public Sub Sample_Print_Hex_Hnn()
 
       ' Name: &Hnn
 
@@ -106,7 +129,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
       Dim expected = "118"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -116,7 +139,7 @@ Namespace QBasic.CodeAnalysis.Tests
     End Sub
 
     <Fact>
-    Public Sub Sample_Hex_HnnF()
+    Public Sub Sample_Print_Hex_HnnF()
 
       ' Name: &HnnF
 
@@ -126,7 +149,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
       Dim expected = "815"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -136,7 +159,7 @@ Namespace QBasic.CodeAnalysis.Tests
     End Sub
 
     <Fact>
-    Public Sub Sample_Hex_O1234()
+    Public Sub Sample_Print_Hex_O1234()
 
       ' Name: &O1234
 
@@ -146,7 +169,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
       Dim expected = "668"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -156,7 +179,7 @@ Namespace QBasic.CodeAnalysis.Tests
     End Sub
 
     <Fact>
-    Public Sub Sample_Hex_O347()
+    Public Sub Sample_Print_Hex_O347()
 
       ' Name: &O347
 
@@ -166,7 +189,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
       Dim expected = "231"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -439,17 +462,14 @@ y = 2 + X
       ' Name: AND (1)
 
       Dim sample = "
-    PRINT 63 AND 16
+result = 63 AND 16
 "
-
-      Dim expected = "16"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("16", $"{variables("result")}")
 
     End Sub
 
@@ -459,17 +479,14 @@ y = 2 + X
       ' Name: AND (2)
 
       Dim sample = "
-    PRINT 15 AND 14
+result = 15 AND 14
 "
-
-      Dim expected = "14"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("14", $"{variables("result")}")
 
     End Sub
 
@@ -479,17 +496,14 @@ y = 2 + X
       ' Name: AND (3)
 
       Dim sample = "
-    PRINT -1 AND 8
+result = -1 AND 8
 "
-
-      Dim expected = "8"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("8", $"{variables("result")}")
 
     End Sub
 
@@ -504,7 +518,7 @@ DECLARE SUB SwapVal (a,b)
 a = 1
 b = 2
 CALL SwapVal(a, b)
-PRINT a; b
+result$ = STR$(a) + "" "" + STR$(b)
 END
     
 SUB SwapVal(x,y)
@@ -514,14 +528,11 @@ SUB SwapVal(x,y)
 END SUB
 "
 
-      Dim expected = "2  1"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 2  1", $"{variables("result$")}")
 
     End Sub
 
@@ -534,17 +545,15 @@ END SUB
 COMMON A$, B
 A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
 CLEAR
-PRINT ""|"";A$;C$;B+D;""|""
+'PRINT ""|"";A$;C$;B+D;""|""
+result$ = ""|"" + A$ + C$ + STR$(B+D) + "" |""
 "
-
-      Dim expected = "| 0 |"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("| 0 |", $"{variables("result$")}")
 
     End Sub
 
@@ -558,21 +567,19 @@ ON ERROR GOTO Handler
 COMMON A$, B
 A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
 CLEAR 2147483648
-PRINT ""|"";A$;C$;B+D;""|""
+'PRINT ""|"";A$;C$;B+D;""|""
+result$ = ""|"" + A$ + C$ + STR$(B+D) + ""|""
 END
 Handler:
-  IF ERR = 6 THEN PRINT ""Overflow"" ELSE PRINT ""ERR =""; ERR
+  IF ERR = 6 THEN result$ = ""Overflow"" ELSE result$ = ""ERR ="" + STR$(ERR)
   END
 "
 
-      Dim expected = "Overflow"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("Overflow", $"{variables("result$")}")
 
     End Sub
 
@@ -585,17 +592,15 @@ Handler:
 COMMON A$, B
 A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
 CLEAR ,,2000
-PRINT ""|"";A$;C$;B+D;""|""
+'PRINT ""|"";A$;C$;B+D;""|""
+result$ = ""|"" + A$ + C$ + STR$(B+D) + "" |""
 "
-
-      Dim expected = "| 0 |"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("| 0 |", $"{variables("result$")}")
 
     End Sub
 
@@ -608,17 +613,15 @@ PRINT ""|"";A$;C$;B+D;""|""
 COMMON A$, B
 A$ = ""HELLO"": B=100: C$ = ""WORLD"": D=200
 CLEAR ,32768,2000
-PRINT ""|"";A$;C$;B+D;""|""
+'PRINT ""|"";A$;C$;B+D;""|""
+result$ = ""|"" + A$ + C$ + STR$(B+D) + "" |""
 "
-
-      Dim expected = "| 0 |"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("| 0 |", $"{variables("result$")}")
 
     End Sub
 
@@ -634,7 +637,7 @@ PRINT ""|"";A$;C$;B+D;""|""
 
       Dim expected = $"338458{vbCrLf} 2147358"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -650,17 +653,14 @@ PRINT ""|"";A$;C$;B+D;""|""
 
       Dim sample = "
 COMMON A$
-PRINT ""SUCCESS""
+result$ = ""SUCCESS""
 "
-
-      Dim expected = "SUCCESS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("SUCCESS", $"{variables("result$")}")
 
     End Sub
 
@@ -671,17 +671,14 @@ PRINT ""SUCCESS""
 
       Dim sample = "
 COMMON SHARED A$
-PRINT ""SUCCESS""
+result$ = ""SUCCESS""
 "
-
-      Dim expected = "SUCCESS"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("SUCCESS", $"{variables("result$")}")
 
     End Sub
 
@@ -713,7 +710,7 @@ HANDLER:
 
       Dim expected = $"In 'Original'...{vbCrLf}Chaining...{vbCrLf} 1000{vbCrLf} 1  2  3"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -736,7 +733,7 @@ PRINT Y
 
       Dim expected = $"HELLO{vbCrLf} 2"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -788,7 +785,7 @@ DATA 5.08,5.55,4.00,3.16,3.37
 
       'Dim expected = "3.37"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -815,7 +812,7 @@ DATA ""DENVER,"",""COLORADO"",80211
 
       'Dim expected = $"CITY      STATE   ZIP{vbCrLf}DENVER,        COLORADO           80211"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -847,7 +844,7 @@ Handler:
 
       Dim expected = "Permission Denied"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -870,7 +867,7 @@ PRINT T
 
       Dim expected = ".25"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -892,7 +889,7 @@ PRINT T
 
       Dim expected = "5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -914,7 +911,7 @@ PRINT W
 
       Dim expected = "6"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -936,7 +933,7 @@ PRINT W
 
       Dim expected = "5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -960,7 +957,7 @@ PRINT B
 
       Dim expected = $"120#{vbCrLf} 3.5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -986,7 +983,7 @@ Handler:
 
       Dim expected = $"ERR = 11"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1034,7 +1031,6 @@ B = A / B
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       Assert.Equal("20", $"{variables("B")}")
@@ -1053,7 +1049,7 @@ B = A / B
 
       Dim expected = "3.5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1098,7 +1094,7 @@ e! = 235.988E-7
 
       Dim expected = "HELLO"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1182,7 +1178,7 @@ Handler:
 
       Dim expected = "ERR = 15"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1206,7 +1202,7 @@ Handler:
 
       Dim expected = "ERR = 15  ERL = 10"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1285,7 +1281,7 @@ PRINT EXTERR(-1)
 
       Dim expected = "Subscript out of range in 1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1314,7 +1310,7 @@ i3 = EXTERR(3)
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       'Assert.Equal(expected, actual)
@@ -1340,7 +1336,7 @@ NEXT
 
       Dim expected = "1  3  5  7  9"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1363,7 +1359,7 @@ NEXT
 
       Dim expected = "1  2  3  4  5  6  7  8  9  10"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1419,7 +1415,7 @@ Handler:
 
       Dim expected = "Error: Error 26: FOR Without NEXT"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1440,7 +1436,7 @@ FOR Y=1 TO 2:FOR X=1 TO 2:PRINT ""0"";:NEXT X,Y
 
       Dim expected = "0000"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1466,7 +1462,7 @@ PRINT ""SUCCESS""
 
       Dim expected = "00000000SUCCESS"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1492,7 +1488,7 @@ PRINT ""SUCCESS""
 
       Dim expected = "SUCCESS"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1544,7 +1540,7 @@ exitfor:
 
       Dim expected = $"1{vbCrLf} 2{vbCrLf} 1{vbCrLf} 2{vbCrLf}SUCCESS"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1570,9 +1566,9 @@ for entry = 1 to 3
 next
 for code%=5 to 1 step -3
   get #1, code%
-  print code%,n$;
-  print using ""$$###.##"";cvs(a$);
-  print p$
+  'print code%,n$;
+  'print using ""$$###.##"";cvs(a$);
+  'print p$
 next
 end
 DATA 01,NAME1,1.00,555-0001
@@ -1630,7 +1626,7 @@ DATA 02,NAME2,2.00,555-0002
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       'Assert.Equal(expected, actual)
@@ -1661,7 +1657,7 @@ DATA 02,NAME2,2.00,555-0002
 
       Dim expected = "SUBROUTINE IN PROGRESS... BACK FROM SUBROUTINE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1709,7 +1705,7 @@ outputsub:
 
       Dim expected = $"start{vbCrLf}pre-gosub{vbCrLf}**SUCCESS**{vbCrLf}post-gosub{vbCrLf}finish"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1733,7 +1729,7 @@ Start:
 
       Dim expected = $"i = 1{vbCrLf}i = 2{vbCrLf}i = 3{vbCrLf}i = 4{vbCrLf}i = 5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1760,7 +1756,7 @@ ON ERROR GOTO 70
 
       Dim expected = $"R = 5  AREA = 78.5{vbCrLf}R = 7  AREA = 153.86{vbCrLf}R = 12  AREA = 452.16{vbCrLf}ERR = 4"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1827,7 +1823,7 @@ IF X > Y THEN PRINT ""GREATER"" ELSE IF Y < X THEN PRINT ""LESS THAN"" ELSE PRIN
 
       Dim expected = "EQUAL"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1894,7 +1890,7 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
 
       Dim expected = "RETURN without GOSUB in 1070"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1915,7 +1911,7 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
 
       Dim expected = "4"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1937,7 +1933,7 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
 
       Dim expected = "20"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1957,7 +1953,7 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
 
       Dim expected = "2"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1977,7 +1973,7 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
 
       Dim expected = "3"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -1999,7 +1995,7 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
 
       Dim expected = "300"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2020,9 +2016,9 @@ print #1,using""$$###.##."";J+1;K+1;L+1
 close #1
 open ""test.txt"" for input as #1
 line input #1, a$
-print a$
+'print a$
 line input #1, b$
-print b$
+'print b$
 close #1
 end
 "
@@ -2263,7 +2259,7 @@ CHDIR""..
 a=4
 RMDIR""TEST999B
 a=5
-PRINT""SUCCESS
+'PRINT""SUCCESS
 a=6
 "
 
@@ -2294,7 +2290,7 @@ PRINT 10.4 MOD 4
 
       Dim expected = "2"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2314,7 +2310,7 @@ PRINT 25.68 MOD 6.99
 
       Dim expected = "5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2336,7 +2332,7 @@ PRINT 25.68 MOD 6.99
 
       Dim expected = "10"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2356,7 +2352,7 @@ PRINT 25.68 MOD 6.99
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2376,7 +2372,7 @@ PRINT 25.68 MOD 6.99
 
       Dim expected = "46.8"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2419,7 +2415,7 @@ z! = -1.09E-06
 
       Dim expected = "3489"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2439,7 +2435,7 @@ z! = -1.09E-06
 
       Dim expected = "22.5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2459,7 +2455,7 @@ z! = -1.09E-06
 
       Dim expected = "345692811"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2479,7 +2475,7 @@ z! = -1.09E-06
 
       Dim expected = "3490"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2500,7 +2496,7 @@ PRINT a# '7654321.1234
 
       'Dim expected = "7654321.1234"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2649,7 +2645,7 @@ Handler:
 
       Dim expected = "Illegal function call in 20"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2675,7 +2671,7 @@ Handler:
 
       Dim expected = "Illegal function call in 20"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2793,7 +2789,7 @@ EntryC:
 
       Dim expected = $"300{vbCrLf}RETURN without GOSUB in 300"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2819,7 +2815,7 @@ EntryC:
 
       Dim expected = "300 DONE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2845,7 +2841,7 @@ EntryC:
 
       Dim expected = "Illegal function call in 20"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2871,7 +2867,7 @@ EntryC:
 
       Dim expected = "Illegal function call in 20"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2897,7 +2893,7 @@ EntryC:
 
       Dim expected = "DONE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2923,7 +2919,7 @@ EntryC:
 
       Dim expected = "DONE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2959,7 +2955,7 @@ EntryC:
 
       Dim expected = "200 DONE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -2980,7 +2976,7 @@ PRINT A(0)
 
       Dim expected = "0"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3010,7 +3006,7 @@ Handler:
 
       Dim expected = "Subscript out of range"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3030,7 +3026,7 @@ Handler:
 
       Dim expected = "6"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3050,7 +3046,7 @@ Handler:
 
       Dim expected = "10"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3070,7 +3066,7 @@ Handler:
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3095,7 +3091,7 @@ PRINT POS(0)
       Dim originalStdoutMode = Video.StdoutMode
       Try
         Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-        Dim eval = Evaluate(sample)
+        Dim eval = EvaluateOutputRedirect(sample)
         Dim result = eval.Result
         Dim actual = eval.Output?.Trim
         Dim variables = eval.Variables
@@ -3119,7 +3115,7 @@ PRINT 3-2-5; 3-(2-5)
 
       Dim expected = "-4  6"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3140,7 +3136,7 @@ PRINT 3-2-5; 3-(2-5)
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3160,7 +3156,7 @@ PRINT 3-2-5; 3-(2-5)
 
       Dim expected = "4"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3183,7 +3179,7 @@ PRINT ""'""; : PRINT USING""\    \"";A$;B$;""!!""; : PRINT ""'""
 
       Dim expected = $"'LO'{vbCrLf}'LOOK OUT  '{vbCrLf}'LOOK  OUT   !!    '"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3208,7 +3204,7 @@ PRINT USING ""**$##.##"";2.34
       ' since we have the `*` characters in the formatting.
       Dim expected = "***$2.34"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3228,7 +3224,7 @@ PRINT USING ""####.##"";1234.5
 
       Dim expected = "1234.50"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3248,7 +3244,7 @@ PRINT USING ""##.##^^^^"";234.56
 
       Dim expected = "2.35E+02"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3268,7 +3264,7 @@ PRINT USING "".####^^^^-"";888888
 
       Dim expected = ".8889E+06"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3288,7 +3284,7 @@ PRINT USING ""+.##^^^^"";123
 
       Dim expected = "+.12E+03"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3308,7 +3304,7 @@ PRINT USING ""_!##.##_!"";12.34
 
       Dim expected = "!12.34!"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3328,7 +3324,7 @@ PRINT USING ""##.##"";111.22
 
       Dim expected = "%111.22"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3348,7 +3344,7 @@ PRINT USING "".##"";.999
 
       Dim expected = "%1.00"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3370,7 +3366,7 @@ PRINT USING ""&"";B$
 
       Dim expected = $"L{vbCrLf}OUT"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3390,7 +3386,7 @@ PRINT USING ""##.##"";.78
 
       Dim expected = "0.78"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3410,7 +3406,7 @@ PRINT USING ""###.##"";987.654
 
       Dim expected = "987.65"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3435,7 +3431,7 @@ PRINT USING ""##.##"";10.2,5.3,66.789,.234
       '      in the original QBasic v1.1.
       Dim expected = "10.20 5.3066.79 0.23"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3462,7 +3458,7 @@ PRINT USING ""+##.##"";-68.95,2.4,55.6,-9
       '      the space to the left of the +/-.
       Dim expected = "-68.95 +2.40+55.60 -9.00"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3489,7 +3485,7 @@ PRINT USING ""##.##-"";-68.95,22.449,-7.01
       '      and, in the case of the + sign, if a plus sign, then use a space.
       Dim expected = "68.95-22.45  7.01-"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3515,7 +3511,7 @@ PRINT USING ""**#.#"";12.39,-0.9,765.1
       '      but instead of "spaces", the `*` character is used.
       Dim expected = "*12.4*-0.9765.1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3535,7 +3531,7 @@ PRINT USING ""$$###.##"";456.78
 
       Dim expected = "$456.78"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3555,7 +3551,7 @@ PRINT ""Hello World!""
 
       Dim expected = "Hello World!"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3576,7 +3572,7 @@ PRINT X$""MONTHLY REPORT"" X$
 
       Dim expected = "----------MONTHLY REPORT----------"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3601,7 +3597,7 @@ PRINT X$""MONTHLY REPORT"" X$
 
       Dim expected = "DONE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3648,17 +3644,14 @@ READ A,B,C
 RESTORE
 READ D,E,F
 DATA 57,68,79
-PRINT ""DONE""
+FIN = 1
 "
-
-      Dim expected = "DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("1", $"{variables("FIN")}")
 
     End Sub
 
@@ -3680,7 +3673,7 @@ PRINT ""DONE""
 
       Dim expected = "90"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3705,7 +3698,7 @@ PRINT ""DONE""
 
       Dim expected = "AE1B"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3730,7 +3723,7 @@ PRINT ""DONE""
 
       Dim expected = "AE1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3755,7 +3748,7 @@ Handler:
 
       Dim expected = "ERR = 20"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3779,7 +3772,7 @@ Handler:
 
       Dim expected = "AG1B"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3803,7 +3796,7 @@ Handler:
 
       Dim expected = "AG1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3828,7 +3821,7 @@ Handler:
 
       Dim expected = "ERR = 3"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3877,7 +3870,7 @@ PRINT X
 
       Dim expected = "DISK BASIC 66"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3931,7 +3924,7 @@ l=17
 
       Dim expected = """CAMERA"",""93604-1"""
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -3986,7 +3979,7 @@ l=17
 
       Dim expected = $"177{vbCrLf}EBENEEZER SCROOGE{vbCrLf}SUPER MANN{vbCrLf}EVEN MORE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4032,7 +4025,7 @@ l=17
 
       Dim expected = $"177{vbCrLf}EBENEEZER SCROOGE{vbCrLf}SUPER MANN{vbCrLf}EVEN MORE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4056,7 +4049,7 @@ l=17
 
       Dim expected = $"MICKEY MOUSE,AUDIO/VISUAL AIDS,01/12/72{vbCrLf}SHERLOCK HOLMES,RESEARCH,12/03/65{vbCrLf}EBENEEZER SCROOGE,ACCOUNTING,04/27/78{vbCrLf}SUPER MANN,MAINTENANCE,08/16/78{vbCrLf}EVEN MORE,WHATEVER,01/01/78"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4077,7 +4070,7 @@ l=17
 
       Dim expected = "3.5"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4097,7 +4090,7 @@ l=17
 
       Dim expected = "OVER               THERE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4117,7 +4110,7 @@ l=17
 
       Dim expected = "OVERTHERE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4137,7 +4130,7 @@ l=17
 
       Dim expected = "OVER THERE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4157,7 +4150,7 @@ l=17
 
       Dim expected = "OVER               THERE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4177,7 +4170,7 @@ l=17
 
       Dim expected = "OVERTHERE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4197,7 +4190,7 @@ STOP
 PRINT ""WHATEVER""
 "
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4219,7 +4212,7 @@ PRINT ""WHATEVER""
 
       Dim expected = $"FILENAME{vbCrLf}NEW FILENAME"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4240,7 +4233,7 @@ PRINT ""WHATEVER""
 
       Dim expected = "0"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4260,7 +4253,7 @@ PRINT ""WHATEVER""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4280,7 +4273,7 @@ PRINT ""WHATEVER""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4300,7 +4293,7 @@ PRINT ""WHATEVER""
 
       Dim expected = "0"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4320,7 +4313,7 @@ PRINT ""WHATEVER""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4340,7 +4333,7 @@ PRINT ""WHATEVER""
 
       Dim expected = "0"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4366,7 +4359,7 @@ PRINT isLessThan; isGreaterThan; isEqual; isEqualOrLessThan; isEqualOrGreaterTha
 
       Dim expected = "0  0 -1 -1 -1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4388,7 +4381,7 @@ a=""AA""<>""BB""
 
       'Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4411,7 +4404,7 @@ a=""AA""<>""BB""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4432,7 +4425,7 @@ a=""AA""<>""BB""
 
       Dim expected = "0"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4453,7 +4446,7 @@ a=""AA""<>""BB""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4474,7 +4467,7 @@ a=""AA""<>""BB""
 
       Dim expected = "0"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4494,7 +4487,7 @@ a=""AA""<>""BB""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4514,7 +4507,7 @@ a=""AA""<>""BB""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4534,7 +4527,7 @@ a=""AA""<>""BB""
 
       Dim expected = "-1"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4556,7 +4549,7 @@ a=""AA""<>""BB""
 
       Dim expected = "3"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4579,7 +4572,7 @@ a=""AA""<>""BB""
 
       Dim expected = $"ONE FOR ALL {vbCrLf}ALL FOR ONE"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4602,7 +4595,7 @@ DATA ""G. T. JONES"",""$25.00""
 
       Dim expected = $"NAME                   AMOUNT{vbCrLf}{vbCrLf}G. T. JONES             $25.00"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4649,7 +4642,7 @@ C$ = A$ + B
 
       Dim expected = "Binary operator '+' is not defined for type 'String' and 'Single'."
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4674,7 +4667,7 @@ c$ = ""1"" + 1
 
       Dim expected = "Binary operator '+' is not defined for type 'String' and 'Integer'."
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4705,7 +4698,7 @@ Handler:
 
       Dim expected = "ERR = 13"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4731,7 +4724,7 @@ Handler:
 
       Dim expected = "ERR =  13"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4747,14 +4740,14 @@ Handler:
 
       Dim sample = "
 d# = 6#/7
-PRINT d#
+'PRINT d#
 "
 
       'Dim expected = ".8571428571428"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       'Assert.Equal(expected, actual)
@@ -4775,7 +4768,7 @@ PRINT c%
 
       Dim expected = "56"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4792,14 +4785,14 @@ PRINT c%
       Dim sample = "
 a = 2.04
 b# = a
-PRINT a;b#
+'PRINT a;b#
 "
 
       'Dim expected = "2.04  2.04"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       'Assert.Equal(expected, actual)
@@ -4825,7 +4818,7 @@ PRINT a;b#
 
       Dim expected = "1  2"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4847,7 +4840,7 @@ WHILE X < 3
 'WEND
 "
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4869,7 +4862,7 @@ X = 1
 WEND
 "
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4913,7 +4906,7 @@ WEND
 
       Dim expected = $"1{vbCrLf} 2{vbCrLf}SUCCESS"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4957,7 +4950,7 @@ WEND
 
       Dim expected = $"hello{vbCrLf}hello{vbCrLf}hello{vbCrLf}bye"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -4978,7 +4971,7 @@ WEND
 
       Dim expected = "80,90,""THAT'S ALL"""
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables

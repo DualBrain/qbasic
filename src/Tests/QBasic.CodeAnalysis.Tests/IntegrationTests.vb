@@ -1,6 +1,3 @@
-Imports System.Diagnostics
-Imports System.IO
-
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
 
@@ -62,9 +59,9 @@ LET result = x + y
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{30}", $"{variables("result")}")
-      Assert.Equal($"{10}", $"{variables("x")}")
-      Assert.Equal($"{20}", $"{variables("y")}")
+      Assert.Equal("30", $"{variables("result")}")
+      Assert.Equal("10", $"{variables("x")}")
+      Assert.Equal("20", $"{variables("y")}")
     End Sub
 
     <Fact>
@@ -80,7 +77,7 @@ LET circumference = 2 * 3.14159 * radius
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{5}", $"{variables("radius")}")
+      Assert.Equal("5", $"{variables("radius")}")
       Assert.Equal(78.53975, CDbl(variables("area")), 0.00001)
       Assert.Equal(31.4159, CDbl(variables("circumference")), 0.00001)
     End Sub
@@ -102,7 +99,7 @@ LET nameLength = LEN(fullName$)
       Assert.Equal("John", variables("firstName$"))
       Assert.Equal("Doe", variables("lastName$"))
       Assert.Equal("John Doe", variables("fullName$"))
-      Assert.Equal($"{8}", $"{variables("nameLength")}")
+      Assert.Equal("8", $"{variables("nameLength")}")
     End Sub
 
     <Fact>
@@ -123,7 +120,7 @@ END IF
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{85}", $"{variables("score")}")
+      Assert.Equal("85", $"{variables("score")}")
       Assert.Equal("B", variables("grade$"))
     End Sub
 
@@ -141,8 +138,8 @@ NEXT i
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{15}", $"{variables("sum")}") ' 1+2+3+4+5 = 15
-      Assert.Equal($"{6}", $"{variables("i")}") ' i will be 6 after the loop
+      Assert.Equal("15", $"{variables("sum")}") ' 1+2+3+4+5 = 15
+      Assert.Equal("6", $"{variables("i")}") ' i will be 6 after the loop
     End Sub
 
     <Fact>
@@ -160,7 +157,7 @@ LET result = area
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{50.0}", $"{variables("result")}")
+      Assert.Equal("50", $"{variables("result")}")
     End Sub
 
     <Fact>
@@ -178,7 +175,7 @@ LET result = area
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{50.0}", $"{variables("result")}")
+      Assert.Equal("50", $"{variables("result")}")
     End Sub
 
     <Fact>
@@ -196,7 +193,7 @@ LET result = area!
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{50.0}", $"{variables("result")}")
+      Assert.Equal("50", $"{variables("result")}")
     End Sub
 
     <Fact>
@@ -216,7 +213,7 @@ end sub
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{6}", $"{variables("x")}")
+      Assert.Equal("6", $"{variables("x")}")
     End Sub
 
 
@@ -234,7 +231,7 @@ LET result = Square(4)
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{16.0}", $"{variables("result")}")
+      Assert.Equal("16", $"{variables("result")}")
     End Sub
 
     <Fact>
@@ -251,7 +248,7 @@ LET result = Square(4)
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{16.0}", $"{variables("result")}")
+      Assert.Equal("16", $"{variables("result")}")
     End Sub
 
     <Fact>
@@ -268,7 +265,7 @@ LET result = Square!(4)
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{16.0}", $"{variables("result")}")
+      Assert.Equal("16", $"{variables("result")}")
     End Sub
 
     <Fact>
@@ -286,7 +283,7 @@ LET sum = numbers(0) + numbers(2) + numbers(4)
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{12}", $"{variables("sum")}") ' 0 + 4 + 8 = 12
+      Assert.Equal("12", $"{variables("sum")}") ' 0 + 4 + 8 = 12
     End Sub
 
     <Fact>
@@ -302,7 +299,7 @@ LET total = a + b + c + d + e
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{150}", $"{variables("total")}") ' 10+20+30+40+50 = 150
+      Assert.Equal("150", $"{variables("total")}") ' 10+20+30+40+50 = 150
     End Sub
 
     <Fact>
@@ -321,7 +318,7 @@ NEXT i
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{120}", $"{variables("factorial")}") ' 5! = 120
+      Assert.Equal("120", $"{variables("factorial")}") ' 5! = 120
     End Sub
 
     <Fact>
@@ -333,9 +330,9 @@ NEXT i
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{1}", $"{variables("x")}")
-      Assert.Equal($"{2}", $"{variables("y")}")
-      Assert.Equal($"{3}", $"{variables("z")}")
+      Assert.Equal("1", $"{variables("x")}")
+      Assert.Equal("2", $"{variables("y")}")
+      Assert.Equal("3", $"{variables("z")}")
     End Sub
 
     <Fact>
@@ -351,9 +348,9 @@ NEXT i
 
       Dim result = compilation.Evaluate(variables)
 
-      Assert.Equal($"{10}", $"{variables("x")}")
-      Assert.Equal($"{20}", $"{variables("y")}")
-      Assert.Equal($"{200}", $"{variables("result")}")
+      Assert.Equal("10", $"{variables("x")}")
+      Assert.Equal("20", $"{variables("y")}")
+      Assert.Equal("200", $"{variables("result")}")
     End Sub
 
     <Fact>

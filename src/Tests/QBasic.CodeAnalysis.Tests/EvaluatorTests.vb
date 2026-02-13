@@ -9,7 +9,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
   Public Class EvaluatorTests
 
-    Private Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
+    Private Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
       Using sw As New IO.StringWriter
         Dim originalOut = Console.Out
         Dim originalStdoutMode = Video.StdoutMode
@@ -1811,9 +1811,9 @@ PEN ON
 x = 1
 
 HandlePen:
-x = 2
-RETURN"
-      Dim eval = Evaluate(text)
+  x = 2
+  RETURN"
+      Dim eval = EvaluateOutputRedirect(text)
       Dim result = eval.Result
       Dim vars = eval.Variables
       Dim out = eval.Output?.Trim

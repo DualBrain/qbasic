@@ -2,7 +2,6 @@ Imports System.Collections.Immutable
 
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
-Imports QB.CodeAnalysis.Text
 
 Imports Xunit
 

@@ -9,26 +9,6 @@ Namespace QBasic.CodeAnalysis.Tests
 
   Public Class FileIoTests
 
-    'Private Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
-    '  Using sw As New IO.StringWriter
-    '    Dim originalOut = Console.Out
-    '    Dim originalStdoutMode = Video.StdoutMode
-    '    Try
-    '      Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-    '      Console.SetOut(sw)
-    '      Dim variables = New Dictionary(Of String, Object)
-    '      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-    '      Dim compilation As Compilation = Compilation.Create(syntaxTree)
-    '      Dim result = compilation.Evaluate(variables)
-    '      Dim output = sw.ToString
-    '      Return (result, output, variables)
-    '    Finally
-    '      Console.SetOut(originalOut)
-    '      Video.StdoutMode = originalStdoutMode ' Restore original mode
-    '    End Try
-    '  End Using
-    'End Function
-
     Private Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
       Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
       Dim compilation As Compilation = Compilation.Create(syntaxTree)

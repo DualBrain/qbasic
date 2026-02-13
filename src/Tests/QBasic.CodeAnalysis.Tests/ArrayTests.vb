@@ -9,90 +9,120 @@ Namespace QBasic.CodeAnalysis.Tests
 
   Public Class ArrayTests
 
-    Private Shared Function Evaluate(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
-      Using sw As New IO.StringWriter
-        Dim originalOut = Console.Out
-        Dim originalStdoutMode = Video.StdoutMode
-        Try
-          Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-          Console.SetOut(sw)
-          Dim variables = New Dictionary(Of String, Object)
+    Private Shared Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
 
-          ' Handle chaining like the Interpreter does
-          Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-          Dim compilation As Compilation
-          Dim result As EvaluationResult
+      SyncLock s_syncObject
 
+        Using sw As New IO.StringWriter
+          Dim originalOut = Console.Out
+          Dim originalStdoutMode = Video.StdoutMode
           Try
-            compilation = Compilation.Create(syntaxTree)
-            result = compilation.Evaluate(variables)
+            Video.StdoutMode = True ' Run in stdout mode like --stdout flag
+            Console.SetOut(sw)
+            Dim variables = New Dictionary(Of String, Object)
 
-            ' Print compilation diagnostics if there are any
-            If result.Diagnostics.HasErrors Then
-              For Each diagnostic In result.Diagnostics
-                Console.WriteLine(diagnostic.Message)
-              Next
-              Return (Nothing, sw.ToString, variables)
-            End If
-          Catch buildEx As QBasicBuildException
-            Console.WriteLine($"Error: {buildEx.Message}")
-            Return (Nothing, sw.ToString, variables)
-          End Try
+            ' Handle chaining like the Interpreter does
+            Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+            Dim compilation As Compilation
+            Dim result As EvaluationResult
 
-          ' If there's a chain request, handle it
-          If result.ChainRequest IsNot Nothing AndAlso Not result.Diagnostics.HasErrors Then
-            ' Let the built-in COMMON variable preservation work
-            ' The variables should be preserved by CommonVariablePreserver
-            ' and restored automatically when chained program executes
-            ' No manual mapping needed
-            ' Try to load and execute the chained file
             Try
-              Dim filename = result.ChainRequest.Filename.Trim().Trim(""""c)
-              ' Add .BAS extension if not present
-              If Not IO.Path.HasExtension(filename) Then
-                filename &= ".BAS"
+              compilation = Compilation.Create(syntaxTree)
+              result = compilation.Evaluate(variables)
+
+              ' Print compilation diagnostics if there are any
+              If result.Diagnostics.HasErrors Then
+                For Each diagnostic In result.Diagnostics
+                  Console.WriteLine(diagnostic.Message)
+                Next
+                Return (Nothing, sw.ToString, variables)
               End If
-              Dim currentDir = IO.Directory.GetCurrentDirectory()
-              Dim targetPath = IO.Path.Combine(currentDir, filename)
-              targetPath = IO.Path.GetFullPath(targetPath)
-
-              If Not IO.File.Exists(targetPath) Then
-                Console.WriteLine("File not found")
-                ' Try to find the file in current directory
-                Dim files = IO.Directory.GetFiles(IO.Directory.GetCurrentDirectory(), "*.BAS")
-                Console.WriteLine($"Available .BAS files: {String.Join(", ", files)}")
-              Else
-                ' Ensure file operations complete
-                Threading.Thread.Sleep(10) ' Give file operations time to complete
-                Dim targetCode = IO.File.ReadAllText(targetPath)
-
-                ' Parse and execute the chained file
-                Dim chainedTree = SyntaxTree.Parse(targetCode)
-                ' Flush output to ensure first program's output is captured
-                Console.Out.Flush()
-
-                Dim chainedCompilation = Compilation.Create(chainedTree)
-
-                ' Execute chained program - COMMON variable restoration should be automatic
-                Dim chainedResult = chainedCompilation.Evaluate(variables)
-
-                ' Don't check for further chain requests in test environment
-                result = chainedResult
-              End If
-            Catch chainEx As QBasicRuntimeException
-              Console.WriteLine($"CHAIN error: {chainEx.Message}")
-            Catch ex As Exception
-              Console.WriteLine($"CHAIN system error: {ex.Message}")
+            Catch buildEx As QBasicBuildException
+              Console.WriteLine($"Error: {buildEx.Message}")
+              Return (Nothing, sw.ToString, variables)
             End Try
-          End If
 
-          Dim output = sw.ToString
-          Return (result, output, variables)
-        Finally
-          Console.SetOut(originalOut)
-          Video.StdoutMode = originalStdoutMode ' Restore original mode
-        End Try
-      End Using
+            ' If there's a chain request, handle it
+            If result.ChainRequest IsNot Nothing AndAlso Not result.Diagnostics.HasErrors Then
+              ' Let the built-in COMMON variable preservation work
+              ' The variables should be preserved by CommonVariablePreserver
+              ' and restored automatically when chained program executes
+              ' No manual mapping needed
+              ' Try to load and execute the chained file
+              Try
+                Dim filename = result.ChainRequest.Filename.Trim().Trim(""""c)
+                ' Add .BAS extension if not present
+                If Not IO.Path.HasExtension(filename) Then
+                  filename &= ".BAS"
+                End If
+                Dim currentDir = IO.Directory.GetCurrentDirectory()
+                Dim targetPath = IO.Path.Combine(currentDir, filename)
+                targetPath = IO.Path.GetFullPath(targetPath)
+
+                If Not IO.File.Exists(targetPath) Then
+                  Console.WriteLine("File not found")
+                  ' Try to find the file in current directory
+                  Dim files = IO.Directory.GetFiles(IO.Directory.GetCurrentDirectory(), "*.BAS")
+                  Console.WriteLine($"Available .BAS files: {String.Join(", ", files)}")
+                Else
+                  ' Ensure file operations complete
+                  Threading.Thread.Sleep(10) ' Give file operations time to complete
+                  Dim targetCode = IO.File.ReadAllText(targetPath)
+
+                  ' Parse and execute the chained file
+                  Dim chainedTree = SyntaxTree.Parse(targetCode)
+                  ' Flush output to ensure first program's output is captured
+                  Console.Out.Flush()
+
+                  Dim chainedCompilation = Compilation.Create(chainedTree)
+
+                  ' Execute chained program - COMMON variable restoration should be automatic
+                  Dim chainedResult = chainedCompilation.Evaluate(variables)
+
+                  ' Don't check for further chain requests in test environment
+                  result = chainedResult
+                End If
+              Catch chainEx As QBasicRuntimeException
+                Console.WriteLine($"CHAIN error: {chainEx.Message}")
+              Catch ex As Exception
+                Console.WriteLine($"CHAIN system error: {ex.Message}")
+              End Try
+            End If
+
+            Dim output = sw.ToString
+            Return (result, output, variables)
+          Finally
+            Console.SetOut(originalOut)
+            Video.StdoutMode = originalStdoutMode ' Restore original mode
+          End Try
+        End Using
+
+      End SyncLock
+
+    End Function
+
+    Private Shared Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
+
+      Dim variables = New Dictionary(Of String, Object)
+
+      ' Handle chaining like the Interpreter does
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation
+      Dim result As EvaluationResult
+
+      compilation = Compilation.Create(syntaxTree)
+      result = compilation.Evaluate(variables)
+
+      ' Print compilation diagnostics if there are any
+      If result.Diagnostics.HasErrors Then
+        For Each diagnostic In result.Diagnostics
+          Console.WriteLine(diagnostic.Message)
+        Next
+        Return (Nothing, variables)
+      End If
+
+      Return (result, variables)
+
     End Function
 
     <Fact>
@@ -146,7 +176,7 @@ DIM B(3,4)
 
       Dim expected = "Wrong number of dimensions"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -169,7 +199,7 @@ ERASE A
 
       Dim expected = "Array not defined"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -193,7 +223,7 @@ DIM B(3,4)
 
       Dim expected = "Wrong number of dimensions"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -217,7 +247,7 @@ DIM B(3)
 
       Dim expected = "Array already dimensioned"
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
@@ -335,7 +365,7 @@ result4& = lngArray&(0)
     End Sub
 
     <Fact>
-    Public Sub ERASE_8()
+    Public Sub ERASE_8E()
 
       ' Test ERASE on non-array variable should produce error
 
@@ -348,7 +378,7 @@ ERASE x
 
       Dim expected = "ERASE can only be used on arrays, not on variable 'x'."
 
-      Dim eval = Evaluate(sample)
+      Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables

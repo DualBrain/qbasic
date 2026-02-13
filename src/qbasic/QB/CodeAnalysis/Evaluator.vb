@@ -3484,7 +3484,37 @@ Namespace Global.QB.CodeAnalysis
         'Return base ^ value
         Return CSng($"{MathF.Exp(value):n6}")
       ElseIf node.Function Is BuiltinFunctions.FileAttr Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        Dim fileNumber = CInt(EvaluateExpression(node.Arguments(0)))
+        Dim infoType = CInt(EvaluateExpression(node.Arguments(1)))
+
+        If Not m_openFiles.ContainsKey(fileNumber) Then
+          Throw New QBasicRuntimeException(ErrorCode.BadFileNumber)
+        End If
+
+        If infoType = 1 Then
+          ' Return file mode: 1=Input, 2=Output, 4=Random, 8=Append, 32=Binary
+          Dim mode = m_fileModes(fileNumber)
+          Select Case mode.ToUpper()
+            Case "I", "INPUT"
+              Return 1
+            Case "O", "OUTPUT"
+              Return 2
+            Case "R", "RANDOM"
+              Return 4
+            Case "A", "APPEND"
+              Return 8
+            Case "B", "BINARY"
+              Return 32
+            Case Else
+              Return 0
+          End Select
+        ElseIf infoType = 2 Then
+          ' Return MS-DOS file handle (the underlying handle)
+          Dim stream = m_openFiles(fileNumber)
+          Return stream.SafeFileHandle.DangerousGetHandle()
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Fix Then
         'NOTE: FIX truncates a floating-point expression to its integer portion.
         Dim value = CDbl(EvaluateExpression(node.Arguments(0)))

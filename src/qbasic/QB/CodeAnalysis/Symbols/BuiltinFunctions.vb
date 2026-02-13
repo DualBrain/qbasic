@@ -63,8 +63,8 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Timer As New FunctionSymbol("timer", ImmutableArray(Of ParameterSymbol).Empty, If(OPTION_DOUBLE, TypeSymbol.Double, TypeSymbol.Single))
     Public ReadOnly UBound As New FunctionSymbol("ubound", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.Long)
     Public ReadOnly Val As New FunctionSymbol("val", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
-    Public ReadOnly VarPtr1 As New FunctionSymbol("varptr", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
-    Public ReadOnly VarSeg As New FunctionSymbol("varseg", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.Double)
+    Public ReadOnly VarPtr1 As New FunctionSymbol("varptr", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.Integer)
+    Public ReadOnly VarSeg As New FunctionSymbol("varseg", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.Double)
 
     Public ReadOnly Screen1 As New FunctionSymbol("screen", ImmutableArray.Create(New ParameterSymbol("row", TypeSymbol.Single), New ParameterSymbol("column", TypeSymbol.Single)), TypeSymbol.Integer)
     Public ReadOnly Screen2 As New FunctionSymbol("screen", ImmutableArray.Create(New ParameterSymbol("row", TypeSymbol.Single), New ParameterSymbol("column", TypeSymbol.Single), New ParameterSymbol("colr", TypeSymbol.Single)), TypeSymbol.Integer)
@@ -94,7 +94,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Str As New FunctionSymbol("str$", ImmutableArray.Create(New ParameterSymbol("num", TypeSymbol.Single)), TypeSymbol.String)
     Public ReadOnly Time As New FunctionSymbol("time$", ImmutableArray(Of ParameterSymbol).Empty, TypeSymbol.String)
     Public ReadOnly UCase As New FunctionSymbol("ucase$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.String)
-    Public ReadOnly VarPtr2 As New FunctionSymbol("varptr$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.String)), TypeSymbol.String)
+    Public ReadOnly VarPtr2 As New FunctionSymbol("varptr$", ImmutableArray.Create(New ParameterSymbol("value", TypeSymbol.Any)), TypeSymbol.String)
 
     Public ReadOnly Instr1 As New FunctionSymbol("instr", ImmutableArray.Create(New ParameterSymbol("string1", TypeSymbol.String), New ParameterSymbol("string2", TypeSymbol.String)), TypeSymbol.Long)
     Public ReadOnly Instr2 As New FunctionSymbol("instr", ImmutableArray.Create(New ParameterSymbol("start", TypeSymbol.Long), New ParameterSymbol("string1", TypeSymbol.String), New ParameterSymbol("string2", TypeSymbol.String)), TypeSymbol.Long)

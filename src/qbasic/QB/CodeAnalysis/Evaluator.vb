@@ -274,12 +274,62 @@ Namespace Global.QB.CodeAnalysis
       Return False
     End Function
 
+    Private Function GetVariableNameFromBoundExpression(expr As BoundExpression) As String
+      If expr Is Nothing Then
+        Return Nothing
+      End If
+
+      If TypeOf expr Is BoundVariableExpression Then
+        Return DirectCast(expr, BoundVariableExpression).Variable.Name
+      ElseIf TypeOf expr Is BoundConversionExpression Then
+        ' Recursively get the variable name from the inner expression
+        Return GetVariableNameFromBoundExpression(DirectCast(expr, BoundConversionExpression).Expression)
+      ElseIf expr.Syntax IsNot Nothing Then
+        ' Try to get from syntax
+        Return GetVariableNameFromSyntax(expr.Syntax)
+      End If
+
+      Return Nothing
+    End Function
+
     Private Function GetVariableNameFromSyntax(syntax As ExpressionSyntax) As String
+      If syntax Is Nothing Then
+        Throw New Exception("Syntax is Nothing")
+      End If
+
       If TypeOf syntax Is IdentifierExpressionSyntax Then
         Return DirectCast(syntax, IdentifierExpressionSyntax).Identifier.Text
+      ElseIf TypeOf syntax Is IdentifierSyntax Then
+        Return DirectCast(syntax, IdentifierSyntax).Identifier.Text
+      ElseIf TypeOf syntax Is CallExpressionSyntax Then
+        ' For functions without parentheses like VARPTR(result)
+        Dim callExpr = DirectCast(syntax, CallExpressionSyntax)
+        If callExpr.Arguments IsNot Nothing AndAlso callExpr.Arguments.Count > 0 Then
+          Dim arg = callExpr.Arguments(0)
+          Return GetVariableNameFromSyntax(arg)
+        End If
       End If
-      Throw New Exception("Not a variable syntax")
+      ' Debug: Try to extract identifier from the syntax tree directly
+      Dim treeProp = syntax.GetType().GetProperty("Identifier")
+      If treeProp IsNot Nothing Then
+        Dim identifier = TryCast(treeProp.GetValue(syntax), SyntaxToken)
+        If identifier IsNot Nothing Then
+          Return identifier.Text
+        End If
+      End If
+      Throw New Exception($"Not a variable syntax: {syntax.GetType().Name}")
     End Function
+
+    Private Sub EnsureVariableExists(varName As String, varType As TypeSymbol)
+      If varType Is TypeSymbol.String Then
+        ' Always ensure string variables exist and have empty string values
+        m_globals(varName) = ""
+      Else
+        If Not m_globals.ContainsKey(varName) Then
+          m_globals(varName) = 0
+        End If
+      End If
+    End Sub
 
     ' Added so that we can access the "variables" for unit testing.
     Public ReadOnly Property Globals As Dictionary(Of String, Object)
@@ -3735,11 +3785,74 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Val(value)
       ElseIf node.Function Is BuiltinFunctions.VarPtr1 Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        If node.Arguments.Length > 0 Then
+          Dim varName As String = Nothing
+          varName = GetVariableNameFromBoundExpression(node.Arguments(0))
+          If varName IsNot Nothing Then
+            EnsureVariableExists(varName, TypeSymbol.String)
+          Else
+            Throw New Exception("Could not determine variable name for VARPTR")
+          End If
+        End If
+        Return CDbl(0)
       ElseIf node.Function Is BuiltinFunctions.VarPtr2 Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        If node.Arguments.Length > 0 Then
+          Dim varName As String = Nothing
+          varName = GetVariableNameFromBoundExpression(node.Arguments(0))
+          If varName IsNot Nothing Then
+            EnsureVariableExists(varName, TypeSymbol.String)
+          Else
+            Throw New Exception("Could not determine variable name for VARPTR$")
+          End If
+        End If
+        Return ""
       ElseIf node.Function Is BuiltinFunctions.VarSeg Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        If node.Arguments.Length > 0 Then
+          Dim varName As String = Nothing
+          varName = GetVariableNameFromBoundExpression(node.Arguments(0))
+          If varName IsNot Nothing Then
+            EnsureVariableExists(varName, TypeSymbol.String)
+          Else
+            Throw New Exception("Could not determine variable name for VARSEG")
+          End If
+        End If
+        Return CDbl(0)
+      ElseIf node.Function Is BuiltinFunctions.VarPtr2 Then
+        If node.Arguments.Length > 0 Then
+          Dim varName As String = Nothing
+          If TypeOf node.Arguments(0) Is BoundVariableExpression Then
+            varName = DirectCast(node.Arguments(0), BoundVariableExpression).Variable.Name
+          Else
+            ' Try to get variable name from syntax if available
+            If node.Arguments(0).Syntax IsNot Nothing Then
+              varName = GetVariableNameFromSyntax(node.Arguments(0).Syntax)
+            End If
+          End If
+          If varName IsNot Nothing Then
+            EnsureVariableExists(varName, TypeSymbol.String)
+          Else
+            Throw New Exception("Could not determine variable name for VARPTR$")
+          End If
+        End If
+        Return ""
+      ElseIf node.Function Is BuiltinFunctions.VarSeg Then
+        If node.Arguments.Length > 0 Then
+          Dim varName As String = Nothing
+          If TypeOf node.Arguments(0) Is BoundVariableExpression Then
+            varName = DirectCast(node.Arguments(0), BoundVariableExpression).Variable.Name
+          Else
+            ' Try to get variable name from syntax if available
+            If node.Arguments(0).Syntax IsNot Nothing Then
+              varName = GetVariableNameFromSyntax(node.Arguments(0).Syntax)
+            End If
+          End If
+          If varName IsNot Nothing Then
+            EnsureVariableExists(varName, TypeSymbol.String)
+          Else
+            Throw New Exception("Could not determine variable name for VARSEG")
+          End If
+        End If
+        Return CDbl(0)
       Else
         Dim locals = New Dictionary(Of String, Object)
         For i = 0 To node.Arguments.Length - 1

@@ -378,47 +378,35 @@ C$=A$+"" ""+B$
     End Sub
 
     <Fact>
-    Public Sub Sample_Addition_1()
+    Public Sub Sample_Variable_Nuance()
 
-      ' Name: Addition (1)
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[DIM PT(255): FOR PT = 1 TO 10: NEXT PT: result = PT: result = result + PT(0)]]></bas>.Value, 11)
+      }
 
-      Dim sample = "
-'PRINT 2+2
-a=2+2
-"
-
-      'Dim expected = "4"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      'Assert.Equal(expected, actual)
-      Assert.Equal("4", $"{variables("a")}")
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
 
     End Sub
 
     <Fact>
-    Public Sub Sample_Addition_2()
+    Public Sub Sample_Addition()
 
-      ' Name: Addition (2)
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[result = 2 + 2]]></bas>.Value, 4),
+          (<bas><![CDATA[a = 1: result = 2: result = result + a]]></bas>.Value, 3)
+      }
 
-      Dim sample = "
-A = 1: B=2
-B = B + A
-'PRINT B
-"
-
-      'Dim expected = "3"
-
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
-
-      'Assert.Equal(expected, actual)
-      Assert.Equal("3", $"{variables("B")}")
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
 
     End Sub
 

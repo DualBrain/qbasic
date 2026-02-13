@@ -39,6 +39,9 @@ Namespace Global.QB.CodeAnalysis
     ' Track current array bounds (updated by REDIM)
     Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Lower As Integer, Upper As Integer))
 
+    ' Track FOR loop final variable values (to preserve array + scalar coexistence)
+    Private ReadOnly m_forLoopFinalValues As New Dictionary(Of String, Object)
+
     ' Track current OPTION BASE setting
     Private m_optionBase As Integer = 0
 
@@ -955,7 +958,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.OnErrorGotoZeroStatement : EvaluateOnErrorGotoZeroStatement(CType(s, BoundOnErrorGotoZeroStatement)) : index += 1
             Case BoundNodeKind.SelectCaseStatement : EvaluateSelectCaseStatement(CType(s, BoundSelectCaseStatement), localLabelToIndex) : index += 1
             Case BoundNodeKind.DoWhileStatement : EvaluateDoWhileStatement(CType(s, BoundDoWhileStatement), localLabelToIndex) : index += 1
-            Case BoundNodeKind.DoUntilStatement : Console.WriteLine("DEBUG: Found DoUntilStatement") : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement), localLabelToIndex) : index += 1
+            Case BoundNodeKind.DoUntilStatement : EvaluateDoUntilStatement(CType(s, BoundDoUntilStatement), localLabelToIndex) : index += 1
             Case BoundNodeKind.ForStatement : EvaluateForStatement(CType(s, BoundForStatement), localLabelToIndex) : index += 1
             Case BoundNodeKind.WhileStatement
               ' Push current labels as parent for nested WHILE statement
@@ -1039,25 +1042,57 @@ Namespace Global.QB.CodeAnalysis
       Dim upper As Integer = CInt(EvaluateExpression(node.UpperBound))
       Dim stepValue As Integer = If(node.Stepper Is Nothing, 1, CInt(EvaluateExpression(node.Stepper)))
       Dim variable = node.Variable
-      Assign(variable, CObj(lower))
-      While True
-        Dim condition = New BoundBinaryExpression(
-          New BoundVariableExpression(variable),
-          BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
-          New BoundLiteralExpression(CObj(upper)))
-        Dim condResult = EvaluateExpression(condition)
-        If DirectCast(condResult, Boolean) Then
-          Dim bodyBlock = CType(node.Body, BoundBlockStatement)
-          EvaluateStatement(bodyBlock, labelToIndex)
-        Else
-          Exit While
-        End If
-        Dim increment = New BoundBinaryExpression(
-          New BoundVariableExpression(variable),
-          BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
-          New BoundLiteralExpression(CObj(stepValue)))
-        Assign(variable, EvaluateExpression(increment))
-      End While
+
+      ' Check if this variable shadows an array
+      ' FOR loop variables are local, but they can shadow global arrays
+      ' We need to check if a global array with this name exists
+      Dim shadowsArray = Not variable.IsArray AndAlso m_globals.ContainsKey(variable.Name) AndAlso TypeOf m_globals(variable.Name) Is List(Of Object)
+
+      If shadowsArray Then
+        ' Store values with _scalar_ suffix to preserve array
+        AssignWithScalarSuffix(variable, CObj(lower))
+        While True
+          Dim condition = New BoundBinaryExpression(
+            New BoundVariableExpression(variable),
+            BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+            New BoundLiteralExpression(CObj(upper)))
+          Dim condResult = EvaluateExpression(condition)
+          If DirectCast(condResult, Boolean) Then
+            Dim bodyBlock = CType(node.Body, BoundBlockStatement)
+            EvaluateStatement(bodyBlock, labelToIndex)
+          Else
+            Exit While
+          End If
+          Dim increment = New BoundBinaryExpression(
+            New BoundVariableExpression(variable),
+            BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
+            New BoundLiteralExpression(CObj(stepValue)))
+          AssignWithScalarSuffix(variable, EvaluateExpression(increment))
+        End While
+        ' Store final value for later lookup
+        m_forLoopFinalValues(variable.Name) = m_globals(variable.Name & "_scalar_")
+      Else
+        ' Normal case - no array to preserve
+        Assign(variable, CObj(lower))
+        While True
+          Dim condition = New BoundBinaryExpression(
+            New BoundVariableExpression(variable),
+            BoundBinaryOperator.Bind(SyntaxKind.LessThanEqualToken, TypeSymbol.Integer, TypeSymbol.Integer),
+            New BoundLiteralExpression(CObj(upper)))
+          Dim condResult = EvaluateExpression(condition)
+          If DirectCast(condResult, Boolean) Then
+            Dim bodyBlock = CType(node.Body, BoundBlockStatement)
+            EvaluateStatement(bodyBlock, labelToIndex)
+          Else
+            Exit While
+          End If
+          Dim increment = New BoundBinaryExpression(
+            New BoundVariableExpression(variable),
+            BoundBinaryOperator.Bind(SyntaxKind.PlusToken, TypeSymbol.Integer, TypeSymbol.Integer),
+            New BoundLiteralExpression(CObj(stepValue)))
+          Assign(variable, EvaluateExpression(increment))
+        End While
+      End If
     End Sub
 
     Private Sub EvaluateWhileStatement(node As BoundWhileStatement, labelToIndex As Dictionary(Of String, Integer))
@@ -2952,12 +2987,33 @@ Namespace Global.QB.CodeAnalysis
 
     Private Function EvaluateVariableExpression(node As BoundVariableExpression) As Object
       If node.Variable.Kind = SymbolKind.GlobalVariable Then
+        ' Check for FOR loop scalar value (stored with _scalar_ suffix)
+        ' This takes precedence during FOR loop evaluation
+        If m_forLoopFinalValues.ContainsKey(node.Variable.Name) Then
+          Return m_forLoopFinalValues(node.Variable.Name)
+        End If
+        ' Also check _scalar_ suffix for in-progress FOR loops
+        If Not node.Variable.IsArray AndAlso m_globals.ContainsKey(node.Variable.Name & "_scalar_") Then
+          Return m_globals(node.Variable.Name & "_scalar_")
+        End If
+        ' Check if this global variable has been shadowed by a local variable
+        ' This happens with FOR loop variables that shadow array names
+        Dim locals = m_locals.Peek
+        If locals.ContainsKey(node.Variable.Name) Then
+          Dim value = locals(node.Variable.Name)
+          If TypeOf value Is ByRefVariable Then
+            Return m_globals(DirectCast(value, ByRefVariable).Name)
+          Else
+            Return value
+          End If
+        End If
         If m_globals.ContainsKey(node.Variable.Name) Then
           Return m_globals(node.Variable.Name)
         Else
           Return Nothing
         End If
       Else
+        ' Local variable case
         Dim locals = m_locals.Peek
         If locals.ContainsKey(node.Variable.Name) Then
           Dim value = locals(node.Variable.Name)
@@ -2967,6 +3023,20 @@ Namespace Global.QB.CodeAnalysis
             Return value
           End If
         Else
+          ' Local variable not found in current locals
+          ' Check if this was a FOR loop variable that shadowed an array
+          ' If so, fall back to m_forLoopFinalValues or m_globals
+          If m_forLoopFinalValues.ContainsKey(node.Variable.Name) Then
+            Return m_forLoopFinalValues(node.Variable.Name)
+          End If
+          ' Also check _scalar_ suffix for in-progress FOR loops
+          If m_globals.ContainsKey(node.Variable.Name & "_scalar_") Then
+            Return m_globals(node.Variable.Name & "_scalar_")
+          End If
+          ' Check if there's a global with this name (array case)
+          If m_globals.ContainsKey(node.Variable.Name) Then
+            Return m_globals(node.Variable.Name)
+          End If
           Return Nothing
         End If
       End If
@@ -3953,6 +4023,16 @@ Namespace Global.QB.CodeAnalysis
       ' Convert value to the variable's type
       value = ConvertValue(value, variable.Type)
       If variable.Kind = SymbolKind.GlobalVariable Then
+        ' Check if this is a scalar assignment where an array with the same name exists
+        ' In QBasic, you can have both PT(255) and PT as separate variables
+        If Not variable.IsArray AndAlso m_globals.ContainsKey(variable.Name) Then
+          Dim existingValue = m_globals(variable.Name)
+          ' If the existing value is a List (array), preserve it and store scalar separately
+          If TypeOf existingValue Is List(Of Object) Then
+            m_globals(variable.Name & "_scalar_") = value
+            Return
+          End If
+        End If
         m_globals(variable.Name) = value
       Else
         Dim locals = m_locals.Peek
@@ -3962,6 +4042,12 @@ Namespace Global.QB.CodeAnalysis
           locals(variable.Name) = value
         End If
       End If
+    End Sub
+
+    Private Sub AssignWithScalarSuffix(variable As VariableSymbol, value As Object)
+      ' Like Assign but always uses _scalar_ suffix for FOR loop variables
+      value = ConvertValue(value, variable.Type)
+      m_globals(variable.Name & "_scalar_") = value
     End Sub
 
     Private Function ConvertValue(value As Object, targetType As TypeSymbol) As Object

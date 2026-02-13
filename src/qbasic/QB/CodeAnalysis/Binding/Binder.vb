@@ -2531,6 +2531,36 @@ Namespace Global.QB.CodeAnalysis.Binding
       If TypeOf s Is VariableSymbol Then
         Return TryCast(s, VariableSymbol)
       ElseIf s Is Nothing Then
+        ' Before creating a new variable, check if this is a function name
+        ' Don't create local variables for function names (e.g., FNfactorial in DEF FNfactorial(n) = ...)
+        ' Try looking for functions with different parameter counts
+        Dim foundFunction = False
+        For paramCount As Integer = 0 To 20
+          Dim funcKey = $"{name.ToLower()}[{paramCount}]"
+          Dim funcSymbol = m_scope.TryLookupSymbol(funcKey)
+          If funcSymbol IsNot Nothing AndAlso TypeOf funcSymbol Is FunctionSymbol Then
+            foundFunction = True
+            Exit For
+          End If
+          ' Also check parent scopes
+          Dim parentScope As BoundScope = m_scope.Parent
+          While parentScope IsNot Nothing
+            Dim parentFuncResult = parentScope.TryLookupSymbol(funcKey)
+            If parentFuncResult IsNot Nothing AndAlso TypeOf parentFuncResult Is FunctionSymbol Then
+              foundFunction = True
+              Exit While
+            End If
+            parentScope = parentScope.Parent
+          End While
+          If foundFunction Then Exit For
+        Next
+
+        If foundFunction Then
+          ' There's a function with this name - don't create a local variable
+          Diagnostics.ReportNotAVariable(identifierToken.Location, name)
+          Return Nothing
+        End If
+
         If Not OPTION_EXPLICIT Then
           If String.IsNullOrEmpty(identifierToken.Text) Then
             Diagnostics.ReportUndefinedVariable(identifierToken.Location, name)

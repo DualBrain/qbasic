@@ -3,6 +3,10 @@
   Friend Class PenStatementSyntax
     Inherits StatementSyntax
 
+    ' PEN ON
+    ' PEN OFF
+    ' PEN STOP
+
     Public Sub New(tree As SyntaxTree, penKeyword As SyntaxToken, verbKeyword As SyntaxToken)
       MyBase.New(tree)
       Me.PenKeyword = penKeyword

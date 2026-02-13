@@ -60,6 +60,48 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerNextTrigger As DateTime = DateTime.MinValue ' Next trigger time
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
 
+    Private Structure PenState
+
+      'NOTE: "activated" relates to the button being pressed, not "movement" of the location.
+      '
+      'NOTE: Microsoft QBasic has support for emulating the light pen via an attached mouse;
+      '      however, note that the physical pen functionality was not available if a mouse
+      '      driver was active. The emulation of the pen was handled with the mouse x/y coords
+      '      and the button (activated) was emulated by pressing both the right/left mouse
+      '      buttons together.
+      '
+      'NOTE: GW-BASIC for the Windows Phone emulated the PEN in a similar manner to that of
+      '      Microsoft QBasic; however, it supported the button (activated) by simply accepting
+      '      the left mouse button click - or, in the case of a physical phone, the pressing
+      '      of a finger on a touch screen.
+      '
+      'NOTE: For our QBasic implementation, we will do similarly to both Microsoft QBasic and
+      '      GW-BASIC for Windows Phone; but simply accept a single mouse click as the "activated"
+      '      trigger.
+
+      ' 0: -1 if the light pen has been activated since the most recent call to PEN; 0 if not
+      Public WasPressed As Boolean
+      ' 1: x-coordinate of the pixel at which the light pen was most recently activated
+      Public PressedX As Integer
+      ' 2: y-coordinate of the pixel at which the light pen was most recently activated
+      Public PressedY As Integer
+      ' 3: -1 if the light pen is currently activate; 0 if not
+      Public IsPressed As Boolean
+      ' 4: x-coordinate of the pixel at which the light pen was most recently pointed
+      Public CurrentX As Integer
+      ' 5: y-coordinate of the pixel at which the light pen was most recently pointed
+      Public CurrentY As Integer
+      ' 6: character row in which the light pen was mostly recently activated
+      Public PressedRow As Integer
+      ' 7: character column in which the light pen was mostly recently activated
+      Public PressedColumn As Integer
+      ' 8: character row in which the light pen was mostly recently pointed
+      Public CurrentRow As Integer
+      ' 9: character column in which the light pen was mostly recently pointed
+      Public CurrentColumn As Integer
+
+    End Structure
+
     ' Chain request state
     Private ReadOnly m_chainRequest As ChainRequest = Nothing
     Private m_hasRestoredCommonValues As Boolean = False
@@ -84,6 +126,10 @@ Namespace Global.QB.CodeAnalysis
     ' PEN event state
     Private m_penHandlerTarget As Object = Nothing ' Target for ON PEN GOSUB
     Private m_penState As TimerState = TimerState.Off ' Current PEN state
+    Private m_penEventPending As Boolean = False ' Whether a PEN event is pending
+
+    ' KEY event pending flags (one per key, for STOP state preservation)
+    Private ReadOnly m_keyEventPending As Boolean() = New Boolean(20) {} ' Whether a KEY event is pending for each key
 
     ' File I/O state
     Private ReadOnly m_openFiles As New Dictionary(Of Integer, FileStream) ' File number to FileStream mapping
@@ -464,6 +510,16 @@ Namespace Global.QB.CodeAnalysis
         ' Check for timer events before executing next statement
         If CheckTimerEvent(index, localLabelToIndex) Then
           Continue While ' Timer event triggered, restart loop
+        End If
+
+        ' Check for KEY events before executing next statement
+        If CheckKeyEvent(index, localLabelToIndex) Then
+          Continue While ' KEY event triggered, restart loop
+        End If
+
+        ' Check for PEN events before executing next statement
+        If CheckPenEvent(index, localLabelToIndex) Then
+          Continue While ' PEN event triggered, restart loop
         End If
 
         ' Check for chain request
@@ -939,8 +995,8 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.OnPenGosubStatement : EvaluateOnPenGosubStatement(CType(s, BoundOnPenGosubStatement)) : index += 1
             Case BoundNodeKind.TimerStatement : EvaluateTimerStatement(CType(s, BoundTimerStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.ComStatement : EvaluateComStatement(CType(s, BoundComStatement), index, localLabelToIndex) : index += 1
-            Case BoundNodeKind.KeyEventStatement : EvaluateKeyEventStatement(CType(s, BoundKeyEventStatement), index, localLabelToIndex) : index += 1
-            Case BoundNodeKind.KeyOffStatement : EvaluateKeyOffStatement(CType(s, BoundKeyOffStatement)) : index += 1
+            Case BoundNodeKind.KeyStatement : EvaluateKeyStatement(CType(s, BoundKeyStatement), index, localLabelToIndex) : index += 1
+            'Case BoundNodeKind.KeyOffStatement : EvaluateKeyOffStatement(CType(s, BoundKeyOffStatement)) : index += 1
             Case BoundNodeKind.StrigStatement : EvaluateStrigStatement(CType(s, BoundStrigStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.PlayEventStatement : EvaluatePlayEventStatement(CType(s, BoundPlayEventStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.PenStatement : EvaluatePenStatement(CType(s, BoundPenStatement), index, localLabelToIndex) : index += 1
@@ -1327,7 +1383,6 @@ Namespace Global.QB.CodeAnalysis
       Else
         m_penHandlerTarget = CStr(EvaluateExpression(node.Target))
       End If
-
       ' PEN remains OFF until PEN ON is executed
       m_penState = TimerState.Off
     End Sub
@@ -1397,7 +1452,7 @@ Namespace Global.QB.CodeAnalysis
       End Select
     End Sub
 
-    Private Sub EvaluateKeyEventStatement(node As BoundKeyEventStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+    Private Sub EvaluateKeyStatement(node As BoundKeyStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
       ' KEY(keyNumber) ON/OFF/STOP - controls KEY event state
       Dim keyValue = EvaluateExpression(node.KeyNumber)
       If TypeOf keyValue Is String Then
@@ -1427,16 +1482,16 @@ Namespace Global.QB.CodeAnalysis
       End Select
     End Sub
 
-    Private Sub EvaluateKeyOffStatement(node As BoundKeyOffStatement)
-      ' KEY OFF - turns off key display
-      ' This is primarily a display-related statement in QBasic
-      ' In our implementation, we don't have a display, so this is a no-op
-      ' However, we should ensure all key states are turned off
-      For i As Integer = 1 To 20
-        m_keyStates(i) = TimerState.Off
-        m_keyHandlerTargets(i) = Nothing
-      Next
-    End Sub
+    'Private Sub EvaluateKeyOffStatement(node As BoundKeyOffStatement)
+    '  ' KEY OFF - turns off key display
+    '  ' This is primarily a display-related statement in QBasic
+    '  ' In our implementation, we don't have a display, so this is a no-op
+    '  ' However, we should ensure all key states are turned off
+    '  For i As Integer = 1 To 20
+    '    m_keyStates(i) = TimerState.Off
+    '    m_keyHandlerTargets(i) = Nothing
+    '  Next
+    'End Sub
 
     Private Sub EvaluateStrigStatement(node As BoundStrigStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
       ' STRIG(triggerNumber) ON/OFF/STOP - controls STRIG event state
@@ -1552,6 +1607,56 @@ Namespace Global.QB.CodeAnalysis
           Return True
         End If
       End If
+      Return False
+    End Function
+
+    Private Sub TriggerKeyEvent(keyNumber As Integer, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' Trigger key event by GOSUBing to handler
+      ' Temporarily disable key to prevent recursive triggers
+      Dim savedState = m_keyStates(keyNumber)
+      m_keyStates(keyNumber) = TimerState.Stop
+
+      ' GOSUB to key handler
+      Dim handlerLabel = CStr(m_keyHandlerTargets(keyNumber))
+      Dim handlerIndex As Integer = -1
+      If labelToIndex IsNot Nothing AndAlso labelToIndex.TryGetValue(handlerLabel, handlerIndex) Then
+        ' Push current location for RETURN
+        m_gosubStack.Push(currentIndex + 1)
+        currentIndex = handlerIndex
+      End If
+
+      m_keyStates(keyNumber) = savedState
+    End Sub
+
+    Private Function CheckKeyEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
+      ' Check if any KEY event should trigger
+      ' This is a placeholder - actual implementation would check for key presses
+      ' For now, we just return False to indicate no event
+      Return False
+    End Function
+
+    Private Sub TriggerPenEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
+      ' Trigger pen event by GOSUBing to handler
+      ' Temporarily disable pen to prevent recursive triggers
+      Dim savedState = m_penState
+      m_penState = TimerState.Stop
+
+      ' GOSUB to pen handler
+      Dim handlerLabel = CStr(m_penHandlerTarget)
+      Dim handlerIndex As Integer = -1
+      If labelToIndex IsNot Nothing AndAlso labelToIndex.TryGetValue(handlerLabel, handlerIndex) Then
+        ' Push current location for RETURN
+        m_gosubStack.Push(currentIndex + 1)
+        currentIndex = handlerIndex
+      End If
+
+      m_penState = savedState
+    End Sub
+
+    Private Function CheckPenEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
+      ' Check if PEN event should trigger
+      ' This is a placeholder - actual implementation would check for pen activation
+      ' For now, we just return False to indicate no event
       Return False
     End Function
 
@@ -4302,6 +4407,7 @@ Namespace Global.QB.CodeAnalysis
       For i = 0 To m_keyHandlerTargets.Length - 1
         m_keyHandlerTargets(i) = Nothing
         m_keyStates(i) = TimerState.Off
+        m_keyEventPending(i) = False
       Next
 
       m_playHandlerTarget = Nothing
@@ -4310,6 +4416,7 @@ Namespace Global.QB.CodeAnalysis
 
       m_penHandlerTarget = Nothing
       m_penState = TimerState.Off
+      m_penEventPending = False
     End Sub
 
     Private Sub ResetErrorState()

@@ -645,10 +645,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SleepStatement : Return BindSleepStatement(CType(syntax, SleepStatementSyntax))
         Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
         Case SyntaxKind.ComStatement : Return BindComStatement(CType(syntax, ComStatementSyntax))
-        Case SyntaxKind.KeyEventStatement : Return BindKeyEventStatement(CType(syntax, KeyEventStatementSyntax))
-        Case SyntaxKind.KeyOffStatement : Return BindKeyOffStatement(CType(syntax, KeyOffStatementSyntax))
+        'Case SyntaxKind.KeyEventStatement : Return BindKeyEventStatement(CType(syntax, KeyEventStatementSyntax))
+        'Case SyntaxKind.KeyOffStatement : Return BindKeyOffStatement(CType(syntax, KeyOffStatementSyntax))
         Case SyntaxKind.StrigStatement : Return BindStrigStatement(CType(syntax, StrigStatementSyntax))
-        Case SyntaxKind.PlayEventStatement : Return BindPlayEventStatement(CType(syntax, PlayEventStatementSyntax))
+        'Case SyntaxKind.PlayEventStatement : Return BindPlayEventStatement(CType(syntax, PlayEventStatementSyntax))
         Case SyntaxKind.PenStatement : Return BindPenStatement(CType(syntax, PenStatementSyntax))
         Case SyntaxKind.SelectCaseStatement : Return BindSelectCaseStatement(CType(syntax, SelectCaseStatementSyntax))
         Case SyntaxKind.CallStatement : Return BindCallStatement(CType(syntax, CallStatementSyntax))
@@ -2620,7 +2620,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindWendStatement(syntax As WendStatementSyntax) As BoundStatement
-      Throw New QBasicBuildException(ErrorCode.WendWithoutWhile)
+      Throw New QBasicBuildException(ErrorCode.WendWithoutWHILE)
     End Function
 
     Private Function DetermineVariableReference(identifierToken As SyntaxToken) As VariableSymbol
@@ -2729,24 +2729,24 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundComStatement(channel, syntax.Verb.Kind)
     End Function
 
-    Private Function BindKeyEventStatement(syntax As KeyEventStatementSyntax) As BoundStatement
-      Dim keyNumber = BindExpression(syntax.KeyNumber)
-      Return New BoundKeyEventStatement(keyNumber, syntax.Verb.Kind)
-    End Function
+    'Private Function BindKeyEventStatement(syntax As KeyEventStatementSyntax) As BoundStatement
+    '  Dim keyNumber = BindExpression(syntax.KeyNumber)
+    '  Return New BoundKeyStatement(keyNumber, syntax.Verb.Kind)
+    'End Function
 
-    Private Function BindKeyOffStatement(syntax As KeyOffStatementSyntax) As BoundStatement
-      Return New BoundKeyOffStatement()
-    End Function
+    'Private Function BindKeyOffStatement(syntax As KeyOffStatementSyntax) As BoundStatement
+    '  Return New BoundKeyOffStatement()
+    'End Function
 
     Private Function BindStrigStatement(syntax As StrigStatementSyntax) As BoundStatement
       Dim triggerNumber = BindExpression(syntax.TriggerNumber)
       Return New BoundStrigStatement(triggerNumber, syntax.Verb.Kind)
     End Function
 
-    Private Function BindPlayEventStatement(syntax As PlayEventStatementSyntax) As BoundStatement
-      Dim queueSize = BindExpression(syntax.QueueSize)
-      Return New BoundPlayEventStatement(queueSize, syntax.Verb.Kind)
-    End Function
+    'Private Function BindPlayEventStatement(syntax As PlayEventStatementSyntax) As BoundStatement
+    '  Dim queueSize = BindExpression(syntax.QueueSize)
+    '  Return New BoundPlayEventStatement(queueSize, syntax.Verb.Kind)
+    'End Function
 
     Private Function BindPenStatement(syntax As PenStatementSyntax) As BoundStatement
       Return New BoundPenStatement(syntax.VerbKeyword.Kind)

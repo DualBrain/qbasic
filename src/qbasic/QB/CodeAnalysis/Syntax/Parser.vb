@@ -1942,16 +1942,20 @@ Namespace Global.QB.CodeAnalysis.Syntax
           Dim keyNumber = ParseExpression()
           Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
           Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword})
-          Return New KeyEventStatementSyntax(m_syntaxTree, keyKeyword, openParen, keyNumber, closeParen, verb)
-        Case SyntaxKind.OffKeyword
-          Dim offKeyword = MatchToken(SyntaxKind.OffKeyword)
-          Return New KeyOffStatementSyntax(m_syntaxTree, keyKeyword, offKeyword)
-        Case SyntaxKind.OnKeyword
-          Dim onKeyword = MatchToken(SyntaxKind.OffKeyword)
-          Return New KeyOnStatementSyntax(m_syntaxTree, keyKeyword, onKeyword)
-        Case SyntaxKind.ListKeyword
-          Dim listKeyword = MatchToken(SyntaxKind.ListKeyword)
-          Return New KeyListStatementSyntax(m_syntaxTree, keyKeyword, listKeyword)
+          'Return New KeyEventStatementSyntax(m_syntaxTree, keyKeyword, openParen, keyNumber, closeParen, verb)
+          Return New KeyStatementSyntax(m_syntaxTree, keyKeyword, openParen, keyNumber, closeParen, verb)
+        Case SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.ListKeyword
+          Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.ListKeyword})
+          Return New KeyStatementSyntax(m_syntaxTree, keyKeyword, verb)
+          'Case SyntaxKind.OffKeyword
+          '  Dim offKeyword = MatchToken(SyntaxKind.OffKeyword)
+          '  Return New KeyOffStatementSyntax(m_syntaxTree, keyKeyword, offKeyword)
+          'Case SyntaxKind.OnKeyword
+          '  Dim onKeyword = MatchToken(SyntaxKind.OnKeyword)
+          '  Return New KeyOnStatementSyntax(m_syntaxTree, keyKeyword, onKeyword)
+          'Case SyntaxKind.ListKeyword
+          '  Dim listKeyword = MatchToken(SyntaxKind.ListKeyword)
+          '  Return New KeyListStatementSyntax(m_syntaxTree, keyKeyword, listKeyword)
         Case Else
           Dim key = ParseExpression()
           Dim commaToken = MatchToken(SyntaxKind.CommaToken)
@@ -2713,21 +2717,15 @@ repeat:
       Dim playKeyword = MatchToken(SyntaxKind.PlayKeyword)
 
       Select Case Current.Kind
-        Case SyntaxKind.OpenParenToken
-          Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
-          Dim queueSize = ParseExpression()
-          Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+        'Case SyntaxKind.OpenParenToken
+        '  Dim openParen = MatchToken(SyntaxKind.OpenParenToken)
+        '  Dim queueSize = ParseExpression()
+        '  Dim closeParen = MatchToken(SyntaxKind.CloseParenToken)
+        '  Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword})
+        '  Return New PlayStatementSyntax(m_syntaxTree, playKeyword, openParen, queueSize, closeParen, verb)
+        Case SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword
           Dim verb = MatchTokens({SyntaxKind.OnKeyword, SyntaxKind.OffKeyword, SyntaxKind.StopKeyword})
-          Return New PlayEventStatementSyntax(m_syntaxTree, playKeyword, openParen, queueSize, closeParen, verb)
-        Case SyntaxKind.OnKeyword
-          Stop
-          Return Nothing
-        Case SyntaxKind.OffKeyword
-          Stop
-          Return Nothing
-        Case SyntaxKind.StopKeyword
-          Stop
-          Return Nothing
+          Return New PlayStatementSyntax(m_syntaxTree, playKeyword, verb)
         Case Else
           Dim command = ParseExpression()
           Return New PlayStatementSyntax(m_syntaxTree, playKeyword, command)

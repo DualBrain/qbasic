@@ -1,12 +1,12 @@
-Imports QB.CodeAnalysis.Syntax
+'Imports QB.CodeAnalysis.Syntax
 
-Namespace Global.QB.CodeAnalysis.Binding
+'Namespace Global.QB.CodeAnalysis.Binding
 
-  Friend NotInheritable Class BoundKeyOffStatement
-    Inherits BoundStatement
+'  Friend NotInheritable Class BoundKeyOffStatement
+'    Inherits BoundStatement
 
-    Public Overrides ReadOnly Property Kind As BoundNodeKind = BoundNodeKind.KeyOffStatement
+'    Public Overrides ReadOnly Property Kind As BoundNodeKind = BoundNodeKind.KeyOffStatement
 
-  End Class
+'  End Class
 
-End Namespace
+'End Namespace

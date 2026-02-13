@@ -343,9 +343,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
     InputStatement
     IoCtlStatement
     KeyStatement
-    KeyListStatement
-    KeyOffStatement
-    KeyOnStatement
+    'KeyListStatement
+    'KeyOffStatement
+    'KeyOnStatement
     KillStatement
     LabelStatement
     LetStatement
@@ -369,8 +369,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
     OnStrigGosubStatement
     OnPlayGosubStatement
     OnPenGosubStatement
-    KeyEventStatement
-    PlayEventStatement
+    'KeyEventStatement
+    'PlayEventStatement
     OpenStatement
     OptionStatement
     OutStatement

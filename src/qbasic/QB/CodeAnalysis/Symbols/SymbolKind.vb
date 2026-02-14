@@ -7,6 +7,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Parameter
     Type
     Variable
+    Field
   End Enum
 
 End Namespace

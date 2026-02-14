@@ -5,8 +5,8 @@ Namespace Global.QB.CodeAnalysis.Symbols
   Public Class LocalVariableSymbol
     Inherits VariableSymbol
 
-    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource, isCommon As Boolean)
-      MyBase.New(name, isReadOnly, type, constant, typeSource, isCommon)
+    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource, isCommon As Boolean, Optional udtType As UdtTypeSymbol = Nothing)
+      MyBase.New(name, isReadOnly, type, constant, typeSource, isCommon, udtType)
     End Sub
 
     Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant)
@@ -20,8 +20,8 @@ Namespace Global.QB.CodeAnalysis.Symbols
   Public Class LocalArraySymbol
     Inherits VariableSymbol
 
-    Friend Sub New(name As String, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource, isCommon As Boolean)
-      MyBase.New(name, True, type, lower, upper, isStaticArray, dimensionCount, typeSource, isCommon)
+    Friend Sub New(name As String, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource, isCommon As Boolean, Optional udtType As UdtTypeSymbol = Nothing)
+      MyBase.New(name, True, type, lower, upper, isStaticArray, dimensionCount, typeSource, isCommon, udtType)
     End Sub
 
     Friend Sub New(name As String, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer)

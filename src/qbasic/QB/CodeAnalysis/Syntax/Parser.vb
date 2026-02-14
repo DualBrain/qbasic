@@ -267,11 +267,27 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
           If Peek(0).Kind = SyntaxKind.IdentifierToken Then
             Dim identifier = ParseIdentifier() 'MatchToken(SyntaxKind.IdentifierToken)
+
+            ' Check for member access (.fieldname)
+            Dim left As ExpressionSyntax = identifier
+            While Current.Kind = SyntaxKind.PeriodToken
+              Dim dotToken = MatchToken(SyntaxKind.PeriodToken)
+              ' Member names can be identifiers or keywords (like width, row, col)
+              ' Keywords ending with "Keyword" can be used as member names
+              Dim memberName As SyntaxToken
+              If Current.Kind.ToString().EndsWith("Keyword") Then
+                memberName = NextToken()
+              Else
+                memberName = MatchToken(SyntaxKind.IdentifierToken)
+              End If
+              left = New MemberAccessExpressionSyntax(m_syntaxTree, left, dotToken, memberName)
+            End While
+
             If Current.Kind = SyntaxKind.EqualToken Then
-              ' *identifier* = *expression*
+              ' *identifier* = *expression* or *memberAccess* = *expression*
               Dim equalsToken = MatchToken(SyntaxKind.EqualToken)
               Dim expression = ParseExpression()
-              Return New ExpressionStatementSyntax(m_syntaxTree, New AssignmentExpressionSyntax(m_syntaxTree, identifier, equalsToken, expression))
+              Return New ExpressionStatementSyntax(m_syntaxTree, New AssignmentExpressionSyntax(m_syntaxTree, left, equalsToken, expression))
             Else
               ' *identifier* [ *expression1* [, *expression2*] ... ]
               Dim expressions = If(Not IsEndOfStatement(), ParseArguments(), Nothing)
@@ -1098,17 +1114,24 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
     Private Function ParseAsClause() As AsClause
 
-      ' ... AS *type*
+      ' ... AS *type* [ * length ]
 
       Dim asKeyword = MatchToken(SyntaxKind.AsKeyword)
-      Dim identifier As SyntaxToken '= Nothing
+      Dim identifier As SyntaxToken
+      Dim starToken As SyntaxToken = Nothing
+      Dim fixedLength As SyntaxToken = Nothing
       Select Case Current.Kind
         Case SyntaxKind.DoubleKeyword, SyntaxKind.IntegerKeyword, SyntaxKind.LongKeyword, SyntaxKind.SingleKeyword, SyntaxKind.StringKeyword, SyntaxKind.AnyKeyword
           identifier = NextToken()
+          ' Check for fixed-length string (STRING * n)
+          If identifier.Text.ToUpper = "STRING" AndAlso Current.Kind = SyntaxKind.StarToken Then
+            starToken = MatchToken(SyntaxKind.StarToken)
+            fixedLength = MatchToken(SyntaxKind.NumberToken)
+          End If
         Case Else
           identifier = MatchToken(SyntaxKind.IdentifierToken)
       End Select
-      Return New AsClause(m_syntaxTree, asKeyword, identifier)
+      Return New AsClause(m_syntaxTree, asKeyword, identifier, fixedLength, starToken)
 
     End Function
 
@@ -3955,7 +3978,7 @@ repeat:
         If precedence = 0 OrElse precedence <= parentPrecedence Then Exit Do
         Dim operatorToken = NextToken()
         Dim right = ParseBinaryExpression(precedence, allowAssignment)
-        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment AndAlso TypeOf left Is IdentifierSyntax Then
+        If operatorToken.Kind = SyntaxKind.EqualToken AndAlso allowAssignment AndAlso (TypeOf left Is IdentifierSyntax OrElse TypeOf left Is MemberAccessExpressionSyntax) Then
           ' For assignment, parse the right side with lowest precedence and no nested assignments
           right = ParseBinaryExpression(0, False)
           left = New AssignmentExpressionSyntax(m_syntaxTree, left, operatorToken, right)
@@ -4007,12 +4030,12 @@ repeat:
       End Select
     End Function
 
-    ' DEFINATELY getting here to evaluate that some words are actually
-    ' needing to be parsed/identified as functions without parameters (or open/close parentheses).
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
+      ' First parse the base expression (identifier or call)
+      Dim baseExpr As ExpressionSyntax
       If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword OrElse Current.Kind = SyntaxKind.PenKeyword OrElse Current.Kind = SyntaxKind.ScreenKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
-        Return ParseCallExpression()
+        baseExpr = ParseCallExpression()
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
                                                                   Current.Text.ToLower = "csrlin" OrElse
                                                                   Current.Text.ToLower = "date$" OrElse
@@ -4029,9 +4052,25 @@ repeat:
           Current.Kind = SyntaxKind.TimeKeyword OrElse
           Current.Kind = SyntaxKind.TimerKeyword Then
         Dim identifier = MatchToken(Current.Kind)
-        Return New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
+        baseExpr = New CallExpressionSyntax(m_syntaxTree, identifier, Nothing, Nothing, Nothing)
+      Else
+        baseExpr = ParseNameExpression()
       End If
-      Return ParseNameExpression()
+
+      ' Check for member access (.fieldname)
+      While Current.Kind = SyntaxKind.PeriodToken
+        Dim dotToken = MatchToken(SyntaxKind.PeriodToken)
+        ' Member names can be identifiers or keywords (like width, row, col)
+        Dim memberName As SyntaxToken
+        If Current.Kind.ToString().EndsWith("Keyword") Then
+          memberName = NextToken()
+        Else
+          memberName = MatchToken(SyntaxKind.IdentifierToken)
+        End If
+        baseExpr = New MemberAccessExpressionSyntax(m_syntaxTree, baseExpr, dotToken, memberName)
+      End While
+
+      Return baseExpr
     End Function
 
     Private Function ParseNameExpression() As ExpressionSyntax

@@ -14,7 +14,9 @@ Namespace Global.QB.CodeAnalysis.Symbols
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Variable
 
-    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource, isCommon As Boolean)
+    Private ReadOnly m_udtType As UdtTypeSymbol
+
+    Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource, isCommon As Boolean, Optional udtType As UdtTypeSymbol = Nothing)
       MyBase.New(name)
       Me.IsReadOnly = False
       Me.IsArray = isArray
@@ -26,13 +28,14 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.DimensionCount = dimensionCount
       Me.TypeSource = typeSource
       Me.IsCommon = isCommon
+      Me.m_udtType = udtType
     End Sub
 
     Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer)
       Me.New(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType, False)
     End Sub
 
-    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource, isCommon As Boolean)
+    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, typeSource As VariableTypeSource, isCommon As Boolean, Optional udtType As UdtTypeSymbol = Nothing)
       MyBase.New(name)
       Me.IsReadOnly = isReadOnly
       Me.Type = type
@@ -43,6 +46,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.DimensionCount = 0
       Me.TypeSource = typeSource
       Me.IsCommon = isCommon
+      Me.m_udtType = udtType
     End Sub
 
     Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant)
@@ -59,6 +63,18 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Property DimensionCount As Integer
     Public ReadOnly Property TypeSource As VariableTypeSource
     Public ReadOnly Property IsCommon As Boolean
+
+    Friend ReadOnly Property UdtType As UdtTypeSymbol
+      Get
+        Return m_udtType
+      End Get
+    End Property
+
+    Public ReadOnly Property IsUserDefinedType As Boolean
+      Get
+        Return m_udtType IsNot Nothing
+      End Get
+    End Property
 
     Public Overrides Function ToString() As String
       Dim typeSourceStr = ""

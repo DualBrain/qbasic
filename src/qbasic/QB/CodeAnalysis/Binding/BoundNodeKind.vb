@@ -88,6 +88,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     SubStatement
     SystemStatement
     DefTypeStatement
+    TypeStatement
     SwapStatement
     VariableDeclaration
     DataStatement
@@ -117,6 +118,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     ConversionExpression
     ErrorExpression
     LiteralExpression
+    MemberAccessExpression
     ParenExpression
     VariableExpression
     UnaryExpression

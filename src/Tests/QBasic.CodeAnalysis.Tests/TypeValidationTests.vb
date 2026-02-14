@@ -485,7 +485,139 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.NotNull(result.SyntaxTree)
     End Sub
 
-#End Region
+  #End Region
+
+#Region "User-Defined Type (TYPE/END TYPE) Tests"
+
+    <Fact>
+    Public Sub Test_ParseSimpleTypeDeclaration()
+      Dim text = "TYPE Employee" & vbCrLf &
+                "  ename AS STRING" & vbCrLf &
+                "  salary AS SINGLE" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(1, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_ParseTypeWithMultipleFields()
+      Dim text = "TYPE Point" & vbCrLf &
+                "  x AS INTEGER" & vbCrLf &
+                "  y AS INTEGER" & vbCrLf &
+                "  z AS INTEGER" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(1, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_ParseTypeWithDifferentFieldTypes()
+      Dim text = "TYPE MixedType" & vbCrLf &
+                "  intField AS INTEGER" & vbCrLf &
+                "  lngField AS LONG" & vbCrLf &
+                "  sngField AS SINGLE" & vbCrLf &
+                "  dblField AS DOUBLE" & vbCrLf &
+                "  strField AS STRING" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(1, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_DimAsUserDefinedType()
+      Dim text = "TYPE Employee" & vbCrLf &
+                "  ename AS STRING" & vbCrLf &
+                "  salary AS SINGLE" & vbCrLf &
+                "END TYPE" & vbCrLf &
+                "DIM emp AS Employee"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(2, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_MemberAccessExpression()
+      Dim text = "TYPE Employee" & vbCrLf &
+                "  ename AS STRING" & vbCrLf &
+                "  salary AS SINGLE" & vbCrLf &
+                "END TYPE" & vbCrLf &
+                "DIM emp AS Employee" & vbCrLf &
+                "emp.ename = ""John"""
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(3, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_TypeWithFixedLengthStrings()
+      Dim text = "TYPE Employee" & vbCrLf &
+                "  ename AS STRING * 20" & vbCrLf &
+                "  department AS STRING * 15" & vbCrLf &
+                "  salary AS SINGLE" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(1, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_TypeWithMixedFixedAndVariableStrings()
+      Dim text = "TYPE Record" & vbCrLf &
+                "  fixedName AS STRING * 30" & vbCrLf &
+                "  variableNote AS STRING" & vbCrLf &
+                "  amount AS SINGLE" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(1, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_TypeWithNestedUDT()
+      Dim text = "TYPE Address" & vbCrLf &
+                "  street AS STRING * 50" & vbCrLf &
+                "  city AS STRING * 30" & vbCrLf &
+                "END TYPE" & vbCrLf &
+                "TYPE Person" & vbCrLf &
+                "  name AS STRING * 40" & vbCrLf &
+                "  addr AS Address" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(2, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+    <Fact>
+    Public Sub Test_DeeplyNestedUDT()
+      Dim text = "TYPE ZipInfo" & vbCrLf &
+                "  code AS STRING * 10" & vbCrLf &
+                "END TYPE" & vbCrLf &
+                "TYPE Address" & vbCrLf &
+                "  street AS STRING * 50" & vbCrLf &
+                "  zip AS ZipInfo" & vbCrLf &
+                "END TYPE" & vbCrLf &
+                "TYPE Person" & vbCrLf &
+                "  name AS STRING * 40" & vbCrLf &
+                "  homeAddress AS Address" & vbCrLf &
+                "END TYPE"
+      Dim result = ParseAndValidate(text)
+
+      VerifyNoSyntaxErrors(result.Diagnostics)
+      Assert.Equal(3, result.SyntaxTree.Root.Members.Length)
+    End Sub
+
+  #End Region
 
   End Class
 

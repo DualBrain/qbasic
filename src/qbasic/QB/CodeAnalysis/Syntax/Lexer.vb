@@ -552,9 +552,9 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Const suffixChars As String = "%!#&$"
 
-      ' First, read only alphanumeric, underscore, and dot characters
+      ' First, read only alphanumeric and underscore characters (not dot)
       While (Char.IsLetterOrDigit(Current) OrElse
-             Current = "_"c OrElse Current = "."c) AndAlso
+             Current = "_"c) AndAlso
             Current <> """"c
         m_position += 1
       End While

@@ -521,6 +521,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.BinaryExpression : Return BindBinaryExpression(CType(syntax, BinaryExpressionSyntax))
         Case SyntaxKind.ArrayAccessExpression : Return BindArrayAccessExpression(CType(syntax, ArrayAccessExpressionSyntax))
         Case SyntaxKind.CallExpression : Return BindCallExpression(CType(syntax, CallExpressionSyntax))
+        Case SyntaxKind.MemberAccessExpression : Return BindMemberAccessExpression(CType(syntax, MemberAccessExpressionSyntax))
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
       End Select
@@ -573,6 +574,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ClearStatement : Return BindClearStatement(CType(syntax, ClearStatementSyntax))
         Case SyntaxKind.ClsStatement : Return BindClsStatement(CType(syntax, ClsStatementSyntax))
         Case SyntaxKind.ColorStatement : Return BindColorStatement(CType(syntax, ColorStatementSyntax))
+        Case SyntaxKind.ConstStatement : Return BindConstStatement(CType(syntax, ConstStatementSyntax))
         Case SyntaxKind.ContinueStatement : Return BindContinueStatement(CType(syntax, ContinueStatementSyntax))
         Case SyntaxKind.DimStatement : Return BindDimStatement(CType(syntax, DimStatementSyntax))
         Case SyntaxKind.EraseStatement : Return BindEraseStatement(CType(syntax, EraseStatementSyntax))
@@ -656,6 +658,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
         Case SyntaxKind.DeclareStatement : Return BindDeclareStatement(CType(syntax, DeclareStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
+        Case SyntaxKind.TypeStatement : Return BindTypeStatement(CType(syntax, TypeStatementSyntax))
         Case SyntaxKind.CommonStatement : Return BindCommonStatement(CType(syntax, CommonStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
@@ -856,6 +859,47 @@ Namespace Global.QB.CodeAnalysis.Binding
       Diagnostics.ReportUndefinedFunction(syntax.Identifier.Location, syntax.Identifier.Text)
       Return New BoundErrorExpression
 
+    End Function
+
+    Private Function BindMemberAccessExpression(syntax As MemberAccessExpressionSyntax) As BoundExpression
+      ' Bind the base expression first
+      Dim baseExpr = BindExpression(syntax.Expression)
+
+      ' Get the member name
+      Dim memberName = syntax.Identifier.Text
+
+      ' If the base is a UDT variable or array access of UDT, look up the field
+      If baseExpr.Type Is TypeSymbol.Udt Then
+        ' Get the variable from either BoundVariableExpression or BoundArrayAccessExpression
+        Dim varSymbol As VariableSymbol = Nothing
+
+        If TypeOf baseExpr Is BoundVariableExpression Then
+          varSymbol = TryCast(CType(baseExpr, BoundVariableExpression).Variable, VariableSymbol)
+        ElseIf TypeOf baseExpr Is BoundArrayAccessExpression Then
+          varSymbol = CType(baseExpr, BoundArrayAccessExpression).Variable
+        End If
+
+        If varSymbol IsNot Nothing Then
+          ' Get the UDT type
+          Dim udtType = varSymbol.UdtType
+          If udtType IsNot Nothing Then
+            ' Look up the field
+            Dim field = udtType.GetField(memberName)
+            If field IsNot Nothing Then
+              ' Return a member access expression with the field type
+              Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax)
+            Else
+              ' Field not found
+              Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
+              Return New BoundErrorExpression()
+            End If
+          End If
+        End If
+      End If
+
+      ' For now, return an error expression - member access needs full UDT support
+      Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
+      Return New BoundErrorExpression()
     End Function
 
     Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
@@ -1878,6 +1922,74 @@ Namespace Global.QB.CodeAnalysis.Binding
       m_defTypeRanges(letter) = typeSym
     End Sub
 
+    Private Function BindTypeStatement(syntax As TypeStatementSyntax) As BoundStatement
+      Dim typeName = syntax.Identifier.Text
+      Dim fieldList = New List(Of Binding.UdtField)
+
+      For Each prop In syntax.Properties
+        If TypeOf prop Is ParameterSyntax Then
+          Dim param = CType(prop, ParameterSyntax)
+          Dim fieldName = param.Identifier.Identifier.Text
+
+          Dim fieldType As TypeSymbol = Nothing
+          Dim fixedLength As Integer = 0
+
+          If param.AsClause IsNot Nothing Then
+            Dim typeNameToken = param.AsClause.Identifier
+            Dim typeNameStr = typeNameToken.Text
+
+            ' Check for fixed-length string (e.g., STRING * 20)
+            If typeNameStr.ToUpper = "STRING" Then
+              fieldType = TypeSymbol.String
+              ' Check if this is a fixed-length string
+              If param.AsClause.HasFixedLength AndAlso param.AsClause.FixedLength IsNot Nothing Then
+                Dim lengthStr = param.AsClause.FixedLength.Text
+                If IsNumeric(lengthStr) Then
+                  fixedLength = CInt(lengthStr)
+                End If
+              End If
+            Else
+              ' Lookup the type
+              fieldType = LookupType(typeNameStr)
+              If fieldType Is Nothing Then
+                ' Check if it's a UDT
+                fieldType = LookupUserDefinedType(typeNameStr)
+                If fieldType Is Nothing Then
+                  Diagnostics.ReportUndefinedType(typeNameToken.Location, typeNameStr)
+                  fieldType = TypeSymbol.Error
+                End If
+              End If
+            End If
+          Else
+            ' No AS clause - infer from variable name suffix
+            fieldType = ResolveVariableType(fieldName)
+          End If
+
+          fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength))
+        End If
+      Next
+
+      Dim fields = fieldList.ToImmutableArray()
+
+      ' Create and register the UDT symbol
+      Dim fieldSymbols = fields.Select(Function(f) New UdtFieldSymbol(f.Name, f.FieldType, f.FixedLength)).ToImmutableArray()
+      Dim udtSymbol = New UdtTypeSymbol(typeName, fieldSymbols)
+
+      If Not m_scope.TryDeclareType(udtSymbol) Then
+        Diagnostics.ReportSymbolAlreadyDeclared(syntax.Identifier.Location, typeName)
+      End If
+
+      Return New BoundTypeStatement(typeName, fields)
+    End Function
+
+    Private Function LookupUserDefinedType(typeName As String) As TypeSymbol
+      Dim udt = m_scope.TryLookupType(typeName)
+      If udt IsNot Nothing Then
+        Return TypeSymbol.Udt
+      End If
+      Return Nothing
+    End Function
+
     Private Function BindDeclareStatement(syntax As DeclareStatementSyntax) As BoundStatement
       ' DECLARE statements are declarations, not executable statements.
       ' For now, we'll just return a NOP statement since the validation
@@ -2061,13 +2173,17 @@ Namespace Global.QB.CodeAnalysis.Binding
         ValidateArrayBounds(syntax.Identifier, lower, upper)
       End If
       Dim isStaticArray = Not m_arrayModeDynamic
+      Dim udtType As UdtTypeSymbol = Nothing
+      If type Is TypeSymbol.Udt Then
+        udtType = m_scope.TryLookupType(syntax.AsClause.Identifier.Text)
+      End If
       If bounds Is Nothing Then
         Dim variable = If(m_function Is Nothing,
-                       DirectCast(New GlobalVariableSymbol(name, False, type, Nothing), VariableSymbol),
-                       DirectCast(New LocalVariableSymbol(name, False, type, Nothing), VariableSymbol))
+                       DirectCast(New GlobalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DimAsClause, False, udtType), VariableSymbol),
+                       DirectCast(New LocalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DimAsClause, False, udtType), VariableSymbol))
         Return New BoundVariableDeclaration(variable, Nothing)
       Else
-        Dim variable = New VariableSymbol(name, isArray, type, lower, upper, isStaticArray, dimensionCount)
+        Dim variable = New VariableSymbol(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DimAsClause, False, udtType)
         Return New BoundVariableDeclaration(variable, Nothing)
       End If
     End Function
@@ -2077,6 +2193,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim bounds = syntax.Bounds
       Dim isArray = bounds IsNot Nothing
       Dim type As QB.CodeAnalysis.Symbols.TypeSymbol = BindAsClause(syntax.AsClause)
+      Dim udtType As UdtTypeSymbol = Nothing
+      If type Is TypeSymbol.Udt Then
+        udtType = m_scope.TryLookupType(syntax.AsClause.Identifier.Text)
+      End If
       If type Is Nothing Then
         ' No AS clause, check variable name suffix
         Dim suffix = name.Last
@@ -2102,11 +2222,11 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim isStaticArray = Not m_arrayModeDynamic
       If bounds Is Nothing Then
         Dim variable = If(m_function Is Nothing,
-                       DirectCast(New GlobalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DefaultType, isCommon), VariableSymbol),
-                       DirectCast(New LocalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DefaultType, isCommon), VariableSymbol))
+                       DirectCast(New GlobalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DimAsClause, isCommon, udtType), VariableSymbol),
+                       DirectCast(New LocalVariableSymbol(name, False, type, Nothing, VariableTypeSource.DimAsClause, isCommon, udtType), VariableSymbol))
         Return New BoundVariableDeclaration(variable, Nothing)
       Else
-        Dim variable = New VariableSymbol(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DefaultType, isCommon)
+        Dim variable = New VariableSymbol(name, isArray, type, lower, upper, isStaticArray, dimensionCount, VariableTypeSource.DimAsClause, isCommon, udtType)
         Return New BoundVariableDeclaration(variable, Nothing)
       End If
     End Function
@@ -2175,6 +2295,24 @@ Namespace Global.QB.CodeAnalysis.Binding
       Next
 
       Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
+    End Function
+
+    Private Function BindConstStatement(syntax As ConstStatementSyntax) As BoundStatement
+      Dim boundDeclarations = ImmutableArray.CreateBuilder(Of BoundVariableDeclaration)
+
+      For Each variableNode In syntax.Variables
+        If TypeOf variableNode Is VariableDeclarationSyntax Then
+          Dim variableDecl = CType(variableNode, VariableDeclarationSyntax)
+          Dim boundDecl = CType(BindVariableDeclaration(variableDecl), BoundVariableDeclaration)
+          Dim variable = boundDecl.Variable
+          If Not m_scope.TryDeclareVariable(variable) Then
+            Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+          End If
+          boundDeclarations.Add(boundDecl)
+        End If
+      Next
+
+      Return New BoundDimStatement(boundDeclarations.ToImmutable(), False)
     End Function
 
     Private Function BindCommonStatement(syntax As CommonStatementSyntax) As BoundStatement
@@ -2636,7 +2774,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     End Function
 
-    Private Shared Function LookupType(name As String) As TypeSymbol
+    Private Function LookupType(name As String) As TypeSymbol
       Select Case name.ToLower
         Case "any" : Return TypeSymbol.Any
         Case "object" : Return TypeSymbol.Object
@@ -2657,6 +2795,11 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case "double" : Return TypeSymbol.Double
         Case "string" : Return TypeSymbol.String
         Case Else
+          ' Check if it's a user-defined type
+          Dim udt = m_scope.TryLookupType(name)
+          If udt IsNot Nothing Then
+            Return TypeSymbol.Udt
+          End If
           Return Nothing
       End Select
     End Function

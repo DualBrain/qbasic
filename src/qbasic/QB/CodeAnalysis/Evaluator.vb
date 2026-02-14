@@ -981,6 +981,10 @@ Namespace Global.QB.CodeAnalysis
               'Console.WriteLine("DEBUG: Found FOR statement (should be lowered to WHILE)")
               EvaluateForStatement(CType(s, BoundForStatement), localLabelToIndex)
               index += 1
+            Case BoundNodeKind.TypeStatement
+              ' TYPE statements are handled at bind time - no runtime evaluation needed
+              ' The UDT type is registered in the binder and variables are created with the proper type
+              index += 1
             Case Else
               Throw New Exception($"Unexpected kind {s.Kind}")
           End Select
@@ -2790,6 +2794,9 @@ Namespace Global.QB.CodeAnalysis
           End If
         Next
         value = arrayList
+      ElseIf node.Variable.IsUserDefinedType Then
+        ' Initialize UDT as empty dictionary
+        value = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
       ElseIf node.Initializer IsNot Nothing Then
         value = EvaluateExpression(node.Initializer)
       Else
@@ -3028,6 +3035,8 @@ Namespace Global.QB.CodeAnalysis
         Case BoundNodeKind.BoundFunctionExpression : Return EvaluateBoundFunctionExpression(CType(node, BoundBoundFunctionExpression))
         Case BoundNodeKind.CallExpression : Return EvaluateCallExpression(CType(node, BoundCallExpression))
         Case BoundNodeKind.ConversionExpression : Return EvaluateConversionExpression(CType(node, BoundConversionExpression))
+        Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
+        Case BoundNodeKind.MemberAccessExpression : Return EvaluateMemberAccessExpression(CType(node, BoundMemberAccessExpression))
         Case Else
           Throw New Exception($"Unexpected node {node.Kind}")
       End Select
@@ -3097,11 +3106,29 @@ Namespace Global.QB.CodeAnalysis
           End If
           ' Check if there's a global with this name (array case)
           If m_globals.ContainsKey(node.Variable.Name) Then
-            Return m_globals(node.Variable.Name)
+          Return m_globals(node.Variable.Name)
           End If
           Return Nothing
         End If
       End If
+    End Function
+
+    Private Function EvaluateMemberAccessExpression(node As BoundMemberAccessExpression) As Object
+      ' Evaluate the base expression (the UDT variable)
+      Dim baseValue = EvaluateExpression(node.Expression)
+
+      ' If the base is a dictionary (UDT instance), get the member
+      If TypeOf baseValue Is Dictionary(Of String, Object) Then
+        Dim udtDict = CType(baseValue, Dictionary(Of String, Object))
+        If udtDict.ContainsKey(node.MemberName) Then
+          Return udtDict(node.MemberName)
+        End If
+      End If
+
+      ' For UDTs that are stored as Objects, try to get field value
+      ' This is a simplified implementation - full UDT support would need proper type registry
+
+      Return Nothing
     End Function
 
     Private Function EvaluateParenExpression(node As BoundParenExpression) As Object
@@ -4127,6 +4154,12 @@ Namespace Global.QB.CodeAnalysis
       ' Convert value to the variable's type
       value = ConvertValue(value, variable.Type)
       If variable.Kind = SymbolKind.GlobalVariable Then
+        ' Check if this is a UDT variable that needs initialization
+        If variable.IsUserDefinedType AndAlso value Is Nothing Then
+          ' Initialize UDT with empty dictionary
+          m_globals(variable.Name) = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
+          Return
+        End If
         ' Check if this is a scalar assignment where an array with the same name exists
         ' In QBasic, you can have both PT(255) and PT as separate variables
         If Not variable.IsArray AndAlso m_globals.ContainsKey(variable.Name) Then
@@ -4188,6 +4221,20 @@ Namespace Global.QB.CodeAnalysis
         Dim arrayAccess = CType(expression, BoundArrayAccessExpression)
         Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
         tuple.Item1(tuple.Item2) = value
+      ElseIf TypeOf expression Is BoundMemberAccessExpression Then
+        Dim memberAccess = CType(expression, BoundMemberAccessExpression)
+        ' Get the UDT instance
+        Dim instanceExpr = memberAccess.Expression
+        Dim instanceValue As Object = Nothing
+        If TypeOf instanceExpr Is BoundVariableExpression Then
+          instanceValue = EvaluateVariableExpression(CType(instanceExpr, BoundVariableExpression))
+        End If
+        If instanceValue Is Nothing OrElse TypeOf instanceValue IsNot Dictionary(Of String, Object) Then
+          Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+        End If
+        ' Assign to the field
+        Dim udtDict = DirectCast(instanceValue, Dictionary(Of String, Object))
+        udtDict(memberAccess.MemberName) = value
       End If
     End Sub
 

@@ -1,4 +1,4 @@
-﻿Namespace Global.QB.CodeAnalysis.Syntax
+Namespace Global.QB.CodeAnalysis.Syntax
 
   Friend Class TypeStatementSyntax
     Inherits StatementSyntax
@@ -12,7 +12,7 @@
       Me.EndTypeKeyword = endTypeKeyword
     End Sub
 
-    Public Overrides ReadOnly Property Kind As SyntaxKind
+    Public Overrides ReadOnly Property Kind As SyntaxKind = SyntaxKind.TypeStatement
     Public ReadOnly Property TypeKeyword As SyntaxToken
     Public ReadOnly Property Identifier As SyntaxToken
     Public ReadOnly Property Properties As List(Of ParameterSyntax)

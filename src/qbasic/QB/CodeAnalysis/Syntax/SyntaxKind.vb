@@ -410,6 +410,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     SystemStatement
     TimeStatement
     TimerStatement
+    TypeStatement
     TroffStatement
     TronStatement
     UnlockStatement
@@ -431,6 +432,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     BinaryExpression
     CallExpression
     LiteralExpression
+    MemberAccessExpression
     NameExpression
     ParenExpression
     UnaryExpression

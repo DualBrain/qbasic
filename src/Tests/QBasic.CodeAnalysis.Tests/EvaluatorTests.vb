@@ -1881,6 +1881,77 @@ END"
       Assert.Equal($"{1}", $"{variables("x")}")
     End Sub
 
+    <Fact>
+    Public Sub EvaluatesSimpleTypeDeclaration()
+
+      Dim text = "
+TYPE Employee
+  ename AS STRING * 20
+  salary AS SINGLE
+END TYPE
+DIM emp AS Employee
+PRINT ""Test passed""
+END
+"
+
+      Dim eval = EvaluateOutputRedirect(text)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+      Dim out = eval.Output?.Trim
+
+      Assert.Empty(result.Diagnostics)
+
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesTypeWithNestedUDT()
+
+      Dim text = "
+TYPE Address
+  street AS STRING * 50
+  city AS STRING * 30
+END TYPE
+TYPE Person
+  name AS STRING * 40
+  addr AS Address
+END TYPE
+DIM p AS Person
+PRINT ""Test passed""
+END
+"
+
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim variables = New Dictionary(Of String, Object)()
+      Dim result = compilation.Evaluate(variables)
+      Assert.Empty(result.Diagnostics)
+
+    End Sub
+
+    <Fact>
+    Public Sub EvaluatesMemberAccessParsing()
+
+      Dim text = "
+TYPE Employee
+  ename AS STRING * 20
+  salary AS SINGLE
+END TYPE
+DIM emp AS Employee
+emp.ename = ""John""
+PRINT emp.ename
+END
+"
+
+      Dim eval = EvaluateOutputRedirect(text)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+      Dim out = eval.Output?.Trim
+      Assert.Empty(result.Diagnostics)
+      'Dim output = If(variables.ContainsKey("_OUTPUT_"), variables("_OUTPUT_"), "")
+      Assert.Contains("John", out.ToString())
+
+    End Sub
+
   End Class
 
 End Namespace

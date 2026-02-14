@@ -34,6 +34,22 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return TryDeclareSymbol(f)
     End Function
 
+    Public Function TryDeclareType(typeSymbol As UdtTypeSymbol) As Boolean
+      Return TryDeclareSymbol(typeSymbol)
+    End Function
+
+    Public Function TryLookupType(name As String) As UdtTypeSymbol
+      Dim symbol = TryLookupSymbol(name.ToLower)
+      If symbol IsNot Nothing AndAlso TypeOf symbol Is UdtTypeSymbol Then
+        Return DirectCast(symbol, UdtTypeSymbol)
+      End If
+      Return Parent?.TryLookupType(name)
+    End Function
+
+    Public Function GetDeclaredTypes() As ImmutableArray(Of UdtTypeSymbol)
+      Return GetDeclaredSymbols(Of UdtTypeSymbol)()
+    End Function
+
     Private Function TryDeclareSymbol(Of TSymbol As Symbol)(symbol As TSymbol) As Boolean
 
       Dim name = symbol.Name

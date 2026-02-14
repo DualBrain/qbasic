@@ -8,6 +8,7 @@ Imports System.Text
 
 Imports Basic
 
+Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib.Video
@@ -502,6 +503,10 @@ Friend Class QBasic
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
+
+  Private m_previousMouseButton As Boolean = False
+  Private m_previousMouseX As Integer = 0
+  Private m_previousMouseY As Integer = 0
 
   Private m_runner As Threading.Thread
 
@@ -1040,6 +1045,19 @@ Friend Class QBasic
     Dim mButton = mButton1.Pressed
     Dim mr = (mMouseY \ m_textH) + 1
     Dim mc = (mMouseX \ m_textW) + 1
+
+    ' Update PenService with mouse state
+    If mButton Then
+      PenService.OnPenDown(mMouseX, mMouseY, m_textW, m_textH)
+    ElseIf m_previousMouseButton AndAlso Not mButton Then
+      PenService.OnPenUp()
+    End If
+    If mMouseX <> m_previousMouseX OrElse mMouseY <> m_previousMouseY Then
+      PenService.OnPenMove(mMouseX, mMouseY, m_textW, m_textH)
+    End If
+    m_previousMouseButton = mButton
+    m_previousMouseX = mMouseX
+    m_previousMouseY = mMouseY
 
     Dim isAlt = GetKey(Key.ALT).Held OrElse GetKey(Key.ALT).Pressed
     Dim isShift = GetKey(Key.SHIFT).Held OrElse GetKey(Key.SHIFT).Pressed

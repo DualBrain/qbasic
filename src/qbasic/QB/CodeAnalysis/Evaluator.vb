@@ -60,48 +60,6 @@ Namespace Global.QB.CodeAnalysis
     Private m_timerNextTrigger As DateTime = DateTime.MinValue ' Next trigger time
     Private m_timerEventPending As Boolean = False ' Whether a timer event is pending
 
-    Private Structure PenState
-
-      'NOTE: "activated" relates to the button being pressed, not "movement" of the location.
-      '
-      'NOTE: Microsoft QBasic has support for emulating the light pen via an attached mouse;
-      '      however, note that the physical pen functionality was not available if a mouse
-      '      driver was active. The emulation of the pen was handled with the mouse x/y coords
-      '      and the button (activated) was emulated by pressing both the right/left mouse
-      '      buttons together.
-      '
-      'NOTE: GW-BASIC for the Windows Phone emulated the PEN in a similar manner to that of
-      '      Microsoft QBasic; however, it supported the button (activated) by simply accepting
-      '      the left mouse button click - or, in the case of a physical phone, the pressing
-      '      of a finger on a touch screen.
-      '
-      'NOTE: For our QBasic implementation, we will do similarly to both Microsoft QBasic and
-      '      GW-BASIC for Windows Phone; but simply accept a single mouse click as the "activated"
-      '      trigger.
-
-      ' 0: -1 if the light pen has been activated since the most recent call to PEN; 0 if not
-      Public WasPressed As Boolean
-      ' 1: x-coordinate of the pixel at which the light pen was most recently activated
-      Public PressedX As Integer
-      ' 2: y-coordinate of the pixel at which the light pen was most recently activated
-      Public PressedY As Integer
-      ' 3: -1 if the light pen is currently activate; 0 if not
-      Public IsPressed As Boolean
-      ' 4: x-coordinate of the pixel at which the light pen was most recently pointed
-      Public CurrentX As Integer
-      ' 5: y-coordinate of the pixel at which the light pen was most recently pointed
-      Public CurrentY As Integer
-      ' 6: character row in which the light pen was mostly recently activated
-      Public PressedRow As Integer
-      ' 7: character column in which the light pen was mostly recently activated
-      Public PressedColumn As Integer
-      ' 8: character row in which the light pen was mostly recently pointed
-      Public CurrentRow As Integer
-      ' 9: character column in which the light pen was mostly recently pointed
-      Public CurrentColumn As Integer
-
-    End Structure
-
     ' Chain request state
     Private ReadOnly m_chainRequest As ChainRequest = Nothing
     Private m_hasRestoredCommonValues As Boolean = False
@@ -122,11 +80,6 @@ Namespace Global.QB.CodeAnalysis
     Private m_playHandlerTarget As Object = Nothing ' Target for ON PLAY(n) GOSUB
     Private m_playQueueSize As Integer = 0 ' Queue size threshold
     Private m_playState As TimerState = TimerState.Off ' Current PLAY state
-
-    ' PEN event state
-    Private m_penHandlerTarget As Object = Nothing ' Target for ON PEN GOSUB
-    Private m_penState As TimerState = TimerState.Off ' Current PEN state
-    Private m_penEventPending As Boolean = False ' Whether a PEN event is pending
 
     ' KEY event pending flags (one per key, for STOP state preservation)
     Private ReadOnly m_keyEventPending As Boolean() = New Boolean(20) {} ' Whether a KEY event is pending for each key
@@ -1379,12 +1332,13 @@ Namespace Global.QB.CodeAnalysis
       ' ON PEN GOSUB target - sets up PEN event handler
       ' Set the PEN handler
       If TypeOf node.Target Is BoundVariableExpression Then
-        m_penHandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name
+        PenService.HandlerTarget = CType(node.Target, BoundVariableExpression).Variable.Name
       Else
-        m_penHandlerTarget = CStr(EvaluateExpression(node.Target))
+        PenService.HandlerTarget = CStr(EvaluateExpression(node.Target))
       End If
       ' PEN remains OFF until PEN ON is executed
-      m_penState = TimerState.Off
+      PenService.Enabled = False
+      PenService.Stopped = False
     End Sub
 
     Private Sub EvaluateTimerStatement(node As BoundTimerStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
@@ -1558,19 +1512,19 @@ Namespace Global.QB.CodeAnalysis
       ' PEN ON/OFF/STOP - controls PEN event state
       Select Case node.VerbKind
         Case SyntaxKind.OnKeyword
-          If m_penHandlerTarget Is Nothing Then
-            ' No handler set up yet
-            Return
-          End If
-          m_penState = TimerState.On
+          ' PEN ON enables the pen - can be done before or after ON PEN GOSUB
+          PenService.Enabled = True
+          PenService.Stopped = False
 
         Case SyntaxKind.OffKeyword
-          m_penState = TimerState.Off
+          PenService.Enabled = False
+          PenService.Stopped = False
           ' Clear handler
-          m_penHandlerTarget = Nothing
+          PenService.HandlerTarget = Nothing
 
         Case SyntaxKind.StopKeyword
-          m_penState = TimerState.Stop
+          PenService.Enabled = True
+          PenService.Stopped = True
       End Select
     End Sub
 
@@ -1638,11 +1592,11 @@ Namespace Global.QB.CodeAnalysis
     Private Sub TriggerPenEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
       ' Trigger pen event by GOSUBing to handler
       ' Temporarily disable pen to prevent recursive triggers
-      Dim savedState = m_penState
-      m_penState = TimerState.Stop
+      Dim wasStopped = PenService.Stopped
+      PenService.Stopped = True
 
       ' GOSUB to pen handler
-      Dim handlerLabel = CStr(m_penHandlerTarget)
+      Dim handlerLabel = CStr(PenService.HandlerTarget)
       Dim handlerIndex As Integer = -1
       If labelToIndex IsNot Nothing AndAlso labelToIndex.TryGetValue(handlerLabel, handlerIndex) Then
         ' Push current location for RETURN
@@ -1650,13 +1604,16 @@ Namespace Global.QB.CodeAnalysis
         currentIndex = handlerIndex
       End If
 
-      m_penState = savedState
+      PenService.Stopped = wasStopped
     End Sub
 
     Private Function CheckPenEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
       ' Check if PEN event should trigger
-      ' This is a placeholder - actual implementation would check for pen activation
-      ' For now, we just return False to indicate no event
+      ' Event triggers when WasPressed is true and PEN is enabled (not stopped)
+      If PenService.IsActive AndAlso PenService.HasHandler AndAlso PenService.State.WasPressed Then
+        TriggerPenEvent(currentIndex, labelToIndex)
+        Return True
+      End If
       Return False
     End Function
 
@@ -3842,7 +3799,49 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Peek Then
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Pen Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        ' PEN(n) function - returns pen state information
+        ' PEN ON must be the current state for the PEN() function to work.
+        If Not PenService.Enabled AndAlso Not PenService.Stopped Then
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
+
+        Dim index = CInt(EvaluateExpression(node.Arguments(0)))
+        Select Case index
+          Case 0
+            ' -1 if the light pen has been activated since the most recent call to PEN; 0 if not
+            Return If(PenService.PollWasPressed(), -1, 0)
+          Case 1
+            ' x-coordinate of the pixel at which the light pen was most recently activated
+            ' Range: 0-319 for medium resolution, 0-640 for high resolution
+            Return PenService.State.PressedX
+          Case 2
+            ' y-coordinate of the pixel at which the light pen was most recently activated
+            ' Range: 0-199
+            Return PenService.State.PressedY
+          Case 3
+            ' -1 if the light pen is currently active; 0 if not
+            Return If(PenService.State.IsPressed, -1, 0)
+          Case 4
+            ' x-coordinate of the pixel at which the light pen was most recently pointed
+            Return PenService.State.CurrentX
+          Case 5
+            ' y-coordinate of the pixel at which the light pen was most recently pointed
+            Return PenService.State.CurrentY
+          Case 6
+            ' character row in which the light pen was most recently activated (1-24)
+            Return PenService.State.PressedRow
+          Case 7
+            ' character column in which the light pen was most recently activated (1-40 or 1-80)
+            Return PenService.State.PressedColumn
+          Case 8
+            ' character row in which the light pen was most recently pointed (1-24)
+            Return PenService.State.CurrentRow
+          Case 9
+            ' character column in which the light pen was most recently pointed (1-40 or 1-80)
+            Return PenService.State.CurrentColumn
+          Case Else
+            Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End Select
       ElseIf node.Function Is BuiltinFunctions.Play Then
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Pmap Then
@@ -4414,9 +4413,7 @@ Namespace Global.QB.CodeAnalysis
       m_playState = TimerState.Off
       m_playQueueSize = 0
 
-      m_penHandlerTarget = Nothing
-      m_penState = TimerState.Off
-      m_penEventPending = False
+      PenService.Reset()
     End Sub
 
     Private Sub ResetErrorState()
@@ -4434,8 +4431,7 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub ResetPenState()
-      m_penHandlerTarget = Nothing
-      m_penState = TimerState.Off
+      PenService.Reset()
     End Sub
 
     Private Sub ResetStrigState()

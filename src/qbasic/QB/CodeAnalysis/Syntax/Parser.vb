@@ -209,7 +209,15 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.PaintKeyword : Return ParsePaintStatement()
         Case SyntaxKind.PaletteKeyword : Return ParsePaletteStatement()
         Case SyntaxKind.PCopyKeyword : Return ParsePcopyStatement()
-        Case SyntaxKind.PenKeyword : Return ParsePenStatement()
+        Case SyntaxKind.PenKeyword
+          ' Check if this is PEN() function call or PEN statement
+          If Peek(1).Kind = SyntaxKind.OpenParenToken Then
+            ' PEN() is a function call, wrap in expression statement
+            Dim callExpr = ParseCallExpression()
+            Return New ExpressionStatementSyntax(m_syntaxTree, callExpr)
+          Else
+            Return ParsePenStatement()
+          End If
         Case SyntaxKind.PlayKeyword : Return ParsePlayStatement()
         Case SyntaxKind.PokeKeyword : Return ParsePokeStatement()
         Case SyntaxKind.PrintKeyword : Return ParsePrintStatement()
@@ -4002,7 +4010,7 @@ repeat:
     ' DEFINATELY getting here to evaluate that some words are actually
     ' needing to be parsed/identified as functions without parameters (or open/close parentheses).
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
-      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword OrElse Current.Kind = SyntaxKind.ScreenKeyword) AndAlso
+      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword OrElse Current.Kind = SyntaxKind.PenKeyword OrElse Current.Kind = SyntaxKind.ScreenKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
         Return ParseCallExpression()
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
@@ -4042,6 +4050,7 @@ repeat:
     Private Function MatchIdentifierOrKeyword() As SyntaxToken
       If Current.Kind = SyntaxKind.IdentifierToken OrElse
          Current.Kind = SyntaxKind.MidKeyword OrElse
+         Current.Kind = SyntaxKind.PenKeyword OrElse
          Current.Kind = SyntaxKind.ScreenKeyword Then
         Return NextToken()
       End If

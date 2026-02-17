@@ -9,6 +9,15 @@ Namespace QBasic.CodeAnalysis.Tests
 
   Public Class EvaluatorTests
 
+
+    Private Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
+      Dim variables = New Dictionary(Of String, Object)
+      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+      Dim result = compilation.Evaluate(variables)
+      Return (result, variables)
+    End Function
+
     Private Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
       Using sw As New IO.StringWriter
         Dim originalOut = Console.Out
@@ -1823,26 +1832,35 @@ HandlePen:
     End Sub
 
     <Fact>
-    Public Sub EvaluatesPenFunction_ReturnsError_WhenNotEnabled()
-      ' PEN() should error if PEN ON has not been called
+    Public Sub EvaluatesPenFunction_ReturnsZero_WhenNotEnabled()
       Dim text = "x = PEN(0)"
-      Dim eval = EvaluateOutputRedirect(text)
-      Assert.Contains("Illegal function call", eval.Output)
+      Dim eval = Evaluate(text)
+      Dim variables = eval.Variables
+      Assert.Equal("0", $"{variables("x")}")
     End Sub
 
     <Fact>
     Public Sub EvaluatesPenFunction_ReturnsZero_WhenEnabledButNotPressed()
       ' PEN(0) should return 0 when pen not activated
-      Dim text = "ON PEN GOSUB HandlePen
+      Dim text = "ON ERROR GOTO HandleError
+ON PEN GOSUB HandlePen
+E = 0
+P = -1
 PEN ON
-PRINT PEN(0)
+P = PEN(0)
 END
 
+HandleError:
+  E = ERR
+  END
+
 HandlePen:
-RETURN"
-      Dim eval = EvaluateOutputRedirect(text)
-      Assert.Empty(eval.Result.Diagnostics) ' Check for errors
-      Assert.Contains("0", eval.Output)
+  RETURN"
+      Dim eval = Evaluate(text)
+      Dim variables = eval.Variables
+      Assert.Empty(eval.Result.Diagnostics)
+      Assert.Equal("0", $"{variables("E")}")
+      Assert.Equal("0", $"{variables("P")}")
     End Sub
 
     <Fact>

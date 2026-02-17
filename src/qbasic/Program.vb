@@ -1042,14 +1042,14 @@ Friend Class QBasic
     Dim mButton4 = GetMouse(3)
     Dim mMouseX = GetMouseX()
     Dim mMouseY = GetMouseY()
-    Dim mButton = mButton1.Pressed
+    Dim mButton = mButton1.Pressed OrElse mButton1.Held
     Dim mr = (mMouseY \ m_textH) + 1
     Dim mc = (mMouseX \ m_textW) + 1
 
     ' Update PenService with mouse state
     If mButton Then
       PenService.OnPenDown(mMouseX, mMouseY, m_textW, m_textH)
-    ElseIf m_previousMouseButton AndAlso Not mButton Then
+    ElseIf Not mButton AndAlso m_previousMouseButton Then
       PenService.OnPenUp()
     End If
     If mMouseX <> m_previousMouseX OrElse mMouseY <> m_previousMouseY Then
@@ -1270,7 +1270,9 @@ Tip: These topics are also available from the Help menu.
         End If
 
         If m_runner.IsAlive Then
-          m_scrn0 = Nothing
+          SyncLock s_syncObject
+            m_scrn0 = Nothing
+          End SyncLock
           m_scrn = Nothing
           m_buffer = Nothing
         Else
@@ -1280,14 +1282,14 @@ Tip: These topics are also available from the Help menu.
             '      Capture the current cursor location
             '      Capture the current foreground and background colors
             '      Capture the current screen mode? Width?
-            ReDim m_scrn0(Screen0.Length - 1)
-            ReDim m_buffer(Buffer.Length - 1)
-            If QBLib.Video.ScreenMode = m_outputState.ScreenMode Then
-              SyncLock s_syncObject
+            SyncLock s_syncObject
+              ReDim m_scrn0(Screen0.Length - 1)
+              ReDim m_buffer(Buffer.Length - 1)
+              If QBLib.Video.ScreenMode = m_outputState.ScreenMode Then
                 Array.Copy(Screen0, 0, m_scrn0, 0, Screen0.Length)
                 Array.Copy(Buffer, 0, m_buffer, 0, Buffer.Length)
-              End SyncLock
-            End If
+              End If
+            End SyncLock
             m_outputState.FgColor = QBLib.Video.m_fgColor
             m_outputState.BgColor = QBLib.Video.m_bgColor
             m_outputState.CursorRow = QBLib.Video.CursorRow
@@ -2434,11 +2436,11 @@ To get help on a QBasic keyword in the list below:
       SyncLock s_syncObject
         Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
         Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+        m_scrn0 = Nothing
+        m_buffer = Nothing
       End SyncLock
       QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
       QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)
-      m_scrn0 = Nothing
-      m_buffer = Nothing
     Else
       QBLib.Video.CLS()
       QBLib.Video.COLOR(8, 0)
@@ -2473,8 +2475,10 @@ To get help on a QBasic keyword in the list below:
         QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
         QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)
       End If
-      m_scrn0 = Nothing
-      m_buffer = Nothing
+      SyncLock s_syncObject
+        m_scrn0 = Nothing
+        m_buffer = Nothing
+      End SyncLock
     Else
       QBLib.Video.COLOR(8, 0)
       QBLib.Video.CLS()

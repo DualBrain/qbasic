@@ -3861,12 +3861,17 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Pen Then
         ' PEN(n) function - returns pen state information
         ' PEN ON must be the current state for the PEN() function to work.
-        If Not PenService.Enabled AndAlso Not PenService.Stopped Then
-          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
-        End If
 
         Dim index = CInt(EvaluateExpression(node.Arguments(0)))
-        Select Case index
+
+        'If Not PenService.Enabled AndAlso Not PenService.Stopped Then
+        '  Select Case index
+        '    Case 0, 1, 2, 3, 4, 5 : Return 0
+        '    Case Else : Return 1
+        '  End Select
+        'End If
+
+        Select Case Index
           Case 0
             ' -1 if the light pen has been activated since the most recent call to PEN; 0 if not
             Return If(PenService.PollWasPressed(), -1, 0)

@@ -2,7 +2,16 @@ Namespace Global.QB.CodeAnalysis
 
   Public NotInheritable Class PenService
 
-    Private Shared m_state As New PenState
+    Private Shared m_state As New PenState With {.WasPressed = False,
+                                                 .PressedX = 0,
+                                                 .PressedY = 0,
+                                                 .IsPressed = False,
+                                                 .CurrentX = 0,
+                                                 .CurrentY = 0,
+                                                 .PressedRow = 1,
+                                                 .PressedColumn = 1,
+                                                 .CurrentRow = 1,
+                                                 .CurrentColumn = 1}
     Private Shared m_isEnabled As Boolean = False
     Private Shared m_isStopped As Boolean = False
     Private Shared m_handlerTarget As Object = Nothing
@@ -59,10 +68,9 @@ Namespace Global.QB.CodeAnalysis
       m_state.PressedY = pixelY
       m_state.CurrentX = pixelX
       m_state.CurrentY = pixelY
-
       Dim row = (pixelY \ characterHeight) + 1
       Dim col = (pixelX \ characterWidth) + 1
-      m_state.PressedRow = Math.Max(1, Math.Min(row, 24))
+      m_state.PressedRow = Math.Max(1, Math.Min(row, 25))
       m_state.PressedColumn = Math.Max(1, Math.Min(col, If(QBLib.Video.m_textW = 8, 80, 40)))
       m_state.CurrentRow = m_state.PressedRow
       m_state.CurrentColumn = m_state.PressedColumn
@@ -89,7 +97,16 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Public Shared Sub Reset()
-      m_state = New PenState
+      m_state = New PenState With {.WasPressed = False,
+                                   .PressedX = 0,
+                                   .PressedY = 0,
+                                   .IsPressed = False,
+                                   .CurrentX = 0,
+                                   .CurrentY = 0,
+                                   .PressedRow = 1,
+                                   .PressedColumn = 1,
+                                   .CurrentRow = 1,
+                                   .CurrentColumn = 1}
       m_isEnabled = False
       m_isStopped = False
       m_handlerTarget = Nothing

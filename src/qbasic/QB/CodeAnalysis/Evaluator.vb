@@ -1524,7 +1524,7 @@ Namespace Global.QB.CodeAnalysis
           PenService.Enabled = False
           PenService.Stopped = False
           ' Clear handler
-          PenService.HandlerTarget = Nothing
+          'PenService.HandlerTarget = Nothing
 
         Case SyntaxKind.StopKeyword
           PenService.Enabled = True
@@ -1614,7 +1614,11 @@ Namespace Global.QB.CodeAnalysis
     Private Function CheckPenEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
       ' Check if PEN event should trigger
       ' Event triggers when WasPressed is true and PEN is enabled (not stopped)
-      If PenService.IsActive AndAlso PenService.HasHandler AndAlso PenService.State.WasPressed Then
+      If PenService.IsActive AndAlso
+         PenService.HasHandler AndAlso
+         PenService.State.WasPressed AndAlso
+         Not PenService.Stopped AndAlso
+         PenService.PollWasPressed() Then
         TriggerPenEvent(currentIndex, labelToIndex)
         Return True
       End If

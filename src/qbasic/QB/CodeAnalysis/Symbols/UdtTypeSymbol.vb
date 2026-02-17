@@ -96,11 +96,15 @@ Namespace Global.QB.CodeAnalysis.Symbols
 
     Private ReadOnly m_fieldType As TypeSymbol
     Private ReadOnly m_fixedLength As Integer
+    Private ReadOnly m_udtTypeName As String
+    Private ReadOnly m_nestedUdtType As UdtTypeSymbol
 
-    Public Sub New(name As String, fieldType As TypeSymbol, fixedLength As Integer)
+    Public Sub New(name As String, fieldType As TypeSymbol, fixedLength As Integer, Optional udtTypeName As String = Nothing, Optional nestedUdtType As UdtTypeSymbol = Nothing)
       MyBase.New(name)
       m_fieldType = fieldType
       m_fixedLength = fixedLength
+      m_udtTypeName = If(udtTypeName, String.Empty)
+      m_nestedUdtType = nestedUdtType
     End Sub
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Field
@@ -117,6 +121,18 @@ Namespace Global.QB.CodeAnalysis.Symbols
       End Get
     End Property
 
+    Public ReadOnly Property UdtTypeName As String
+      Get
+        Return m_udtTypeName
+      End Get
+    End Property
+
+    Public ReadOnly Property NestedUdtType As UdtTypeSymbol
+      Get
+        Return m_nestedUdtType
+      End Get
+    End Property
+
     Public ReadOnly Property IsFixedLengthString As Boolean
       Get
         Return m_fixedLength > 0
@@ -126,6 +142,12 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public ReadOnly Property IsString As Boolean
       Get
         Return m_fieldType Is TypeSymbol.String OrElse IsFixedLengthString
+      End Get
+    End Property
+
+    Public ReadOnly Property IsNestedUdt As Boolean
+      Get
+        Return m_fieldType Is TypeSymbol.Udt AndAlso (Not String.IsNullOrEmpty(m_udtTypeName) OrElse m_nestedUdtType IsNot Nothing)
       End Get
     End Property
 

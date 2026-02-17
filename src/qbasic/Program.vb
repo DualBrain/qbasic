@@ -2468,7 +2468,7 @@ To get help on a QBasic keyword in the list below:
       Else
         SyncLock s_syncObject
           Array.Copy(m_scrn0, 0, Screen0, 0, Screen0.Length)
-          Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
+          If m_buffer IsNot Nothing Then Array.Copy(m_buffer, 0, Buffer, 0, Buffer.Length)
         End SyncLock
         QBLib.Video.COLOR(m_outputState.FgColor, m_outputState.BgColor)
         QBLib.Video.LOCATE(m_outputState.CursorRow, m_outputState.CursorCol)

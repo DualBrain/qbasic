@@ -2778,6 +2778,31 @@ Namespace Global.QB.CodeAnalysis
       End If
     End Sub
 
+    Private Function InitializeUdt(udtType As UdtTypeSymbol) As Dictionary(Of String, Object)
+      Dim udtDict = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
+      For Each field In udtType.Fields
+        If field.IsNestedUdt Then
+          ' This is a nested UDT - initialize it recursively using the nested type
+          If field.NestedUdtType IsNot Nothing Then
+            udtDict(field.Name) = InitializeUdt(field.NestedUdtType)
+          Else
+            ' Fallback if nested type is not available
+            udtDict(field.Name) = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
+          End If
+        ElseIf field.FixedLength > 0 Then
+          ' Initialize fixed-length strings with spaces
+          udtDict(field.Name) = New String(" "c, field.FixedLength)
+        ElseIf field.FieldType Is TypeSymbol.String Then
+          ' Initialize regular strings as empty
+          udtDict(field.Name) = ""
+        Else
+          ' Initialize numeric types as 0
+          udtDict(field.Name) = 0
+        End If
+      Next
+      Return udtDict
+    End Function
+
     Private Sub EvaluateVariableDeclaration(node As BoundVariableDeclaration)
       Dim value As Object
       If node.Variable.IsArray Then
@@ -2787,7 +2812,9 @@ Namespace Global.QB.CodeAnalysis
         Dim size = upperBound - lowerBound + 1
         Dim arrayList = New List(Of Object)(size)
         For i = 0 To size - 1
-          If node.Variable.Type Is TypeSymbol.String Then
+          If node.Variable.UdtType IsNot Nothing Then
+            arrayList.Add(New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase))
+          ElseIf node.Variable.Type Is TypeSymbol.String Then
             arrayList.Add("")
           Else
             arrayList.Add(0)
@@ -2795,8 +2822,8 @@ Namespace Global.QB.CodeAnalysis
         Next
         value = arrayList
       ElseIf node.Variable.IsUserDefinedType Then
-        ' Initialize UDT as empty dictionary
-        value = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
+        ' Initialize UDT with all nested UDT fields
+        value = InitializeUdt(node.Variable.UdtType)
       ElseIf node.Initializer IsNot Nothing Then
         value = EvaluateExpression(node.Initializer)
       Else
@@ -2847,7 +2874,7 @@ Namespace Global.QB.CodeAnalysis
           If arraySize <= 0 Then
             'Throw New Exception($"Invalid array size {arraySize}. Array must have at least 1 element.")
             Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
-          End If
+           End If
           Dim newSize = CInt(arraySize)
           ' Get existing list
           Dim existingList As List(Of Object) = Nothing
@@ -2858,7 +2885,13 @@ Namespace Global.QB.CodeAnalysis
           ' Create new list
           Dim newList = New List(Of Object)(newSize)
           For i = 0 To newSize - 1
-            newList.Add(0)
+            If variable.UdtType IsNot Nothing Then
+              newList.Add(New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase))
+            ElseIf variable.Type Is TypeSymbol.String Then
+              newList.Add("")
+            Else
+              newList.Add(0)
+            End If
           Next
           ' Copy old values if preserve
           If preserve AndAlso existingList IsNot Nothing Then
@@ -4221,20 +4254,56 @@ Namespace Global.QB.CodeAnalysis
         Dim arrayAccess = CType(expression, BoundArrayAccessExpression)
         Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
         tuple.Item1(tuple.Item2) = value
-      ElseIf TypeOf expression Is BoundMemberAccessExpression Then
+        ElseIf TypeOf expression Is BoundMemberAccessExpression Then
         Dim memberAccess = CType(expression, BoundMemberAccessExpression)
         ' Get the UDT instance
         Dim instanceExpr = memberAccess.Expression
         Dim instanceValue As Object = Nothing
         If TypeOf instanceExpr Is BoundVariableExpression Then
           instanceValue = EvaluateVariableExpression(CType(instanceExpr, BoundVariableExpression))
+        ElseIf TypeOf instanceExpr Is BoundArrayAccessExpression Then
+          ' Handle array access like buttons(0)
+          Dim arrayAccess = CType(instanceExpr, BoundArrayAccessExpression)
+          Dim arrayName = arrayAccess.Variable.Name
+          If m_globals.ContainsKey(arrayName) Then
+            If TypeOf m_globals(arrayName) Is List(Of Object) Then
+              Dim arr = CType(m_globals(arrayName), List(Of Object))
+            End If
+          Else
+          End If
+          Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
+          instanceValue = tuple.Item1(tuple.Item2)
+        ElseIf TypeOf instanceExpr Is BoundMemberAccessExpression Then
+          ' Handle nested UDT member access like p.addr.street
+          ' First, evaluate the outer member access (p.addr)
+          Dim outerMemberAccess = CType(instanceExpr, BoundMemberAccessExpression)
+          Dim outerInstanceExpr = outerMemberAccess.Expression
+          Dim outerInstanceValue As Object = Nothing
+          If TypeOf outerInstanceExpr Is BoundVariableExpression Then
+            outerInstanceValue = EvaluateVariableExpression(CType(outerInstanceExpr, BoundVariableExpression))
+          End If
+          If outerInstanceValue Is Nothing OrElse TypeOf outerInstanceValue IsNot Dictionary(Of String, Object) Then
+            Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+          End If
+          Dim outerUdtDict = DirectCast(outerInstanceValue, Dictionary(Of String, Object))
+          ' Get or initialize the nested UDT instance
+          If Not outerUdtDict.ContainsKey(outerMemberAccess.MemberName) OrElse outerUdtDict(outerMemberAccess.MemberName) Is Nothing Then
+            ' Lazily initialize the nested UDT
+            outerUdtDict(outerMemberAccess.MemberName) = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
+          End If
+          instanceValue = outerUdtDict(outerMemberAccess.MemberName)
         End If
         If instanceValue Is Nothing OrElse TypeOf instanceValue IsNot Dictionary(Of String, Object) Then
           Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
         End If
+        ' Apply fixed-length string padding if needed
+        Dim finalValue As Object = value
+        If memberAccess.FixedLength > 0 AndAlso TypeOf value Is String Then
+          finalValue = CStr(value).PadRight(memberAccess.FixedLength)
+        End If
         ' Assign to the field
         Dim udtDict = DirectCast(instanceValue, Dictionary(Of String, Object))
-        udtDict(memberAccess.MemberName) = value
+        udtDict(memberAccess.MemberName) = finalValue
       End If
     End Sub
 

@@ -870,13 +870,35 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       ' If the base is a UDT variable or array access of UDT, look up the field
       If baseExpr.Type Is TypeSymbol.Udt Then
-        ' Get the variable from either BoundVariableExpression or BoundArrayAccessExpression
+        ' Get the variable from either BoundVariableExpression, BoundArrayAccessExpression, or BoundMemberAccessExpression
         Dim varSymbol As VariableSymbol = Nothing
+        Dim nestedUdtType As UdtTypeSymbol = Nothing
 
         If TypeOf baseExpr Is BoundVariableExpression Then
           varSymbol = TryCast(CType(baseExpr, BoundVariableExpression).Variable, VariableSymbol)
         ElseIf TypeOf baseExpr Is BoundArrayAccessExpression Then
           varSymbol = CType(baseExpr, BoundArrayAccessExpression).Variable
+        ElseIf TypeOf baseExpr Is BoundMemberAccessExpression Then
+          ' Handle nested UDT member access (e.g., p.addr.street)
+          ' The base member access expression has a UDT type, so we need to look up
+          ' the parent UDT and then get the field from the nested UDT type
+          Dim memberAccess = CType(baseExpr, BoundMemberAccessExpression)
+          ' Look up the parent UDT variable
+          Dim parentVarSymbol As VariableSymbol = Nothing
+          If TypeOf memberAccess.Expression Is BoundVariableExpression Then
+            parentVarSymbol = TryCast(CType(memberAccess.Expression, BoundVariableExpression).Variable, VariableSymbol)
+          End If
+          If parentVarSymbol IsNot Nothing AndAlso parentVarSymbol.UdtType IsNot Nothing Then
+            Dim parentUdtType = parentVarSymbol.UdtType
+            Dim parentField = parentUdtType.GetField(memberAccess.MemberName)
+            If parentField IsNot Nothing Then
+              ' Only try to resolve nested UDT if this is a nested UDT field
+              If parentField.FieldType Is TypeSymbol.Udt AndAlso Not String.IsNullOrEmpty(parentField.UdtTypeName) Then
+                ' Get the nested UDT type from the parent field's UdtTypeName
+                nestedUdtType = m_scope.TryLookupType(parentField.UdtTypeName)
+              End If
+            End If
+          End If
         End If
 
         If varSymbol IsNot Nothing Then
@@ -886,13 +908,24 @@ Namespace Global.QB.CodeAnalysis.Binding
             ' Look up the field
             Dim field = udtType.GetField(memberName)
             If field IsNot Nothing Then
-              ' Return a member access expression with the field type
-              Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax)
+              ' Return a member access expression with the field type and fixed length
+              Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax, field.FixedLength)
             Else
               ' Field not found
               Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
               Return New BoundErrorExpression()
             End If
+          End If
+        End If
+
+        ' Handle nested UDT field access
+        If nestedUdtType IsNot Nothing Then
+          Dim field = nestedUdtType.GetField(memberName)
+          If field IsNot Nothing Then
+            Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax, field.FixedLength)
+          Else
+            Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
+            Return New BoundErrorExpression()
           End If
         End If
       End If
@@ -1960,26 +1993,39 @@ Namespace Global.QB.CodeAnalysis.Binding
                 End If
               End If
             End If
-          Else
+
+          fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength, If(fieldType Is TypeSymbol.Udt, typeNameStr, Nothing)))
+        Else
             ' No AS clause - infer from variable name suffix
             fieldType = ResolveVariableType(fieldName)
+            fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength))
           End If
-
-          fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength))
         End If
       Next
 
       Dim fields = fieldList.ToImmutableArray()
 
+      ' Resolve nested UDT types for all fields
+      Dim resolvedFields = New List(Of Binding.UdtField)
+      For Each field In fields
+        If field.FieldType Is TypeSymbol.Udt AndAlso Not String.IsNullOrEmpty(field.UdtTypeName) Then
+          ' Look up the nested UDT type
+          Dim nestedUdtType = m_scope.TryLookupType(field.UdtTypeName)
+          resolvedFields.Add(New Binding.UdtField(field.Name, field.FieldType, field.FixedLength, field.UdtTypeName, nestedUdtType))
+        Else
+          resolvedFields.Add(field)
+        End If
+      Next
+
       ' Create and register the UDT symbol
-      Dim fieldSymbols = fields.Select(Function(f) New UdtFieldSymbol(f.Name, f.FieldType, f.FixedLength)).ToImmutableArray()
+      Dim fieldSymbols = resolvedFields.Select(Function(f) New UdtFieldSymbol(f.Name, f.FieldType, f.FixedLength, f.UdtTypeName, f.NestedUdtType)).ToImmutableArray()
       Dim udtSymbol = New UdtTypeSymbol(typeName, fieldSymbols)
 
       If Not m_scope.TryDeclareType(udtSymbol) Then
         Diagnostics.ReportSymbolAlreadyDeclared(syntax.Identifier.Location, typeName)
       End If
 
-      Return New BoundTypeStatement(typeName, fields)
+      Return New BoundTypeStatement(typeName, resolvedFields.ToImmutableArray())
     End Function
 
     Private Function LookupUserDefinedType(typeName As String) As TypeSymbol

@@ -1916,7 +1916,7 @@ TYPE Person
   addr AS Address
 END TYPE
 DIM p AS Person
-PRINT ""Test passed""
+'PRINT ""Test passed""
 END
 "
 

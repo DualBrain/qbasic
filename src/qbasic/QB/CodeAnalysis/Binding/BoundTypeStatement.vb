@@ -23,11 +23,15 @@ Namespace Global.QB.CodeAnalysis.Binding
     Public ReadOnly Name As String
     Public ReadOnly FieldType As TypeSymbol
     Public ReadOnly FixedLength As Integer
+    Public ReadOnly UdtTypeName As String
+    Public ReadOnly NestedUdtType As Symbols.UdtTypeSymbol
 
-    Public Sub New(name As String, fieldType As TypeSymbol, fixedLength As Integer)
+    Public Sub New(name As String, fieldType As TypeSymbol, fixedLength As Integer, Optional udtTypeName As String = Nothing, Optional nestedUdtType As Symbols.UdtTypeSymbol = Nothing)
       Me.Name = name
       Me.FieldType = fieldType
       Me.FixedLength = fixedLength
+      Me.UdtTypeName = If(udtTypeName, String.Empty)
+      Me.NestedUdtType = nestedUdtType
     End Sub
   End Structure
 

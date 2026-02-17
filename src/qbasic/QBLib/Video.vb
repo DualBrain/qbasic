@@ -801,6 +801,7 @@ Namespace Global.QBLib
     Public Shared Property Buffer As Pixel()
 
     Private Sub New()
+      ReDim Screen0(1999)
     End Sub
 
     'Public Shared Sub Init()
@@ -1289,28 +1290,36 @@ Namespace Global.QBLib
 
     Public Shared Sub PSET([step] As Boolean, x%, y%)
       If [step] Then x += m_previousX : y += m_previousY
-      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(m_fgColor)
+      If x >= 0 AndAlso x < m_screenPixelWidth AndAlso y >= 0 AndAlso y < m_screenPixelHeight Then
+        Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(m_fgColor)
+      End If
       m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
 
     Public Shared Sub PSET([step] As Boolean, x%, y%, color As Integer?)
       If [step] Then x += m_previousX : y += m_previousY
-      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(If(color, m_fgColor))
+      If x >= 0 AndAlso x < m_screenPixelWidth AndAlso y >= 0 AndAlso y < m_screenPixelHeight Then
+        Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(If(color, m_fgColor))
+      End If
       m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
 
     Public Shared Sub PRESET([step] As Boolean, x%, y%)
       If [step] Then x += m_previousX : y += m_previousY
-      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(m_bgColor)
+      If x >= 0 AndAlso x < m_screenPixelWidth AndAlso y >= 0 AndAlso y < m_screenPixelHeight Then
+        Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(m_bgColor)
+      End If
       m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
 
     Public Shared Sub PRESET([step] As Boolean, x%, y%, color As Integer?)
       If [step] Then x += m_previousX : y += m_previousY
-      Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(If(color, m_bgColor))
+      If x >= 0 AndAlso x < m_screenPixelWidth AndAlso y >= 0 AndAlso y < m_screenPixelHeight Then
+        Buffer((x + 0) + (y * m_screenPixelWidth)) = m_palette(If(color, m_bgColor))
+      End If
       m_previousX = x : m_previousY = y
       Invalidate()
     End Sub
@@ -1735,14 +1744,14 @@ allplotted:
           '  m_pge.FillRect(CInt(Fix(x1)), CInt(Fix(y1)), CInt(Fix((x2 - x1))) + 1, CInt(Fix(y2 - y1)) + 1, m_palette(attr))
 
           If x1 < 0 Then x1 = 0
-          If x1 >= m_screenPixelWidth Then x1 = m_screenPixelWidth
+          If x1 >= m_screenPixelWidth Then x1 = m_screenPixelWidth - 1
           If y1 < 0 Then y1 = 0
-          If y1 >= m_screenPixelHeight Then y1 = m_screenPixelHeight
+          If y1 >= m_screenPixelHeight Then y1 = m_screenPixelHeight - 1
 
           If x2 < 0 Then x2 = 0
-          If x2 >= m_screenPixelWidth Then x2 = m_screenPixelWidth
+          If x2 >= m_screenPixelWidth Then x2 = m_screenPixelWidth - 1
           If y2 < 0 Then y2 = 0
-          If y2 >= m_screenPixelHeight Then y2 = m_screenPixelHeight
+          If y2 >= m_screenPixelHeight Then y2 = m_screenPixelHeight - 1
 
           For i = x1 To x2 - 1
             For j = y1 To y2 - 1

@@ -1180,7 +1180,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Shared Function BindGosubStatement(syntax As GosubStatementSyntax) As BoundStatement
-      Dim value = syntax.IdentifierToken.Text
+      Dim value = syntax.IdentifierToken.Text.ToLower()
       If IsNumeric(value) Then
         value = $"{GOTO_LABEL_PREFIX}{value}"
       End If

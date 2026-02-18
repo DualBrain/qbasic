@@ -1735,10 +1735,10 @@ allplotted:
         Case LineOption.B
           '  m_pge.DrawRect(CInt(Fix(x1)), CInt(Fix(y1)), CInt(Fix((x2 - x1))) + 1, CInt(Fix(y2 - y1)) + 1, m_palette(attr))
 
-          LINE(step1, x1, y1, step2, x2, y1, attr, lo, style)
-          LINE(step1, x2, y1, step2, x2, y2, attr, lo, style)
-          LINE(step1, x2, y2, step2, x1, y2, attr, lo, style)
-          LINE(step1, x1, y2, step2, x1, y1, attr, lo, style)
+          LINE(step1, x1, y1, step2, x2, y1, attr, LineOption.None, style)
+          LINE(step1, x2, y1, step2, x2, y2, attr, LineOption.None, style)
+          LINE(step1, x2, y2, step2, x1, y2, attr, LineOption.None, style)
+          LINE(step1, x1, y2, step2, x1, y1, attr, LineOption.None, style)
 
         Case LineOption.BF
           '  m_pge.FillRect(CInt(Fix(x1)), CInt(Fix(y1)), CInt(Fix((x2 - x1))) + 1, CInt(Fix(y2 - y1)) + 1, m_palette(attr))

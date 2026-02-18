@@ -1,14 +1,23 @@
 Imports System.Collections.Immutable
-
 Imports QB.CodeAnalysis.Symbols
+Imports QB.CodeAnalysis.Syntax
 
 Namespace Global.QB.CodeAnalysis.Binding
 
   Friend NotInheritable Class BoundTypeStatement
     Inherits BoundStatement
 
+    Private ReadOnly m_syntax As TypeStatementSyntax
+
     Public Sub New(typeName As String, fields As ImmutableArray(Of UdtField))
       MyBase.New()
+      Me.TypeName = typeName
+      Me.Fields = fields
+    End Sub
+
+    Public Sub New(syntax As TypeStatementSyntax, typeName As String, fields As ImmutableArray(Of UdtField))
+      MyBase.New()
+      m_syntax = syntax
       Me.TypeName = typeName
       Me.Fields = fields
     End Sub
@@ -17,6 +26,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Public ReadOnly Property TypeName As String
     Public ReadOnly Property Fields As ImmutableArray(Of UdtField)
+
+    Public Overrides ReadOnly Property Syntax As StatementSyntax
+      Get
+        Return m_syntax
+      End Get
+    End Property
 
   End Class
 

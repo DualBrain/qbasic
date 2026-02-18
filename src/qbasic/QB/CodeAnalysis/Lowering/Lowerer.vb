@@ -47,7 +47,7 @@ Namespace Global.QB.CodeAnalysis.Lowering
       End While
       If func.Type Is TypeSymbol.Nothing Then
         If builder.Count = 0 OrElse CanFallThrough(builder.Last) Then
-          builder.Add(New BoundReturnStatement(Nothing))
+          builder.Add(New BoundReturnStatement())
         End If
       End If
       Return New BoundBlockStatement(builder.ToImmutable)

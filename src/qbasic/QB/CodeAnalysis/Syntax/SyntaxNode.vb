@@ -405,6 +405,58 @@ Namespace Global.QB.CodeAnalysis.Syntax
       End Using
     End Function
 
+    Public Function ToSource() As String
+      Return WriteSyntaxTreeToText(Me)
+    End Function
+
+    Private Function WriteSyntaxTreeToText(node As SyntaxNode) As String
+      Using writer = New System.IO.StringWriter()
+        WriteNodeWithTrivia(writer, node)
+        Return writer.ToString()
+      End Using
+    End Function
+
+    Private Sub WriteNodeWithTrivia(writer As System.IO.TextWriter, node As SyntaxNode)
+      If TypeOf node Is SyntaxToken Then
+        Dim token = CType(node, SyntaxToken)
+
+        ' Write leading trivia
+        For Each trivia In token.LeadingTrivia
+          writer.Write(trivia.Text)
+        Next
+
+        ' Write token text
+        writer.Write(token.Text)
+
+        ' Write trailing trivia
+        For Each trivia In token.TrailingTrivia
+          writer.Write(trivia.Text)
+        Next
+      Else
+        ' Special handling for statements that need custom formatting
+        If TypeOf node Is CommonStatementSyntax Then
+          Dim commonStmt = CType(node, CommonStatementSyntax)
+          WriteNodeWithTrivia(writer, commonStmt.CommonKeyword)
+          If commonStmt.SharedKeyword IsNot Nothing Then
+            writer.Write(" ")
+            WriteNodeWithTrivia(writer, commonStmt.SharedKeyword)
+          End If
+          writer.Write(" ")
+          For i = 0 To commonStmt.Variables.Length - 1
+            WriteNodeWithTrivia(writer, commonStmt.Variables(i))
+            If i < commonStmt.Variables.Length - 1 Then
+              writer.Write(", ")
+            End If
+          Next
+        Else
+          ' For non-token nodes, recursively process children
+          For Each child In node.GetChildren()
+            WriteNodeWithTrivia(writer, child)
+          Next
+        End If
+      End If
+    End Sub
+
   End Class
 
   Public MustInherit Class QbSyntaxNode

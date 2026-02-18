@@ -1,4 +1,6 @@
-﻿Namespace Global.QB.CodeAnalysis.Binding
+Imports QB.CodeAnalysis.Syntax
+
+Namespace Global.QB.CodeAnalysis.Binding
 
   Friend NotInheritable Class BoundConditionalGotoStatement
     Inherits BoundStatement

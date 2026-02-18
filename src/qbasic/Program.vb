@@ -66,7 +66,7 @@ Friend Module Program
 
   Sub Main(args As String())
     ' Register encoding provider for legacy code pages (needed for Chr function with extended ASCII)
-    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+    'Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
     If Today > New Date(2026, 3, 1) Then Return
 
@@ -500,7 +500,7 @@ Friend Module Program
 
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath, False, commandString)
+      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath, Not stdoutMode, commandString)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")

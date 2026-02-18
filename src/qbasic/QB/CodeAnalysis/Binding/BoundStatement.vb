@@ -11,6 +11,12 @@ Namespace Global.QB.CodeAnalysis.Binding
       End Get
     End Property
 
+    'Public Overridable ReadOnly Property SyntaxIndex As Integer?
+    '  Get
+    '    Return New Integer?
+    '  End Get
+    'End Property
+
   End Class
 
 End Namespace

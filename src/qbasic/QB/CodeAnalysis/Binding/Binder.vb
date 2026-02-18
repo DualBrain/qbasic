@@ -938,24 +938,24 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindPokeStatement(syntax As PokeStatementSyntax) As BoundStatement
       Dim offset = BindExpression(syntax.Offset)
       Dim value = BindExpression(syntax.Value)
-      Return New BoundPokeStatement(offset, value)
+      Return New BoundPokeStatement(syntax, offset, value)
     End Function
 
     Private Function BindOutStatement(syntax As OutStatementSyntax) As BoundStatement
       Dim port = BindExpression(syntax.Port)
       Dim data = BindExpression(syntax.Data)
-      Return New BoundOutStatement(port, data)
+      Return New BoundOutStatement(syntax, port, data)
     End Function
 
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
-      Return New BoundChDirStatement(path)
+      Return New BoundChDirStatement(syntax, path)
     End Function
 
     Private Function BindChainStatement(syntax As ChainStatementSyntax) As BoundStatement
       Dim filename = BindExpression(syntax.Filename)
       Dim optionalLine = If(syntax.OptionalLine IsNot Nothing, BindExpression(syntax.OptionalLine), Nothing)
-      Return New BoundChainStatement(filename, optionalLine)
+      Return New BoundChainStatement(syntax, filename, optionalLine)
     End Function
 
     Private Function BindCircleStatement(syntax As CircleStatementSyntax) As BoundStatement
@@ -967,26 +967,26 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim start = If(syntax.OptionalStart IsNot Nothing, BindExpression(syntax.OptionalStart), Nothing)
       Dim [end] = If(syntax.OptionalEnd IsNot Nothing, BindExpression(syntax.OptionalEnd), Nothing)
       Dim aspect = If(syntax.OptionalAspect IsNot Nothing, BindExpression(syntax.OptionalAspect), Nothing)
-      Return New BoundCircleStatement([step], x, y, radius, color, start, [end], aspect)
+      Return New BoundCircleStatement(syntax, [step], x, y, radius, color, start, [end], aspect)
     End Function
 
     Private Function BindClearStatement(syntax As ClearStatementSyntax) As BoundStatement
       Dim dummyExpression1 = If(syntax.DummyExpression1 IsNot Nothing, BindExpression(syntax.DummyExpression1), Nothing)
       Dim dummyExpression2 = If(syntax.DummyExpression2 IsNot Nothing, BindExpression(syntax.DummyExpression2), Nothing)
       Dim stackSpaceExpression = If(syntax.StackSpaceExpression IsNot Nothing, BindExpression(syntax.StackSpaceExpression), Nothing)
-      Return New BoundClearStatement(dummyExpression1, dummyExpression2, stackSpaceExpression)
+      Return New BoundClearStatement(syntax, dummyExpression1, dummyExpression2, stackSpaceExpression)
     End Function
 
     Private Function BindClsStatement(syntax As ClsStatementSyntax) As BoundStatement
       Dim expression = If(syntax.Expression IsNot Nothing, BindExpression(syntax.Expression), Nothing)
-      Return New BoundClsStatement(expression)
+      Return New BoundClsStatement(syntax, expression)
     End Function
 
     Private Function BindColorStatement(syntax As ColorStatementSyntax) As BoundStatement
       Dim argumentExpression1 = If(syntax.ArgumentExpression1 IsNot Nothing, BindExpression(syntax.ArgumentExpression1), Nothing)
       Dim argumentExpression2 = If(syntax.ArgumentExpression2 IsNot Nothing, BindExpression(syntax.ArgumentExpression2), Nothing)
       Dim argumentExpression3 = If(syntax.ArgumentExpression3 IsNot Nothing, BindExpression(syntax.ArgumentExpression3), Nothing)
-      Return New BoundColorStatement(argumentExpression1, argumentExpression2, argumentExpression3)
+      Return New BoundColorStatement(syntax, argumentExpression1, argumentExpression2, argumentExpression3)
     End Function
 
     Private Function BindContinueStatement(syntax As ContinueStatementSyntax) As BoundStatement
@@ -1031,7 +1031,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim statements = BindLoopBody(syntax.Statements, exitLabel, continueLabel)
       Dim expression = BindExpression(syntax.UntilClause.Expression, TypeSymbol.Boolean)
       Dim atBeginning = syntax.UntilClause.AtBeginning
-      Return New BoundDoUntilStatement(statements, expression, atBeginning, exitLabel, continueLabel)
+      Return New BoundDoUntilStatement(syntax, statements, expression, atBeginning, exitLabel, continueLabel)
     End Function
 
     Private Function BindDoWhileStatement(syntax As DoWhileStatementSyntax) As BoundStatement
@@ -1049,17 +1049,17 @@ Namespace Global.QB.CodeAnalysis.Binding
         expression = BindExpression(syntax.WhileClause.Expression, TypeSymbol.Boolean)
       End If
       Dim atBeginning = syntax.WhileClause Is Nothing OrElse syntax.WhileClause.AtBeginning
-      Return New BoundDoWhileStatement(statements, expression, atBeginning, exitLabel, continueLabel)
+      Return New BoundDoWhileStatement(syntax, statements, expression, atBeginning, exitLabel, continueLabel)
     End Function
 
     Private Shared Function BindBeepStatement(syntax As BeepStatementSyntax) As BoundStatement
-      Return New BoundBeepStatement()
+      Return New BoundBeepStatement(syntax)
     End Function
 
     Private Shared Function BindEndStatement(syntax As EndStatementSyntax) As BoundStatement
       If syntax IsNot Nothing Then
       End If
-      Return New BoundEndStatement()
+      Return New BoundEndStatement(syntax)
     End Function
 
     Private Function BindExitStatement(syntax As ExitStatementSyntax) As BoundStatement
@@ -1076,12 +1076,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindEnvironStatement(syntax As EnvironStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression, TypeSymbol.String)
-      Return New BoundEnvironStatement(expression)
+      Return New BoundEnvironStatement(syntax, expression)
     End Function
 
     Private Function BindExpressionStatement(syntax As ExpressionStatementSyntax) As BoundStatement
       Dim expression = BindExpression(syntax.Expression, canBeVoid:=True)
-      Return New BoundExpressionStatement(expression)
+      Return New BoundExpressionStatement(syntax, expression)
     End Function
 
     Private Function BindForStatement(syntax As ForStatementSyntax) As BoundStatement
@@ -1103,7 +1103,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       m_scope = m_scope.Parent
 
-      Return New BoundForStatement(variable, lowerBound, upperBound, stepper, body, exitLabel, continueLabel)
+      Return New BoundForStatement(syntax, variable, lowerBound, upperBound, stepper, body, exitLabel, continueLabel)
 
     End Function
 
@@ -1162,21 +1162,21 @@ Namespace Global.QB.CodeAnalysis.Binding
         fieldDefinitions.Add((width, identifier.Text))
       Next
 
-      Return New BoundFieldStatement(fileNumber, fieldDefinitions.ToImmutableArray())
+      Return New BoundFieldStatement(syntax, fileNumber, fieldDefinitions.ToImmutableArray())
     End Function
 
     Private Function BindGetFileStatement(syntax As GetFileStatementSyntax) As BoundStatement
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim optionalRecord = If(syntax.OptionalRecord IsNot Nothing, BindExpression(syntax.OptionalRecord), Nothing)
       Dim optionalVariable = If(syntax.OptionalVariable IsNot Nothing, syntax.OptionalVariable.Text, Nothing)
-      Return New BoundGetFileStatement(fileNumber, optionalRecord, optionalVariable)
+      Return New BoundGetFileStatement(syntax, fileNumber, optionalRecord, optionalVariable)
     End Function
 
     Private Function BindPutFileStatement(syntax As PutFileStatementSyntax) As BoundStatement
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim optionalRecord = If(syntax.OptionalRecord IsNot Nothing, BindExpression(syntax.OptionalRecord), Nothing)
       Dim optionalVariable = If(syntax.OptionalVariable IsNot Nothing, syntax.OptionalVariable.Identifier.Text, Nothing)
-      Return New BoundPutFileStatement(fileNumber, optionalRecord, optionalVariable)
+      Return New BoundPutFileStatement(syntax, fileNumber, optionalRecord, optionalVariable)
     End Function
 
     Private Shared Function BindGosubStatement(syntax As GosubStatementSyntax) As BoundStatement
@@ -1185,7 +1185,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         value = $"{GOTO_LABEL_PREFIX}{value}"
       End If
       Dim label = New BoundLabel(value)
-      Return New BoundGosubStatement(label)
+      Return New BoundGosubStatement(syntax, label)
     End Function
 
     Private Shared Function BindGotoStatement(syntax As GotoStatementSyntax) As BoundStatement
@@ -1194,7 +1194,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         value = $"{GOTO_LABEL_PREFIX}{value}"
       End If
       Dim label = New BoundLabel(value)
-      Return New BoundGotoStatement(label)
+      Return New BoundGotoStatement(syntax, label)
     End Function
 
     Private Function BindOnGotoStatement(syntax As OnGotoStatementSyntax) As BoundStatement
@@ -1253,7 +1253,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Next
 
       Dim elseClause = If(syntax.ElseClause IsNot Nothing, BindStatement(syntax.ElseClause.Statements), Nothing)
-      Return New BoundIfStatement(condition, thenStatement, elseIfStatementsBuilder.ToImmutable(), elseClause)
+      Return New BoundIfStatement(syntax, condition, thenStatement, elseIfStatementsBuilder.ToImmutable(), elseClause)
 
     End Function
 
@@ -1290,7 +1290,7 @@ Namespace Global.QB.CodeAnalysis.Binding
             fileVariables.Add(variable)
           End If
         Next
-        Return New BoundInputStatement(fileNumber, fileVariables.ToImmutableArray())
+        Return New BoundInputStatement(syntax, fileNumber, fileVariables.ToImmutableArray())
       End If
 
       Dim suppressCr = syntax.OptionalSemiColonToken IsNot Nothing
@@ -1341,12 +1341,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
         End If
       Next
-      Return New BoundInputStatement(suppressCr, suppressQuestionMark, prompt, variables.ToImmutableArray)
+      Return New BoundInputStatement(syntax, suppressCr, suppressQuestionMark, prompt, variables.ToImmutableArray)
     End Function
 
     Private Function BindKillStatement(syntax As KillStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
-      Return New BoundKillStatement(path)
+      Return New BoundKillStatement(syntax, path)
     End Function
 
     Private Shared Function BindLabelStatement(syntax As LabelStatementSyntax) As BoundStatement
@@ -1396,7 +1396,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
           Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type, allowExplicit:=True)
 
-          Return New BoundLetStatement(variable, convertedExpression)
+          Return New BoundLetStatement(syntax, variable, convertedExpression)
 
         End If
       Next
@@ -1439,7 +1439,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       ' Bind conversion if needed
       Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type, allowExplicit:=True)
 
-      Return New BoundLsetStatement(variable, convertedExpression)
+      Return New BoundLsetStatement(syntax, variable, convertedExpression)
     End Function
 
     Private Function BindRsetStatement(syntax As RSetStatementSyntax) As BoundStatement
@@ -1476,7 +1476,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       ' Bind conversion if needed
       Dim convertedExpression = BindConversion(syntax.Expression.Location, boundExpression, variable.Type, allowExplicit:=True)
 
-      Return New BoundRsetStatement(variable, convertedExpression)
+      Return New BoundRsetStatement(syntax, variable, convertedExpression)
     End Function
 
     'Dim name = CType(syntax.Identifiers(0), SyntaxToken).Text
@@ -1543,7 +1543,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case Else
       End Select
       Dim style = If(syntax.OptionalStyle Is Nothing, Nothing, BindExpression(syntax.OptionalStyle))
-      Return New BoundLineStatement(step1, x1, y1, step2, x2, y2, attribute, mode, style)
+      Return New BoundLineStatement(syntax, step1, x1, y1, step2, x2, y2, attribute, mode, style)
     End Function
 
     Private Function BindLocateStatement(syntax As LocateStatementSyntax) As BoundStatement
@@ -1552,7 +1552,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim visible = If(syntax.Visible Is Nothing, Nothing, BindExpression(syntax.Visible))
       Dim scanStart = If(syntax.ScanStart Is Nothing, Nothing, BindExpression(syntax.ScanStart))
       Dim scanStop = If(syntax.ScanStop Is Nothing, Nothing, BindExpression(syntax.ScanStop))
-      Return New BoundLocateStatement(row, col, visible, scanStart, scanStop)
+      Return New BoundLocateStatement(syntax, row, col, visible, scanStart, scanStop)
     End Function
 
     Private Function BindLoopBody(statements As StatementSyntax, ByRef exitLabel As BoundLabel, ByRef continueLabel As BoundLabel) As BoundStatement
@@ -1574,18 +1574,18 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim positionExpression = If(syntax.PositionExpression Is Nothing, Nothing, BindExpression(syntax.PositionExpression))
       Dim lengthExpression = If(syntax.LengthExpression Is Nothing, Nothing, BindExpression(syntax.LengthExpression))
       Dim expression = If(syntax.Expression Is Nothing, Nothing, BindExpression(syntax.Expression))
-      Return New BoundMidStatement(targetExpression, positionExpression, lengthExpression, expression)
+      Return New BoundMidStatement(syntax, targetExpression, positionExpression, lengthExpression, expression)
     End Function
 
     Private Function BindMkDirStatement(syntax As MkDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
-      Return New BoundMkDirStatement(path)
+      Return New BoundMkDirStatement(syntax, path)
     End Function
 
     Private Function BindNameStatement(syntax As NameStatementSyntax) As BoundStatement
       Dim originalPath = BindExpression(syntax.OriginalPath)
       Dim destinationPath = BindExpression(syntax.DestinationPath)
-      Return New BoundNameStatement(originalPath, destinationPath)
+      Return New BoundNameStatement(syntax, originalPath, destinationPath)
     End Function
 
     'Private Function BindIdentifierExpression(syntax As IdentifierSyntax) As BoundExpression
@@ -1751,7 +1751,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       m_optionBase = number
       m_optionBaseDeclared = True
-      Return New BoundOptionStatement(number)
+      Return New BoundOptionStatement(syntax, number)
     End Function
 
     Private Function BindParenExpression(syntax As ParenExpressionSyntax) As BoundExpression
@@ -1803,7 +1803,7 @@ Namespace Global.QB.CodeAnalysis.Binding
           ' Actually, BoundPrintFileStatement handles this via the Format property
         End If
 
-        Return New BoundPrintFileStatement(fileNumber, format, nodes.ToImmutableArray())
+        Return New BoundPrintFileStatement(syntax, fileNumber, format, nodes.ToImmutableArray())
       Else
         ' For screen print
         Dim nodes = New List(Of BoundNode)
@@ -1828,7 +1828,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         If nodes.Count > 0 AndAlso nodes.Last.Kind = BoundNodeKind.Symbol Then
           suppressCr = True
         End If
-        Return New BoundPrintStatement(nodes.ToImmutableArray(), format, suppressCr)
+        Return New BoundPrintStatement(syntax, nodes.ToImmutableArray(), format, suppressCr)
       End If
 
     End Function
@@ -1857,7 +1857,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       End If
 
-      Return New BoundWriteStatement(fileNumber, nodes.ToImmutableArray(), suppressCr)
+      Return New BoundWriteStatement(syntax, fileNumber, nodes.ToImmutableArray(), suppressCr)
     End Function
 
     Private Function BindPsetStatement(syntax As PsetStatementSyntax) As BoundStatement
@@ -1868,7 +1868,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       If syntax.OptionalColorExpression IsNot Nothing Then
         color = BindExpression(syntax.OptionalColorExpression, TypeSymbol.Single)
       End If
-      Return New BoundPsetStatement([step], x, y, color)
+      Return New BoundPsetStatement(syntax, [step], x, y, color)
     End Function
 
     Private Function BindPresetStatement(syntax As PresetStatementSyntax) As BoundStatement
@@ -1879,7 +1879,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       If syntax.OptionalColorExpression IsNot Nothing Then
         color = BindExpression(syntax.OptionalColorExpression, TypeSymbol.Single)
       End If
-      Return New BoundPresetStatement([step], x, y, color)
+      Return New BoundPresetStatement(syntax, [step], x, y, color)
     End Function
 
     Private Sub ProcessMetacommandsInTrivia(triviaList As ImmutableArray(Of SyntaxTrivia))
@@ -1904,7 +1904,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         m_arrayModeDynamic = False
       End If
 
-      Return New BoundRemStatement()
+      Return New BoundRemStatement(syntax)
     End Function
 
     Private Function BindDefTypeStatement(syntax As DefTypeStatementSyntax) As BoundStatement
@@ -1947,7 +1947,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Next
 
       ' For now, we don't need to generate any runtime code for DEF statements
-      Return New BoundRemStatement()
+      Return New BoundDefTypeStatement(syntax, typeSymbol, New List(Of (Char, Char)))
     End Function
 
     Private Sub AddDefTypeRange(letter As String, typeSym As TypeSymbol)
@@ -2165,19 +2165,19 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Shared Function BindStopStatement(syntax As StopStatementSyntax) As BoundStatement
       If syntax IsNot Nothing Then
       End If
-      Return New BoundStopStatement()
+      Return New BoundStopStatement(syntax)
     End Function
 
     Private Shared Function BindSystemStatement(syntax As SystemStatementSyntax) As BoundStatement
       If syntax IsNot Nothing Then
       End If
-      Return New BoundSystemStatement()
+      Return New BoundSystemStatement(syntax)
     End Function
 
     Private Function BindSwapStatement(syntax As SwapStatementSyntax) As BoundStatement
       Dim variable1 = BindNameExpression(CType(syntax.Variable1, NameExpressionSyntax))
       Dim variable2 = BindNameExpression(CType(syntax.Variable2, NameExpressionSyntax))
-      Return New BoundSwapStatement(variable1, variable2)
+      Return New BoundSwapStatement(syntax, variable1, variable2)
     End Function
 
     Private Function BindUnaryExpression(syntax As UnaryExpressionSyntax) As BoundExpression
@@ -2340,7 +2340,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Return New BoundDimStatement(boundDeclarations.ToImmutable(), isShared)
+      Return New BoundDimStatement(syntax, boundDeclarations.ToImmutable(), isShared)
     End Function
 
     Private Function BindConstStatement(syntax As ConstStatementSyntax) As BoundStatement
@@ -2377,7 +2377,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Return New BoundCommonStatement(boundDeclarations.ToImmutable(), isShared)
+      Return New BoundCommonStatement(syntax, boundDeclarations.ToImmutable(), isShared)
     End Function
 
     Private Function BindRedimStatement(syntax As RedimStatementSyntax) As BoundStatement
@@ -2456,7 +2456,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Return New BoundRedimStatement(preserve, boundDeclarations.ToImmutable(), isShared)
+      Return New BoundRedimStatement(syntax, preserve, boundDeclarations.ToImmutable(), isShared)
     End Function
 
     Private Function BindEraseStatement(syntax As EraseStatementSyntax) As BoundStatement
@@ -2485,13 +2485,13 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       Next
 
-      Return New BoundEraseStatement(boundVariables.ToImmutable())
+      Return New BoundEraseStatement(syntax, boundVariables.ToImmutable())
     End Function
 
     Private Function BindCallStatement(syntax As CallStatementSyntax) As BoundStatement
       Dim callSyntax = New CallExpressionSyntax(syntax.SyntaxTree, syntax.Identifier, syntax.OpenParen, syntax.Expressions, syntax.CloseParen)
       Dim boundCall = CType(BindExpression(callSyntax, True), BoundCallExpression)
-      Return New BoundCallStatement(boundCall)
+      Return New BoundCallStatement(syntax, boundCall)
     End Function
 
     Private Sub BindDimensionsClause(syntax As DimensionsClauseSyntax, ByRef lower As BoundExpression, ByRef upper As BoundExpression)
@@ -2567,43 +2567,43 @@ Namespace Global.QB.CodeAnalysis.Binding
       Else
         ' ON ERROR GOTO target (label or line number)
         Dim targetExpr = BindExpression(syntax.Target)
-        Return New BoundOnErrorGotoStatement(targetExpr)
+        Return New BoundOnErrorGotoStatement(syntax, targetExpr)
       End If
     End Function
 
     Private Function BindOnTimerGosubStatement(syntax As OnTimerGosubStatementSyntax) As BoundStatement
       Dim interval = BindExpression(syntax.Interval)
       Dim target = BindExpression(syntax.Target)
-      Return New BoundOnTimerGosubStatement(interval, target)
+      Return New BoundOnTimerGosubStatement(syntax, interval, target)
     End Function
 
     Private Function BindOnComGosubStatement(syntax As OnComGosubStatementSyntax) As BoundStatement
       Dim channel = BindExpression(syntax.Channel)
       Dim target = BindExpression(syntax.Target)
-      Return New BoundOnComGosubStatement(channel, target)
+      Return New BoundOnComGosubStatement(syntax, channel, target)
     End Function
 
     Private Function BindOnKeyGosubStatement(syntax As OnKeyGosubStatementSyntax) As BoundStatement
       Dim keyNumber = BindExpression(syntax.KeyNumber)
       Dim target = BindExpression(syntax.Target)
-      Return New BoundOnKeyGosubStatement(keyNumber, target)
+      Return New BoundOnKeyGosubStatement(syntax, keyNumber, target)
     End Function
 
     Private Function BindOnStrigGosubStatement(syntax As OnStrigGosubStatementSyntax) As BoundStatement
       Dim triggerNumber = BindExpression(syntax.TriggerNumber)
       Dim target = BindExpression(syntax.Target)
-      Return New BoundOnStrigGosubStatement(triggerNumber, target)
+      Return New BoundOnStrigGosubStatement(syntax, triggerNumber, target)
     End Function
 
     Private Function BindOnPlayGosubStatement(syntax As OnPlayGosubStatementSyntax) As BoundStatement
       Dim queueSize = BindExpression(syntax.QueueSize)
       Dim target = BindExpression(syntax.Target)
-      Return New BoundOnPlayGosubStatement(queueSize, target)
+      Return New BoundOnPlayGosubStatement(syntax, queueSize, target)
     End Function
 
     Private Function BindOnPenGosubStatement(syntax As OnPenGosubStatementSyntax) As BoundStatement
       Dim target = BindExpression(syntax.Target)
-      Return New BoundOnPenGosubStatement(target)
+      Return New BoundOnPenGosubStatement(syntax, target)
     End Function
 
     Private Function BindOpenStatement(syntax As OpenStatementSyntax) As BoundStatement
@@ -2631,7 +2631,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Next
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim recLen = If(syntax.RecLen IsNot Nothing, BindExpression(syntax.RecLen), Nothing)
-      Return New BoundOpenStatement(file, mode, access.ToImmutableArray(), lock.ToImmutableArray(), fileNumber, recLen)
+      Return New BoundOpenStatement(syntax, file, mode, access.ToImmutableArray(), lock.ToImmutableArray(), fileNumber, recLen)
     End Function
 
     Private Function BindCloseStatement(syntax As CloseStatementSyntax) As BoundStatement
@@ -2641,38 +2641,38 @@ Namespace Global.QB.CodeAnalysis.Binding
       Else
         fileNumbers = ImmutableArray(Of BoundExpression).Empty
       End If
-      Return New BoundCloseStatement(fileNumbers)
+      Return New BoundCloseStatement(syntax, fileNumbers)
     End Function
 
     Private Function BindResetStatement(syntax As ResetStatementSyntax) As BoundStatement
-      Return New BoundResetStatement()
+      Return New BoundResetStatement(syntax)
     End Function
 
     Private Function BindSeekStatement(syntax As SeekStatementSyntax) As BoundStatement
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim position = BindExpression(syntax.Position)
-      Return New BoundSeekStatement(fileNumber, position)
+      Return New BoundSeekStatement(syntax, fileNumber, position)
     End Function
 
     Private Function BindLineInputFileStatement(syntax As LineInputFileStatementSyntax) As BoundStatement
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim variable = BindExpression(syntax.Identifier)
-      Return New BoundLineInputFileStatement(fileNumber, variable)
+      Return New BoundLineInputFileStatement(syntax, fileNumber, variable)
     End Function
 
     Private Function BindResumeStatement(syntax As ResumeStatementSyntax) As BoundStatement
       If syntax.OptionalLine IsNot Nothing Then
         ' RESUME label/line
         Dim lineExpr = BindExpression(syntax.OptionalLine)
-        Return New BoundResumeStatement(lineExpr)
+        Return New BoundResumeStatement(syntax, lineExpr)
       Else
         ' RESUME (resume at error line)
-        Return New BoundResumeStatement(Nothing)
+        Return New BoundResumeStatement(syntax, Nothing)
       End If
     End Function
 
     Private Function BindResumeNextStatement(syntax As ResumeNextStatementSyntax) As BoundStatement
-      Return New BoundResumeNextStatement()
+      Return New BoundResumeNextStatement(syntax)
     End Function
 
     Private Function BindNextStatement(syntax As NextStatementSyntax) As BoundStatement
@@ -2938,7 +2938,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     'End Function
 
     Private Function BindPenStatement(syntax As PenStatementSyntax) As BoundStatement
-      Return New BoundPenStatement(syntax.VerbKeyword.Kind)
+      Return New BoundPenStatement(syntax, syntax.VerbKeyword.Kind)
     End Function
 
     Private Function BindSelectCaseStatement(syntax As SelectCaseStatementSyntax) As BoundStatement
@@ -2968,7 +2968,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         elseStatement = BindStatement(syntax.CaseElseClause.Statement)
       End If
 
-      Return New BoundSelectCaseStatement(test, cases.ToImmutable(), elseStatement)
+      Return New BoundSelectCaseStatement(syntax, test, cases.ToImmutable(), elseStatement)
     End Function
 
   End Class

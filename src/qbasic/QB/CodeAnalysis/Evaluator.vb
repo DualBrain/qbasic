@@ -1013,6 +1013,10 @@ Namespace Global.QB.CodeAnalysis
               ' TYPE statements are handled at bind time - no runtime evaluation needed
               ' The UDT type is registered in the binder and variables are created with the proper type
               index += 1
+            Case BoundNodeKind.DefTypeStatement
+              ' DEFINT/DEFLNG/etc. statements are handled at bind time - no runtime evaluation needed
+              ' The type defaults are registered in the binder
+              index += 1
             Case Else
               Throw New Exception($"Unexpected kind {s.Kind}")
           End Select
@@ -5034,7 +5038,7 @@ Namespace Global.QB.CodeAnalysis
       Dim statementText As String = ""
       If statement.Syntax IsNot Nothing Then
         Try
-          statementText = statement.Syntax.ToString()
+          statementText = statement.Syntax.ToSource()
         Catch ex As Exception
           statementText = "[Complex statement]"
         End Try

@@ -1,5 +1,4 @@
 Imports System.Collections.Immutable
-
 Imports QB.CodeAnalysis.Syntax
 
 Namespace Global.QB.CodeAnalysis.Binding
@@ -7,7 +6,16 @@ Namespace Global.QB.CodeAnalysis.Binding
   Friend NotInheritable Class BoundSelectCaseStatement
     Inherits BoundStatement
 
+    Private ReadOnly m_syntax As SelectCaseStatementSyntax
+
     Public Sub New(test As BoundExpression, cases As ImmutableArray(Of BoundCaseStatement), elseStatement As BoundStatement)
+      Me.Test = test
+      Me.Cases = cases
+      Me.ElseStatement = elseStatement
+    End Sub
+
+    Public Sub New(syntax As SelectCaseStatementSyntax, test As BoundExpression, cases As ImmutableArray(Of BoundCaseStatement), elseStatement As BoundStatement)
+      m_syntax = syntax
       Me.Test = test
       Me.Cases = cases
       Me.ElseStatement = elseStatement
@@ -17,6 +25,12 @@ Namespace Global.QB.CodeAnalysis.Binding
     Public ReadOnly Property Test As BoundExpression
     Public ReadOnly Property Cases As ImmutableArray(Of BoundCaseStatement)
     Public ReadOnly Property ElseStatement As BoundStatement
+
+    Public Overrides ReadOnly Property Syntax As StatementSyntax
+      Get
+        Return m_syntax
+      End Get
+    End Property
 
   End Class
 

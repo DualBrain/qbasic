@@ -19,38 +19,91 @@ Friend Module Program
 
   Friend ReadOnly s_syncObject As New Object
 
+  ' Windows API for console allocation
+  Friend Const ATTACH_PARENT_PROCESS As Integer = -1
+
+  Friend Declare Auto Function AttachConsole Lib "kernel32.dll" (dwProcessId As Integer) As Boolean
+  Friend Declare Auto Function AllocConsole Lib "kernel32.dll" () As Boolean
+  Friend Declare Auto Function FreeConsole Lib "kernel32.dll" () As Boolean
+
+  Friend m_consoleAllocated As Boolean = False
+
+  ''' <summary>
+  ''' Allocates a console window for output. Called automatically when launching with a .bas file.
+  ''' </summary>
+  Private Sub AllocateConsole()
+    ' Try to attach to parent console first (if run from command line)
+    If Not AttachConsole(ATTACH_PARENT_PROCESS) Then
+      ' No parent console, allocate a new one
+      AllocConsole()
+    End If
+    m_consoleAllocated = True
+  End Sub
+
+  ''' <summary>
+  ''' Frees the allocated console if one was allocated.
+  ''' </summary>
+  Private Sub FreeAllocatedConsole()
+    If m_consoleAllocated Then
+      FreeConsole()
+      m_consoleAllocated = False
+    End If
+  End Sub
+
   Sub Main(args As String())
     ' Register encoding provider for legacy code pages (needed for Chr function with extended ASCII)
     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
     If Today > New Date(2026, 3, 1) Then Return
+
     Dim commandLineArgs As String() = Nothing
+    Dim filename As String = Nothing
+    Dim stdoutMode As Boolean = False
+    Dim logFilePath As String = Nothing
+
+    ' Pre-scan for key options
+    For i = 0 To args.Length - 1
+      Dim arg = args(i)
+      If arg.EndsWith(".bas", StringComparison.OrdinalIgnoreCase) Then
+        filename = arg
+      ElseIf arg.Equals("--stdout", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-s", StringComparison.OrdinalIgnoreCase) Then
+        stdoutMode = True
+      ElseIf arg.Equals("--log", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-l", StringComparison.OrdinalIgnoreCase) Then
+        If i + 1 < args.Length Then
+          logFilePath = args(i + 1)
+        End If
+      End If
+    Next
+
     If args.Length > 0 Then
-      If Not HandleCommandLineArguments(args, commandLineArgs) Then
-        ' Command line processing failed or showed help/error, exit
+      If Not HandleCommandLineArguments(args, commandLineArgs, stdoutMode, logFilePath, filename) Then
+        FreeAllocatedConsole()
         Return
       End If
     Else
-      ' No arguments, start GUI normally
+      ' No arguments, start GUI normally without console
       Dim demo As New QBasic
-      If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
+      If demo.Construct(640, 400, 1, 1) Then
         demo.ShowEngineName = False : demo.ShowIPS = False
         demo.Start()
       End If
     End If
+
+    ' Clean up console if one was allocated
+    FreeAllocatedConsole()
   End Sub
 
-  Private Function HandleCommandLineArguments(args As String(), ByRef commandLineArgs As String()) As Boolean
-    Dim filename As String = Nothing
+  Private Function HandleCommandLineArguments(args As String(), ByRef commandLineArgs As String(), Optional preParsedStdoutMode As Boolean = False, Optional preParsedLogFilePath As String = Nothing, Optional preParsedFilename As String = Nothing) As Boolean
+    Dim filename As String = preParsedFilename
     Dim showSyntaxTree As Boolean = False
     Dim showMethods As Boolean = False
-    Dim stdoutMode As Boolean = False
+    Dim stdoutMode As Boolean = preParsedStdoutMode
     Dim dumpGlobals As Boolean = False
     Dim showHelp As Boolean = False
     Dim roundtripMode As Boolean = False
     Dim upgradeGwBasicMode As Boolean = False
     Dim convertToVbNetMode As Boolean = False
-    Dim logFilePath As String = Nothing
+    Dim logFilePath As String = preParsedLogFilePath
     Dim programArgs As New List(Of String)()
 
     Dim fileArgIndex = -1
@@ -91,7 +144,8 @@ Friend Module Program
             Return False
         End Select
       ElseIf arg.EndsWith(".bas", StringComparison.OrdinalIgnoreCase) Then
-        If filename IsNot Nothing Then
+        ' Only error on multiple files if it's a different file than pre-parsed
+        If filename IsNot Nothing AndAlso Not String.Equals(filename, arg, StringComparison.OrdinalIgnoreCase) Then
           Console.WriteLine("Error: Multiple .bas files specified")
           ShowUsage()
           Return False
@@ -156,8 +210,13 @@ Friend Module Program
       HandleConvertToVbNetMode(filename)
       Return False ' Exit after converting to VB.NET
     ElseIf filename IsNot Nothing Then
-      ' Load file into IDE
-      Dim demo As New QBasic(filename)
+      ' Load file into IDE with logging
+      Console.WriteLine($"Loading: {filename}")
+      If logFilePath IsNot Nothing Then
+        Console.WriteLine($"Logging to: {logFilePath}")
+      End If
+      Console.WriteLine()
+      Dim demo As New QBasic(filename, logFilePath)
       If demo.Construct(640, 400, 1, 1) Then ', False, True) Then
         demo.ShowEngineName = False : demo.ShowIPS = False
         demo.Start()
@@ -514,6 +573,7 @@ Friend Class QBasic
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
+  Private m_logFilePath As String
 
   Private m_previousMouseButton As Boolean = False
   Private m_previousMouseX As Integer = 0
@@ -536,10 +596,11 @@ Friend Class QBasic
     Public CursorCol As Integer
   End Structure
 
-  Friend Sub New(Optional initialFile As String = Nothing)
+  Friend Sub New(Optional initialFile As String = Nothing, Optional logFilePath As String = Nothing)
     AppName = "Community QBasic"
     m_initialFile = initialFile
     m_pathspec = System.IO.Path.Combine(System.Environment.CurrentDirectory(), If(IsOSPlatform(OSPlatform.Windows), "*.BAS", "*.*"))
+    m_logFilePath = logFilePath
   End Sub
 
   Private Sub LoadFile(path As String)
@@ -2495,7 +2556,8 @@ To get help on a QBasic keyword in the list below:
       QBLib.Video.CLS()
     End If
     Dim i = New QB.Interpreter()
-    i.Run(Document1.Text)
+    Dim logToConsole As Boolean = (m_logFilePath Is Nothing) AndAlso (Not m_consoleAllocated OrElse AttachConsole(ATTACH_PARENT_PROCESS))
+    i.Run(Document1.Text, False, Nothing, m_logFilePath, logToConsole)
   End Sub
 
   Private Sub MakeExeFileFbcAction()

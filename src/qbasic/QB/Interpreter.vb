@@ -10,6 +10,7 @@ Namespace Global.QB
     Private m_previous As Compilation = Nothing
     Private ReadOnly m_variables As New Dictionary(Of String, Object)
     Private m_logWriter As StreamWriter = Nothing
+    Private m_logToConsole As Boolean = False
 
     Public ReadOnly Property Variables As Dictionary(Of String, Object)
       Get
@@ -33,7 +34,17 @@ Namespace Global.QB
       compilation.EmitTree(Console.Out)
     End Sub
 
-    Private Sub SetupLogging(logFilePath As String)
+    Private Sub SetupLogging(logFilePath As String, logToConsole As Boolean)
+      If logToConsole Then
+        m_logToConsole = True
+        m_logWriter = Nothing
+        Console.WriteLine()
+        Console.WriteLine("# QBasic Execution Log")
+        Console.WriteLine($"# Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
+        Console.WriteLine()
+        Return
+      End If
+
       If String.IsNullOrEmpty(logFilePath) Then Return
       Try
         m_logWriter = New StreamWriter(logFilePath, False)
@@ -53,40 +64,49 @@ Namespace Global.QB
         m_logWriter.Dispose()
         m_logWriter = Nothing
       End If
+      m_logToConsole = False
     End Sub
 
-    Private Sub OnStatementExecuting(sender As Object, e As StatementExecutingEventArgs)
-      If m_logWriter Is Nothing Then Return
-      Dim qbasicLine = If(e.QBasicLineNumber > 0, $" (QBasic line {e.QBasicLineNumber})", "")
-      m_logWriter.WriteLine($"[{e.PhysicalLineNumber + 1}]{qbasicLine} {e.ContainerName}: {e.StatementKind} - {e.StatementText}")
-    End Sub
-
-    Private Sub OnVariableChanged(sender As Object, e As VariableChangedEventArgs)
-      If m_logWriter Is Nothing Then Return
-      Dim indices = If(e.ArrayIndices IsNot Nothing, $"({String.Join(",", e.ArrayIndices)})", "")
-      Dim oldVal = If(e.OldValue Is Nothing, "<unset>", e.OldValue?.ToString())
-      Dim newVal = e.NewValue?.ToString()
-      m_logWriter.WriteLine($"  VAR: {e.VariableName}{indices} = {oldVal} -> {newVal}")
-    End Sub
-
-    Private Sub OnErrorOccurred(sender As Object, e As ErrorOccurredEventArgs)
-      If m_logWriter Is Nothing Then Return
-      Dim qbasicLine = If(e.QBasicLineNumber > 0, $" (QBasic line {e.QBasicLineNumber})", "")
-      m_logWriter.WriteLine($"  ERROR at line {e.PhysicalLineNumber + 1}{qbasicLine}: [{e.ErrorCode}] {e.ErrorMessage}")
-      If e.StatementText.Length > 0 Then
-        m_logWriter.WriteLine($"    Statement: {e.StatementText}")
+    Private Sub WriteLogLine(line As String)
+      If m_logWriter IsNot Nothing Then
+        m_logWriter.WriteLine(line)
+      ElseIf m_logToConsole Then
+        Console.WriteLine(line)
       End If
     End Sub
 
-    Sub Run(text As String, Optional dumpGlobals As Boolean = False, Optional commandLineArgs As String() = Nothing, Optional logFilePath As String = Nothing)
+    Private Sub OnStatementExecuting(sender As Object, e As StatementExecutingEventArgs)
+      If m_logWriter Is Nothing AndAlso Not m_logToConsole Then Return
+      Dim qbasicLine = If(e.QBasicLineNumber > 0, $" (QBasic line {e.QBasicLineNumber})", "")
+      WriteLogLine($"[{e.PhysicalLineNumber + 1}]{qbasicLine} {e.ContainerName}: {e.StatementKind} - {e.StatementText}")
+    End Sub
 
-      SetupLogging(logFilePath)
+    Private Sub OnVariableChanged(sender As Object, e As VariableChangedEventArgs)
+      If m_logWriter Is Nothing AndAlso Not m_logToConsole Then Return
+      Dim indices = If(e.ArrayIndices IsNot Nothing, $"({String.Join(",", e.ArrayIndices)})", "")
+      Dim oldVal = If(e.OldValue Is Nothing, "<unset>", e.OldValue?.ToString())
+      Dim newVal = e.NewValue?.ToString()
+      WriteLogLine($"  VAR: {e.VariableName}{indices} = {oldVal} -> {newVal}")
+    End Sub
+
+    Private Sub OnErrorOccurred(sender As Object, e As ErrorOccurredEventArgs)
+      If m_logWriter Is Nothing AndAlso Not m_logToConsole Then Return
+      Dim qbasicLine = If(e.QBasicLineNumber > 0, $" (QBasic line {e.QBasicLineNumber})", "")
+      WriteLogLine($"  ERROR at line {e.PhysicalLineNumber + 1}{qbasicLine}: [{e.ErrorCode}] {e.ErrorMessage}")
+      If e.StatementText.Length > 0 Then
+        WriteLogLine($"    Statement: {e.StatementText}")
+      End If
+    End Sub
+
+    Sub Run(text As String, Optional dumpGlobals As Boolean = False, Optional commandLineArgs As String() = Nothing, Optional logFilePath As String = Nothing, Optional logToConsole As Boolean = False)
+
+      SetupLogging(logFilePath, logToConsole)
 
       Dim tree = SyntaxTree.Parse(text)
       Dim compilation = QB.CodeAnalysis.Compilation.CreateScript(m_previous, tree)
 
       ' Subscribe to evaluation events if logging is enabled
-      If m_logWriter IsNot Nothing Then
+      If m_logWriter IsNot Nothing OrElse m_logToConsole Then
         AddHandler compilation.StatementExecuting, AddressOf OnStatementExecuting
         AddHandler compilation.VariableChanged, AddressOf OnVariableChanged
         AddHandler compilation.ErrorOccurred, AddressOf OnErrorOccurred
@@ -124,7 +144,7 @@ Namespace Global.QB
 
       Finally
         ' Unsubscribe from events
-        If m_logWriter IsNot Nothing Then
+        If m_logWriter IsNot Nothing OrElse m_logToConsole Then
           RemoveHandler compilation.StatementExecuting, AddressOf OnStatementExecuting
           RemoveHandler compilation.VariableChanged, AddressOf OnVariableChanged
           RemoveHandler compilation.ErrorOccurred, AddressOf OnErrorOccurred

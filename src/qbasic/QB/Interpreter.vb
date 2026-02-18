@@ -98,9 +98,15 @@ Namespace Global.QB
       End If
     End Sub
 
-    Sub Run(text As String, Optional dumpGlobals As Boolean = False, Optional commandLineArgs As String() = Nothing, Optional logFilePath As String = Nothing, Optional logToConsole As Boolean = False)
+    Sub Run(text As String, Optional dumpGlobals As Boolean = False, Optional commandLineArgs As String() = Nothing, Optional logFilePath As String = Nothing, Optional logToConsole As Boolean = False, Optional commandString As String = Nothing)
 
       SetupLogging(logFilePath, logToConsole)
+
+      ' Store command string for COMMAND$ function
+      Dim savedCommandString As String = Nothing
+      If Not String.IsNullOrEmpty(commandString) Then
+        savedCommandString = commandString
+      End If
 
       Dim tree = SyntaxTree.Parse(text)
       Dim compilation = QB.CodeAnalysis.Compilation.CreateScript(m_previous, tree)
@@ -113,7 +119,7 @@ Namespace Global.QB
       End If
 
       Try
-        Dim result = compilation.Evaluate(m_variables, commandLineArgs)
+        Dim result = compilation.Evaluate(m_variables, commandLineArgs, savedCommandString)
         Console.Out.WriteDiagnostics(result.Diagnostics)
 
         If Not result.Diagnostics.HasErrors Then

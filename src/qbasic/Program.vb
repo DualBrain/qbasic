@@ -1,3 +1,6 @@
+Option Explicit On
+Option Strict On
+
 Imports System.Drawing
 Imports System.IO
 Imports System.IO.Compression
@@ -27,6 +30,17 @@ Friend Module Program
   Friend Declare Auto Function FreeConsole Lib "kernel32.dll" () As Boolean
 
   Friend m_consoleAllocated As Boolean = False
+
+  ''' <summary>
+  ''' Normalizes command line arguments to handle both MS-DOS style (/) and new style (--/-).
+  ''' <returns>The normalized argument.</returns>
+  Private Function NormalizeArgument(arg As String) As String
+    If arg.StartsWith("/") Then
+      ' Convert legacy / options to - options for backward compatibility
+      Return "-" & arg.Substring(1).ToLower()
+    End If
+    Return arg
+  End Function
 
   ''' <summary>
   ''' Allocates a console window for output. Called automatically when launching with a .bas file.
@@ -63,9 +77,9 @@ Friend Module Program
 
     ' Pre-scan for key options
     For i = 0 To args.Length - 1
-      Dim arg = args(i)
+      Dim arg = NormalizeArgument(args(i))
       If arg.EndsWith(".bas", StringComparison.OrdinalIgnoreCase) Then
-        filename = arg
+        filename = args(i)
       ElseIf arg.Equals("--stdout", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-s", StringComparison.OrdinalIgnoreCase) Then
         stdoutMode = True
       ElseIf arg.Equals("--log", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-l", StringComparison.OrdinalIgnoreCase) Then
@@ -105,14 +119,19 @@ Friend Module Program
     Dim convertToVbNetMode As Boolean = False
     Dim logFilePath As String = preParsedLogFilePath
     Dim programArgs As New List(Of String)()
+    Dim commandString As String = Nothing
 
     Dim fileArgIndex = -1
 
     ' First pass: find the .bas file and validate options
     For i = 0 To args.Length - 1
       Dim arg = args(i)
-      If arg.StartsWith("--") OrElse arg.StartsWith("-") Then
-        Select Case arg.ToLower()
+
+      ' Normalize argument: handle both forward slash (MS-DOS style) and dash (new style)
+      Dim normalizedArg = NormalizeArgument(arg)
+
+      If normalizedArg.StartsWith("--") OrElse normalizedArg.StartsWith("-") Then
+        Select Case normalizedArg.ToLower()
           Case "--syntax-tree", "-t"
             showSyntaxTree = True
           Case "--methods", "-m"
@@ -138,6 +157,58 @@ Friend Module Program
             End If
             logFilePath = args(i + 1)
             i += 1 ' Skip the next argument since we consumed it
+          Case "-b", "-monochrome"
+            ' Backward compatibility: -B - monochrome display mode
+            ' In modern .NET, this is accepted for compatibility
+          Case "-h", "-highlines"
+            ' Backward compatibility: -H - display maximum lines
+            ' In modern implementation, maximum lines are always displayed
+          Case "-mbf"
+            ' Backward compatibility: -MBF - Microsoft Binary Format
+            ' MBF support can be implemented in the interpreter if needed
+          Case "-run"
+            ' Backward compatibility: -RUN - run the program before displaying
+            ' This is equivalent to --stdout mode
+            stdoutMode = True
+          Case "-editor", "-ed"
+            ' Backward compatibility: -EDITOR - invokes MS-DOS Editor
+            ' This is accepted for compatibility
+          Case "-g", "-cga"
+            ' Backward compatibility: -G - CGA fast update
+            ' This is accepted for compatibility
+          Case "-nohi"
+            ' Backward compatibility: -NOHI - no high intensity
+            ' This is accepted for compatibility
+          Case "-cmd"
+            ' Backward compatibility: -CMD - passes string to COMMAND$ function
+            ' This must be the last option on the line
+            If i + 1 >= args.Length Then
+              Console.WriteLine("Error: -CMD requires a string argument")
+              ShowUsage()
+              Return False
+            End If
+            commandString = args(i + 1)
+            i += 1 ' Skip the next argument since we consumed it
+          Case "-c:"
+            ' Backward compatibility: -C: - sets buffer size for async communications
+            ' This is accepted for compatibility (works only with async comm card)
+            If i + 1 >= args.Length Then
+              Console.WriteLine("Error: -C: requires a buffer size argument")
+              ShowUsage()
+              Return False
+            End If
+            Dim bufferSize As Integer
+            If Not Integer.TryParse(args(i + 1), bufferSize) Then
+              Console.WriteLine("Error: -C: requires a valid buffer size (number)")
+              ShowUsage()
+              Return False
+            End If
+            If bufferSize < 1 OrElse bufferSize > 32767 Then
+              Console.WriteLine("Error: -C: buffer size must be between 1 and 32767")
+              ShowUsage()
+              Return False
+            End If
+            i += 1 ' Skip the next argument since we consumed it
           Case Else
             Console.WriteLine($"Unknown option: {arg}")
             ShowUsage()
@@ -161,22 +232,22 @@ Friend Module Program
         End If
         ' This is a program argument that comes after the file
       End If
-    Next
+      Next
 
     ' Second pass: collect program arguments (everything after the .bas file)
     If fileArgIndex >= 0 Then
       For j = fileArgIndex + 1 To args.Length - 1
-        ' Skip options that might come after the file
         Dim arg = args(j)
-        If Not ((arg.StartsWith("--") OrElse arg.StartsWith("-")) AndAlso
-                 (arg.ToLower() = "--syntax-tree" OrElse arg.ToLower() = "-t" OrElse
-                  arg.ToLower() = "--methods" OrElse arg.ToLower() = "-m" OrElse
-                  arg.ToLower() = "--stdout" OrElse arg.ToLower() = "-s" OrElse
-                  arg.ToLower() = "--dump-globals" OrElse arg.ToLower() = "-d" OrElse
-                  arg.ToLower() = "--help" OrElse arg.ToLower() = "-h" OrElse
-                  arg.ToLower() = "--roundtrip" OrElse arg.ToLower() = "-r" OrElse
-                  arg.ToLower() = "--upgrade-gwbasic" OrElse arg.ToLower() = "-g" OrElse
-                  arg.ToLower() = "--convert-vbnet" OrElse arg.ToLower() = "-v")) Then
+        Dim normalizedArg = NormalizeArgument(arg)
+        If Not ((normalizedArg.StartsWith("--") OrElse normalizedArg.StartsWith("-")) AndAlso
+                 (normalizedArg = "--syntax-tree" OrElse normalizedArg = "-t" OrElse
+                  normalizedArg = "--methods" OrElse normalizedArg = "-m" OrElse
+                  normalizedArg = "--stdout" OrElse normalizedArg = "-s" OrElse
+                  normalizedArg = "--dump-globals" OrElse normalizedArg = "-d" OrElse
+                  normalizedArg = "--help" OrElse normalizedArg = "-h" OrElse
+                  normalizedArg = "--roundtrip" OrElse normalizedArg = "-r" OrElse
+                  normalizedArg = "--upgrade-gwbasic" OrElse normalizedArg = "-g" OrElse
+                  normalizedArg = "--convert-vbnet" OrElse normalizedArg = "-v")) Then
           programArgs.Add(arg)
         End If
       Next
@@ -201,7 +272,7 @@ Friend Module Program
       HandleRoundtripMode(filename)
       Return False ' Exit after roundtrip
     ElseIf filename IsNot Nothing AndAlso stdoutMode Then
-      HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs, logFilePath)
+      HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs, logFilePath, commandString)
       Return False ' Exit after running program
     ElseIf filename IsNot Nothing AndAlso upgradeGwBasicMode Then
       HandleUpgradeGwBasicMode(filename)
@@ -223,8 +294,12 @@ Friend Module Program
       End If
       Return False
     Else
-      Console.WriteLine("Error: No .bas file specified")
-      ShowUsage()
+      ' No file specified - just start the GUI (compatibility options like -B are ignored)
+      Dim demo As New QBasic(Nothing, logFilePath)
+      If demo.Construct(640, 400, 1, 1) Then
+        demo.ShowEngineName = False : demo.ShowIPS = False
+        demo.Start()
+      End If
       Return False
     End If
   End Function
@@ -235,7 +310,7 @@ Friend Module Program
     Console.WriteLine("Usage:")
     Console.WriteLine("  qbasic                         Start GUI IDE")
     Console.WriteLine("  qbasic <filename.bas>          Load file into GUI IDE")
-    Console.WriteLine("  qbasic <filename.bas> --stdout Run program in console")
+    Console.WriteLine("  qbasic <filename.bas> --run   Run program in console")
     Console.WriteLine("  qbasic <filename.bas> --roundtrip Test syntax tree roundtrip")
     Console.WriteLine("  qbasic <filename.bas> --upgrade-gwbasic Upgrade GW-BASIC to QBasic")
     Console.WriteLine("  qbasic <filename.bas> --convert-vbnet Convert QBasic to VB.NET")
@@ -244,18 +319,30 @@ Friend Module Program
     Console.WriteLine("Options:")
     Console.WriteLine("  --syntax-tree, -t    Display syntax tree")
     Console.WriteLine("  --methods, -m        Display method definitions (SUB, FUNCTION, DEF FN)")
-    Console.WriteLine("  --stdout, -s         Run program and output to console instead of GUI")
-    Console.WriteLine("  --roundtrip, -r       Test syntax tree roundtrip fidelity")
+    Console.WriteLine("  --run, -r            Run program in console mode")
+    Console.WriteLine("  --roundtrip          Test syntax tree roundtrip fidelity")
     Console.WriteLine("  --upgrade-gwbasic, -g Upgrade GW-BASIC line numbers to QBasic")
     Console.WriteLine("  --convert-vbnet, -v  Convert QBasic to VB.NET code")
     Console.WriteLine("  --log, -l <filename> Enable execution logging to specified file")
     Console.WriteLine("  --help, -h          Show this help message")
     Console.WriteLine()
+    Console.WriteLine("MS-DOS Style Options (for backward compatibility):")
+    Console.WriteLine("  -B                   Use monochrome display")
+    Console.WriteLine("  -H                   Display maximum lines")
+    Console.WriteLine("  -MBF                 Use Microsoft Binary Format")
+    Console.WriteLine("  -RUN sourcefile      Load and run program before displaying")
+    Console.WriteLine("  -EDITOR, -ED         Invoke MS-DOS Editor")
+    Console.WriteLine("  -G                   CGA fast update")
+    Console.WriteLine("  -NOHI                Disable high intensity")
+    Console.WriteLine("  -CMD string         Pass string to COMMAND$ function (must be last option)")
+    Console.WriteLine("  -C: buffersize      Set async communications buffer size (1-32767)")
+    Console.WriteLine()
     Console.WriteLine("Examples:")
     Console.WriteLine("  qbasic program.bas")
     Console.WriteLine("  qbasic program.bas --syntax-tree")
     Console.WriteLine("  qbasic program.bas --methods")
-    Console.WriteLine("  qbasic program.bas --roundtrip")
+    Console.WriteLine("  qbasic program.bas -RUN program.bas")
+    Console.WriteLine("  qbasic -H")
     Console.WriteLine("  qbasic --help")
   End Sub
 
@@ -398,7 +485,7 @@ Friend Module Program
     End If
   End Sub
 
-  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing)
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing, Optional commandString As String = Nothing)
     Dim interpreter As QB.Interpreter = Nothing
     Try
       Dim sourceText = File.ReadAllText(filename)
@@ -413,7 +500,7 @@ Friend Module Program
 
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath)
+      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath, False, commandString)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")

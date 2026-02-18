@@ -191,7 +191,7 @@ Namespace Global.QB.CodeAnalysis
     '  Return New EvaluationResult(ImmutableArray(Of Diagnostic).Empty, value)
     'End Function
 
-    Public Function Evaluate(variables As Dictionary(Of String, Object), Optional commandLineArgs As String() = Nothing) As EvaluationResult
+    Public Function Evaluate(variables As Dictionary(Of String, Object), Optional commandLineArgs As String() = Nothing, Optional commandString As String = Nothing) As EvaluationResult
 
       If GlobalScope.Diagnostics.Any Then
         Dim bag = New DiagnosticBag
@@ -218,7 +218,7 @@ Namespace Global.QB.CodeAnalysis
       Dim value As Object = Nothing
       Dim chainRequest As ChainRequest = Nothing
       Try
-        evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs, Me)
+        evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs, Me, commandString)
         value = evaluator.Evaluate
       Catch ex As ChainRequest
         chainRequest = ex

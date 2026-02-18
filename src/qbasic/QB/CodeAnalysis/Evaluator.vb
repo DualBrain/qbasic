@@ -31,6 +31,7 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_globalVariables As ImmutableArray(Of VariableSymbol)
     Private ReadOnly m_functions As New Dictionary(Of FunctionSymbol, BoundBlockStatement)
     Private ReadOnly m_commandLineArgs As String()
+    Private ReadOnly m_commandString As String  ' Command string from /CMD option
     Private ReadOnly m_locals As New Stack(Of Dictionary(Of String, Object))
 
     Private ReadOnly m_container As New Stack(Of String)
@@ -360,7 +361,7 @@ Namespace Global.QB.CodeAnalysis
       End Get
     End Property
 
-    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), globalStatements As ImmutableArray(Of BoundStatement), Optional commandLineArgs As String() = Nothing, Optional callbacks As IEvaluationCallbacks = Nothing)
+    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), globalStatements As ImmutableArray(Of BoundStatement), Optional commandLineArgs As String() = Nothing, Optional callbacks As IEvaluationCallbacks = Nothing, Optional commandString As String = Nothing)
 
       m_program = program
       m_globalStatements = globalStatements
@@ -371,6 +372,7 @@ Namespace Global.QB.CodeAnalysis
       Next
       m_globalVariables = globalVariables
       m_commandLineArgs = If(commandLineArgs, Array.Empty(Of String)())
+      m_commandString = commandString
 
       ' Restore any preserved COMMON variables
       CommonVariablePreserver.RestoreCommonVariables(Me, m_globalStatements.OfType(Of BoundCommonStatement)().ToImmutableArray())
@@ -3823,7 +3825,10 @@ Namespace Global.QB.CodeAnalysis
         Return Console.ReadLine()
       ElseIf node.Function Is BuiltinFunctions.Command Then
         ' COMMAND$ returns command line arguments as space-separated string
-        If m_commandLineArgs IsNot Nothing AndAlso m_commandLineArgs.Length > 0 Then
+        ' If /CMD option was used, return that string instead
+        If Not String.IsNullOrEmpty(m_commandString) Then
+          Return m_commandString
+        ElseIf m_commandLineArgs IsNot Nothing AndAlso m_commandLineArgs.Length > 0 Then
           Return String.Join(" "c, m_commandLineArgs)
         Else
           Return ""

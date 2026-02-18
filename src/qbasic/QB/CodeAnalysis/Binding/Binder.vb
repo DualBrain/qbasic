@@ -1103,6 +1103,12 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       m_scope = m_scope.Parent
 
+      ' For single-line FOR statements with embedded NEXT, pop the loop variable now
+      ' The embedded NEXT is consumed during parsing, not binding
+      If syntax.NextKeyword IsNot Nothing Then
+        m_forLoopStack.Pop()
+      End If
+
       Return New BoundForStatement(syntax, variable, lowerBound, upperBound, stepper, body, exitLabel, continueLabel)
 
     End Function

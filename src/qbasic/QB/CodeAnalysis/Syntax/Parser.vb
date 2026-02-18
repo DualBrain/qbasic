@@ -1557,19 +1557,77 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Dim stepValue = ParseExpression()
         stepClause = New ForStepClause(m_syntaxTree, stepKeyword, stepValue)
       End If
-      Dim statements = ParseBlockStatement(isTopLevel)
 
-      ' For statements don't include NEXT anymore - NEXT is now a separate statement
-      Return New ForStatementSyntax(m_syntaxTree, forKeyword,
-                                    identifier,
-                                    equalToken,
-                                    startValue,
-                                    toKeyword,
-                                    endValue,
-                                    stepClause,
-                                    statements,
-                                    Nothing,
-                                    Nothing)
+      ' Check for single-line FOR...NEXT (e.g., FOR I = 1 TO 100: NEXT)
+      ' In single-line form, the body and NEXT are on the same line as FOR
+      If Current.Kind = SyntaxKind.ColonToken Then
+        ' Single-line version: consume the colon and parse body until NEXT
+        Dim colonToken = MatchToken(SyntaxKind.ColonToken)
+
+        ' Parse statements until we hit NEXT (but don't include NEXT in body)
+        Dim statements = ImmutableArray.CreateBuilder(Of StatementSyntax)()
+        While Current.Kind <> SyntaxKind.EndOfFileToken AndAlso
+              Current.Kind <> SyntaxKind.NextKeyword AndAlso
+              Current.Kind <> SyntaxKind.ColonToken
+          Dim stmt = ParseStatement(isTopLevel)
+          statements.Add(stmt)
+        End While
+
+        ' Parse and consume the NEXT keyword (if present)
+        ' This is embedded in the FOR statement for single-line form
+        Dim nextKeyword As SyntaxToken = Nothing
+        Dim optionalIdentifier As SyntaxToken = Nothing
+        If Current.Kind = SyntaxKind.NextKeyword Then
+          nextKeyword = MatchToken(SyntaxKind.NextKeyword)
+          ' Check for optional counter variable
+          If Current.Kind = SyntaxKind.IdentifierToken Then
+            optionalIdentifier = MatchToken(SyntaxKind.IdentifierToken)
+          End If
+        End If
+
+        Dim bodyStatements = New BlockStatementSyntax(m_syntaxTree, Nothing, statements.ToImmutable, Nothing)
+        Return New ForStatementSyntax(m_syntaxTree, forKeyword,
+                                      identifier,
+                                      equalToken,
+                                      startValue,
+                                      toKeyword,
+                                      endValue,
+                                      stepClause,
+                                      bodyStatements,
+                                      nextKeyword,
+                                      optionalIdentifier)
+      Else
+        ' Multi-line version: parse statements until we hit NEXT
+        ' We need special handling for NEXT because it's a terminator for FOR loops
+        ' but ParseBlockStatement doesn't know about NEXT
+        Dim statements = ImmutableArray.CreateBuilder(Of StatementSyntax)()
+        While Current.Kind <> SyntaxKind.EndOfFileToken AndAlso
+              Current.Kind <> SyntaxKind.NextKeyword
+          Dim startToken = Current()
+          Dim stmt = ParseStatement(isTopLevel)
+          statements.Add(stmt)
+
+          ' If ParseStatement did not consume any tokens,
+          ' let's skip the current token and continue in
+          ' order to avoid an infinite loop.
+          If Current Is startToken Then
+            NextToken()
+          End If
+        End While
+
+        ' Don't consume the NEXT here - it will be parsed as a separate statement
+        Dim bodyStatements = New BlockStatementSyntax(m_syntaxTree, Nothing, statements.ToImmutable, Nothing)
+        Return New ForStatementSyntax(m_syntaxTree, forKeyword,
+                                      identifier,
+                                      equalToken,
+                                      startValue,
+                                      toKeyword,
+                                      endValue,
+                                      stepClause,
+                                      bodyStatements,
+                                      Nothing,
+                                      Nothing)
+      End If
     End Function
 
     Private Function ParseFunctionDeclaration() As MemberSyntax
@@ -1580,9 +1638,17 @@ Namespace Global.QB.CodeAnalysis.Syntax
 
       Dim functionKeyword = MatchToken(SyntaxKind.FunctionKeyword)
       Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
-      Dim openParenToken = MatchToken(SyntaxKind.OpenParenToken)
-      Dim parameters = ParseParameterList()
-      Dim closeParenToken = MatchToken(SyntaxKind.CloseParenToken)
+
+      Dim openParenToken As SyntaxToken = Nothing
+      Dim parameters As SeparatedSyntaxList(Of ParameterSyntax) = Nothing
+      Dim closeParenToken As SyntaxToken = Nothing
+
+      If Current.Kind = SyntaxKind.OpenParenToken Then
+        openParenToken = MatchToken(SyntaxKind.OpenParenToken)
+        parameters = ParseParameterList()
+        closeParenToken = MatchToken(SyntaxKind.CloseParenToken)
+      End If
+
       Dim asClause = ParseOptionalAsClause()
       Dim statements = ParseBlockStatement(False)
       Dim endKeyword = MatchToken(SyntaxKind.EndKeyword)
@@ -4369,7 +4435,6 @@ repeat:
              SyntaxKind.ElseKeyword,
              SyntaxKind.ElseIfKeyword,
              SyntaxKind.LoopKeyword,
-             SyntaxKind.NextKeyword,
              SyntaxKind.WendKeyword
           Return True
         Case Else

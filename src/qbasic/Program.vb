@@ -142,7 +142,9 @@ Friend Module Program
             dumpGlobals = True
           Case "--help", "-h"
             showHelp = True
-          Case "--roundtrip", "-r"
+          Case "--run", "-r"
+            stdoutMode = True
+          Case "--roundtrip", "-rt"
             roundtripMode = True
           Case "--upgrade-gwbasic", "-g"
             upgradeGwBasicMode = True

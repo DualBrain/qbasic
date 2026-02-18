@@ -50,6 +50,7 @@ Friend Module Program
     Dim roundtripMode As Boolean = False
     Dim upgradeGwBasicMode As Boolean = False
     Dim convertToVbNetMode As Boolean = False
+    Dim logFilePath As String = Nothing
     Dim programArgs As New List(Of String)()
 
     Dim fileArgIndex = -1
@@ -75,6 +76,15 @@ Friend Module Program
             upgradeGwBasicMode = True
           Case "--convert-vbnet", "-v"
             convertToVbNetMode = True
+          Case "--log", "-l"
+            ' Get the next argument as the log file path
+            If i + 1 >= args.Length Then
+              Console.WriteLine("Error: --log requires a filename argument")
+              ShowUsage()
+              Return False
+            End If
+            logFilePath = args(i + 1)
+            i += 1 ' Skip the next argument since we consumed it
           Case Else
             Console.WriteLine($"Unknown option: {arg}")
             ShowUsage()
@@ -137,7 +147,7 @@ Friend Module Program
       HandleRoundtripMode(filename)
       Return False ' Exit after roundtrip
     ElseIf filename IsNot Nothing AndAlso stdoutMode Then
-      HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs)
+      HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs, logFilePath)
       Return False ' Exit after running program
     ElseIf filename IsNot Nothing AndAlso upgradeGwBasicMode Then
       HandleUpgradeGwBasicMode(filename)
@@ -177,9 +187,10 @@ Friend Module Program
     Console.WriteLine("  --methods, -m        Display method definitions (SUB, FUNCTION, DEF FN)")
     Console.WriteLine("  --stdout, -s         Run program and output to console instead of GUI")
     Console.WriteLine("  --roundtrip, -r       Test syntax tree roundtrip fidelity")
-    Console.WriteLine("  --upgrade-gwbasic, -g  Upgrade GW-BASIC line numbers to QBasic")
-    Console.WriteLine("  --convert-vbnet, -v   Convert QBasic to VB.NET code")
-    Console.WriteLine("  --help, -h           Show this help message")
+    Console.WriteLine("  --upgrade-gwbasic, -g Upgrade GW-BASIC line numbers to QBasic")
+    Console.WriteLine("  --convert-vbnet, -v  Convert QBasic to VB.NET code")
+    Console.WriteLine("  --log, -l <filename> Enable execution logging to specified file")
+    Console.WriteLine("  --help, -h          Show this help message")
     Console.WriteLine()
     Console.WriteLine("Examples:")
     Console.WriteLine("  qbasic program.bas")
@@ -328,7 +339,7 @@ Friend Module Program
     End If
   End Sub
 
-  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String())
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing)
     Dim interpreter As QB.Interpreter = Nothing
     Try
       Dim sourceText = File.ReadAllText(filename)
@@ -343,7 +354,7 @@ Friend Module Program
 
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText, dumpGlobals, commandLineArgs)
+      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")

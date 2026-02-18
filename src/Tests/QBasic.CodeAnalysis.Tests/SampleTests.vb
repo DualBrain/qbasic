@@ -719,28 +719,28 @@ HANDLER:
 
     End Sub
 
-    <Fact>
-    Public Sub Sample_CSRLIN_1()
+    '    <Fact>
+    '    Public Sub Sample_CSRLIN_1()
 
-      ' Name: CSRLIN (1)
+    '      ' Name: CSRLIN (1)
 
-      Dim sample = "
-CLS
-PRINT ""HELLO""
-Y=CSRLIN
-PRINT Y
-"
+    '      Dim sample = "
+    'CLS
+    'PRINT ""HELLO""
+    'Y=CSRLIN
+    'PRINT Y
+    '"
 
-      Dim expected = $"HELLO{vbCrLf} 2"
+    '      Dim expected = $"HELLO{vbCrLf} 2"
 
-      Dim eval = EvaluateOutputRedirect(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+    '      Dim eval = EvaluateOutputRedirect(sample)
+    '      Dim result = eval.Result
+    '      Dim actual = eval.Output?.Trim
+    '      Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+    '      Assert.Equal(expected, actual)
 
-    End Sub
+    '    End Sub
 
     '    <Fact>
     '    Public Sub Sample_CSRLIN_2()

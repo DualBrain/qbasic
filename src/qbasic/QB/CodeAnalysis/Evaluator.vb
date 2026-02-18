@@ -108,6 +108,17 @@ Namespace Global.QB.CodeAnalysis
 
     Private m_lastValue As Object
 
+    ''' <summary>
+    ''' Optional callbacks for evaluation events.
+    ''' </summary>
+    Private m_callbacks As IEvaluationCallbacks
+
+    ''' <summary>
+    ''' Current statement line numbers for variable change tracking.
+    ''' </summary>
+    Private m_currentPhysicalLine As Integer = -1
+    Private m_currentQbasicLine As Integer = 0
+
     Private Class ByRefVariable
       Public Property Name As String
       Public Sub New(name As String)
@@ -349,10 +360,11 @@ Namespace Global.QB.CodeAnalysis
       End Get
     End Property
 
-    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), globalStatements As ImmutableArray(Of BoundStatement), Optional commandLineArgs As String() = Nothing)
+    Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), globalStatements As ImmutableArray(Of BoundStatement), Optional commandLineArgs As String() = Nothing, Optional callbacks As IEvaluationCallbacks = Nothing)
 
       m_program = program
       m_globalStatements = globalStatements
+      m_callbacks = callbacks
       m_globals = New Dictionary(Of String, Object)
       For Each kv In variables
         m_globals(kv.Key.Name) = kv.Value
@@ -481,6 +493,20 @@ Namespace Global.QB.CodeAnalysis
         End If
 
         Dim s = body.Statements(index)
+
+        ' Set current line numbers for nested expression evaluation
+        Dim physicalLine As Integer = -1
+        Dim qbasicLine As Integer = 0
+        If s.Syntax IsNot Nothing Then
+          physicalLine = GetPhysicalLineNumber(s.Syntax)
+          qbasicLine = ExtractLineNumber(s.Syntax)
+        End If
+        m_currentPhysicalLine = physicalLine
+        m_currentQbasicLine = qbasicLine
+
+        ' Fire statement executing callback
+        FireStatementExecuting(index, s, physicalLine, qbasicLine)
+
         'Debug.WriteLine($"{index}:{s.Kind}")
         Try
           Select Case s.Kind
@@ -1002,6 +1028,17 @@ Namespace Global.QB.CodeAnalysis
           ' This is a complex issue with lowered loop structure
           Continue While
         Catch ex As QBasicRuntimeException
+          ' Fire error callback
+          Dim stmtText As String = ""
+          If s IsNot Nothing Then
+            Try
+              stmtText = s.ToString()
+            Catch
+              stmtText = "[Complex statement]"
+            End Try
+          End If
+          FireErrorOccurred(CInt(ex.ErrorCode), ex.Message, m_currentPhysicalLine, m_currentQbasicLine, stmtText, m_errorHandlerTarget IsNot Nothing)
+
           ' Handle runtime errors - set error and handle it
           If m_err = 0 Then ' Only set if not already set
             m_err = ex.ErrorCode
@@ -1017,6 +1054,38 @@ Namespace Global.QB.CodeAnalysis
             Continue While
           End If
         Catch ex As Exception
+          ' Fire error callback
+          Dim errorCode As ErrorCode = ErrorCode.Internal
+          Dim errorMessage As String = ex.Message
+          If ex.GetType() = GetType(DivideByZeroException) Then
+            errorCode = ErrorCode.DivisionByZero
+          ElseIf ex.GetType() = GetType(IndexOutOfRangeException) Then
+            errorCode = ErrorCode.SubscriptOutOfRange
+          ElseIf ex.GetType() = GetType(IOException) Then
+            errorCode = ErrorCode.BadFileMode
+          ElseIf ex.GetType() = GetType(ArgumentException) Then
+            errorCode = ErrorCode.BadFileMode
+          ElseIf ex.GetType() = GetType(ObjectDisposedException) Then
+            errorCode = ErrorCode.BadFileMode
+          ElseIf ex.GetType() = GetType(OverflowException) Then
+            errorCode = ErrorCode.Overflow
+          ElseIf TypeOf ex Is ChainRequest Then
+            ' Don't set error for ChainRequest - let it propagate
+            Throw
+          Else
+            errorCode = ErrorCode.Internal
+            errorMessage = $"Internal error: {ex.GetType().Name}: {ex.Message}"
+          End If
+          Dim stmtText As String = ""
+          If s IsNot Nothing Then
+            Try
+              stmtText = s.ToString()
+            Catch
+              stmtText = "[Complex statement]"
+            End Try
+          End If
+          FireErrorOccurred(CInt(errorCode), errorMessage, m_currentPhysicalLine, m_currentQbasicLine, stmtText, m_errorHandlerTarget IsNot Nothing)
+
           ' Handle other runtime exceptions
           If m_err = 0 Then
             If ex.GetType() = GetType(DivideByZeroException) Then
@@ -1027,7 +1096,7 @@ Namespace Global.QB.CodeAnalysis
               m_err = ErrorCode.BadFileMode
             ElseIf ex.GetType() = GetType(ArgumentException) Then
               m_err = ErrorCode.BadFileMode
-            ElseIf ex.GetType = GetType(ObjectDisposedException) Then
+            ElseIf ex.GetType() = GetType(ObjectDisposedException) Then
               m_err = ErrorCode.BadFileMode
             ElseIf ex.GetType() = GetType(OverflowException) Then
               m_err = ErrorCode.Overflow
@@ -4192,7 +4261,24 @@ Namespace Global.QB.CodeAnalysis
       End If
     End Function
 
-    Private Sub Assign(variable As VariableSymbol, value As Object)
+    Private Sub Assign(variable As VariableSymbol, value As Object, Optional physicalLine As Integer = -1, Optional qbasicLine As Integer = 0)
+      ' Capture old value for variable change callback
+      Dim oldValue As Object = Nothing
+      Dim hasOldValue As Boolean = False
+
+      If variable.Kind = SymbolKind.GlobalVariable Then
+        If m_globals.ContainsKey(variable.Name) Then
+          oldValue = m_globals(variable.Name)
+          hasOldValue = True
+        End If
+      Else
+        Dim locals = m_locals.Peek
+        If locals.ContainsKey(variable.Name) Then
+          oldValue = locals(variable.Name)
+          hasOldValue = True
+        End If
+      End If
+
       ' Convert value to the variable's type
       value = ConvertValue(value, variable.Type)
       If variable.Kind = SymbolKind.GlobalVariable Then
@@ -4200,6 +4286,7 @@ Namespace Global.QB.CodeAnalysis
         If variable.IsUserDefinedType AndAlso value Is Nothing Then
           ' Initialize UDT with empty dictionary
           m_globals(variable.Name) = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
+          FireVariableChanged(variable.Name, Nothing, value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
           Return
         End If
         ' Check if this is a scalar assignment where an array with the same name exists
@@ -4209,16 +4296,20 @@ Namespace Global.QB.CodeAnalysis
           ' If the existing value is a List (array), preserve it and store scalar separately
           If TypeOf existingValue Is List(Of Object) Then
             m_globals(variable.Name & "_scalar_") = value
+            FireVariableChanged(variable.Name, oldValue, value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
             Return
           End If
         End If
         m_globals(variable.Name) = value
+        FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
       Else
         Dim locals = m_locals.Peek
         If locals.ContainsKey(variable.Name) AndAlso TypeOf locals(variable.Name) Is ByRefVariable Then
           m_globals(DirectCast(locals(variable.Name), ByRefVariable).Name) = value
+          FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
         Else
           locals(variable.Name) = value
+          FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
         End If
       End If
     End Sub
@@ -4256,14 +4347,22 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Private Sub Assign(expression As BoundExpression, value As Object)
+      ' Set current line numbers for variable change tracking
+      ' These will be set by the statement loop before evaluating expressions
+      m_currentPhysicalLine = -1
+      m_currentQbasicLine = 0
+
       If TypeOf expression Is BoundVariableExpression Then
         Dim variable = CType(expression, BoundVariableExpression).Variable
-        Assign(variable, value)
+        Assign(variable, value, m_currentPhysicalLine, m_currentQbasicLine)
       ElseIf TypeOf expression Is BoundArrayAccessExpression Then
         Dim arrayAccess = CType(expression, BoundArrayAccessExpression)
         Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
         tuple.Item1(tuple.Item2) = value
-        ElseIf TypeOf expression Is BoundMemberAccessExpression Then
+        ' Fire callback for array element assignment
+        Dim indices As Object() = {tuple.Item2}
+        FireVariableChanged(arrayAccess.Variable.Name, Nothing, value, m_currentPhysicalLine, m_currentQbasicLine, VariableChangedEventArgs.VariableKind.ArrayElement, indices)
+      ElseIf TypeOf expression Is BoundMemberAccessExpression Then
         Dim memberAccess = CType(expression, BoundMemberAccessExpression)
         ' Get the UDT instance
         Dim instanceExpr = memberAccess.Expression
@@ -4914,6 +5013,65 @@ Namespace Global.QB.CodeAnalysis
       m_openFiles.Clear()
 
     End Sub
+
+#Region "Evaluation Callbacks"
+
+    Private Function GetPhysicalLineNumber(syntax As SyntaxNode) As Integer
+      If syntax Is Nothing Then Return -1
+      Dim location = syntax.Location
+      If location.Text Is Nothing Then Return -1
+      Return location.StartLine
+    End Function
+
+    Private Sub FireStatementExecuting(statementIndex As Integer, statement As BoundStatement, physicalLine As Integer, qbasicLine As Integer)
+      If m_callbacks Is Nothing Then Return
+
+      Dim statementText As String = ""
+      If statement.Syntax IsNot Nothing Then
+        Try
+          statementText = statement.Syntax.ToString()
+        Catch ex As Exception
+          statementText = "[Complex statement]"
+        End Try
+      End If
+
+      Dim containerName As String = If(m_container.Count > 0, m_container.Peek, "main")
+
+      m_callbacks.OnStatementExecuting(
+        statementIndex,
+        statement.Kind.ToString(),
+        physicalLine,
+        qbasicLine,
+        statementText,
+        containerName)
+    End Sub
+
+    Private Sub FireVariableChanged(variableName As String, oldValue As Object, newValue As Object, physicalLine As Integer, qbasicLine As Integer, variableType As VariableChangedEventArgs.VariableKind, Optional arrayIndices As Object() = Nothing)
+      If m_callbacks Is Nothing Then Return
+
+      m_callbacks.OnVariableChanged(
+        variableName,
+        oldValue,
+        newValue,
+        physicalLine,
+        qbasicLine,
+        variableType,
+        arrayIndices)
+    End Sub
+
+    Private Sub FireErrorOccurred(errorCode As Integer, errorMessage As String, physicalLine As Integer, qbasicLine As Integer, statementText As String, wasHandled As Boolean)
+      If m_callbacks Is Nothing Then Return
+
+      m_callbacks.OnErrorOccurred(
+        errorCode,
+        errorMessage,
+        physicalLine,
+        qbasicLine,
+        statementText,
+        wasHandled)
+    End Sub
+
+#End Region
 
   End Class
 

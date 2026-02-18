@@ -9,6 +9,7 @@ Imports QB.CodeAnalysis.Syntax
 Namespace Global.QB.CodeAnalysis
 
   Public NotInheritable Class Compilation
+    Implements IEvaluationCallbacks
 
     Private m_globalScope As BoundGlobalScope = Nothing
 
@@ -73,6 +74,37 @@ Namespace Global.QB.CodeAnalysis
         Return m_diagnostics
       End Get
     End Property
+
+#Region "Evaluation Events"
+
+    ''' <summary>
+    ''' Raised when a statement is about to be executed.
+    ''' </summary>
+    Public Event StatementExecuting As EventHandler(Of StatementExecutingEventArgs)
+
+    ''' <summary>
+    ''' Raised when a variable is modified.
+    ''' </summary>
+    Public Event VariableChanged As EventHandler(Of VariableChangedEventArgs)
+
+    ''' <summary>
+    ''' Raised when an error occurs during execution.
+    ''' </summary>
+    Public Event ErrorOccurred As EventHandler(Of ErrorOccurredEventArgs)
+
+    Private Sub OnStatementExecuting(statementIndex As Integer, statementKind As String, physicalLine As Integer, qbasicLine As Integer, statementText As String, containerName As String) Implements IEvaluationCallbacks.OnStatementExecuting
+      RaiseEvent StatementExecuting(Me, New StatementExecutingEventArgs(statementIndex, statementKind, physicalLine, qbasicLine, statementText, containerName))
+    End Sub
+
+    Private Sub OnVariableChanged(variableName As String, oldValue As Object, newValue As Object, physicalLine As Integer, qbasicLine As Integer, variableType As VariableChangedEventArgs.VariableKind, arrayIndices As Object()) Implements IEvaluationCallbacks.OnVariableChanged
+      RaiseEvent VariableChanged(Me, New VariableChangedEventArgs(variableName, oldValue, newValue, physicalLine, qbasicLine, variableType, arrayIndices))
+    End Sub
+
+    Private Sub OnErrorOccurred(errorCode As Integer, errorMessage As String, physicalLine As Integer, qbasicLine As Integer, statementText As String, wasHandled As Boolean) Implements IEvaluationCallbacks.OnErrorOccurred
+      RaiseEvent ErrorOccurred(Me, New ErrorOccurredEventArgs(errorCode, errorMessage, physicalLine, qbasicLine, statementText, wasHandled))
+    End Sub
+
+#End Region
 
     Private ReadOnly Property GlobalScope As BoundGlobalScope
       Get
@@ -186,7 +218,7 @@ Namespace Global.QB.CodeAnalysis
       Dim value As Object = Nothing
       Dim chainRequest As ChainRequest = Nothing
       Try
-        evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs)
+        evaluator = New Evaluator(program, variableDict, GlobalScope.Variables, GlobalScope.Statements, commandLineArgs, Me)
         value = evaluator.Evaluate
       Catch ex As ChainRequest
         chainRequest = ex

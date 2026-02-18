@@ -232,7 +232,7 @@ Friend Module Program
         End If
         ' This is a program argument that comes after the file
       End If
-      Next
+    Next
 
     ' Second pass: collect program arguments (everything after the .bas file)
     If fileArgIndex >= 0 Then
@@ -660,7 +660,7 @@ Friend Class QBasic
 
   Private ReadOnly m_pathspec As String
   Private m_path As String
-  Private m_logFilePath As String
+  Private ReadOnly m_logFilePath As String
 
   Private m_previousMouseButton As Boolean = False
   Private m_previousMouseX As Integer = 0

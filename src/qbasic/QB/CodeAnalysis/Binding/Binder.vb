@@ -1994,8 +1994,8 @@ Namespace Global.QB.CodeAnalysis.Binding
               End If
             End If
 
-          fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength, If(fieldType Is TypeSymbol.Udt, typeNameStr, Nothing)))
-        Else
+            fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength, If(fieldType Is TypeSymbol.Udt, typeNameStr, Nothing)))
+          Else
             ' No AS clause - infer from variable name suffix
             fieldType = ResolveVariableType(fieldName)
             fieldList.Add(New Binding.UdtField(fieldName, fieldType, fixedLength))

@@ -112,7 +112,7 @@ Namespace Global.QB.CodeAnalysis
     ''' <summary>
     ''' Optional callbacks for evaluation events.
     ''' </summary>
-    Private m_callbacks As IEvaluationCallbacks
+    Private ReadOnly m_callbacks As IEvaluationCallbacks
 
     ''' <summary>
     ''' Current statement line numbers for variable change tracking.
@@ -2949,7 +2949,7 @@ Namespace Global.QB.CodeAnalysis
           If arraySize <= 0 Then
             'Throw New Exception($"Invalid array size {arraySize}. Array must have at least 1 element.")
             Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
-           End If
+          End If
           Dim newSize = CInt(arraySize)
           ' Get existing list
           Dim existingList As List(Of Object) = Nothing
@@ -3214,7 +3214,7 @@ Namespace Global.QB.CodeAnalysis
           End If
           ' Check if there's a global with this name (array case)
           If m_globals.ContainsKey(node.Variable.Name) Then
-          Return m_globals(node.Variable.Name)
+            Return m_globals(node.Variable.Name)
           End If
           Return Nothing
         End If

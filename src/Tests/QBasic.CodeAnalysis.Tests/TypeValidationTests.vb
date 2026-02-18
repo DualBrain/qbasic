@@ -485,7 +485,7 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.NotNull(result.SyntaxTree)
     End Sub
 
-  #End Region
+#End Region
 
 #Region "User-Defined Type (TYPE/END TYPE) Tests"
 
@@ -617,7 +617,7 @@ Namespace QBasic.CodeAnalysis.Tests
       Assert.Equal(3, result.SyntaxTree.Root.Members.Length)
     End Sub
 
-  #End Region
+#End Region
 
   End Class
 

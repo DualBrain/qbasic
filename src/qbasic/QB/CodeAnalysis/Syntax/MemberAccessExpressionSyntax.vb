@@ -18,4 +18,3 @@ Namespace Global.QB.CodeAnalysis.Syntax
   End Class
 
 End Namespace
-

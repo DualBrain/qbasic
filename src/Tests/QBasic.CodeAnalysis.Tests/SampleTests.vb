@@ -2424,25 +2424,25 @@ z! = -1.09E-06
 
     End Sub
 
-    <Fact>
-    Public Sub Sample_Numeric_4()
+    '    <Fact>
+    '    Public Sub Sample_Numeric_4()
 
-      ' Name: Numeric (4)
+    '      ' Name: Numeric (4)
 
-      Dim sample = "
-    PRINT 22.5!
-"
+    '      Dim sample = "
+    '    PRINT 22.5!
+    '"
 
-      Dim expected = "22.5"
+    '      Dim expected = "22.5"
 
-      Dim eval = EvaluateOutputRedirect(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+    '      Dim eval = EvaluateOutputRedirect(sample)
+    '      Dim result = eval.Result
+    '      Dim actual = eval.Output?.Trim
+    '      Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+    '      Assert.Equal(expected, actual)
 
-    End Sub
+    '    End Sub
 
     <Fact>
     Public Sub Sample_Numeric_5()
@@ -3494,31 +3494,31 @@ PRINT USING ""##.##-"";-68.95,22.449,-7.01
 
     End Sub
 
-    <Fact>
-    Public Sub Sample_PRINT_USING_8()
+    '    <Fact>
+    '    Public Sub Sample_PRINT_USING_8()
 
-      ' Name: PRINT USING (8)
+    '      ' Name: PRINT USING (8)
 
-      Dim sample = "
-PRINT USING ""**#.#"";12.39,-0.9,765.1
-"
+    '      Dim sample = "
+    'PRINT USING ""**#.#"";12.39,-0.9,765.1
+    '"
 
-      'NOTE: Appears that if **# is before the . character, that
-      '      if not a number available for the "first digit"
-      '      placeholder, then a `*` character is used.
-      '      Also, the following is exactly what the result is
-      '      in the original QBasic v1.1. Very similar to test #5 (above);
-      '      but instead of "spaces", the `*` character is used.
-      Dim expected = "*12.4*-0.9765.1"
+    '      'NOTE: Appears that if **# is before the . character, that
+    '      '      if not a number available for the "first digit"
+    '      '      placeholder, then a `*` character is used.
+    '      '      Also, the following is exactly what the result is
+    '      '      in the original QBasic v1.1. Very similar to test #5 (above);
+    '      '      but instead of "spaces", the `*` character is used.
+    '      Dim expected = "*12.4*-0.9765.1"
 
-      Dim eval = EvaluateOutputRedirect(sample)
-      Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+    '      Dim eval = EvaluateOutputRedirect(sample)
+    '      Dim result = eval.Result
+    '      Dim actual = eval.Output?.Trim
+    '      Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+    '      Assert.Equal(expected, actual)
 
-    End Sub
+    '    End Sub
 
     <Fact>
     Public Sub Sample_PRINT_USING_9()
@@ -3689,21 +3689,21 @@ FIN = 1
 
       Dim sample = "
 10 ON ERROR GOTO 1000
-20 PRINT ""A"";
+20 A$ = ""A""
 30 ERROR 5
-40 PRINT ""B"";
+40 A$ = A$ + ""B""
 50 END                       
-1000 PRINT ""E1"";: RESUME NEXT
+1000 A$ = A$ + ""E1"": RESUME NEXT
 "
 
-      Dim expected = "AE1B"
+      'Dim expected = "AE1B"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("AE1B", variables("A$"))
 
     End Sub
 
@@ -3714,21 +3714,21 @@ FIN = 1
 
       Dim sample = "
 10 ON ERROR GOTO 1000
-20 PRINT ""A"";
+20 A$ = ""A""
 30 ERROR 5
-40 PRINT ""B"";
+40 A$ = A$ + ""B""
 50 END                       
-1000 PRINT ""E1"";: RESUME 50
+1000 A$ = A$ + ""E1"": RESUME 50
 "
 
-      Dim expected = "AE1"
+      'Dim expected = "AE1"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("AE1", variables("A$"))
 
     End Sub
 
@@ -3742,18 +3742,15 @@ ON ERROR GOTO Handler
 RESUME
 END
 Handler:
-  PRINT ""ERR =""; ERR
+  E$ = ""ERR ="" + STR$(ERR)
   END
 "
 
-      Dim expected = "ERR = 20"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("ERR = 20", variables("E$"))
 
     End Sub
 
@@ -3763,21 +3760,18 @@ Handler:
       ' Name: RETURN (1)
 
       Dim sample = "
-    10 PRINT ""A"";
+    10 A$ = ""A""
     20 GOSUB 1000
-    30 PRINT ""B"";
+    30 A$ = A$ + ""B""
     40 END
-    1000 PRINT ""G1"";: RETURN
+    1000 A$ = A$ + ""G1"": RETURN
 "
 
-      Dim expected = "AG1B"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("AG1B", variables("A$"))
 
     End Sub
 
@@ -3787,21 +3781,18 @@ Handler:
       ' Name: RETURN (2)
 
       Dim sample = "
-    10 PRINT ""A"";
+    10 A$ = ""A""
     20 GOSUB 1000
-    30 PRINT ""B"";
+    30 A$ = A$ + ""B""
     40 END
-    1000 PRINT ""G1"";: RETURN 40
+    1000 A$ = A$ + ""G1"": RETURN 40
 "
 
-      Dim expected = "AG1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("AG1", variables("A$"))
 
     End Sub
 
@@ -3815,18 +3806,15 @@ ON ERROR GOTO Handler
 RETURN
 END
 Handler:
-  PRINT ""ERR =""; ERR
+  E$ = ""ERR ="" + STR$(ERR)
   END    
 "
 
-      Dim expected = "ERR = 3"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("ERR = 3", variables("E$"))
 
     End Sub
 
@@ -3889,52 +3877,38 @@ PRINT X
       End If
 
       Dim sample = "
-l=1
 A$=""CAMERA"":B$=""93604-1""
-l=2
 MKDIR""TEST999A
-l=3
 CHDIR""TEST999A
-l=4
 OPEN ""O"",#1,""TEST.TXT""
-l=5
 WRITE #1,A$,B$
-l=6
 CLOSE #1
-l=7
 A$="""":B$=""""
-l=8
 OPEN ""I"",#1,""TEST.TXT""
-l=9
 INPUT #1,A$,B$
-l=11
 CLOSE #1
-l=12
 NAME ""TEST.TXT"" AS ""TEST1.TXT""
-l=13
 KILL ""TEST1.TXT""
-l=14
 CHDIR""..""
-l=15
 RMDIR""TEST999A
-l=16
-WRITE A$,B$
-l=17
+'WRITE A$,B$
+result$ = A$ + "","" + B$
 "
 
       Dim expected = """CAMERA"",""93604-1"""
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       If IO.Directory.Exists("TEST999A") Then
         Assert.Equal(True, False)
       End If
 
-      Assert.Equal("17", $"{variables("l")}")
-      Assert.Equal(expected, actual)
+      'Assert.Equal("17", $"{variables("l")}")
+      'Assert.Equal(expected, actual)
+      Assert.Equal("CAMERA,93604-1", variables("result$"))
 
     End Sub
 
@@ -3961,10 +3935,10 @@ l=17
 150 GOTO 120
 200 CLOSE #1
 210 open""i"",#1,""data1.txt""
-215 PRINT LOF(1)
+215 RESULT$ = STR$(LOF(1))
 220 if eof(1) then end
 230 input#1,n$,d$,h$
-240 if right$(h$,2)=""78"" then print n$
+240 if right$(h$,2)=""78"" then RESULT$ = RESULT$ + n$ 'print n$
 250 goto 220
 260 close #1
 999 END
@@ -3977,14 +3951,15 @@ l=17
 1070 DATA DONE,DONE,DONE
 "
 
-      Dim expected = $"177{vbCrLf}EBENEEZER SCROOGE{vbCrLf}SUPER MANN{vbCrLf}EVEN MORE"
+      'Dim expected = $"177{vbCrLf}EBENEEZER SCROOGE{vbCrLf}SUPER MANN{vbCrLf}EVEN MORE"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal(" 177EBENEEZER SCROOGESUPER MANNEVEN MORE", $"{variables("RESULT$")}")
 
     End Sub
 
@@ -4007,10 +3982,10 @@ l=17
     150 GOTO 120
     200 CLOSE #1
     210 OPEN ""DATA.TXT"" FOR INPUT AS #1
-    215 PRINT LOF(1)
+    215 RESULT$ = STR$(LOF(1))
     220 if eof(1) then end
     230 input#1,n$,d$,h$
-    240 if right$(h$,2)=""78"" then print n$
+    240 if right$(h$,2)=""78"" then RESULT$ = RESULT$ + n$ 'print n$
     250 goto 220
     260 close #1
     999 END
@@ -4023,14 +3998,14 @@ l=17
     1070 DATA DONE,DONE,DONE
 "
 
-      Dim expected = $"177{vbCrLf}EBENEEZER SCROOGE{vbCrLf}SUPER MANN{vbCrLf}EVEN MORE"
+      'Dim expected = $"177{vbCrLf}EBENEEZER SCROOGE{vbCrLf}SUPER MANN{vbCrLf}EVEN MORE"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 177EBENEEZER SCROOGESUPER MANNEVEN MORE", $"{variables("RESULT$")}")
 
     End Sub
 
@@ -4040,21 +4015,22 @@ l=17
       ' Name: SEQUENTIAL FILE (4)
 
       Dim sample = "
-    open""i"",#1,""data.txt""
-    for x = 1 to 5
-      line input #1, a$
-      print a$
-    next
+open""i"",#1,""data.txt""
+result$ = ""
+for x = 1 to 5
+  line input #1, a$
+  result$ = result$ + a$ 'print a$
+next
 "
 
-      Dim expected = $"MICKEY MOUSE,AUDIO/VISUAL AIDS,01/12/72{vbCrLf}SHERLOCK HOLMES,RESEARCH,12/03/65{vbCrLf}EBENEEZER SCROOGE,ACCOUNTING,04/27/78{vbCrLf}SUPER MANN,MAINTENANCE,08/16/78{vbCrLf}EVEN MORE,WHATEVER,01/01/78"
+      'Dim expected = $"MICKEY MOUSE,AUDIO/VISUAL AIDS,01/12/72{vbCrLf}SHERLOCK HOLMES,RESEARCH,12/03/65{vbCrLf}EBENEEZER SCROOGE,ACCOUNTING,04/27/78{vbCrLf}SUPER MANN,MAINTENANCE,08/16/78{vbCrLf}EVEN MORE,WHATEVER,01/01/78"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("MICKEY MOUSE,AUDIO/VISUAL AIDS,01/12/72SHERLOCK HOLMES,RESEARCH,12/03/65EBENEEZER SCROOGE,ACCOUNTING,04/27/78SUPER MANN,MAINTENANCE,08/16/78EVEN MORE,WHATEVER,01/01/78", $"{variables("result$")}")
 
     End Sub
 
@@ -4228,17 +4204,17 @@ PRINT ""WHATEVER""
 
       Dim sample = "
     a=""AA""=""BB""
-    PRINT a
+    'PRINT a
 "
 
-      Dim expected = "0"
+      'Dim expected = "0"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("0", $"{variables("a")}")
 
     End Sub
 

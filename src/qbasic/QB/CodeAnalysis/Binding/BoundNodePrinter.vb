@@ -42,6 +42,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case BoundNodeKind.HandleTabStatement : WriteHandleTabStatement(CType(node, BoundHandleTabStatement), writer)
         Case BoundNodeKind.IfStatement : WriteIfStatement(CType(node, BoundIfStatement), writer)
         Case BoundNodeKind.InputStatement : WriteInputStatement(CType(node, BoundInputStatement), writer)
+        Case BoundNodeKind.KeyStatement : WriteKeyStatement(CType(node, BoundKeyStatement), writer)
         Case BoundNodeKind.LabelStatement : WriteLabelStatement(CType(node, BoundLabelStatement), writer)
         Case BoundNodeKind.LiteralExpression : WriteLiteralExpression(CType(node, BoundLiteralExpression), writer)
         Case BoundNodeKind.MidStatement : WriteMidStatement(CType(node, BoundMidStatement), writer)
@@ -233,6 +234,31 @@ Namespace Global.QB.CodeAnalysis.Binding
           writer.WritePunctuation(SyntaxKind.CommaToken)
         End If
       Next
+      writer.WriteLine()
+    End Sub
+
+    Private Sub WriteKeyStatement(node As BoundKeyStatement, writer As IndentedTextWriter)
+      writer.WriteKeyword(SyntaxKind.KeyKeyword)
+      writer.WriteSpace
+
+      Select Case node.StatementType
+        Case BoundKeyStatement.KeyStatementType.KeyAssignment
+          node.KeyNumber.WriteTo(writer)
+          writer.WritePunctuation(SyntaxKind.CommaToken)
+          writer.WriteSpace
+          node.StringAssignment.WriteTo(writer)
+
+        Case BoundKeyStatement.KeyStatementType.KeyDisplay
+          writer.WriteKeyword(node.VerbKind)
+
+        Case BoundKeyStatement.KeyStatementType.KeyEvent
+          writer.WritePunctuation(SyntaxKind.OpenParenToken)
+          node.KeyNumber.WriteTo(writer)
+          writer.WritePunctuation(SyntaxKind.CloseParenToken)
+          writer.WriteSpace
+          writer.WriteKeyword(node.VerbKind)
+      End Select
+
       writer.WriteLine()
     End Sub
 

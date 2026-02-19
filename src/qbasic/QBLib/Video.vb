@@ -2368,6 +2368,18 @@ allplotted:
       ' OUT statement is a no-op in this emulator since we don't have real hardware access
     End Sub
 
+    Public Shared Sub PCOPY(sourcePage As Integer, destinationPage As Integer)
+      ' PCOPY statement is a no-op in this emulator since we don't implement video pages
+    End Sub
+
+    Public Shared Sub PAINT(x As Integer, y As Integer)
+      ' PAINT statement is a no-op in this emulator since we don't implement area filling
+    End Sub
+
+    Public Shared Sub PAINT(x As Integer, y As Integer, color As Integer)
+      ' PAINT statement is a no-op in this emulator since we don't implement area filling
+    End Sub
+
   End Class
 
 End Namespace

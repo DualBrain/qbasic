@@ -28,6 +28,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     ForStatement
     GosubStatement
     GetFileStatement
+    GetStatement
     GotoStatement
     HandleCommaStatement
     HandlePrintLineStatement
@@ -73,10 +74,13 @@ Namespace Global.QB.CodeAnalysis.Binding
     OptionStatement
     PrintStatement
     PutFileStatement
+    PutStatement
     PokeStatement
     OutStatement
     PsetStatement
+    PaintStatement
     PresetStatement
+    PcopyStatement
     RemStatement
     ResumeStatement
     ResumeNextStatement
@@ -88,6 +92,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     SubStatement
     SystemStatement
     DefTypeStatement
+    DefSegStatement
     TypeStatement
     SwapStatement
     VariableDeclaration
@@ -104,6 +109,9 @@ Namespace Global.QB.CodeAnalysis.Binding
     TimeStatement
     TimerStatement
     WhileStatement
+    WidthStatement
+    WidthFileStatement
+    WidthLprintStatement
     SelectCaseStatement
     CaseStatement
     CaseMatchStatement

@@ -640,6 +640,10 @@ Namespace Global.QB.CodeAnalysis
                 index += 1
               End If
 
+            Case BoundNodeKind.GetStatement
+              ' GET (graphics) statement - no-op for now
+              index += 1
+
             Case BoundNodeKind.GotoStatement
               Dim gs = CType(s, BoundGotoStatement)
               Dim value As Integer = Nothing
@@ -886,6 +890,10 @@ Namespace Global.QB.CodeAnalysis
               End If
               index += 1
 
+            Case BoundNodeKind.PutStatement
+              ' PUT (graphics) statement - no-op for now
+              index += 1
+
             Case BoundNodeKind.PresetStatement
               Dim psetStmt = CType(s, BoundPresetStatement)
               Dim x = CInt(Math.Truncate(CDbl(EvaluateExpression(psetStmt.X))))
@@ -896,6 +904,17 @@ Namespace Global.QB.CodeAnalysis
                 Dim c = CInt(EvaluateExpression(psetStmt.Color))
                 QBLib.Video.PRESET(psetStmt.Step, x, y, c)
               End If
+              index += 1
+
+            Case BoundNodeKind.PcopyStatement
+              Dim pcopyStmt = CType(s, BoundPcopyStatement)
+              Dim sourcePage = CInt(EvaluateExpression(pcopyStmt.SourcePage))
+              Dim destPage = CInt(EvaluateExpression(pcopyStmt.DestinationPage))
+              QBLib.Video.PCOPY(sourcePage, destPage)
+              index += 1
+
+            Case BoundNodeKind.PaintStatement
+              ' PAINT statement - no-op for now
               index += 1
 
             Case BoundNodeKind.RemStatement : index += 1
@@ -1015,6 +1034,15 @@ Namespace Global.QB.CodeAnalysis
               m_parentLabelStack.Pop()
               'Console.WriteLine("DEBUG: Exiting WHILE, parent stack depth=" & m_parentLabelStack.Count)
               index += 1
+            Case BoundNodeKind.WidthStatement
+              ' WIDTH statement - no-op for now
+              index += 1
+            Case BoundNodeKind.WidthFileStatement
+              ' WIDTH # statement - no-op for now
+              index += 1
+            Case BoundNodeKind.WidthLprintStatement
+              ' WIDTH LPRINT statement - no-op for now
+              index += 1
             Case BoundNodeKind.ForStatement
               'Console.WriteLine("DEBUG: Found FOR statement (should be lowered to WHILE)")
               EvaluateForStatement(CType(s, BoundForStatement), localLabelToIndex)
@@ -1026,6 +1054,9 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.DefTypeStatement
               ' DEFINT/DEFLNG/etc. statements are handled at bind time - no runtime evaluation needed
               ' The type defaults are registered in the binder
+              index += 1
+            Case BoundNodeKind.DefSegStatement
+              ' DEF SEG statement - handled at bind time for memory addressing
               index += 1
             Case Else
               Throw New Exception($"Unexpected kind {s.Kind}")

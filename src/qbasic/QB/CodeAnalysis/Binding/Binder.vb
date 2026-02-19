@@ -588,6 +588,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ForStatement : Return BindForStatement(CType(syntax, ForStatementSyntax))
         Case SyntaxKind.GosubStatement : Return BindGosubStatement(CType(syntax, GosubStatementSyntax))
         Case SyntaxKind.GetFileStatement : Return BindGetFileStatement(CType(syntax, GetFileStatementSyntax))
+        Case SyntaxKind.GetStatement : Return BindGetStatement(CType(syntax, GetStatementSyntax))
         Case SyntaxKind.GotoStatement : Return BindGotoStatement(CType(syntax, GotoStatementSyntax))
         Case SyntaxKind.IfStatement : Return BindIfStatement(CType(syntax, IfStatementSyntax))
         Case SyntaxKind.InputStatement : Return BindInputStatement(CType(syntax, InputStatementSyntax))
@@ -620,9 +621,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
         Case SyntaxKind.PrintStatement : Return BindPrintStatement(CType(syntax, PrintStatementSyntax))
         Case SyntaxKind.PutFileStatement : Return BindPutFileStatement(CType(syntax, PutFileStatementSyntax))
+        Case SyntaxKind.PutStatement : Return BindPutStatement(CType(syntax, PutStatementSyntax))
         Case SyntaxKind.WriteStatement : Return BindWriteStatement(CType(syntax, WriteStatementSyntax))
         Case SyntaxKind.PsetKeyword : Return BindPsetStatement(CType(syntax, PsetStatementSyntax))
+        Case SyntaxKind.PaintKeyword : Return BindPaintStatement(CType(syntax, PaintStatementSyntax))
         Case SyntaxKind.PresetKeyword : Return BindPresetStatement(CType(syntax, PresetStatementSyntax))
+        Case SyntaxKind.PcopyStatement : Return BindPcopyStatement(CType(syntax, PcopyStatementSyntax))
         Case SyntaxKind.RemStatement : Return BindRemStatement(CType(syntax, RemStatementSyntax))
         Case SyntaxKind.ReturnGosubStatement : Return BindReturnGosubStatement(CType(syntax, ReturnGosubStatementSyntax))
         Case SyntaxKind.ReturnStatement : Return BindReturnStatement(CType(syntax, ReturnStatementSyntax))
@@ -636,6 +640,9 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.SystemStatement : Return BindSystemStatement(CType(syntax, SystemStatementSyntax))
         Case SyntaxKind.VariableDeclarationStatement : Return BindVariableDeclaration(CType(syntax, VariableDeclarationSyntax))
         Case SyntaxKind.WhileStatement : Return BindWhileStatement(CType(syntax, WhileStatementSyntax))
+        Case SyntaxKind.WidthStatement : Return BindWidthStatement(CType(syntax, WidthStatementSyntax))
+        Case SyntaxKind.WidthFileStatement : Return BindWidthFileStatement(CType(syntax, WidthFileStatementSyntax))
+        Case SyntaxKind.WidthLprintStatement : Return BindWidthLprintStatement(CType(syntax, WidthLprintStatementSyntax))
         Case SyntaxKind.WendStatement : Return BindWendStatement(CType(syntax, WendStatementSyntax))
         Case SyntaxKind.DataStatement : Return BindDataStatement(CType(syntax, DataStatementSyntax))
         Case SyntaxKind.EnvironStatement : Return BindEnvironStatement(CType(syntax, EnvironStatementSyntax))
@@ -659,6 +666,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OutStatement : Return BindOutStatement(CType(syntax, OutStatementSyntax))
         Case SyntaxKind.DeclareStatement : Return BindDeclareStatement(CType(syntax, DeclareStatementSyntax))
         Case SyntaxKind.DefTypeStatement : Return BindDefTypeStatement(CType(syntax, DefTypeStatementSyntax))
+        Case SyntaxKind.DefSegStatement : Return BindDefSegStatement(CType(syntax, DefSegStatementSyntax))
         Case SyntaxKind.TypeStatement : Return BindTypeStatement(CType(syntax, TypeStatementSyntax))
         Case SyntaxKind.CommonStatement : Return BindCommonStatement(CType(syntax, CommonStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
@@ -1179,11 +1187,30 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundGetFileStatement(syntax, fileNumber, optionalRecord, optionalVariable)
     End Function
 
+    Private Function BindGetStatement(syntax As GetStatementSyntax) As BoundStatement
+      Dim step1 = syntax.OptionalS IsNot Nothing
+      Dim step2 = syntax.OptionalStepKeyword2 IsNot Nothing
+      Dim x1 = BindExpression(syntax.X1)
+      Dim y1 = BindExpression(syntax.Y1)
+      Dim x2 = BindExpression(syntax.X2)
+      Dim y2 = BindExpression(syntax.Y2)
+      Dim buffer = BindExpression(syntax.Buffer)
+      Return New BoundGetStatement(syntax, step1, x1, y1, step2, x2, y2, buffer)
+    End Function
+
     Private Function BindPutFileStatement(syntax As PutFileStatementSyntax) As BoundStatement
       Dim fileNumber = BindExpression(syntax.FileNumber)
       Dim optionalRecord = If(syntax.OptionalRecord IsNot Nothing, BindExpression(syntax.OptionalRecord), Nothing)
       Dim optionalVariable = If(syntax.OptionalVariable IsNot Nothing, syntax.OptionalVariable.Identifier.Text, Nothing)
       Return New BoundPutFileStatement(syntax, fileNumber, optionalRecord, optionalVariable)
+    End Function
+
+    Private Function BindPutStatement(syntax As PutStatementSyntax) As BoundStatement
+      Dim stepRelative = syntax.OptionalStepKeyword IsNot Nothing
+      Dim x = BindExpression(syntax.X)
+      Dim y = BindExpression(syntax.Y)
+      Dim buffer = BindExpression(syntax.Buffer)
+      Return New BoundPutStatement(syntax, stepRelative, x, y, buffer)
     End Function
 
     Private Shared Function BindGosubStatement(syntax As GosubStatementSyntax) As BoundStatement
@@ -1878,6 +1905,17 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return New BoundPsetStatement(syntax, [step], x, y, color)
     End Function
 
+    Private Function BindPaintStatement(syntax As PaintStatementSyntax) As BoundStatement
+      Dim stepRelative = syntax.OptionalStepKeyword IsNot Nothing
+      Dim x = BindExpression(syntax.X, TypeSymbol.Single)
+      Dim y = BindExpression(syntax.Y, TypeSymbol.Single)
+      Dim colorOrTile As BoundExpression = Nothing
+      If syntax.OptionalColorOrTile IsNot Nothing Then
+        colorOrTile = BindExpression(syntax.OptionalColorOrTile)
+      End If
+      Return New BoundPaintStatement(syntax, stepRelative, x, y, colorOrTile)
+    End Function
+
     Private Function BindPresetStatement(syntax As PresetStatementSyntax) As BoundStatement
       Dim [step] = syntax.OptionalStepKeyword IsNot Nothing
       Dim x = BindExpression(syntax.XExpression, TypeSymbol.Single)
@@ -1887,6 +1925,12 @@ Namespace Global.QB.CodeAnalysis.Binding
         color = BindExpression(syntax.OptionalColorExpression, TypeSymbol.Single)
       End If
       Return New BoundPresetStatement(syntax, [step], x, y, color)
+    End Function
+
+    Private Function BindPcopyStatement(syntax As PcopyStatementSyntax) As BoundStatement
+      Dim sourcePage = BindExpression(syntax.SourcePage)
+      Dim destinationPage = BindExpression(syntax.DestinationPage)
+      Return New BoundPcopyStatement(syntax, sourcePage, destinationPage)
     End Function
 
     Private Sub ProcessMetacommandsInTrivia(triviaList As ImmutableArray(Of SyntaxTrivia))
@@ -1955,6 +1999,11 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       ' For now, we don't need to generate any runtime code for DEF statements
       Return New BoundDefTypeStatement(syntax, typeSymbol, New List(Of (Char, Char)))
+    End Function
+
+    Private Function BindDefSegStatement(syntax As DefSegStatementSyntax) As BoundStatement
+      Dim address = If(syntax.OptionalAddress IsNot Nothing, BindExpression(syntax.OptionalAddress), Nothing)
+      Return New BoundDefSegStatement(syntax, address)
     End Function
 
     Private Sub AddDefTypeRange(letter As String, typeSym As TypeSymbol)
@@ -2812,6 +2861,23 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindWendStatement(syntax As WendStatementSyntax) As BoundStatement
       Throw New QBasicBuildException(ErrorCode.WendWithoutWHILE)
+    End Function
+
+    Private Function BindWidthStatement(syntax As WidthStatementSyntax) As BoundStatement
+      Dim columns = If(syntax.OptionalColumns IsNot Nothing, BindExpression(syntax.OptionalColumns), Nothing)
+      Dim lines = If(syntax.OptionalLines IsNot Nothing, BindExpression(syntax.OptionalLines), Nothing)
+      Return New BoundWidthStatement(syntax, columns, lines)
+    End Function
+
+    Private Function BindWidthFileStatement(syntax As WidthFileStatementSyntax) As BoundStatement
+      Dim fileNumber = BindExpression(syntax.FileNumber)
+      Dim columns = BindExpression(syntax.Columns)
+      Return New BoundWidthFileStatement(syntax, fileNumber, columns)
+    End Function
+
+    Private Function BindWidthLprintStatement(syntax As WidthLprintStatementSyntax) As BoundStatement
+      Dim columns = BindExpression(syntax.Columns)
+      Return New BoundWidthLprintStatement(syntax, columns)
     End Function
 
     Private Function DetermineVariableReference(identifierToken As SyntaxToken) As VariableSymbol

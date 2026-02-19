@@ -112,6 +112,7 @@ Friend Module Program
     Dim showSyntaxTree As Boolean = False
     Dim showMethods As Boolean = False
     Dim stdoutMode As Boolean = preParsedStdoutMode
+    Dim runModeExplicit As Boolean = False
     Dim dumpGlobals As Boolean = False
     Dim showHelp As Boolean = False
     Dim roundtripMode As Boolean = False
@@ -144,6 +145,7 @@ Friend Module Program
             showHelp = True
           Case "--run", "-r"
             stdoutMode = True
+            runModeExplicit = True
           Case "--roundtrip", "-rt"
             roundtripMode = True
           Case "--upgrade-gwbasic", "-g"
@@ -273,8 +275,8 @@ Friend Module Program
     ElseIf filename IsNot Nothing AndAlso roundtripMode Then
       HandleRoundtripMode(filename)
       Return False ' Exit after roundtrip
-    ElseIf filename IsNot Nothing AndAlso stdoutMode Then
-      HandleRunMode(filename, stdoutMode, dumpGlobals, commandLineArgs, logFilePath, commandString)
+    ElseIf filename IsNot Nothing AndAlso (runModeExplicit OrElse stdoutMode) Then
+      HandleRunMode(filename, stdoutMode, runModeExplicit, dumpGlobals, commandLineArgs, logFilePath, commandString)
       Return False ' Exit after running program
     ElseIf filename IsNot Nothing AndAlso upgradeGwBasicMode Then
       HandleUpgradeGwBasicMode(filename)
@@ -487,7 +489,7 @@ Friend Module Program
     End If
   End Sub
 
-  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing, Optional commandString As String = Nothing)
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, runModeExplicit As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing, Optional commandString As String = Nothing)
     Dim interpreter As QB.Interpreter = Nothing
     Try
       Dim sourceText = File.ReadAllText(filename)
@@ -500,9 +502,15 @@ Friend Module Program
       ' Set stdout mode
       QBLib.Video.StdoutMode = stdoutMode
 
+      ' Console logging is enabled when:
+      ' - --run is specified without --stdout and without --log (same as F5 in GUI)
+      ' Note: stdoutMode controls program output (PRINT goes to stdout), not logging
+      ' runModeExplicit indicates --run was used (enables console logging by default)
+      Dim logToConsole As Boolean = runModeExplicit AndAlso String.IsNullOrEmpty(logFilePath)
+
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath, Not stdoutMode, commandString)
+      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath, logToConsole, commandString)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")

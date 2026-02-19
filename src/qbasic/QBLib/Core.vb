@@ -85,143 +85,144 @@ Namespace Global.QBLib
 
         Case " " : Return 32
 
-        Case "∆" : Return 33
+          '        Case "∆" : Return 33
 
-'http://ascii-table.com/ascii-extended-pc-list.php
+          ''http://ascii-table.com/ascii-extended-pc-list.php
 
-        Case "Ç" : Return 128
-        Case "ü" : Return 129
-        Case "é" : Return 130
-        Case "â" : Return 131
-        Case "ä" : Return 132
-        Case "à" : Return 133
-        Case "å" : Return 134
-        Case "ç" : Return 135
-        Case "ê" : Return 136
-        Case "ë" : Return 137
-        Case "è" : Return 138
-        Case "ï" : Return 139
-        Case "î" : Return 140
-        Case "ì" : Return 141
-        Case "Ä" : Return 142
-        Case "Å" : Return 143
-        Case "É" : Return 144
-        Case "æ" : Return 145
-        Case "Æ" : Return 146
-        Case "ô" : Return 147
-        Case "ö" : Return 148
-        Case "ò" : Return 149
-        Case "û" : Return 150
-        Case "ù" : Return 151
-        Case "ÿ" : Return 152
-        Case "Ö" : Return 153
-        Case "Ü" : Return 154
-        Case "¢" : Return 155
-        Case "£" : Return 156
-        Case "¥" : Return 157
-        Case "₧" : Return 158
-        Case "ƒ" : Return 159
-        Case "á" : Return 160
-        Case "í" : Return 161
-        Case "ó" : Return 162
-        Case "ú" : Return 163
-        Case "ñ" : Return 164
-        Case "Ñ" : Return 165
-        Case "ª" : Return 166
-        Case "º" : Return 167
-        Case "¿" : Return 168
-        Case "⌐" : Return 169
-        Case "¬" : Return 170
-        Case "½" : Return 171
-        Case "¼" : Return 172
-        Case "¡" : Return 173
-        Case "«" : Return 174
-        Case "»" : Return 175
-        Case "░" : Return 176
-        Case "▒" : Return 177
-        Case "▓" : Return 178
-        Case "│" : Return 179
-        Case "┤" : Return 180
-        Case "╡" : Return 181
-        Case "╢" : Return 182
-        Case "╖" : Return 183
-        Case "╕" : Return 184
-        Case "╣" : Return 185
-        Case "║" : Return 186
-        Case "╗" : Return 187
-        Case "╝" : Return 188
-        Case "╜" : Return 189
-        Case "╛" : Return 190
-        Case "┐" : Return 191
-        Case "└" : Return 192
-        Case "┴" : Return 193
-        Case "┬" : Return 194
-        Case "├" : Return 195
-        Case "─" : Return 196
-        Case "┼" : Return 197
-        Case "╞" : Return 198
-        Case "╟" : Return 199
-        Case "╚" : Return 200
-        Case "╔" : Return 201
-        Case "╩" : Return 202
-        Case "╦" : Return 203
-        Case "╠" : Return 204
-        Case "═" : Return 205
-        Case "╬" : Return 206
-        Case "╧" : Return 207
-        Case "╨" : Return 208
-        Case "╤" : Return 209
-        Case "╥" : Return 210
-        Case "╙" : Return 211
-        Case "╘" : Return 212
-        Case "╒" : Return 213
-        Case "╓" : Return 214
-        Case "╫" : Return 215
-        Case "╪" : Return 216
-        Case "┘" : Return 217
-        Case "┌" : Return 218
-        Case "█" : Return 219
-        Case "▄" : Return 220
-        Case "▌" : Return 221
-        Case "▐" : Return 222
-        Case "▀" : Return 223
-        Case "α" : Return 224
-        Case "ß" : Return 225
-        Case "Γ" : Return 226
-        Case "π" : Return 227
-        Case "Σ" : Return 228
-        Case "σ" : Return 229
-        Case "µ" : Return 230
-        Case "τ" : Return 231
-        Case "Φ" : Return 232
-        Case "Θ" : Return 233
-        Case "Ω" : Return 234
-        Case "δ" : Return 235
-        Case "∞" : Return 236
-        Case "φ" : Return 237
-        Case "ε" : Return 238
-        Case "∩" : Return 239
-        Case "≡" : Return 240
-        Case "±" : Return 241
-        Case "≥" : Return 242
-        Case "≤" : Return 243
-        Case "⌠" : Return 244
-        Case "⌡" : Return 245
-        Case "÷" : Return 246
-        Case "≈" : Return 247
-        Case "°" : Return 248
-        Case "●" : Return 249
-        Case "·" : Return 250
-        Case "√" : Return 251
-        Case "ⁿ" : Return 252
-        Case "²" : Return 253
-        Case "■" : Return 254
-        Case " " : Return 255
+          '        Case "Ç" : Return 128
+          '        Case "ü" : Return 129
+          '        Case "é" : Return 130
+          '        Case "â" : Return 131
+          '        Case "ä" : Return 132
+          '        Case "à" : Return 133
+          '        Case "å" : Return 134
+          '        Case "ç" : Return 135
+          '        Case "ê" : Return 136
+          '        Case "ë" : Return 137
+          '        Case "è" : Return 138
+          '        Case "ï" : Return 139
+          '        Case "î" : Return 140
+          '        Case "ì" : Return 141
+          '        Case "Ä" : Return 142
+          '        Case "Å" : Return 143
+          '        Case "É" : Return 144
+          '        Case "æ" : Return 145
+          '        Case "Æ" : Return 146
+          '        Case "ô" : Return 147
+          '        Case "ö" : Return 148
+          '        Case "ò" : Return 149
+          '        Case "û" : Return 150
+          '        Case "ù" : Return 151
+          '        Case "ÿ" : Return 152
+          '        Case "Ö" : Return 153
+          '        Case "Ü" : Return 154
+          '        Case "¢" : Return 155
+          '        Case "£" : Return 156
+          '        Case "¥" : Return 157
+          '        Case "₧" : Return 158
+          '        Case "ƒ" : Return 159
+          '        Case "á" : Return 160
+          '        Case "í" : Return 161
+          '        Case "ó" : Return 162
+          '        Case "ú" : Return 163
+          '        Case "ñ" : Return 164
+          '        Case "Ñ" : Return 165
+          '        Case "ª" : Return 166
+          '        Case "º" : Return 167
+          '        Case "¿" : Return 168
+          '        Case "⌐" : Return 169
+          '        Case "¬" : Return 170
+          '        Case "½" : Return 171
+          '        Case "¼" : Return 172
+          '        Case "¡" : Return 173
+          '        Case "«" : Return 174
+          '        Case "»" : Return 175
+          '        Case "░" : Return 176
+          '        Case "▒" : Return 177
+          '        Case "▓" : Return 178
+          '        Case "│" : Return 179
+          '        Case "┤" : Return 180
+          '        Case "╡" : Return 181
+          '        Case "╢" : Return 182
+          '        Case "╖" : Return 183
+          '        Case "╕" : Return 184
+          '        Case "╣" : Return 185
+          '        Case "║" : Return 186
+          '        Case "╗" : Return 187
+          '        Case "╝" : Return 188
+          '        Case "╜" : Return 189
+          '        Case "╛" : Return 190
+          '        Case "┐" : Return 191
+          '        Case "└" : Return 192
+          '        Case "┴" : Return 193
+          '        Case "┬" : Return 194
+          '        Case "├" : Return 195
+          '        Case "─" : Return 196
+          '        Case "┼" : Return 197
+          '        Case "╞" : Return 198
+          '        Case "╟" : Return 199
+          '        Case "╚" : Return 200
+          '        Case "╔" : Return 201
+          '        Case "╩" : Return 202
+          '        Case "╦" : Return 203
+          '        Case "╠" : Return 204
+          '        Case "═" : Return 205
+          '        Case "╬" : Return 206
+          '        Case "╧" : Return 207
+          '        Case "╨" : Return 208
+          '        Case "╤" : Return 209
+          '        Case "╥" : Return 210
+          '        Case "╙" : Return 211
+          '        Case "╘" : Return 212
+          '        Case "╒" : Return 213
+          '        Case "╓" : Return 214
+          '        Case "╫" : Return 215
+          '        Case "╪" : Return 216
+          '        Case "┘" : Return 217
+          '        Case "┌" : Return 218
+          '        Case "█" : Return 219
+          '        Case "▄" : Return 220
+          '        Case "▌" : Return 221
+          '        Case "▐" : Return 222
+          '        Case "▀" : Return 223
+          '        Case "α" : Return 224
+          '        Case "ß" : Return 225
+          '        Case "Γ" : Return 226
+          '        Case "π" : Return 227
+          '        Case "Σ" : Return 228
+          '        Case "σ" : Return 229
+          '        Case "µ" : Return 230
+          '        Case "τ" : Return 231
+          '        Case "Φ" : Return 232
+          '        Case "Θ" : Return 233
+          '        Case "Ω" : Return 234
+          '        Case "δ" : Return 235
+          '        Case "∞" : Return 236
+          '        Case "φ" : Return 237
+          '        Case "ε" : Return 238
+          '        Case "∩" : Return 239
+          '        Case "≡" : Return 240
+          '        Case "±" : Return 241
+          '        Case "≥" : Return 242
+          '        Case "≤" : Return 243
+          '        Case "⌠" : Return 244
+          '        Case "⌡" : Return 245
+          '        Case "÷" : Return 246
+          '        Case "≈" : Return 247
+          '        Case "°" : Return 248
+          '        Case "●" : Return 249
+          '        Case "·" : Return 250
+          '        Case "√" : Return 251
+          '        Case "ⁿ" : Return 252
+          '        Case "²" : Return 253
+          '        Case "■" : Return 254
+          '        Case " " : Return 255
 
-        Case "�" : Return 32
+          '        Case "�" : Return 32
 
         Case Else
-          Return Asc(value)
+          'Return Asc(value)
+          Return AscW(value)
       End Select
 
     End Function

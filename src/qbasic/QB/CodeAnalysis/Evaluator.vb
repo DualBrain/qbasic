@@ -3797,7 +3797,7 @@ Namespace Global.QB.CodeAnalysis
         Try
           Return QBLib.Core.QBAsc(value)
         Catch ex As Exception
-          Return Microsoft.VisualBasic.Chr(0)
+          Return 0 'Microsoft.VisualBasic.Chr(0)
         End Try
       ElseIf node.Function Is BuiltinFunctions.Atn Then
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
@@ -3805,7 +3805,8 @@ Namespace Global.QB.CodeAnalysis
       ElseIf node.Function Is BuiltinFunctions.Chr Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         If value.Between(0, 255) Then
-          Return Microsoft.VisualBasic.Strings.Chr(value)
+          'Return Microsoft.VisualBasic.Strings.Chr(value)
+          Return ChrW(value)
         Else
           Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
         End If
@@ -4568,6 +4569,13 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub EvaluateOpenStatement(node As BoundOpenStatement)
       Dim fileName = CStr(EvaluateExpression(node.File))
+
+      ' GW-BASIC/QBasic strips trailing periods from filenames
+      ' For example, "ROMIMAGE." becomes "ROMIMAGE"
+      If fileName.EndsWith(".") Then
+        fileName = fileName.TrimEnd("."c)
+      End If
+
       Dim fileNumber = CInt(EvaluateExpression(node.FileNumber))
 
       ' Check if file number is already in use

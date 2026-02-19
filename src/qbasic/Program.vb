@@ -66,7 +66,7 @@ Friend Module Program
 
   Sub Main(args As String())
     ' Register encoding provider for legacy code pages (needed for Chr function with extended ASCII)
-    'Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
     If Today > New Date(2026, 3, 1) Then Return
 

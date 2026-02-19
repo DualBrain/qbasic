@@ -648,6 +648,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.TimerStatement : Return BindTimerStatement(CType(syntax, TimerStatementSyntax))
         Case SyntaxKind.ComStatement : Return BindComStatement(CType(syntax, ComStatementSyntax))
         'Case SyntaxKind.KeyEventStatement : Return BindKeyEventStatement(CType(syntax, KeyEventStatementSyntax))
+        Case SyntaxKind.KeyStatement : Return BindKeyStatement(CType(syntax, KeyStatementSyntax))
         'Case SyntaxKind.KeyOffStatement : Return BindKeyOffStatement(CType(syntax, KeyOffStatementSyntax))
         Case SyntaxKind.StrigStatement : Return BindStrigStatement(CType(syntax, StrigStatementSyntax))
         'Case SyntaxKind.PlayEventStatement : Return BindPlayEventStatement(CType(syntax, PlayEventStatementSyntax))
@@ -2928,6 +2929,19 @@ Namespace Global.QB.CodeAnalysis.Binding
     '  Dim keyNumber = BindExpression(syntax.KeyNumber)
     '  Return New BoundKeyStatement(keyNumber, syntax.Verb.Kind)
     'End Function
+
+    Private Function BindKeyStatement(syntax As KeyStatementSyntax) As BoundStatement
+      If syntax.OpenParenToken IsNot Nothing Then
+        Dim keyNumber = BindExpression(syntax.KeyNumber)
+        Return New BoundKeyStatement(syntax, keyNumber, syntax.Verb.Kind)
+      ElseIf syntax.CommaToken IsNot Nothing Then
+        Dim keyNumber = BindExpression(syntax.Key)
+        Dim stringAssignment = BindExpression(syntax.Label)
+        Return New BoundKeyStatement(syntax, keyNumber, stringAssignment, SyntaxKind.KeyKeyword)
+      Else
+        Return New BoundKeyStatement(syntax, syntax.Verb.Kind)
+      End If
+    End Function
 
     'Private Function BindKeyOffStatement(syntax As KeyOffStatementSyntax) As BoundStatement
     '  Return New BoundKeyOffStatement()

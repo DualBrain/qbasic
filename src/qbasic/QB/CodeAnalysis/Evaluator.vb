@@ -72,6 +72,8 @@ Namespace Global.QB.CodeAnalysis
     ' KEY event state (keys 1-20)
     Private ReadOnly m_keyHandlerTargets As Object() = New Object(20) {} ' Targets for ON KEY(n) GOSUB (1-based, index 0 unused)
     Private ReadOnly m_keyStates As TimerState() = New TimerState(20) {} ' Current KEY states (1-based, index 0 unused)
+    Private ReadOnly m_keyAssignments As String() = New String(31) {} ' KEY n, string assignments (1-31)
+    Private m_keyDisplayOn As Boolean = False ' Whether KEY ON display is active
 
     ' STRIG event state (triggers 0,2,4,6)
     Private ReadOnly m_strigHandlerTargets As Object() = New Object(6) {} ' Targets for ON STRIG(n) GOSUB
@@ -1494,32 +1496,70 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Sub EvaluateKeyStatement(node As BoundKeyStatement, ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer))
-      ' KEY(keyNumber) ON/OFF/STOP - controls KEY event state
-      Dim keyValue = EvaluateExpression(node.KeyNumber)
-      If TypeOf keyValue Is String Then
-        Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
-      End If
-
-      Dim keyNumber As Integer = CInt(keyValue)
-      If keyNumber < 1 Or keyNumber > 20 Then
-        Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
-      End If
-
-      Select Case node.VerbKind
-        Case SyntaxKind.OnKeyword
-          If m_keyHandlerTargets(keyNumber) Is Nothing Then
-            ' No handler set up yet
-            Return
+      Select Case node.StatementType
+        Case BoundKeyStatement.KeyStatementType.KeyAssignment
+          Dim keyValue = EvaluateExpression(node.KeyNumber)
+          If TypeOf keyValue Is String Then
+            Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
           End If
-          m_keyStates(keyNumber) = TimerState.On
 
-        Case SyntaxKind.OffKeyword
-          m_keyStates(keyNumber) = TimerState.Off
-          ' Clear handler
-          m_keyHandlerTargets(keyNumber) = Nothing
+          Dim keyNumber As Integer = CInt(keyValue)
+          If keyNumber < 1 Or keyNumber > 31 Then
+            Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+          End If
 
-        Case SyntaxKind.StopKeyword
-          m_keyStates(keyNumber) = TimerState.Stop
+          Dim stringValue = EvaluateExpression(node.StringAssignment)
+          If TypeOf stringValue IsNot String Then
+            Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+          End If
+
+          m_keyAssignments(keyNumber) = CStr(stringValue).Substring(0, Math.Min(15, CStr(stringValue).Length))
+
+        Case BoundKeyStatement.KeyStatementType.KeyDisplay
+          Select Case node.VerbKind
+            Case SyntaxKind.OnKeyword
+              m_keyDisplayOn = True
+            Case SyntaxKind.OffKeyword
+              m_keyDisplayOn = False
+            Case SyntaxKind.ListKeyword
+              For i As Integer = 1 To 31
+                Dim assignment = m_keyAssignments(i)
+                If assignment IsNot Nothing AndAlso assignment.Length > 0 Then
+                  Dim displayText = If(assignment.Length >= 6, assignment.Substring(0, 6), assignment)
+                  QBLib.Video.Print($"KEY({i}): {displayText}")
+                End If
+              Next
+          End Select
+
+        Case BoundKeyStatement.KeyStatementType.KeyEvent
+          Dim keyValue = EvaluateExpression(node.KeyNumber)
+          If TypeOf keyValue Is String Then
+            Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
+          End If
+
+          Dim keyNumber As Integer = CInt(keyValue)
+          If keyNumber < 1 Or keyNumber > 20 Then
+            Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+          End If
+
+          Select Case node.VerbKind
+            Case SyntaxKind.OnKeyword
+              If m_keyHandlerTargets(keyNumber) Is Nothing Then
+                Return
+              End If
+              m_keyStates(keyNumber) = TimerState.On
+              If m_keyEventPending(keyNumber) Then
+                m_keyEventPending(keyNumber) = False
+                TriggerKeyEvent(keyNumber, currentIndex, labelToIndex)
+              End If
+
+            Case SyntaxKind.OffKeyword
+              m_keyStates(keyNumber) = TimerState.Off
+              m_keyEventPending(keyNumber) = False
+
+            Case SyntaxKind.StopKeyword
+              m_keyStates(keyNumber) = TimerState.Stop
+          End Select
       End Select
     End Sub
 
@@ -1670,9 +1710,67 @@ Namespace Global.QB.CodeAnalysis
     End Sub
 
     Private Function CheckKeyEvent(ByRef currentIndex As Integer, labelToIndex As Dictionary(Of String, Integer)) As Boolean
-      ' Check if any KEY event should trigger
-      ' This is a placeholder - actual implementation would check for key presses
-      ' For now, we just return False to indicate no event
+      For keyNumber As Integer = 1 To 20
+        If m_keyStates(keyNumber) = TimerState.On AndAlso m_keyHandlerTargets(keyNumber) IsNot Nothing Then
+          If CheckKeyPressed(keyNumber) Then
+            m_keyEventPending(keyNumber) = False
+            TriggerKeyEvent(keyNumber, currentIndex, labelToIndex)
+            Return True
+          End If
+        ElseIf m_keyStates(keyNumber) = TimerState.Stop Then
+          If CheckKeyPressed(keyNumber) Then
+            m_keyEventPending(keyNumber) = True
+          End If
+        End If
+      Next
+      Return False
+    End Function
+
+    Private Function CheckKeyPressed(keyNumber As Integer) As Boolean
+      Dim ch As String = QBLib.Video.INKEY$()
+      If String.IsNullOrEmpty(ch) Then
+        Return False
+      End If
+
+      Dim scanCode As Integer = -1
+      Dim keyChar As String = ch
+
+      If ch.Length = 2 AndAlso AscW(ch(0)) = 0 Then
+        scanCode = AscW(ch(1))
+      ElseIf ch.Length = 1 Then
+        keyChar = ch.ToUpper()
+        Select Case keyChar
+          Case "F1" To "F10", "F11", "F12"
+          Case Else
+            keyChar = ch
+        End Select
+      End If
+
+      Select Case keyNumber
+        Case 1 To 10
+          If ch.Length = 1 Then
+            Dim fKey As String = $"F{keyNumber}"
+            If keyChar.ToUpper() = fKey Then
+              Return True
+            End If
+          End If
+        Case 11
+          If scanCode = 72 Then Return True
+        Case 12
+          If scanCode = 75 Then Return True
+        Case 13
+          If scanCode = 77 Then Return True
+        Case 14
+          If scanCode = 80 Then Return True
+        Case 15 To 20
+          If Not String.IsNullOrEmpty(m_keyAssignments(keyNumber)) Then
+            Dim assignment = m_keyAssignments(keyNumber)
+            If assignment.StartsWith(keyChar) Then
+              Return True
+            End If
+          End If
+      End Select
+
       Return False
     End Function
 

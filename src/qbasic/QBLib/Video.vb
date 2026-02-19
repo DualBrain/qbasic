@@ -2340,6 +2340,34 @@ allplotted:
 
     End Sub
 
+    Public Shared Function POINT%(Optional x% = -1, Optional y% = -1)
+      If x% = -1 AndAlso y% = -1 Then
+        Return -1
+      ElseIf y% = -1 Then
+        If x% = 0 Then Return m_previousX%
+        If x% = 1 Then Return m_previousY%
+        If x% = 2 Then Return m_previousX%
+        If x% = 3 Then Return m_previousY%
+        Throw New ArgumentException("Invalid argument to POINT")
+      Else
+        If x% < 0 OrElse x% >= m_screenPixelWidth OrElse y% < 0 OrElse y% >= m_screenPixelHeight Then
+          Return -1
+        End If
+        Dim index% = (y% * m_screenPixelWidth) + x%
+        Dim p = Buffer(index%)
+        For i As Integer = 0 To m_palette.Length - 1
+          If m_palette(i).R = p.R AndAlso m_palette(i).G = p.G AndAlso m_palette(i).B = p.B Then
+            Return i
+          End If
+        Next
+        Return 0
+      End If
+    End Function
+
+    Public Shared Sub OUT(port As Integer, data As Integer)
+      ' OUT statement is a no-op in this emulator since we don't have real hardware access
+    End Sub
+
   End Class
 
 End Namespace

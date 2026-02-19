@@ -11953,7 +11953,16 @@ nameList As List(Of String)) As Boolean
 
     Private Function ExecuteOut() As Boolean
 
-      Return ThrowBasicError(BasicError.AdvancedFeature)
+      Dim port As Double = 0
+      Dim data As Double = 0
+
+      If Not PopToken.IsParenOpenToken Then Return ThrowBasicError(BasicError.SyntaxError)
+      If Not ExecuteExpression(port) Then Return False
+      If Not PopToken.IsCommaToken Then Return ThrowBasicError(BasicError.SyntaxError)
+      If Not ExecuteExpression(data) Then Return False
+      If Not PopToken.IsParenCloseToken Then Return ThrowBasicError(BasicError.SyntaxError)
+
+      Return True
 
     End Function
 

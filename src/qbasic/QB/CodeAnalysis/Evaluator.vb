@@ -532,8 +532,16 @@ Namespace Global.QB.CodeAnalysis
               If port < 0 Or port > 65535 Then
                 Throw New QBasicRuntimeException(ErrorCode.Overflow)
               End If
-              ' Data is ignored, just throw error
-              Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+              Dim dataValue = EvaluateExpression(outStmt.Data)
+              Dim data As Integer
+              If TypeOf dataValue Is Double Then
+                data = CInt(CDbl(dataValue))
+              ElseIf TypeOf dataValue Is Integer Then
+                data = CInt(dataValue)
+              Else
+                data = CInt(dataValue)
+              End If
+              QBLib.Video.OUT(port, data)
             Case BoundNodeKind.ChDirStatement
               Dim chdir = CType(s, BoundChDirStatement)
               Dim value = CStr(EvaluateExpression(chdir.Expression))
@@ -3993,8 +4001,13 @@ Namespace Global.QB.CodeAnalysis
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Pmap Then
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
-      ElseIf node.Function Is BuiltinFunctions.Point Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+      ElseIf node.Function Is BuiltinFunctions.Point1 Then
+        Dim mode = CInt(EvaluateExpression(node.Arguments(0)))
+        Return QBLib.Video.POINT(mode)
+      ElseIf node.Function Is BuiltinFunctions.Point2 Then
+        Dim x = CInt(EvaluateExpression(node.Arguments(0)))
+        Dim y = CInt(EvaluateExpression(node.Arguments(1)))
+        Return QBLib.Video.POINT(x, y)
       ElseIf node.Function Is BuiltinFunctions.Pos Then
         Dim value = CInt(EvaluateExpression(node.Arguments(0)))
         Return QBLib.Video.POS(value)

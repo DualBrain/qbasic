@@ -448,6 +448,56 @@ Namespace Global.QB.CodeAnalysis.Syntax
               writer.Write(", ")
             End If
           Next
+        ElseIf TypeOf node Is ForStatementSyntax Then
+          ' Special handling for FOR statements to preserve statement separators
+          Dim forStmt = CType(node, ForStatementSyntax)
+          Console.WriteLine($"DEBUG: ForStatementSyntax - NextKeyword IsNothing = {forStmt.NextKeyword Is Nothing}")
+          Console.WriteLine($"DEBUG: ForStatementSyntax - Statements Type = {forStmt.Statements?.GetType().Name}")
+          WriteNodeWithTrivia(writer, forStmt.ForKeyword)
+          writer.Write(" ")
+          WriteNodeWithTrivia(writer, forStmt.ControlVariable)
+          writer.Write(" ")
+          WriteNodeWithTrivia(writer, forStmt.EqualsToken)
+          WriteNodeWithTrivia(writer, forStmt.FromValue)
+          writer.Write(" ")
+          WriteNodeWithTrivia(writer, forStmt.ToKeyword)
+          writer.Write(" ")
+          WriteNodeWithTrivia(writer, forStmt.ToValue)
+          If forStmt.StepClause IsNot Nothing Then
+            writer.Write(" ")
+            WriteNodeWithTrivia(writer, forStmt.StepClause.StepKeyword)
+            writer.Write(" ")
+            WriteNodeWithTrivia(writer, forStmt.StepClause.StepValue)
+          End If
+
+          ' Write body statements with colons as separators for single-line FOR
+          If forStmt.NextKeyword IsNot Nothing Then
+            ' Single-line FOR: write body statements separated by colons
+            Dim body = TryCast(forStmt.Statements, BlockStatementSyntax)
+            ' Write FOR header with colon separator
+            writer.Write(": ")
+            If body IsNot Nothing AndAlso body.Statements.Length > 0 Then
+              ' Write first statement
+              WriteNodeWithTrivia(writer, body.Statements(0))
+              ' Write subsequent statements with leading colon
+              For i = 1 To body.Statements.Length - 1
+                writer.Write(": ")
+                WriteNodeWithTrivia(writer, body.Statements(i))
+              Next
+            End If
+            ' Write NEXT keyword with colon separator
+            writer.Write(": ")
+            WriteNodeWithTrivia(writer, forStmt.NextKeyword)
+            If forStmt.OptionalIdentifier IsNot Nothing Then
+              writer.Write(" ")
+              WriteNodeWithTrivia(writer, forStmt.OptionalIdentifier)
+            End If
+          Else
+            ' Multi-line FOR: recursively write children
+            For Each child In node.GetChildren()
+              WriteNodeWithTrivia(writer, child)
+            Next
+          End If
         Else
           ' For non-token nodes, recursively process children
           For Each child In node.GetChildren()

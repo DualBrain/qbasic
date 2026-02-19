@@ -94,6 +94,7 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_textReaders As New Dictionary(Of Integer, StreamReader) ' File number to StreamReader mapping for INPUT files
     Private ReadOnly m_textWriters As New Dictionary(Of Integer, StreamWriter) ' File number to StreamWriter mapping for OUTPUT/APPEND files
     Private ReadOnly m_fieldDefinitions As New Dictionary(Of Integer, List(Of (VariableName As String, Offset As Integer, Width As Integer))) ' File number to field definitions mapping
+    Private ReadOnly m_currentRecords As New Dictionary(Of Integer, Long) ' File number to current record position (for sequential GET/PUT)
 
     'Private m_labelToIndex As Dictionary(Of String, Integer) = Nothing ' Label to m_currentIndex mapping
     'Private m_currentIndex As Integer = 0 ' Current statement m_currentIndex being executed
@@ -4628,6 +4629,9 @@ Namespace Global.QB.CodeAnalysis
         End If
         m_recordLengths.Add(fileNumber, recLen)
 
+        ' Initialize current record position for sequential access
+        m_currentRecords.Add(fileNumber, 0)
+
         ' For INPUT files, create a StreamReader
         If modeString.ToUpper() = "INPUT" OrElse modeString.ToUpper() = "I" Then
           m_textReaders.Add(fileNumber, New StreamReader(stream, leaveOpen:=True))
@@ -4669,6 +4673,7 @@ Namespace Global.QB.CodeAnalysis
           m_openFiles.Remove(fileNumber)
           m_fileModes.Remove(fileNumber)
           m_recordLengths.Remove(fileNumber)
+          m_currentRecords.Remove(fileNumber)
         End If
       Next
 
@@ -4684,6 +4689,7 @@ Namespace Global.QB.CodeAnalysis
         m_openFiles.Clear()
         m_fileModes.Clear()
         m_recordLengths.Clear()
+        m_currentRecords.Clear()
         'For Each kvp In m_textReaders
         '  kvp.Value.Dispose()
         'Next
@@ -4955,9 +4961,17 @@ Namespace Global.QB.CodeAnalysis
       Dim recLen = m_recordLengths(fileNumber)
 
       ' Calculate record number (1-based)
-      Dim recordNumber As Long = 1
+      Dim recordNumber As Long
       If node.OptionalRecord IsNot Nothing Then
+        ' Explicit record number specified
         recordNumber = CLng(EvaluateExpression(node.OptionalRecord))
+      Else
+        ' No record number - use current position for sequential access
+        If m_currentRecords.ContainsKey(fileNumber) Then
+          recordNumber = m_currentRecords(fileNumber) + 1 ' Convert to 1-based
+        Else
+          recordNumber = 1
+        End If
       End If
 
       ' Position to the correct record
@@ -4965,6 +4979,9 @@ Namespace Global.QB.CodeAnalysis
       If position < stream.Length Then
         stream.Position = position
       End If
+
+      ' Update current record position for sequential access
+      m_currentRecords(fileNumber) = recordNumber
 
       ' Read the record into a buffer
       Dim buffer(recLen - 1) As Byte
@@ -5005,14 +5022,25 @@ Namespace Global.QB.CodeAnalysis
       Dim recLen = m_recordLengths(fileNumber)
 
       ' Calculate record number (1-based)
-      Dim recordNumber As Long = 1
+      Dim recordNumber As Long
       If node.OptionalRecord IsNot Nothing Then
+        ' Explicit record number specified
         recordNumber = CLng(EvaluateExpression(node.OptionalRecord))
+      Else
+        ' No record number - use current position for sequential access
+        If m_currentRecords.ContainsKey(fileNumber) Then
+          recordNumber = m_currentRecords(fileNumber) + 1 ' Convert to 1-based
+        Else
+          recordNumber = 1
+        End If
       End If
 
       ' Position to the correct record
       Dim position As Long = (recordNumber - 1) * recLen
       stream.Position = position
+
+      ' Update current record position for sequential access
+      m_currentRecords(fileNumber) = recordNumber
 
       ' Create buffer from field variables
       Dim buffer(recLen - 1) As Byte

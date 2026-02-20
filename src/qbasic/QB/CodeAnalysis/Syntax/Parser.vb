@@ -1567,30 +1567,42 @@ Namespace Global.QB.CodeAnalysis.Syntax
         ' Parse statements until we hit NEXT (but don't include NEXT in body)
         Dim statements = ImmutableArray.CreateBuilder(Of StatementSyntax)()
         While Current.Kind <> SyntaxKind.EndOfFileToken AndAlso
-              Current.Kind <> SyntaxKind.NextKeyword AndAlso
-              Current.Kind <> SyntaxKind.ColonToken
+              Current.Kind <> SyntaxKind.NextKeyword
+          ' Don't stop at colons unless followed by NEXT or EOF (for combined NEXT handling)
+          If Current.Kind = SyntaxKind.ColonToken Then
+            ' Check if next token (after colon) is NEXT or EOF
+            Dim nextToken = Peek(1)
+            If nextToken.Kind = SyntaxKind.NextKeyword OrElse nextToken.Kind = SyntaxKind.EndOfFileToken Then
+              Exit While
+            End If
+          End If
+
           Dim stmt = ParseStatement(isTopLevel)
           statements.Add(stmt)
 
           ' Check for combined NEXT after nested FOR loops
           ' e.g., after inner FOR consumes "NEXT X", we see ",Y" which is part of "NEXT X,Y"
           If Current.Kind = SyntaxKind.CommaToken Then
-            ' Look ahead: comma, identifier, then (EOF, colon, or NEXT) indicates combined NEXT
+            ' Look ahead: comma, identifier, then (EOF, or NEXT) indicates combined NEXT
             If Peek(0).Kind = SyntaxKind.IdentifierToken Then
               Dim peekIndex = 1
               While Peek(peekIndex).Kind = SyntaxKind.CommaToken OrElse Peek(peekIndex).Kind = SyntaxKind.IdentifierToken
                 peekIndex += 1
               End While
-              ' If after the identifiers we hit EOF, colon, or NEXT, it's a combined NEXT
+              ' If after the identifiers we hit EOF or NEXT, it's a combined NEXT
               Dim afterTokens = Peek(peekIndex).Kind
               If afterTokens = SyntaxKind.EndOfFileToken OrElse
-                 afterTokens = SyntaxKind.ColonToken OrElse
                  afterTokens = SyntaxKind.NextKeyword Then
                 Exit While
               End If
             End If
           End If
         End While
+
+        '' Skip any colons before NEXT (common in single-line FOR...NEXT)
+        'While Current.Kind = SyntaxKind.ColonToken
+        '  Dim colon = MatchToken(SyntaxKind.ColonToken)
+        'End While
 
         ' Parse and consume the NEXT keyword (if present)
         ' This is embedded in the FOR statement for single-line form

@@ -333,7 +333,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
         Else
-          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count)
+          ' FUNCTION parameters are passed ByRef by default in QBasic
+          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
           parameters.Add(parameter)
         End If
       Next
@@ -363,7 +364,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         If Not seenParameterNames.Add(parameterName) Then
           Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
         Else
-          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count)
+          ' SUB parameters are passed ByRef by default in QBasic
+          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
           parameters.Add(parameter)
         End If
       Next

@@ -2,6 +2,12 @@ Imports System.Threading
 
 Imports QBLib.Video
 
+Namespace Global
+  Friend Module Globals
+    Friend s_logging As Boolean
+  End Module
+End Namespace
+
 Friend Module Forms
 
   Public Property DefaultBackColor As Drawing.Color = Drawing.Color.Gray ' Integer = 8

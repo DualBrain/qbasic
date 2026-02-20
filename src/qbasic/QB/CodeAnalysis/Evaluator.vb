@@ -510,7 +510,9 @@ Namespace Global.QB.CodeAnalysis
         m_currentQbasicLine = qbasicLine
 
         ' Fire statement executing callback
-        FireStatementExecuting(index, s, physicalLine, qbasicLine)
+        If Global.Globals.s_logging Then
+          FireStatementExecuting(index, s, physicalLine, qbasicLine)
+        End If
 
         'Debug.WriteLine($"{index}:{s.Kind}")
         Try
@@ -3319,13 +3321,15 @@ Namespace Global.QB.CodeAnalysis
         End If
         ' Check if this global variable has been shadowed by a local variable
         ' This happens with FOR loop variables that shadow array names
-        Dim locals = m_locals.Peek
-        If locals.ContainsKey(node.Variable.Name) Then
-          Dim value = locals(node.Variable.Name)
-          If TypeOf value Is ByRefVariable Then
-            Return m_globals(DirectCast(value, ByRefVariable).Name)
-          Else
-            Return value
+        If m_locals IsNot Nothing AndAlso m_locals.Count > 0 Then
+          Dim currentLocals = m_locals.Peek
+          If currentLocals.ContainsKey(node.Variable.Name) Then
+            Dim value = currentLocals(node.Variable.Name)
+            If TypeOf value Is ByRefVariable Then
+              Return m_globals(DirectCast(value, ByRefVariable).Name)
+            Else
+              Return value
+            End If
           End If
         End If
         If m_globals.ContainsKey(node.Variable.Name) Then
@@ -3335,31 +3339,32 @@ Namespace Global.QB.CodeAnalysis
         End If
       Else
         ' Local variable case
-        Dim locals = m_locals.Peek
-        If locals.ContainsKey(node.Variable.Name) Then
-          Dim value = locals(node.Variable.Name)
-          If TypeOf value Is ByRefVariable Then
-            Return m_globals(DirectCast(value, ByRefVariable).Name)
-          Else
-            Return value
+        If m_locals IsNot Nothing AndAlso m_locals.Count > 0 Then
+          Dim currentLocals = m_locals.Peek
+          If currentLocals.ContainsKey(node.Variable.Name) Then
+            Dim value = currentLocals(node.Variable.Name)
+            If TypeOf value Is ByRefVariable Then
+              Return m_globals(DirectCast(value, ByRefVariable).Name)
+            Else
+              Return value
+            End If
           End If
-        Else
-          ' Local variable not found in current locals
-          ' Check if this was a FOR loop variable that shadowed an array
-          ' If so, fall back to m_forLoopFinalValues or m_globals
-          If m_forLoopFinalValues.ContainsKey(node.Variable.Name) Then
-            Return m_forLoopFinalValues(node.Variable.Name)
-          End If
-          ' Also check _scalar_ suffix for in-progress FOR loops
-          If m_globals.ContainsKey(node.Variable.Name & "_scalar_") Then
-            Return m_globals(node.Variable.Name & "_scalar_")
-          End If
-          ' Check if there's a global with this name (array case)
-          If m_globals.ContainsKey(node.Variable.Name) Then
-            Return m_globals(node.Variable.Name)
-          End If
-          Return Nothing
         End If
+        ' Local variable not found in current locals
+        ' Check if this was a FOR loop variable that shadowed an array
+        ' If so, fall back to m_forLoopFinalValues or m_globals
+        If m_forLoopFinalValues.ContainsKey(node.Variable.Name) Then
+          Return m_forLoopFinalValues(node.Variable.Name)
+        End If
+        ' Also check _scalar_ suffix for in-progress FOR loops
+        If m_globals.ContainsKey(node.Variable.Name & "_scalar_") Then
+          Return m_globals(node.Variable.Name & "_scalar_")
+        End If
+        ' Check if there's a global with this name (array case)
+        If m_globals.ContainsKey(node.Variable.Name) Then
+          Return m_globals(node.Variable.Name)
+        End If
+        Return Nothing
       End If
     End Function
 
@@ -3791,14 +3796,18 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return MathF.Abs(value)
       ElseIf node.Function Is BuiltinFunctions.Asc Then
-        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Dim valueObj = EvaluateExpression(node.Arguments(0))
+        If TypeOf valueObj Is List(Of Object) Then
+          Throw New Exception($"ASC received List(Of Object) instead of String. This indicates array access was not properly bound. Value: {valueObj?.ToString()}")
+        End If
+        Dim value = CStr(valueObj)
         If String.IsNullOrEmpty(value) Then
           Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
         End If
         Try
           Return QBLib.Core.QBAsc(value)
         Catch ex As Exception
-          Return 0 'Microsoft.VisualBasic.Chr(0)
+          Return 0
         End Try
       ElseIf node.Function Is BuiltinFunctions.Atn Then
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
@@ -4039,7 +4048,11 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CStr(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.LTrim(value)
       ElseIf node.Function Is BuiltinFunctions.Mid1 Then
-        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Dim valueObj = EvaluateExpression(node.Arguments(0))
+        If TypeOf valueObj Is List(Of Object) Then
+          Throw New Exception($"MID$ received List(Of Object) instead of String. This indicates array access was not properly bound. Value: {valueObj?.ToString()}")
+        End If
+        Dim value = CStr(valueObj)
         Dim start = CInt(EvaluateExpression(node.Arguments(1)))
         If start.Between(1, 32767) Then
           Return Microsoft.VisualBasic.Mid(value, start)
@@ -4047,7 +4060,11 @@ Namespace Global.QB.CodeAnalysis
           Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
         End If
       ElseIf node.Function Is BuiltinFunctions.Mid2 Then
-        Dim value = CStr(EvaluateExpression(node.Arguments(0)))
+        Dim valueObj = EvaluateExpression(node.Arguments(0))
+        If TypeOf valueObj Is List(Of Object) Then
+          Throw New Exception($"MID$ received List(Of Object) instead of String. This indicates array access was not properly bound. Value: {valueObj?.ToString()}")
+        End If
+        Dim value = CStr(valueObj)
         Dim start = CInt(EvaluateExpression(node.Arguments(1)))
         Dim length = CInt(EvaluateExpression(node.Arguments(2)))
         If start.Between(1, 32767) AndAlso
@@ -4349,19 +4366,23 @@ Namespace Global.QB.CodeAnalysis
         End If
         Return CDbl(0)
       Else
-        Dim locals = New Dictionary(Of String, Object)
+        Dim locals As Dictionary(Of String, Object) = Nothing
         For i = 0 To node.Arguments.Length - 1
           Dim parameter = node.Function.Parameters(i)
           Dim argument = node.Arguments(i)
           If parameter.IsByRef AndAlso TypeOf argument.Syntax Is IdentifierExpressionSyntax Then
+            If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
             locals.Add(parameter.Name, New ByRefVariable(GetVariableNameFromSyntax(argument.Syntax)))
           Else
+            If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
             Dim value = EvaluateExpression(argument)
             Debug.Assert(value IsNot Nothing)
             locals.Add(parameter.Name, value)
           End If
         Next
-        m_locals.Push(locals)
+        If locals IsNot Nothing Then
+          m_locals.Push(locals)
+        End If
         Dim statement = m_functions(node.Function)
         m_container.Push(node.Function.Name)
         Dim result = EvaluateStatement(statement, Nothing)
@@ -4439,7 +4460,7 @@ Namespace Global.QB.CodeAnalysis
         If variable.IsUserDefinedType AndAlso value Is Nothing Then
           ' Initialize UDT with empty dictionary
           m_globals(variable.Name) = New Dictionary(Of String, Object)(StringComparer.OrdinalIgnoreCase)
-          FireVariableChanged(variable.Name, Nothing, value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
+          If Global.Globals.s_logging Then FireVariableChanged(variable.Name, Nothing, value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
           Return
         End If
         ' Check if this is a scalar assignment where an array with the same name exists
@@ -4449,20 +4470,20 @@ Namespace Global.QB.CodeAnalysis
           ' If the existing value is a List (array), preserve it and store scalar separately
           If TypeOf existingValue Is List(Of Object) Then
             m_globals(variable.Name & "_scalar_") = value
-            FireVariableChanged(variable.Name, oldValue, value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
+            If Global.Globals.s_logging Then FireVariableChanged(variable.Name, oldValue, value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
             Return
           End If
         End If
         m_globals(variable.Name) = value
-        FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
+        If Global.Globals.s_logging Then FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
       Else
         Dim locals = m_locals.Peek
         If locals.ContainsKey(variable.Name) AndAlso TypeOf locals(variable.Name) Is ByRefVariable Then
           m_globals(DirectCast(locals(variable.Name), ByRefVariable).Name) = value
-          FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
+          If Global.Globals.s_logging Then FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
         Else
           locals(variable.Name) = value
-          FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
+          If Global.Globals.s_logging Then FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
         End If
       End If
     End Sub
@@ -4475,9 +4496,9 @@ Namespace Global.QB.CodeAnalysis
 
     Private Function ConvertValue(value As Object, targetType As TypeSymbol) As Object
       If value Is Nothing Then Return Nothing
-
-      ' Handle string type conversion - only allow char to string, not numeric to string
-      If targetType Is TypeSymbol.String Then
+      If targetType Is TypeSymbol.Any Then
+        Return value
+      ElseIf targetType Is TypeSymbol.String Then
         If TypeOf value Is String Then
           Return value
         ElseIf TypeOf value Is Char Then
@@ -4514,7 +4535,7 @@ Namespace Global.QB.CodeAnalysis
         tuple.Item1(tuple.Item2) = value
         ' Fire callback for array element assignment
         Dim indices As Object() = {tuple.Item2}
-        FireVariableChanged(arrayAccess.Variable.Name, Nothing, value, m_currentPhysicalLine, m_currentQbasicLine, VariableChangedEventArgs.VariableKind.ArrayElement, indices)
+        If Global.Globals.s_logging Then FireVariableChanged(arrayAccess.Variable.Name, Nothing, value, m_currentPhysicalLine, m_currentQbasicLine, VariableChangedEventArgs.VariableKind.ArrayElement, indices)
       ElseIf TypeOf expression Is BoundMemberAccessExpression Then
         Dim memberAccess = CType(expression, BoundMemberAccessExpression)
         ' Get the UDT instance

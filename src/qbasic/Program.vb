@@ -83,8 +83,14 @@ Friend Module Program
       ElseIf arg.Equals("--stdout", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-s", StringComparison.OrdinalIgnoreCase) Then
         stdoutMode = True
       ElseIf arg.Equals("--log", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-l", StringComparison.OrdinalIgnoreCase) Then
-        If i + 1 < args.Length Then
+        s_logging = True
+        ' Optional filename: --log or --log filename
+        If i + 1 < args.Length AndAlso Not args(i + 1).StartsWith("-"c) Then
           logFilePath = args(i + 1)
+          i += 1
+        Else
+          ' No filename provided - enable console logging
+          logFilePath = String.Empty
         End If
       End If
     Next
@@ -144,7 +150,6 @@ Friend Module Program
           Case "--help", "-h"
             showHelp = True
           Case "--run", "-r"
-            stdoutMode = True
             runModeExplicit = True
           Case "--roundtrip", "-rt"
             roundtripMode = True
@@ -153,14 +158,14 @@ Friend Module Program
           Case "--convert-vbnet", "-v"
             convertToVbNetMode = True
           Case "--log", "-l"
-            ' Get the next argument as the log file path
-            If i + 1 >= args.Length Then
-              Console.WriteLine("Error: --log requires a filename argument")
-              ShowUsage()
-              Return False
+            ' Optional filename argument: --log or --log filename
+            If i + 1 < args.Length AndAlso Not args(i + 1).StartsWith("-") Then
+              logFilePath = args(i + 1)
+              i += 1 ' Skip the next argument since we consumed it
+            Else
+              ' No filename provided - will enable console logging
+              logFilePath = String.Empty
             End If
-            logFilePath = args(i + 1)
-            i += 1 ' Skip the next argument since we consumed it
           Case "-b", "-monochrome"
             ' Backward compatibility: -B - monochrome display mode
             ' In modern .NET, this is accepted for compatibility
@@ -250,6 +255,7 @@ Friend Module Program
                   normalizedArg = "--dump-globals" OrElse normalizedArg = "-d" OrElse
                   normalizedArg = "--help" OrElse normalizedArg = "-h" OrElse
                   normalizedArg = "--roundtrip" OrElse normalizedArg = "-r" OrElse
+                  normalizedArg = "--log" OrElse normalizedArg = "-l" OrElse
                   normalizedArg = "--upgrade-gwbasic" OrElse normalizedArg = "-g" OrElse
                   normalizedArg = "--convert-vbnet" OrElse normalizedArg = "-v")) Then
           programArgs.Add(arg)
@@ -324,10 +330,11 @@ Friend Module Program
     Console.WriteLine("  --syntax-tree, -t    Display syntax tree")
     Console.WriteLine("  --methods, -m        Display method definitions (SUB, FUNCTION, DEF FN)")
     Console.WriteLine("  --run, -r            Run program in console mode")
+    Console.WriteLine("  --stdout, -s         Redirect PRINT output to stdout (for piping)")
     Console.WriteLine("  --roundtrip          Test syntax tree roundtrip fidelity")
     Console.WriteLine("  --upgrade-gwbasic, -g Upgrade GW-BASIC line numbers to QBasic")
     Console.WriteLine("  --convert-vbnet, -v  Convert QBasic to VB.NET code")
-    Console.WriteLine("  --log, -l <filename> Enable execution logging to specified file")
+    Console.WriteLine("  --log, -l [<filename>] Enable execution logging (console or to file)")
     Console.WriteLine("  --help, -h          Show this help message")
     Console.WriteLine()
     Console.WriteLine("MS-DOS Style Options (for backward compatibility):")
@@ -345,7 +352,10 @@ Friend Module Program
     Console.WriteLine("  qbasic program.bas")
     Console.WriteLine("  qbasic program.bas --syntax-tree")
     Console.WriteLine("  qbasic program.bas --methods")
-    Console.WriteLine("  qbasic program.bas -RUN program.bas")
+    Console.WriteLine("  qbasic program.bas --run             Run program (no logging)")
+    Console.WriteLine("  qbasic program.bas --run --log       Run with console logging")
+    Console.WriteLine("  qbasic program.bas --run --log out.txt Run with file logging")
+    Console.WriteLine("  qbasic program.bas --run --stdout     Run with stdout output (for piping)")
     Console.WriteLine("  qbasic -H")
     Console.WriteLine("  qbasic --help")
   End Sub
@@ -502,15 +512,17 @@ Friend Module Program
       ' Set stdout mode
       QBLib.Video.StdoutMode = stdoutMode
 
-      ' Console logging is enabled when:
-      ' - --run is specified without --stdout and without --log (same as F5 in GUI)
+      ' Logging is enabled when --log is specified:
+      ' - logFilePath = Nothing: no logging (default)
+      ' - logFilePath = "": console logging (--log without filename)
+      ' - logFilePath = "filename": file logging (--log filename)
       ' Note: stdoutMode controls program output (PRINT goes to stdout), not logging
-      ' runModeExplicit indicates --run was used (enables console logging by default)
-      Dim logToConsole As Boolean = runModeExplicit AndAlso String.IsNullOrEmpty(logFilePath)
+      Dim logToConsole As Boolean = (logFilePath IsNot Nothing AndAlso logFilePath = "") AndAlso Not stdoutMode
+      Dim effectiveLogFilePath As String = If(logFilePath IsNot Nothing AndAlso logFilePath <> "", logFilePath, Nothing)
 
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
-      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, logFilePath, logToConsole, commandString)
+      interpreter.Run(sourceText, dumpGlobals, commandLineArgs, effectiveLogFilePath, logToConsole, commandString)
 
     Catch ex As Exception
       Console.WriteLine($"Error: {ex.Message}")

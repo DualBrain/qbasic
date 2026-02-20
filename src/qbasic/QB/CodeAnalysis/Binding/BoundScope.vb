@@ -102,18 +102,24 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
       End If
 
-      Return Parent?.TryLookupVariable(name)
+      ' If not found in current scope, try parent scope
+      If Parent IsNot Nothing Then
+        Return Parent.TryLookupVariable(name)
+      End If
+      Return Nothing
     End Function
 
     Public Function TryLookupFunction(name As String, parameters As List(Of TypeSymbol)) As Symbol
-      ' First try exact match
+      ' First try exact match in current scope
       Dim key = $"{name.ToLower}[{If(parameters?.Count, 0)}]"
       Dim result = TryLookupSymbol(key)
       If result IsNot Nothing Then Return result
 
-      ' If not found, look for any function with this name (for now, just return nothing to avoid bugs)
-      ' TODO: Implement proper function overload resolution
-      Return Parent?.TryLookupFunction(name, parameters)
+      ' If not found in current scope, try parent scope
+      If Parent IsNot Nothing Then
+        Return Parent.TryLookupFunction(name, parameters)
+      End If
+      Return Nothing
     End Function
 
     Public Function TryLookupSymbol(name As String) As Symbol
@@ -125,7 +131,11 @@ Namespace Global.QB.CodeAnalysis.Binding
         Dim result = (From p In m_symbols Where p.Key.StartsWith(name.ToLower) Select p.Value).FirstOrDefault
         If result IsNot Nothing Then Return result
       End If
-      Return Parent?.TryLookupSymbol(name)
+      ' If current scope has no symbols or symbol not found, try parent scope
+      If Parent IsNot Nothing Then
+        Return Parent.TryLookupSymbol(name)
+      End If
+      Return Nothing
     End Function
 
     Public Function GetDeclaredVariables() As ImmutableArray(Of VariableSymbol)

@@ -1571,17 +1571,69 @@ Namespace Global.QB.CodeAnalysis.Syntax
               Current.Kind <> SyntaxKind.ColonToken
           Dim stmt = ParseStatement(isTopLevel)
           statements.Add(stmt)
+
+          ' Check for combined NEXT after nested FOR loops
+          ' e.g., after inner FOR consumes "NEXT X", we see ",Y" which is part of "NEXT X,Y"
+          If Current.Kind = SyntaxKind.CommaToken Then
+            ' Look ahead: comma, identifier, then (EOF, colon, or NEXT) indicates combined NEXT
+            If Peek(0).Kind = SyntaxKind.IdentifierToken Then
+              Dim peekIndex = 1
+              While Peek(peekIndex).Kind = SyntaxKind.CommaToken OrElse Peek(peekIndex).Kind = SyntaxKind.IdentifierToken
+                peekIndex += 1
+              End While
+              ' If after the identifiers we hit EOF, colon, or NEXT, it's a combined NEXT
+              Dim afterTokens = Peek(peekIndex).Kind
+              If afterTokens = SyntaxKind.EndOfFileToken OrElse
+                 afterTokens = SyntaxKind.ColonToken OrElse
+                 afterTokens = SyntaxKind.NextKeyword Then
+                Exit While
+              End If
+            End If
+          End If
         End While
 
         ' Parse and consume the NEXT keyword (if present)
         ' This is embedded in the FOR statement for single-line form
         Dim nextKeyword As SyntaxToken = Nothing
         Dim optionalIdentifier As SyntaxToken = Nothing
+        Dim nextIdentifiers As SeparatedSyntaxList(Of SyntaxToken) = Nothing
+        Dim nextIdentifierList As List(Of SyntaxToken) = Nothing
         If Current.Kind = SyntaxKind.NextKeyword Then
           nextKeyword = MatchToken(SyntaxKind.NextKeyword)
-          ' Check for optional counter variable
+
+          ' Check for optional counter variable(s)
+          Dim identifiers = New List(Of SyntaxToken)()
+          Dim separators = New List(Of SyntaxToken)()
+
           If Current.Kind = SyntaxKind.IdentifierToken Then
-            optionalIdentifier = MatchToken(SyntaxKind.IdentifierToken)
+            identifiers.Add(MatchToken(SyntaxKind.IdentifierToken))
+
+            ' Check for additional identifiers (combined NEXT for nested loops)
+            While Current.Kind = SyntaxKind.CommaToken
+              separators.Add(MatchToken(SyntaxKind.CommaToken))
+              If Current.Kind = SyntaxKind.IdentifierToken Then
+                identifiers.Add(MatchToken(SyntaxKind.IdentifierToken))
+              End If
+            End While
+          End If
+
+          If identifiers.Count > 0 Then
+            ' Build separated syntax list
+            Dim nodesAndSeparators = New List(Of SyntaxNode)()
+            For i = 0 To identifiers.Count - 1
+              nodesAndSeparators.Add(identifiers(i))
+              If i < separators.Count Then
+                nodesAndSeparators.Add(separators(i))
+              End If
+            Next
+            nextIdentifiers = New SeparatedSyntaxList(Of SyntaxToken)(nodesAndSeparators.ToImmutableArray())
+            nextIdentifierList = identifiers
+
+            ' Handle combined NEXT for nested single-line FOR loops
+            ' e.g., FOR Y=1 TO 2:FOR X=1 TO 2:...:NEXT X,Y
+            If identifiers.Count > 1 Then
+              ProcessCombinedNextForNestedLoops(statements.ToImmutable, nextKeyword, identifiers)
+            End If
           End If
         End If
 
@@ -1595,7 +1647,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
                                       stepClause,
                                       bodyStatements,
                                       nextKeyword,
-                                      optionalIdentifier)
+                                      If(nextIdentifierList IsNot Nothing AndAlso nextIdentifierList.Count > 0, nextIdentifierList(0), Nothing))
       Else
         ' Multi-line version: parse statements until we hit NEXT
         ' We need special handling for NEXT because it's a terminator for FOR loops
@@ -1629,6 +1681,64 @@ Namespace Global.QB.CodeAnalysis.Syntax
                                       Nothing)
       End If
     End Function
+
+    ''' <summary>
+    ''' Processes combined NEXT statements for nested single-line FOR loops.
+    ''' When we encounter NEXT X,Y where Y belongs to an outer FOR loop,
+    ''' we need to update the inner FOR's syntax to include the NEXT info.
+    ''' </summary>
+    Private Sub ProcessCombinedNextForNestedLoops(bodyStatements As ImmutableArray(Of StatementSyntax), nextKeyword As SyntaxToken, identifiers As List(Of SyntaxToken))
+      ' Find all nested single-line FOR statements in the body
+      ' These FORs already consumed their NEXT, but we need to associate additional identifiers
+      Dim nestedForStatements = New List(Of ForStatementSyntax)()
+      CollectNestedForStatements(bodyStatements, nestedForStatements)
+
+      ' Process in reverse order (innermost first)
+      ' identifiers(0) goes to innermost FOR, identifiers(1) to next, etc.
+      Dim forIndex = nestedForStatements.Count - 1
+      For i = 0 To identifiers.Count - 1
+        If forIndex < 0 Then Exit For
+
+        Dim forStmt = nestedForStatements(forIndex)
+        ' We don't need to do anything with the nested FOR since we already consumed
+        ' the full NEXT X,Y at the outer level. The syntax tree will have the outer FOR
+        ' with NEXT X,Y, and the inner FOR with its own NEXT X.
+
+        forIndex -= 1
+      Next
+    End Sub
+
+    ''' <summary>
+    ''' Recursively collects all nested ForStatementSyntax nodes from a statement.
+    ''' </summary>
+    Private Sub CollectNestedForStatements(stmts As ImmutableArray(Of StatementSyntax), collection As List(Of ForStatementSyntax))
+      For Each stmt In stmts
+        CollectNestedForStatements(stmt, collection)
+      Next
+    End Sub
+
+    ''' <summary>
+    ''' Recursively collects all nested ForStatementSyntax nodes from a single statement.
+    ''' </summary>
+    Private Sub CollectNestedForStatements(stmt As StatementSyntax, collection As List(Of ForStatementSyntax))
+      If stmt Is Nothing Then Return
+
+      If TypeOf stmt Is ForStatementSyntax Then
+        Dim forStmt = DirectCast(stmt, ForStatementSyntax)
+        ' Only collect if it's a single-line FOR (has NextKeyword)
+        If forStmt.NextKeyword IsNot Nothing Then
+          collection.Add(forStmt)
+        End If
+        ' Recurse into body
+        If TypeOf forStmt.Statements Is BlockStatementSyntax Then
+          CollectNestedForStatements(DirectCast(forStmt.Statements, BlockStatementSyntax).Statements, collection)
+        End If
+      ElseIf TypeOf stmt Is BlockStatementSyntax Then
+        For Each child In DirectCast(stmt, BlockStatementSyntax).Statements
+          CollectNestedForStatements(child, collection)
+        Next
+      End If
+    End Sub
 
     Private Function ParseFunctionDeclaration() As MemberSyntax
 

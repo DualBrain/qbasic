@@ -1395,8 +1395,8 @@ Handler:
       ' Name: FOR...NEXT (5)
 
       Dim sample = "
-A$="""":FOR Y=1 TO 2:FOR X=1 TO 2:A$=A$+""0"":NEXT X,Y
-"
+    A$="""":FOR Y=1 TO 2:FOR X=1 TO 2:A$=A$+""0"":NEXT X,Y
+    "
 
       'Dim expected = "0000"
 

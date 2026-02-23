@@ -1,6 +1,7 @@
 Imports System.Collections.Immutable
 Imports System.IO
 Imports System.Linq
+Imports System.Text
 
 Imports Basic.Utils
 
@@ -20,6 +21,10 @@ Namespace Global.QB.CodeAnalysis
 
   Friend NotInheritable Class Evaluator
     Implements IDisposable
+
+    Shared Sub New()
+      Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+    End Sub
 
     Private ReadOnly m_program As BoundProgram
     Private ReadOnly m_globalStatements As ImmutableArray(Of BoundStatement)
@@ -93,6 +98,7 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_recordLengths As New Dictionary(Of Integer, Integer) ' File number to record length mapping (for RANDOM files)
     Private ReadOnly m_textReaders As New Dictionary(Of Integer, StreamReader) ' File number to StreamReader mapping for INPUT files
     Private ReadOnly m_textWriters As New Dictionary(Of Integer, StreamWriter) ' File number to StreamWriter mapping for OUTPUT/APPEND files
+    Private ReadOnly m_dosEncoding As Encoding = Encoding.GetEncoding(437) ' MS-DOS CP437 encoding for text file I/O
     Private ReadOnly m_fieldDefinitions As New Dictionary(Of Integer, List(Of (VariableName As String, Offset As Integer, Width As Integer))) ' File number to field definitions mapping
     Private ReadOnly m_currentRecords As New Dictionary(Of Integer, Long) ' File number to current record position (for sequential GET/PUT)
 
@@ -710,7 +716,7 @@ Namespace Global.QB.CodeAnalysis
                   Dim bytes(127) As Byte
                   Dim bytesRead = stream.Read(bytes, 0, 128)
                   If bytesRead > 0 Then
-                    line = System.Text.Encoding.UTF8.GetString(bytes, 0, bytesRead).Trim()
+                    line = m_dosEncoding.GetString(bytes, 0, bytesRead).Trim()
                   End If
                 End If
 
@@ -2371,7 +2377,7 @@ Namespace Global.QB.CodeAnalysis
         If m_textWriters.ContainsKey(fileNumber) Then
           m_textWriters(fileNumber).Write(output)
         Else
-          Dim bytes = System.Text.Encoding.UTF8.GetBytes(output)
+          Dim bytes = m_dosEncoding.GetBytes(output)
           Dim stream = m_openFiles(fileNumber)
           stream.Write(bytes, 0, bytes.Length)
         End If
@@ -3708,10 +3714,12 @@ Namespace Global.QB.CodeAnalysis
 
         Case BoundBinaryOperatorKind.LogicalAnd, BoundBinaryOperatorKind.BitwiseAnd
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
+            Case TypeSymbol.Type.Double : Return (CULng(left) And CULng(right))
+            Case TypeSymbol.Type.Single : Return (CULng(left) And CULng(right))
             Case TypeSymbol.Type.ULong64 : Return (CULng(left) And CULng(right))
             Case TypeSymbol.Type.Long64 : Return (CLng(left) And CLng(right))
             Case TypeSymbol.Type.ULong : Return (CUInt(left) And CUInt(right))
-            Case TypeSymbol.Type.Long : Return (CInt(left) And CInt(right))
+            Case TypeSymbol.Type.Long : Return (CLng(left) And CLng(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) And CUShort(right))
             Case TypeSymbol.Type.Integer
               ' Use Integer for bitwise operations to avoid overflow
@@ -4594,6 +4602,8 @@ Namespace Global.QB.CodeAnalysis
 
       ' GW-BASIC/QBasic strips trailing periods from filenames
       ' For example, "ROMIMAGE." becomes "ROMIMAGE"
+      ' But we need to check both the original and stripped names
+      Dim originalFileName = fileName
       If fileName.EndsWith(".") Then
         fileName = fileName.TrimEnd("."c)
       End If
@@ -4626,20 +4636,21 @@ Namespace Global.QB.CodeAnalysis
           mode = FileMode.OpenOrCreate
         Case "R", "RANDOM"
           access = FileAccess.ReadWrite
+          ' Use OpenOrCreate to match QBasic behavior: create file if it doesn't exist
+          ' but also allow opening existing files
           mode = FileMode.OpenOrCreate
         Case Else
           Throw New QBasicRuntimeException(ErrorCode.BadFileMode)
       End Select
 
-      ' For COM ports, handle differently (not implemented yet)
-      If fileName.Length > 4 AndAlso
-         fileName.Substring(4, 1) = ":" AndAlso
-         fileName.ToUpper().StartsWith("COM") Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+      ' For RANDOM mode, try original filename first (with trailing dot), then stripped name
+      Dim fileNameToTry = fileName
+      If (modeString.ToUpper() = "R" OrElse modeString.ToUpper() = "RANDOM") AndAlso
+         Not File.Exists(fileName) AndAlso File.Exists(originalFileName) Then
+        fileNameToTry = originalFileName
       End If
-
       Try
-        Dim stream = New FileStream(fileName, mode, access)
+        Dim stream = New FileStream(fileNameToTry, mode, access, FileShare.ReadWrite)
         m_openFiles.Add(fileNumber, stream)
         m_fileModes.Add(fileNumber, modeString.ToUpper())
 
@@ -4655,13 +4666,13 @@ Namespace Global.QB.CodeAnalysis
 
         ' For INPUT files, create a StreamReader
         If modeString.ToUpper() = "INPUT" OrElse modeString.ToUpper() = "I" Then
-          m_textReaders.Add(fileNumber, New StreamReader(stream, leaveOpen:=True))
+          m_textReaders.Add(fileNumber, New StreamReader(stream, m_dosEncoding, True, leaveOpen:=True))
         End If
 
         ' For OUTPUT and APPEND files, create a StreamWriter
         If modeString.ToUpper() = "OUTPUT" OrElse modeString.ToUpper() = "O" OrElse
            modeString.ToUpper() = "APPEND" OrElse modeString.ToUpper() = "A" Then
-          m_textWriters.Add(fileNumber, New StreamWriter(stream, leaveOpen:=True))
+          m_textWriters.Add(fileNumber, New StreamWriter(stream, m_dosEncoding, leaveOpen:=True))
         End If
       Catch ex As FileNotFoundException
         Throw New QBasicRuntimeException(ErrorCode.FileNotFound)
@@ -4880,7 +4891,7 @@ Namespace Global.QB.CodeAnalysis
       If Not m_textWriters.ContainsKey(fileNumber) Then
         Dim stream = m_openFiles(fileNumber)
         Try
-          m_textWriters.Add(fileNumber, New StreamWriter(stream, leaveOpen:=True))
+          m_textWriters.Add(fileNumber, New StreamWriter(stream, m_dosEncoding, leaveOpen:=True))
         Catch ex As Exception
           Throw New QBasicRuntimeException(ErrorCode.Internal)
         End Try

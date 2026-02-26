@@ -80,6 +80,11 @@ Friend Module Program
       Dim arg = NormalizeArgument(args(i))
       If arg.EndsWith(".bas", StringComparison.OrdinalIgnoreCase) Then
         filename = args(i)
+        ' Change working directory to match the source file's directory
+        Dim fileDir = System.IO.Path.GetDirectoryName(filename)
+        If Not String.IsNullOrEmpty(fileDir) AndAlso System.IO.Directory.Exists(fileDir) Then
+          System.IO.Directory.SetCurrentDirectory(fileDir)
+        End If
       ElseIf arg.Equals("--stdout", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-s", StringComparison.OrdinalIgnoreCase) Then
         stdoutMode = True
       ElseIf arg.Equals("--log", StringComparison.OrdinalIgnoreCase) OrElse arg.Equals("-l", StringComparison.OrdinalIgnoreCase) Then

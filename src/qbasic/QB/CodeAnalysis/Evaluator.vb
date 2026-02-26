@@ -4701,7 +4701,7 @@ Namespace Global.QB.CodeAnalysis
          Not File.Exists(fileName) AndAlso File.Exists(originalFileName) Then
         fileNameToTry = originalFileName
       End If
-      Try
+            Try
         Dim stream = New FileStream(fileNameToTry, mode, access, FileShare.ReadWrite)
         m_openFiles.Add(fileNumber, stream)
         m_fileModes.Add(fileNumber, modeString.ToUpper())
@@ -5065,7 +5065,6 @@ Namespace Global.QB.CodeAnalysis
       Dim position As Long = (recordNumber - 1) * recLen
       If position < stream.Length Then
         stream.Position = position
-      Else
       End If
 
       ' Update current record position for sequential access
@@ -5083,16 +5082,16 @@ Namespace Global.QB.CodeAnalysis
         Dim width = fieldDef.Width
 
         ' Extract string from buffer and set variable
+        ' When reading past EOF, use null (ChrW(0)) not space (ChrW(32))
         Dim chars(width - 1) As Char
         For i As Integer = 0 To width - 1
           If offset + i < bytesRead Then
             chars(i) = ChrW(buffer(offset + i))
           Else
-            chars(i) = " "c
+            chars(i) = ChrW(0)
           End If
         Next
         m_globals(varName) = New String(chars)
-        Dim val As String = CStr(m_globals(varName))
       Next
     End Sub
 

@@ -590,6 +590,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.ForStatement : Return BindForStatement(CType(syntax, ForStatementSyntax))
         Case SyntaxKind.GosubStatement : Return BindGosubStatement(CType(syntax, GosubStatementSyntax))
         Case SyntaxKind.GetFileStatement : Return BindGetFileStatement(CType(syntax, GetFileStatementSyntax))
+        Case SyntaxKind.FilesStatement : Return BindFilesStatement(CType(syntax, FilesStatementSyntax))
         Case SyntaxKind.GetStatement : Return BindGetStatement(CType(syntax, GetStatementSyntax))
         Case SyntaxKind.GotoStatement : Return BindGotoStatement(CType(syntax, GotoStatementSyntax))
         Case SyntaxKind.IfStatement : Return BindIfStatement(CType(syntax, IfStatementSyntax))
@@ -961,6 +962,23 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindChDirStatement(syntax As ChDirStatementSyntax) As BoundStatement
       Dim path = BindExpression(syntax.Path)
       Return New BoundChDirStatement(syntax, path)
+    End Function
+
+    Private Function BindFilesStatement(syntax As FilesStatementSyntax) As BoundStatement
+      Dim expression As BoundExpression = Nothing
+      If syntax.Expression IsNot Nothing Then
+        ' If the parser inserted a missing identifier (no filespec provided), treat as no expression
+        If TypeOf syntax.Expression Is IdentifierExpressionSyntax AndAlso CType(syntax.Expression, IdentifierExpressionSyntax).Identifier.IsMissing Then
+          expression = Nothing
+        Else
+          expression = BindExpression(syntax.Expression, canBeVoid:=True)
+          If expression.Type Is TypeSymbol.Nothing Then
+            ' If binding produced an error, don't propagate an error expression into evaluator
+            expression = Nothing
+          End If
+        End If
+      End If
+      Return New BoundFilesStatement(syntax, expression)
     End Function
 
     Private Function BindChainStatement(syntax As ChainStatementSyntax) As BoundStatement

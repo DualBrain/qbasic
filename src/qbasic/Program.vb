@@ -525,7 +525,7 @@ Friend Module Program
       interpreter.Run(sourceText, dumpGlobals, commandLineArgs, effectiveLogFilePath, logToConsole, commandString)
 
     Catch ex As Exception
-      Console.WriteLine($"Error: {ex.Message}")
+      Console.WriteLine(ex.ToString())
       If dumpGlobals AndAlso interpreter IsNot Nothing Then
         Console.WriteLine("Global variables:")
         For Each kv In interpreter.Variables

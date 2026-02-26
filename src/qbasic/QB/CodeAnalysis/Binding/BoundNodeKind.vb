@@ -28,6 +28,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     ForStatement
     GosubStatement
     GetFileStatement
+    FilesStatement
     GetStatement
     GotoStatement
     HandleCommaStatement

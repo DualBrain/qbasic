@@ -558,6 +558,20 @@ Namespace Global.QB.CodeAnalysis
               Dim value = CStr(EvaluateExpression(chdir.Expression))
               System.IO.Directory.SetCurrentDirectory(value)
               index += 1
+            Case BoundNodeKind.FilesStatement
+              Dim fs = CType(s, BoundFilesStatement)
+              Dim pattern As String = Nothing
+              If fs.Expression IsNot Nothing AndAlso fs.Expression.Kind <> BoundNodeKind.ErrorExpression Then
+                pattern = CStr(EvaluateExpression(fs.Expression))
+              End If
+              If String.IsNullOrWhiteSpace(pattern) Then
+                pattern = "*.*"
+              End If
+              Dim files = System.IO.Directory.GetFiles(System.IO.Directory.GetCurrentDirectory(), pattern)
+              For Each f In files
+                QBLib.Video.PRINT(System.IO.Path.GetFileName(f))
+              Next
+              index += 1
             Case BoundNodeKind.ChainStatement
               EvaluateChainStatement(CType(s, BoundChainStatement))
               ' Check if chain request was set
@@ -1140,6 +1154,15 @@ Namespace Global.QB.CodeAnalysis
               stmtText = "[Complex statement]"
             End Try
           End If
+          ' Emit full exception details to console/file for debugging
+          Try
+            Console.WriteLine(ex.ToString())
+          Catch
+          End Try
+          Try
+            System.IO.File.AppendAllText("/tmp/qbasic_error_log.txt", ex.ToString() & Environment.NewLine & Environment.NewLine)
+          Catch
+          End Try
           FireErrorOccurred(CInt(errorCode), errorMessage, m_currentPhysicalLine, m_currentQbasicLine, stmtText, m_errorHandlerTarget IsNot Nothing)
 
           ' Handle other runtime exceptions
@@ -3295,6 +3318,7 @@ Namespace Global.QB.CodeAnalysis
         Case BoundNodeKind.ConversionExpression : Return EvaluateConversionExpression(CType(node, BoundConversionExpression))
         Case BoundNodeKind.VariableExpression : Return EvaluateVariableExpression(CType(node, BoundVariableExpression))
         Case BoundNodeKind.MemberAccessExpression : Return EvaluateMemberAccessExpression(CType(node, BoundMemberAccessExpression))
+        Case BoundNodeKind.ErrorExpression : Return Nothing
         Case Else
           Throw New Exception($"Unexpected node {node.Kind}")
       End Select

@@ -4281,8 +4281,8 @@ repeat:
          Current.Kind = SyntaxKind.ScreenKeyword Then
         Return NextToken()
       End If
-      ' For error, return missing identifier
-      Return New SyntaxToken(m_syntaxTree, SyntaxKind.IdentifierToken, Current.Position, "", Nothing, ImmutableArray(Of SyntaxTrivia).Empty, ImmutableArray(Of SyntaxTrivia).Empty)
+      ' For error, return missing identifier (text = Nothing -> IsMissing = True)
+      Return New SyntaxToken(m_syntaxTree, SyntaxKind.IdentifierToken, Current.Position, Nothing, Nothing, ImmutableArray(Of SyntaxTrivia).Empty, ImmutableArray(Of SyntaxTrivia).Empty)
     End Function
 
 #End Region

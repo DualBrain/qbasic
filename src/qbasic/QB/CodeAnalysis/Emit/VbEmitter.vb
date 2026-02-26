@@ -215,6 +215,8 @@ Namespace Global.QB.CodeAnalysis.Emit
           'Case BoundNodeKind.NopStatement : EmitNopStatement(ilProcessor, CType(node, BoundNopStatement))
           'Case BoundNodeKind.RemStatement : EmitRemStatement(ilProcessor, CType(node, BoundRemStatement))
           'Case BoundNodeKind.PrintStatement : EmitPrintStatement(CType(node, BoundPrintStatement))
+        Case BoundNodeKind.ClsStatement : EmitClsStatement(CType(node, BoundClsStatement))
+        Case BoundNodeKind.NopStatement
         Case BoundNodeKind.ReturnStatement : EmitReturnStatement(CType(node, BoundReturnStatement))
           'Case BoundNodeKind.VariableDeclaration : EmitVariableDeclaration(ilProcessor, CType(node, BoundVariableDeclaration))
         Case Else
@@ -371,6 +373,12 @@ Namespace Global.QB.CodeAnalysis.Emit
       ElseIf node.Type Is TypeSymbol.String Then
         Dim value = CStr(node.ConstantValue.Value)
         m_contents &= $"""{value}"""
+      ElseIf node.Type Is TypeSymbol.Any Then
+        If node.ConstantValue IsNot Nothing AndAlso node.ConstantValue.Value IsNot Nothing Then
+          m_contents &= $"""{node.ConstantValue.Value.ToString()}"""
+        Else
+          m_contents &= "0 ' Any type"
+        End If
       Else
         Throw New Exception($"Unexpected constant expression type: {node.Type}")
       End If
@@ -521,6 +529,10 @@ Namespace Global.QB.CodeAnalysis.Emit
       m_contents &= $"{Tab()}Return"
       If node.Expression IsNot Nothing Then m_contents &= " " : EmitExpression(node.Expression)
       m_contents &= $"{vbCrLf}"
+    End Sub
+
+    Private Sub EmitClsStatement(node As BoundClsStatement)
+      m_contents &= $"{Tab()}System.Console.Clear(){vbCrLf}"
     End Sub
 
     'Private Sub EmitStringConcatExpression(_ilProcessor As ILProcessor, node As BoundBinaryExpression)

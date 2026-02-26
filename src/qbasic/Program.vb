@@ -593,61 +593,38 @@ Friend Module Program
       Dim sourceText = File.ReadAllText(filename)
       Dim syntaxTree As QB.CodeAnalysis.Syntax.SyntaxTree = QB.CodeAnalysis.Syntax.SyntaxTree.Parse(sourceText)
 
-      Dim options = New QBasicToVbNetRewriter.ConversionOptions()
-      options.AddModuleBoilerplate = True
-      options.AddSubMain = True
-      options.ModernizePrint = True
-      options.AddImports = True
-      options.GenerateWarnings = True
+      ' Check for parse errors
+      If syntaxTree.Diagnostics.Any() Then
+        Console.WriteLine("Parse errors found:")
+        For Each diag In syntaxTree.Diagnostics
+          Console.WriteLine($"  {diag}")
+        Next
+        Return
+      End If
 
-      Dim rewriter = New QBasicToVbNetRewriter(options)
-      Dim rewrittenTree = rewriter.Rewrite(syntaxTree.Root)
+      ' Create compilation and emit using VbEmitter
+      Dim compilation = QB.CodeAnalysis.Compilation.Create(syntaxTree)
+      Dim moduleName = Path.GetFileNameWithoutExtension(filename)
 
-      ' Generate VB.NET code
-      Using writer = New StringWriter()
-        WriteNodeWithTrivia(writer, rewrittenTree)
-        Dim qbasicCode = writer.ToString()
+      ' Create output filename
+      Dim outputFilename = Path.ChangeExtension(filename, ".vb")
 
-        ' Apply VB.NET transformations using syntax tree
-        Dim vbNetCode = rewriter.GenerateVbNetCode(DirectCast(rewrittenTree, CompilationUnitSyntax))
+      ' Emit using VbEmitter
+      Dim diagnostics = compilation.Emit(
+        QB.CodeAnalysis.Emit.TargetPlatform.MicrosoftVisualBasic,
+        moduleName,
+        New String() {},
+        outputFilename)
 
-        ' Create output filename
-        Dim outputFilename = Path.ChangeExtension(filename, ".vb")
-        File.WriteAllText(outputFilename, vbNetCode)
+      If diagnostics.Any() Then
+        Console.WriteLine("Emit warnings/errors:")
+        For Each diag In diagnostics
+          Console.WriteLine($"  {diag}")
+        Next
+      End If
 
-        Console.WriteLine($"VB.NET Conversion Analysis:")
-        Console.WriteLine($"  Added Module wrapper: {If(rewriter.Analysis.AddedModule, "Yes", "No")}")
-        Console.WriteLine($"  Added SUB MAIN: {If(rewriter.Analysis.AddedSubMain, "Yes", "No")}")
-        Console.WriteLine($"  PRINT statements modernized: {rewriter.Analysis.ModernizedPrintStatements}")
-        Console.WriteLine($"  Variables needing types: {rewriter.Analysis.VariablesRequiringTypes}")
-
-        If rewriter.GetRequiredImports().Any() Then
-          Console.WriteLine()
-          Console.WriteLine("Required Imports:")
-          For Each import In rewriter.GetRequiredImports()
-            Console.WriteLine($"  - {import}")
-          Next
-        End If
-
-        If rewriter.Analysis.Warnings.Any() Then
-          Console.WriteLine()
-          Console.WriteLine("Warnings:")
-          For Each warning In rewriter.Analysis.Warnings
-            Console.WriteLine($"  - {warning}")
-          Next
-        End If
-
-        If rewriter.Analysis.ChangesMade.Any() Then
-          Console.WriteLine()
-          Console.WriteLine("Changes Made:")
-          For Each change In rewriter.Analysis.ChangesMade
-            Console.WriteLine($"  - {change}")
-          Next
-        End If
-
-        Console.WriteLine()
-        Console.WriteLine($"VB.NET file saved as: {outputFilename}")
-      End Using
+      Console.WriteLine()
+      Console.WriteLine($"VB.NET file saved as: {outputFilename}")
 
     Catch ex As Exception
       Console.WriteLine($"Error converting to VB.NET: {ex.Message}")

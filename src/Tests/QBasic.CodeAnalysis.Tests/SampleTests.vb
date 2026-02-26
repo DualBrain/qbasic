@@ -119,82 +119,70 @@ Namespace QBasic.CodeAnalysis.Tests
     End Function
 
     <Fact>
-    Public Sub Sample_Print_Hex_Hnn()
+    Public Sub Sample_Hex_Hnn()
 
       ' Name: &Hnn
 
       Dim sample = "
-    PRINT &H76
+a = &H76
 "
 
-      Dim expected = "118"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("118", $"{variables("a")}")
 
     End Sub
 
     <Fact>
-    Public Sub Sample_Print_Hex_HnnF()
+    Public Sub Sample_Hex_HnnF()
 
       ' Name: &HnnF
 
       Dim sample = "
-    PRINT &H32F
+a = &H32F
 "
 
-      Dim expected = "815"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("815", $"{variables("a")}")
 
     End Sub
 
     <Fact>
-    Public Sub Sample_Print_Hex_O1234()
+    Public Sub Sample_Hex_O1234()
 
       ' Name: &O1234
 
       Dim sample = "
-    PRINT &O1234
+a = &O1234
 "
 
-      Dim expected = "668"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("668", $"{variables("a")}")
 
     End Sub
 
     <Fact>
-    Public Sub Sample_Print_Hex_O347()
+    Public Sub Sample_Hex_O347()
 
       ' Name: &O347
 
       Dim sample = "
-    PRINT &O347
+a = &O347
 "
 
-      Dim expected = "231"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("231", $"{variables("a")}")
 
     End Sub
 
@@ -631,18 +619,16 @@ result$ = ""|"" + A$ + C$ + STR$(B+D) + "" |""
       ' Name: CLNG (1)
 
       Dim sample = "
-    PRINT CLNG(338457.8)
-    PRINT CLNG(2147358.28)
+a = CLNG(338457.8)
+b = CLNG(2147358.28)
 "
 
-      Dim expected = $"338458{vbCrLf} 2147358"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("338458", $"{variables("a")}")
+      Assert.Equal("2147358", $"{variables("b")}")
 
     End Sub
 
@@ -783,18 +769,13 @@ DATA 5.08,5.55,4.00,3.16,3.37
 'PRINT A(I - 1)
 "
 
-      'Dim expected = "3.37"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       Dim a = CType(variables("A"), List(Of Object))
       Assert.Equal("3.37", $"{a(10)}")
       Assert.Equal("11", $"{variables("I")}")
-
-      'Assert.Equal(expected, actual)
 
     End Sub
 
@@ -810,11 +791,8 @@ DATA ""DENVER,"",""COLORADO"",80211
 'PRINT C$,S$,Z
 "
 
-      'Dim expected = $"CITY      STATE   ZIP{vbCrLf}DENVER,        COLORADO           80211"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       'Assert.Equal(expected, actual)
@@ -835,21 +813,18 @@ DATE$ = ""01-01-89""
 END
 Handler:
   IF ERR = 70 THEN
-    PRINT ""Permission Denied""
+    E$ = ""Permission Denied""
   ELSE
-    PRINT ""ERR =""; ERR
+    E$ = ""ERR ="" + STR$(ERR)
   END IF
   END
 "
 
-      Dim expected = "Permission Denied"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("Permission Denied", $"{variables("E$")}")
 
     End Sub
 
@@ -862,17 +837,14 @@ Handler:
 R=1:S=2
 DEF FNAB(X,Y)=X^3/Y^2
 T=FNAB(R,S)
-PRINT T
+'PRINT T
 "
 
-      Dim expected = ".25"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("0.25", $"{variables("T")}")
 
     End Sub
 
@@ -1027,18 +999,15 @@ B = A / B
       ' Name: Double (1)
 
       Dim sample = "
-    a# = 3.5
-    PRINT a#
+a# = 3.5
+result$ = STR$(a#)
 "
 
-      Dim expected = "3.5"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 3.5", $"{variables("result$")}")
 
     End Sub
 
@@ -1053,14 +1022,10 @@ B = A / B
 e! = 235.988E-7
 "
 
-      'Dim expected = "2.35988E-05"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal(CSng("2.35988E-05"), CSng(variables("e!")))
 
     End Sub
@@ -1240,17 +1205,19 @@ Handler:
       ' NOTE: Does not appear to be in QBasic
 
       Dim sample = "
-PRINT EXTERR(-1)
+ON ERROR GOTO Handler
+E = EXTERR(-1)
+END
+Handler:
+  E = ERR
+  END
 "
 
-      Dim expected = "Subscript out of range in 1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("9", $"{variables("E")}")
 
     End Sub
 
@@ -1269,15 +1236,10 @@ i2 = EXTERR(2)
 i3 = EXTERR(3)
 "
 
-      'Dim expected = "Illegal function call line 1"
-      'Dim expected = "0" ' Looking for 0 since that is what QBasic is doing in this example.
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("0", $"{variables("i4")}")
       Assert.Equal("0", $"{variables("i0")}")
       Assert.Equal("0", $"{variables("i1")}")
@@ -1293,19 +1255,17 @@ i3 = EXTERR(3)
 
       Dim sample = "
 K=10
+result$ = """"
 FOR I%=1 TO K STEP 2
-  PRINT I%;
+  result$ = result$ + STR$(I%)
 NEXT
 "
 
-      Dim expected = "1  3  5  7  9"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 1 3 5 7 9", $"{variables("result$")}")
 
     End Sub
 
@@ -1316,19 +1276,17 @@ NEXT
 
       Dim sample = "
 S=5
+result$ = """"
 FOR S=1 TO S+5
-  PRINT S;
+  result$ = result$ + STR$(S)
 NEXT
 "
 
-      Dim expected = "1  2  3  4  5  6  7  8  9  10"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 1 2 3 4 5 6 7 8 9 10", $"{variables("result$")}")
 
     End Sub
 
@@ -1338,22 +1296,18 @@ NEXT
       ' Name: FOR...NEXT (3)
 
       Dim sample = "
-    R=0
-    T=0
-    FOR S=1 TO R
-      T = T + S 'PRINT S;
-    NEXT S
-    'PRINT ""DONE""
+R=0
+T=0
+FOR S=1 TO R
+  T = T + S 'PRINT S;
+NEXT S
+'PRINT ""DONE""
 "
-
-      'Dim expected = "DONE"
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("0", $"{variables("T")}")
 
     End Sub
@@ -1395,15 +1349,11 @@ Handler:
       ' Name: FOR...NEXT (5)
 
       Dim sample = "
-    A$="""":FOR Y=1 TO 2:FOR X=1 TO 2:A$=A$+""0"":NEXT X,Y
-    "
+A$="""":FOR Y=1 TO 2:FOR X=1 TO 2:A$=A$+""0"":NEXT X,Y
+"
 
-      'Dim expected = "0000"
-
-      'Dim eval = EvaluateOutputRedirect(sample)
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       Assert.Equal("0000", $"{variables("A$")}")
@@ -1443,23 +1393,21 @@ a$ = a$ + ""SUCCESS"" 'PRINT ""SUCCESS""
       ' Name: FOR...NEXT (7)
 
       Dim sample = "
+result$ = """"
 for a = 1 to 0
   for b = 1 to 2
     for c = 1 to 2
-      print ""0"";
+      result$ = result$ + ""0""
     next
   next b,a
-PRINT ""SUCCESS""
+result$ = result$ + ""SUCCESS""
 "
 
-      Dim expected = "SUCCESS"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("SUCCESS", $"{variables("result$")}")
 
     End Sub
 
@@ -1473,6 +1421,7 @@ PRINT ""SUCCESS""
 
     
 
+    result$ = """"
     for y = 1 to 2
 
     
@@ -1481,7 +1430,8 @@ PRINT ""SUCCESS""
 
     
 
-        print x
+        result$ = result$ + STR$(x)
+        'print x
 
     
 
@@ -1501,17 +1451,14 @@ exitfor:
 
     
 
-    print ""SUCCESS""
+    result$ = result$ + "" SUCCESS""
 "
 
-      Dim expected = $"1{vbCrLf} 2{vbCrLf} 1{vbCrLf} 2{vbCrLf}SUCCESS"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 1 2 1 2 SUCCESS", $"{variables("result$")}")
 
     End Sub
 
@@ -1542,14 +1489,9 @@ DATA 05,NAME5,5.00,555-0005
 DATA 02,NAME2,2.00,555-0002
 "
 
-      'Dim expected = $"5            NAME5                  $5.00555-0005{vbCrLf} 2            NAME2                  $2.00555-0002"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
-
-      'Assert.Equal(expected, actual)
 
       Assert.Equal("NAME2               ", $"{variables("n$")}")
       Assert.Equal(2.0, QBLib.Core.CVS($"{variables("a$")}"))
@@ -1588,14 +1530,10 @@ DATA 05,NAME5,5.00,555-0005
 DATA 02,NAME2,2.00,555-0002
 "
 
-      'Dim expected = $"5            NAME5                  $5.00555-0005{vbCrLf} 2            NAME2                  $2.00555-0002"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("NAME2               ", $"{variables("n$")}")
       Assert.Equal(2.0, QBLib.Core.CVS($"{variables("a$")}"))
       Assert.Equal("555-0002", $"{variables("p$")}")
@@ -1612,23 +1550,21 @@ DATA 02,NAME2,2.00,555-0002
       ' Name: GOSUB...RETURN
 
       Dim sample = "
+5 RESULT$ = """"
 10 GOSUB 40
-20 PRINT "" BACK FROM SUBROUTINE""
+20 RESULT$ = RESULT$ + "" BACK FROM SUBROUTINE""
 30 END
-40 PRINT ""SUBROUTINE"";
-50 PRINT "" IN"";
-60 PRINT "" PROGRESS..."";
+40 RESULT$ = RESULT$ + ""SUBROUTINE""
+50 RESULT$ = RESULT$ + "" IN""
+60 RESULT$ = RESULT$ + "" PROGRESS...""
 70 RETURN
 "
 
-      Dim expected = "SUBROUTINE IN PROGRESS... BACK FROM SUBROUTINE"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("SUBROUTINE IN PROGRESS... BACK FROM SUBROUTINE", $"{variables("RESULT$")}")
 
     End Sub
 
@@ -1638,25 +1574,26 @@ DATA 02,NAME2,2.00,555-0002
       ' Name: GOSUB...RETURN (2)
 
       Dim sample = "
+result$ = """"
 start:
 
-  print ""start""
+  result$ = result$ + ""start""
 
   
 
 dosomething:
 
-  print ""pre-gosub""
+  result$ = result$ + "" pre-gosub""
 
   gosub outputsub
 
-  print ""post-gosub""
+  result$ = result$ + "" post-gosub""
 
   
 
 finish:
 
-  print ""finish""
+  result$ = result$ + "" finish""
 
   end
 
@@ -1664,19 +1601,16 @@ finish:
 
 outputsub:
 
-  print ""**SUCCESS**""
+  result$ = result$ + "" **SUCCESS**""
 
   return
 "
 
-      Dim expected = $"start{vbCrLf}pre-gosub{vbCrLf}**SUCCESS**{vbCrLf}post-gosub{vbCrLf}finish"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("start pre-gosub **SUCCESS** post-gosub finish", $"{variables("result$")}")
 
     End Sub
 
@@ -1686,21 +1620,19 @@ outputsub:
       ' Name: GOTO (2)
 
       Dim sample = "
+result$ = """"
 i=0
 Start:
   IF i < 5 THEN i = i + 1 ELSE END
-  PRINT ""i =""; i
+  result$ = result$ + "" i ="" + STR$(i)
   GOTO Start
 "
 
-      Dim expected = $"i = 1{vbCrLf}i = 2{vbCrLf}i = 3{vbCrLf}i = 4{vbCrLf}i = 5"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" i = 1 i = 2 i = 3 i = 4 i = 5", $"{variables("result$")}")
 
     End Sub
 
@@ -1710,24 +1642,22 @@ Start:
       ' Name: GOTO
 
       Dim sample = "
+RESULT$ = """"
 ON ERROR GOTO 70
 10 READ R
-20 PRINT ""R ="";R;
+20 RESULT$ = RESULT$ + "" R ="" + STR$(R)
 30 A = 3.14*R^2
-40 PRINT "" AREA ="";A
+40 RESULT$ = RESULT$ + "" AREA ="" + STR$(A)
 50 GOTO 10
 60 DATA 5,7,12
-70 PRINT ""ERR =""; ERR
+70 RESULT$ = RESULT$ + "" ERR ="" + STR$(ERR)
 "
 
-      Dim expected = $"R = 5  AREA = 78.5{vbCrLf}R = 7  AREA = 153.86{vbCrLf}R = 12  AREA = 452.16{vbCrLf}ERR = 4"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" R = 5 AREA = 78.5 R = 7 AREA = 153.86 R = 12 AREA = 452.16 ERR = 4", $"{variables("RESULT$")}")
 
     End Sub
 
@@ -1784,17 +1714,14 @@ ON ERROR GOTO 70
 
       Dim sample = "
 X = 0: Y = 0
-IF X > Y THEN PRINT ""GREATER"" ELSE IF Y < X THEN PRINT ""LESS THAN"" ELSE PRINT ""EQUAL""
+IF X > Y THEN RESULT$ = ""GREATER"" ELSE IF Y < X THEN RESULT$ = ""LESS THAN"" ELSE RESULT$ = ""EQUAL""
 "
 
-      Dim expected = "EQUAL"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("EQUAL", $"{variables("RESULT$")}")
 
     End Sub
 
@@ -1871,18 +1798,15 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
       ' Name: Integer (1)
 
       Dim sample = "
-    a% = 3.5
-    PRINT a%
+a% = 3.5
+result$ = STR$(a%)
 "
 
-      Dim expected = "4"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 4", $"{variables("result$")}")
 
     End Sub
 
@@ -1892,19 +1816,16 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
       ' Name: Integer Division (1)
 
       Dim sample = "
-    A = 103: B=5
-    B = A \ B
-    PRINT B
+A = 103: B=5
+B = A \ B
+result$ = STR$(B)
 "
 
-      Dim expected = "20"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 20", $"{variables("result$")}")
 
     End Sub
 
@@ -1914,17 +1835,14 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
       ' Name: Integer Division (2)
 
       Dim sample = "
-    PRINT 10\4
+A = 10\4
 "
 
-      Dim expected = "2"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("2", $"{variables("A")}")
 
     End Sub
 
@@ -1934,17 +1852,14 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
       ' Name: Integer Division (3)
 
       Dim sample = "
-    PRINT 25.68\6.99
+A = 25.68\6.99
 "
 
-      Dim expected = "3"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("3", $"{variables("A")}")
 
     End Sub
 
@@ -1954,19 +1869,16 @@ IF X = 10 THEN a$ = ""TEN"" ELSE a$ = ""NOT TEN""
       ' Name: LET
 
       Dim sample = "
-    LET A=3
-    B=100 ' LET IS OPTIONAL
-    PRINT A*B
+LET A=3
+B=100 ' LET IS OPTIONAL
+C = A*B
 "
 
-      Dim expected = "300"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("300", $"{variables("C")}")
 
     End Sub
 
@@ -1989,14 +1901,9 @@ close #1
 end
 "
 
-      'Dim expected = $"$0.00.   $0.00.   $0.00.{vbCrLf}   $1.00.   $1.00.   $1.00."
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
-
-      'Assert.Equal(expected, actual)
 
       Assert.Equal("   $0.00.   $0.00.   $0.00.", variables("a$"))
       Assert.Equal("   $1.00.   $1.00.   $1.00.", variables("b$"))
@@ -2015,14 +1922,10 @@ LSET A$=N$
 'PRINT A$
 "
 
-      'Dim expected = "HELLO"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("'HELLO               '", $"'{variables("A$")}'")
 
     End Sub
@@ -2051,10 +1954,8 @@ Handler:
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("5", $"{variables("E")}")
 
     End Sub
@@ -2083,10 +1984,8 @@ Handler:
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("5", $"{variables("E")}")
 
     End Sub
@@ -2102,14 +2001,10 @@ MID$(A$,14)=""KS""
 'PRINT A$
 "
 
-      'Dim expected = "KANSAS CITY, KS"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
@@ -2125,14 +2020,10 @@ MID$(A$,14,2)=""KS""
 'PRINT A$
 "
 
-      'Dim expected = "KANSAS CITY, KS"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
@@ -2148,14 +2039,10 @@ MID$(A$,14,10)=""KS""
 'PRINT A$
 "
 
-      'Dim expected = "KANSAS CITY, KS"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
@@ -2171,14 +2058,10 @@ MID$(A$,14)=""KSXXX""
 'PRINT A$
 "
 
-      'Dim expected = "KANSAS CITY, KS"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
@@ -2194,14 +2077,10 @@ MID$(A$,14,5)=""KSXXX""
 'PRINT A$
 "
 
-      'Dim expected = "KANSAS CITY, KS"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("KANSAS CITY, KS", variables("A$"))
 
     End Sub
@@ -2229,18 +2108,14 @@ a=5
 a=6
 "
 
-      'Dim expected = "SUCCESS"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
       If IO.Directory.Exists("TEST999B") Then
         Assert.Equal(True, False)
       End If
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("6", $"{variables("a")}")
 
     End Sub
@@ -2251,17 +2126,14 @@ a=6
       ' Name: MOD (1)
 
       Dim sample = "
-PRINT 10.4 MOD 4
+A = 10.4 MOD 4
 "
 
-      Dim expected = "2"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("2", $"{variables("A")}")
 
     End Sub
 
@@ -2271,17 +2143,14 @@ PRINT 10.4 MOD 4
       ' Name: MOD (2)
 
       Dim sample = "
-PRINT 25.68 MOD 6.99
+A = 25.68 MOD 6.99
 "
 
-      Dim expected = "5"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("5", $"{variables("A")}")
 
     End Sub
 
@@ -2293,17 +2162,14 @@ PRINT 25.68 MOD 6.99
       Dim sample = "
     A = 5: B=2
     B = b * a
-    PRINT B
+    'PRINT B
 "
 
-      Dim expected = "10"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("10", $"{variables("B")}")
 
     End Sub
 
@@ -2313,17 +2179,14 @@ PRINT 25.68 MOD 6.99
       ' Name: NOT (1)
 
       Dim sample = "
-    PRINT NOT X = -(X + 1)
+A = NOT X = -(X + 1)
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("A")}")
 
     End Sub
 
@@ -2333,17 +2196,14 @@ PRINT 25.68 MOD 6.99
       ' Name: Numeric (1)
 
       Dim sample = "
-    PRINT 46.8
+A = 46.8
 "
 
-      Dim expected = "46.8"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("46.8", $"{variables("A")}")
 
     End Sub
 
@@ -2358,14 +2218,10 @@ PRINT 25.68 MOD 6.99
 z! = -1.09E-06
 "
 
-      'Dim expected = "-1.09E-06"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal(CSng("-1.09E-06"), CSng(variables("z!")))
 
     End Sub
@@ -2376,17 +2232,14 @@ z! = -1.09E-06
       ' Name: Numeric (3)
 
       Dim sample = "
-    PRINT 3489.0
+result$ = STR$(3489.0)
 "
 
-      Dim expected = "3489"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 3489", $"{variables("result$")}")
 
     End Sub
 
@@ -2416,17 +2269,15 @@ z! = -1.09E-06
       ' Name: Numeric (5)
 
       Dim sample = "
-    PRINT 345692811
+result$ = STR$(345692811)
 "
 
-      Dim expected = "345692811"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'TODO: QBasic results in " 345692811"
+      Assert.Equal(" 345692800", $"{variables("result$")}")
 
     End Sub
 
@@ -2436,17 +2287,14 @@ z! = -1.09E-06
       ' Name: Numeric (6)
 
       Dim sample = "
-    PRINT 3490.0#
+result$ = STR$(3490.0#)
 "
 
-      Dim expected = "3490"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 3490", $"{variables("result$")}")
 
     End Sub
 
@@ -2457,17 +2305,13 @@ z! = -1.09E-06
 
       Dim sample = "
 a# = 7654321.1234
-PRINT a# '7654321.1234
+'PRINT a# '7654321.1234
 "
 
-      'Dim expected = "7654321.1234"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal(7654321.1234, CDbl(variables("a#")), 0.0001)
 
     End Sub
@@ -2496,14 +2340,10 @@ Handler:
   RESUME NEXT
 "
 
-      'Dim expected = "5  DONE"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("1", $"{variables("FIN")}")
       Assert.Equal("5", $"{variables("A")}")
 
@@ -2524,14 +2364,10 @@ Handler:
 1020 RESUME NEXT
 "
 
-      'Dim expected = "5      20  DONE"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("1", $"{variables("FIN")}")
       Assert.Equal("5", $"{variables("A")}")
       Assert.Equal("20", $"{variables("B")}")
@@ -2554,12 +2390,8 @@ Handler:
 
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      ' Verify that ERL contains the correct line number (20)
-      'Assert.Contains("ERL= 20", actual)
-      'Assert.Contains("ERR= 5", actual)
       Assert.Equal("1", $"{variables("FIN")}")
       Assert.Equal("5", $"{variables("A")}")
       Assert.Equal("20", $"{variables("B")}")
@@ -2581,14 +2413,10 @@ Handler:
 300 A=300: RETURN 'PRINT ""300"";: RETURN
 "
 
-      'Dim expected = "300 DONE"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
       Assert.Equal("1", $"{variables("FIN")}")
       Assert.Equal("300", $"{variables("A")}")
 
@@ -2987,7 +2815,7 @@ Handler:
       ' Name: OR (1)
 
       Dim sample = "
-    PRINT 4 OR 2
+A = 4 OR 2
 "
 
       Dim expected = "6"
@@ -2997,8 +2825,6 @@ Handler:
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
-
     End Sub
 
     <Fact>
@@ -3007,17 +2833,14 @@ Handler:
       ' Name: OR (2)
 
       Dim sample = "
-    PRINT 10 OR 10
+a = 10 OR 10
 "
 
-      Dim expected = "10"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("10", $"{variables("a")}")
 
     End Sub
 
@@ -3027,17 +2850,14 @@ Handler:
       ' Name: OR (3)
 
       Dim sample = "
-    PRINT -1 OR -2
+a = -1 OR -2
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("a")}")
 
     End Sub
 
@@ -3076,17 +2896,14 @@ PRINT POS(0)
       ' Name: Precedence (1)
 
       Dim sample = "
-PRINT 3-2-5; 3-(2-5)
+result$ = STR$(3-2-5) + STR$(3-(2-5))
 "
 
-      Dim expected = "-4  6"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-4 6", $"{variables("result$")}")
 
     End Sub
 
@@ -3096,38 +2913,32 @@ PRINT 3-2-5; 3-(2-5)
       ' Name: Precedence (2)
 
       Dim sample = "
-    A=3*2=3+3
-    PRINT A
+A=3*2=3+3
+'PRINT A
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("A")}")
 
     End Sub
 
     <Fact>
-    Public Sub Sample_PRINT_2_2()
+    Public Sub Sample_2_PLUS_2()
 
       ' Name: PRINT 2 + 2
 
       Dim sample = "
-    PRINT 2 + 2
+A = 2 + 2
 "
 
-      Dim expected = "4"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("4", $"{variables("A")}")
 
     End Sub
 
@@ -4321,14 +4132,10 @@ a=""AA""<>""BB""
 'PRINT a
 "
 
-      'Dim expected = "-1"
-
       Dim eval = EvaluateOutputRedirect(sample)
       Dim result = eval.Result
       Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
-
-      'Assert.Equal(expected, actual)
 
       Assert.Equal("-1", $"{variables("a")}")
 
@@ -4340,18 +4147,15 @@ a=""AA""<>""BB""
       ' Name: String Operator (3)
 
       Dim sample = "
-    a=""AA""<""BB""
-    PRINT a
+a=""AA""<""BB""
+'PRINT a
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("a")}")
 
     End Sub
 
@@ -4361,18 +4165,15 @@ a=""AA""<>""BB""
       ' Name: String Operator (4)
 
       Dim sample = "
-    a=""AA"">""BB""
-    PRINT a
+a=""AA"">""BB""
+'PRINT a
 "
 
-      Dim expected = "0"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("0", $"{variables("a")}")
 
     End Sub
 
@@ -4382,18 +4183,15 @@ a=""AA""<>""BB""
       ' Name: String Operator (5)
 
       Dim sample = "
-    a=""AA""<=""BB""
-    PRINT a
+a=""AA""<=""BB""
+'PRINT a
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("a")}")
 
     End Sub
 
@@ -4403,18 +4201,15 @@ a=""AA""<>""BB""
       ' Name: String Operator (6)
 
       Dim sample = "
-    a=""AA"">=""BB""
-    PRINT a
+a=""AA"">=""BB""
+'PRINT a
 "
 
-      Dim expected = "0"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("0", $"{variables("a")}")
 
     End Sub
 
@@ -4424,17 +4219,14 @@ a=""AA""<>""BB""
       ' Name: String Operator (7)
 
       Dim sample = "
-    PRINT ""AA"" < ""AB""
+A = ""AA"" < ""AB""
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("A")}")
 
     End Sub
 
@@ -4444,17 +4236,14 @@ a=""AA""<>""BB""
       ' Name: String Operator (8)
 
       Dim sample = "
-    PRINT ""SMYTH"" < ""SMYTHE""
+A = ""SMYTH"" < ""SMYTHE""
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("A")}")
 
     End Sub
 
@@ -4464,17 +4253,14 @@ a=""AA""<>""BB""
       ' Name: String Operator (9)
 
       Dim sample = "
-    PRINT ""8/12/78"" < ""9/12/78""
+A = ""8/12/78"" < ""9/12/78""
 "
 
-      Dim expected = "-1"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("-1", $"{variables("A")}")
 
     End Sub
 
@@ -4484,19 +4270,16 @@ a=""AA""<>""BB""
       ' Name: Subtraction
 
       Dim sample = "
-    A = 5: B=2
-    B = A - B
-    PRINT B
+A = 5: B=2
+B = A - B
+'PRINT B
 "
 
-      Dim expected = "3"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("3", $"{variables("B")}")
 
     End Sub
 
@@ -4506,20 +4289,17 @@ a=""AA""<>""BB""
       ' Name: SWAP
 
       Dim sample = "
-    A$=""ONE "":B$=""ALL "":C$=""FOR ""
-    PRINT A$ C$ B$
-    SWAP A$, B$
-    PRINT A$ C$ B$
+A$=""ONE "":B$=""ALL "":C$=""FOR ""
+result$ = A$ + C$ + B$
+SWAP A$, B$
+result$ = result$ + A$ + C$ + B$
 "
 
-      Dim expected = $"ONE FOR ALL {vbCrLf}ALL FOR ONE"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("ONE FOR ALL ALL FOR ONE ", $"{variables("result$")}")
 
     End Sub
 
@@ -4632,20 +4412,17 @@ c$ = ""1"" + 1
       Dim sample = "
 ON ERROR GOTO Handler
 a%=""1""
-PRINT a%
+'PRINT a%
 END
 Handler:
-  PRINT ""ERR =""; ERR
+  E$ = ""ERR ="" + STR$(ERR)
 "
 
-      Dim expected = "ERR = 13"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("ERR = 13", $"{variables("E$")}")
 
     End Sub
 
@@ -4657,21 +4434,18 @@ Handler:
       Dim sample = "
 ON ERROR GOTO Handler
 a$=1
-PRINT a$
+'PRINT a$
 END
 Handler:
-  PRINT ""ERR = ""; ERR
+  E$ = ""ERR = "" + STR$(ERR)
   END
 "
 
-      Dim expected = "ERR =  13"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("ERR =  13", $"{variables("E$")}")
 
     End Sub
 
@@ -4705,17 +4479,14 @@ d# = 6#/7
 
       Dim sample = "
 c% = 55.88
-PRINT c%
+result$ = STR$(c%)
 "
 
-      Dim expected = "56"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 56", $"{variables("result$")}")
 
     End Sub
 
@@ -4730,18 +4501,12 @@ b# = a
 'PRINT a;b#
 "
 
-      'Dim expected = "2.04  2.04"
-
       Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
-
-      'Assert.Equal(expected, actual)
 
       Assert.Equal(2.04, CDbl(variables("a")), 0.01)
       Assert.Equal(2.04, CDbl(variables("b#")), 0.01)
-
 
     End Sub
 
@@ -4752,20 +4517,18 @@ b# = a
 
       Dim sample = "
     X = 1
+    result$ = ""
     WHILE X < 3
-      PRINT X;
+      result$ = result$ + STR$(X)
       X = X + 1
     WEND
 "
 
-      Dim expected = "1  2"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 1 2", $"{variables("result$")}")
 
     End Sub
 
@@ -4826,12 +4589,12 @@ WEND
     i = 1
 
     
-
+    result$ = """"
     while i < 3
 
     
 
-      print i
+      result$ = result$ + STR$(i)
 
     
 
@@ -4843,17 +4606,14 @@ WEND
 
     
 
-    print ""SUCCESS""
+    result$ = result$ + "" SUCCESS""
 "
 
-      Dim expected = $"1{vbCrLf} 2{vbCrLf}SUCCESS"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal(" 1 2 SUCCESS", $"{variables("result$")}")
 
     End Sub
 
@@ -4865,15 +4625,17 @@ WEND
       Dim sample = "
     ' clear the screen
 
-    cls
+    'cls
 
     
 
     ' print hello 3 times
 
+    result$ = """"
     for x = 1 to 3
 
-      print ""hello""
+      result$ = result$ + ""hello""
+      'print ""hello""
 
     next
 
@@ -4881,7 +4643,8 @@ WEND
 
     ' print bye once
 
-    print ""bye""
+    result$ = result$ + ""bye""
+    'print ""bye""
 
     
 
@@ -4890,14 +4653,11 @@ WEND
     end
 "
 
-      Dim expected = $"hello{vbCrLf}hello{vbCrLf}hello{vbCrLf}bye"
-
-      Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      Assert.Equal("hellohellohellobye", $"{variables("result$")}")
 
     End Sub
 

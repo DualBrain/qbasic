@@ -567,10 +567,52 @@ Namespace Global.QB.CodeAnalysis
               If String.IsNullOrWhiteSpace(pattern) Then
                 pattern = "*.*"
               End If
-              Dim files = System.IO.Directory.GetFiles(System.IO.Directory.GetCurrentDirectory(), pattern)
-              For Each f In files
-                QBLib.Video.PRINT(System.IO.Path.GetFileName(f))
+              Dim currentDir = System.IO.Directory.GetCurrentDirectory()
+              QBLib.Video.PRINT(currentDir.ToUpper)
+
+              Dim files = System.IO.Directory.GetFiles(currentDir, pattern)
+              Dim dirs = System.IO.Directory.GetDirectories(currentDir, pattern)
+              Dim entries As New List(Of Tuple(Of String, Boolean))
+
+              For Each d In dirs
+                entries.Add(Tuple.Create(System.IO.Path.GetFileName(d), True))
               Next
+              For Each f In files
+                entries.Add(Tuple.Create(System.IO.Path.GetFileName(f), False))
+              Next
+
+              Dim line As String = ""
+              For Each entry In entries
+                Dim name As String
+                If entry.Item2 Then
+                  Dim baseName = entry.Item1
+                  baseName = baseName.Substring(0, Math.Min(8, baseName.Length))
+                  name = $"{baseName,-12}<DIR>"
+                Else
+                  Dim baseName = System.IO.Path.GetFileNameWithoutExtension(entry.Item1)
+                  Dim ext = System.IO.Path.GetExtension(entry.Item1)
+                  If ext.StartsWith("."c) Then ext = ext.Substring(1)
+                  baseName = baseName.Substring(0, Math.Min(8, baseName.Length))
+                  ext = ext.Substring(0, Math.Min(3, ext.Length))
+                  name = baseName.PadRight(8) & If(ext.Length > 0, $".{ext}", "").PadRight(9)
+                End If
+                If line.Length + name.Length > 79 Then
+                  QBLib.Video.PRINT(line.ToUpper)
+                  line = name
+                Else
+                  line &= name
+                End If
+              Next
+              If line.Length > 0 Then
+                QBLib.Video.PRINT(line.ToUpper)
+              End If
+
+              Dim drive As String = System.IO.Path.GetPathRoot(currentDir)
+              Dim driveInfo As New System.IO.DriveInfo(If(drive, "C"))
+              Dim bytesFree = driveInfo.AvailableFreeSpace
+              QBLib.Video.PRINT()
+              QBLib.Video.PRINT($" {bytesFree} Bytes free")
+              QBLib.Video.PRINT()
               index += 1
             Case BoundNodeKind.ChainStatement
               EvaluateChainStatement(CType(s, BoundChainStatement))

@@ -3440,7 +3440,7 @@ Namespace Global.QB.CodeAnalysis
 
       ' Handle bounds checking
       If index < lower OrElse index > upper Then
-        Throw New IndexOutOfRangeException($"Array index {index} out of bounds")
+        Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
       End If
 
       Return arrayValue(index - lower)
@@ -3475,7 +3475,7 @@ Namespace Global.QB.CodeAnalysis
 
       ' Handle bounds checking
       If index < lower OrElse index > upper Then
-        Throw New IndexOutOfRangeException($"Array index {index} out of bounds")
+        Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
       End If
 
       Return Tuple.Create(arrayValue, index - lower)

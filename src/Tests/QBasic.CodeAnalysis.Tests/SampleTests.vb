@@ -26,7 +26,7 @@ Namespace QBasic.CodeAnalysis.Tests
 
     End Function
 
-    Private Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
+    Private Shared Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
 
       SyncLock s_syncObject
 
@@ -242,6 +242,24 @@ a = &O347
       Dim variables = eval.Variables
 
       Assert.Equal("300", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub GosubUsage_MissingEndStatement()
+      Dim text = "ON PEN GOSUB HandlePen
+PEN ON
+x = 1
+
+HandlePen:
+  x = 2
+  RETURN"
+      Dim eval = EvaluateOutputRedirect(text)
+      Dim result = eval.Result
+      Dim vars = eval.Variables
+      Dim out = eval.Output?.Trim
+
+      Assert.Equal("RETURN without GOSUB in 6", out)
 
     End Sub
 

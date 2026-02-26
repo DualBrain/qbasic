@@ -18,26 +18,6 @@ Namespace QBasic.CodeAnalysis.Tests
       Return (result, variables)
     End Function
 
-    Private Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
-      Using sw As New IO.StringWriter
-        Dim originalOut = Console.Out
-        Dim originalStdoutMode = Video.StdoutMode
-        Try
-          Video.StdoutMode = True ' Run in stdout mode like --stdout flag
-          Console.SetOut(sw)
-          Dim variables = New Dictionary(Of String, Object)
-          Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-          Dim compilation As Compilation = Compilation.Create(syntaxTree)
-          Dim result = compilation.Evaluate(variables)
-          Dim output = sw.ToString
-          Return (result, output, variables)
-        Finally
-          Console.SetOut(originalOut)
-          Video.StdoutMode = originalStdoutMode ' Restore original mode
-        End Try
-      End Using
-    End Function
-
     <Fact>
     Public Sub EvaluatesDefXxxVariableDeclarations()
 
@@ -1814,24 +1794,6 @@ RETURN"
     End Sub
 
     <Fact>
-    Public Sub EvaluatesPenStatement_ShouldFail_MissingEndStatement()
-      Dim text = "ON PEN GOSUB HandlePen
-PEN ON
-x = 1
-
-HandlePen:
-  x = 2
-  RETURN"
-      Dim eval = EvaluateOutputRedirect(text)
-      Dim result = eval.Result
-      Dim vars = eval.Variables
-      Dim out = eval.Output?.Trim
-
-      Assert.Equal("RETURN without GOSUB in 6", out)
-
-    End Sub
-
-    <Fact>
     Public Sub EvaluatesPenFunction_ReturnsZero_WhenNotEnabled()
       Dim text = "x = PEN(0)"
       Dim eval = Evaluate(text)
@@ -1881,9 +1843,9 @@ RETURN"
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      Assert.Equal($"{1}", $"{variables("x")}")
-      Assert.Equal($"{2}", $"{variables("y")}")
-      Assert.Equal($"{3}", $"{variables("z")}")
+      Assert.Equal("1", $"{variables("x")}")
+      Assert.Equal("2", $"{variables("y")}")
+      Assert.Equal("3", $"{variables("z")}")
     End Sub
 
     <Fact>
@@ -1896,7 +1858,7 @@ END"
       Dim compilation As Compilation = Compilation.Create(syntaxTree)
       Dim variables = New Dictionary(Of String, Object)()
       Dim result = compilation.Evaluate(variables)
-      Assert.Equal($"{1}", $"{variables("x")}")
+      Assert.Equal("1", $"{variables("x")}")
     End Sub
 
     <Fact>
@@ -1908,16 +1870,16 @@ TYPE Employee
   salary AS SINGLE
 END TYPE
 DIM emp AS Employee
-PRINT ""Test passed""
+RESULT$ = ""Test passed""
 END
 "
 
-      Dim eval = EvaluateOutputRedirect(text)
+      Dim eval = Evaluate(text)
       Dim result = eval.Result
       Dim variables = eval.Variables
-      Dim out = eval.Output?.Trim
 
       Assert.Empty(result.Diagnostics)
+      Assert.Equal("Test passed", $"{variables("RESULT$")}")
 
     End Sub
 
@@ -1956,17 +1918,15 @@ TYPE Employee
 END TYPE
 DIM emp AS Employee
 emp.ename = ""John""
-PRINT emp.ename
+result$ = emp.ename
 END
 "
 
-      Dim eval = EvaluateOutputRedirect(text)
+      Dim eval = Evaluate(text)
       Dim result = eval.Result
       Dim variables = eval.Variables
-      Dim out = eval.Output?.Trim
       Assert.Empty(result.Diagnostics)
-      'Dim output = If(variables.ContainsKey("_OUTPUT_"), variables("_OUTPUT_"), "")
-      Assert.Contains("John", out.ToString())
+      Assert.Contains("John", $"{variables("result$")}")
 
     End Sub
 

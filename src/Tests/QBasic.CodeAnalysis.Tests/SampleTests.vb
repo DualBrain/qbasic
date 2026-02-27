@@ -246,6 +246,35 @@ a = &O347
     End Sub
 
     <Fact>
+    Public Sub EvaluateXOR()
+
+      Dim text = "'CLS
+a0 = 1
+a1 = 1
+a255 = 255
+b1 = a0 xor 255
+b2 = a1 xor 255
+b3 = a255 xor 255
+result$ = """"
+if a0 xor 255 then result$ = result$ + ""a0 ""
+if a1 xor 255 then result$ = result$ + ""a1 ""
+if not a255 xor 255 then result$ = result$ + ""a255""
+
+'print b1; b2; b3
+'print result$"
+
+      Dim eval = Evaluate(text)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Equal("255", $"{variables("b1")}")
+      Assert.Equal("254", $"{variables("b2")}")
+      Assert.Equal("0", $"{variables("b3")}")
+      Assert.Equal("a0 a1 a255", $"{variables("result$")}")
+
+    End Sub
+
+    <Fact>
     Public Sub GosubUsage_MissingEndStatement()
       Dim text = "ON PEN GOSUB HandlePen
 PEN ON

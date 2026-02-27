@@ -249,7 +249,7 @@ a = &O347
     Public Sub EvaluateXOR()
 
       Dim text = "'CLS
-a0 = 1
+a0 = 0
 a1 = 1
 a255 = 255
 b1 = a0 xor 255

@@ -1,6 +1,7 @@
 Imports System.Collections.Immutable
 Imports System.IO
 Imports System.Linq
+Imports System.Runtime.InteropServices
 Imports System.Text
 
 Imports Basic.Utils
@@ -1623,7 +1624,7 @@ Namespace Global.QB.CodeAnalysis
                 Dim assignment = m_keyAssignments(i)
                 If assignment IsNot Nothing AndAlso assignment.Length > 0 Then
                   Dim displayText = If(assignment.Length >= 6, assignment.Substring(0, 6), assignment)
-                  QBLib.Video.Print($"KEY({i}): {displayText}")
+                  QBLib.Video.PRINT($"KEY({i}): {displayText}")
                 End If
               Next
           End Select
@@ -3764,7 +3765,7 @@ Namespace Global.QB.CodeAnalysis
             Case TypeSymbol.Type.String : Return If(CStr(left) <= CStr(right), -1, 0)
           End Select
 
-        Case BoundBinaryOperatorKind.LogicalAnd, BoundBinaryOperatorKind.BitwiseAnd
+        Case BoundBinaryOperatorKind.BitwiseAnd
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.Double : Return (CULng(left) And CULng(right))
             Case TypeSymbol.Type.Single : Return (CULng(left) And CULng(right))
@@ -3773,61 +3774,86 @@ Namespace Global.QB.CodeAnalysis
             Case TypeSymbol.Type.ULong : Return (CUInt(left) And CUInt(right))
             Case TypeSymbol.Type.Long : Return (CLng(left) And CLng(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) And CUShort(right))
-            Case TypeSymbol.Type.Integer
-              ' Use Integer for bitwise operations to avoid overflow
-              Dim l = CInt(left)
-              Dim r = CInt(right)
-              Return CInt(l And r)
+            Case TypeSymbol.Type.Integer : Return CShort(CInt(left) And CInt(right))
             Case TypeSymbol.Type.SByte : Return (CSByte(left) And CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) And CByte(right))
+            Case TypeSymbol.Type.Boolean : Return (CBool(left) And CBool(right))
+          End Select
+        Case BoundBinaryOperatorKind.LogicalAnd
+          Select Case TypeSymbol.TypeSymbolToType(node.Type)
+            Case TypeSymbol.Type.Double : Return If((CULng(left) And CULng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Single : Return If((CULng(left) And CULng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.ULong64 : Return If((CULng(left) And CULng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If((CLng(left) And CLng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.ULong : Return If((CUInt(left) And CUInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Long : Return If((CLng(left) And CLng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If((CUShort(left) And CUShort(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Integer : Return If(CShort(CInt(left) And CInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.SByte : Return If((CSByte(left) And CSByte(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Byte : Return If((CByte(left) And CByte(right)) <> 0, -1, 0)
             Case TypeSymbol.Type.Boolean : Return (CBool(left) And CBool(right))
           End Select
 
         Case BoundBinaryOperatorKind.LogicalAndAlso
           Return CBool(left) AndAlso CBool(right)
 
-        Case BoundBinaryOperatorKind.LogicalOr, BoundBinaryOperatorKind.BitwiseOr
+        Case BoundBinaryOperatorKind.BitwiseOr
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.ULong64 : Return (CULng(left) Or CULng(right))
             Case TypeSymbol.Type.Long64 : Return (CLng(left) Or CLng(right))
             Case TypeSymbol.Type.ULong : Return (CUInt(left) Or CUInt(right))
             Case TypeSymbol.Type.Long : Return (CInt(left) Or CInt(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) Or CUShort(right))
-            Case TypeSymbol.Type.Integer
-              ' Use Integer for bitwise operations to avoid overflow
-              Dim l = CInt(left)
-              Dim r = CInt(right)
-              Return CInt(l Or r)
+            Case TypeSymbol.Type.Integer : Return CShort(CInt(left) Or CInt(right))
             Case TypeSymbol.Type.SByte : Return (CSByte(left) Or CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) Or CByte(right))
+            Case TypeSymbol.Type.Boolean : Return (CBool(left) Or CBool(right))
+          End Select
+        Case BoundBinaryOperatorKind.LogicalOr
+          Select Case TypeSymbol.TypeSymbolToType(node.Type)
+            Case TypeSymbol.Type.ULong64 : Return If((CULng(left) Or CULng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If((CLng(left) Or CLng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.ULong : Return If((CUInt(left) Or CUInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Long : Return If((CInt(left) Or CInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If((CUShort(left) Or CUShort(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Integer : Return If((CInt(left) Or CInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.SByte : Return If((CSByte(left) Or CSByte(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Byte : Return If((CByte(left) Or CByte(right)) <> 0, -1, 0)
             Case TypeSymbol.Type.Boolean : Return (CBool(left) Or CBool(right))
           End Select
 
         Case BoundBinaryOperatorKind.LogicalOrElse
           Return CBool(left) OrElse CBool(right)
 
-        Case BoundBinaryOperatorKind.LogicalXor, BoundBinaryOperatorKind.BitwiseXor
+        Case BoundBinaryOperatorKind.BitwiseXor
           Select Case TypeSymbol.TypeSymbolToType(node.Type)
             Case TypeSymbol.Type.ULong64 : Return (CULng(left) Xor CULng(right))
             Case TypeSymbol.Type.Long64 : Return (CLng(left) Xor CLng(right))
             Case TypeSymbol.Type.ULong : Return (CUInt(left) Xor CUInt(right))
             Case TypeSymbol.Type.Long : Return (CInt(left) Xor CInt(right))
             Case TypeSymbol.Type.UInteger : Return (CUShort(left) Xor CUShort(right))
-            Case TypeSymbol.Type.Integer
-              ' Mask to byte range (0-255) and ensure proper conversion
-              Dim l = CInt(left)
-              Dim r = CInt(right)
-              Dim result = (l Xor r)
-              If result = 255 Then result = -1
-              Return CShort(result)
+            Case TypeSymbol.Type.Integer : Return (CShort(left) Xor CShort(right))
             Case TypeSymbol.Type.SByte : Return (CSByte(left) Xor CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) Xor CByte(right))
             Case TypeSymbol.Type.Boolean : Return (CBool(left) Xor CBool(right))
           End Select
+        Case BoundBinaryOperatorKind.LogicalXor
+          Select Case TypeSymbol.TypeSymbolToType(node.Type)
+            Case TypeSymbol.Type.ULong64 : Return If((CULng(left) Xor CULng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Long64 : Return If((CLng(left) Xor CLng(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.ULong : Return If((CUInt(left) Xor CUInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Long : Return If((CInt(left) Xor CInt(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.UInteger : Return If((CUShort(left) Xor CUShort(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Integer : Return If((CInt(left) Xor CInt(right)) <> 0, -1S, 0S)
+            Case TypeSymbol.Type.SByte : Return If((CSByte(left) Xor CSByte(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Byte : Return If((CByte(left) Xor CByte(right)) <> 0, -1, 0)
+            Case TypeSymbol.Type.Boolean : Return (CBool(left) Xor CBool(right))
+          End Select
 
-        Case BoundBinaryOperatorKind.LogicalImp : Return CInt(Not CBool(left) Or CBool(right))
-        Case BoundBinaryOperatorKind.BitwiseEqv : Return CInt(CBool(left) = CBool(right))
-        Case BoundBinaryOperatorKind.BitwiseImp : Return CInt(CBool(left) AndAlso Not CBool(right))
+        Case BoundBinaryOperatorKind.BitwiseEqv : Return CBool(left) = CBool(right)
+
+        Case BoundBinaryOperatorKind.LogicalImp : Return If(CBool(left) AndAlso Not CBool(right), -1, 0)
+        Case BoundBinaryOperatorKind.BitwiseImp : Return CInt(Not CBool(left) Or CBool(right))
 
         Case Else
           Throw New Exception($"Unexpected binary operator {node.Op.Kind}")

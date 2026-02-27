@@ -3817,7 +3817,9 @@ Namespace Global.QB.CodeAnalysis
               ' Mask to byte range (0-255) and ensure proper conversion
               Dim l = CInt(left)
               Dim r = CInt(right)
-              Return CShort((l And &HFF) Xor (r And &HFF))
+              Dim result = (l Xor r)
+              If result = 255 Then result = -1
+              Return CShort(result)
             Case TypeSymbol.Type.SByte : Return (CSByte(left) Xor CSByte(right))
             Case TypeSymbol.Type.Byte : Return (CByte(left) Xor CByte(right))
             Case TypeSymbol.Type.Boolean : Return (CBool(left) Xor CBool(right))
@@ -3873,7 +3875,8 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return CSng($"{MathF.Atan(value):N6}")
       ElseIf node.Function Is BuiltinFunctions.Chr Then
-        Dim value = CInt(EvaluateExpression(node.Arguments(0)))
+        Dim temp = EvaluateExpression(node.Arguments(0))
+        Dim value = CInt(temp)
         If value.Between(0, 255) Then
           'Return Microsoft.VisualBasic.Strings.Chr(value)
           Return ChrW(value)
@@ -5187,7 +5190,12 @@ Namespace Global.QB.CodeAnalysis
       ' Jump to the selected target (1-based indexing)
       Dim targetLabel = node.Targets(selector - 1)
       Dim targetIndex As Integer
-      If labelToIndex.TryGetValue(targetLabel.Name, targetIndex) Then
+      ' Handle numeric labels the same way as GOTO/GOSUB
+      Dim lookupKey = targetLabel.Name
+      If IsNumeric(lookupKey) Then
+        lookupKey = GOTO_LABEL_PREFIX & lookupKey
+      End If
+      If labelToIndex.TryGetValue(lookupKey, targetIndex) Then
         index = targetIndex
       Else
         ' If label not found, continue to next statement
@@ -5227,7 +5235,12 @@ Namespace Global.QB.CodeAnalysis
       ' Jump to the selected target (1-based indexing) - like GOSUB
       Dim targetLabel = node.Targets(selector - 1)
       Dim targetIndex As Integer
-      If labelToIndex.TryGetValue(targetLabel.Name, targetIndex) Then
+      ' Handle numeric labels the same way as GOTO/GOSUB
+      Dim lookupKey = targetLabel.Name
+      If IsNumeric(lookupKey) Then
+        lookupKey = GOTO_LABEL_PREFIX & lookupKey
+      End If
+      If labelToIndex.TryGetValue(lookupKey, targetIndex) Then
         ' Push return address onto stack
         m_gosubStack.Push(index + 1)
         ' Jump to subroutine

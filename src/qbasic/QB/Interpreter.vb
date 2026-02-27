@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Linq
 
 Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
@@ -26,7 +27,6 @@ Namespace Global.QB
     Shared Function DebugTree(text As String) As String
       Dim tree = SyntaxTree.Parse(text)
       Return tree.Root.ToString
-      'tree.Root.WriteTo(Console.Out)
     End Function
 
     Sub DebugProgram(text As String)
@@ -85,10 +85,27 @@ Namespace Global.QB
     Private Sub OnVariableChanged(sender As Object, e As VariableChangedEventArgs)
       If m_logWriter Is Nothing AndAlso Not m_logToConsole Then Return
       Dim indices = If(e.ArrayIndices IsNot Nothing, $"({String.Join(",", e.ArrayIndices)})", "")
-      Dim oldVal = If(e.OldValue Is Nothing, "<unset>", e.OldValue?.ToString())
-      Dim newVal = e.NewValue?.ToString()
+      Dim oldVal = FormatValueForLogging(e.OldValue)
+      Dim newVal = FormatValueForLogging(e.NewValue)
       WriteLogLine($"  VAR: {e.VariableName}{indices} = {oldVal} -> {newVal}")
     End Sub
+
+    Private Function FormatValueForLogging(value As Object) As String
+      If value Is Nothing Then Return "<unset>"
+      If TypeOf value Is String Then
+        Dim strValue = CStr(value)
+        If strValue.Length = 0 Then Return "<empty>"
+        Dim hasBinary = strValue.Any(Function(c) AscW(c) < 32 AndAlso AscW(c) <> 9 AndAlso AscW(c) <> 10 AndAlso AscW(c) <> 13)
+        If hasBinary OrElse strValue.Length > 100 Then
+          Return $"<string length={strValue.Length}, binary={hasBinary}>"
+        End If
+        Return strValue
+      End If
+      If TypeOf value Is List(Of Object) Then
+        Return $"<list count={CType(value, List(Of Object)).Count}>"
+      End If
+      Return value.ToString()
+    End Function
 
     Private Sub OnErrorOccurred(sender As Object, e As ErrorOccurredEventArgs)
       If m_logWriter Is Nothing AndAlso Not m_logToConsole Then Return
@@ -103,7 +120,6 @@ Namespace Global.QB
 
       SetupLogging(logFilePath, logToConsole)
 
-      ' Store command string for COMMAND$ function
       Dim savedCommandString As String = Nothing
       If Not String.IsNullOrEmpty(commandString) Then
         savedCommandString = commandString
@@ -112,7 +128,6 @@ Namespace Global.QB
       Dim tree = SyntaxTree.Parse(text)
       Dim compilation = QB.CodeAnalysis.Compilation.CreateScript(m_previous, tree)
 
-      ' Subscribe to evaluation events if logging is enabled
       If m_logWriter IsNot Nothing OrElse m_logToConsole Then
         AddHandler compilation.StatementExecuting, AddressOf OnStatementExecuting
         AddHandler compilation.VariableChanged, AddressOf OnVariableChanged
@@ -125,19 +140,11 @@ Namespace Global.QB
 
         If Not result.Diagnostics.HasErrors Then
 
-          ' Check for chain request
           If result.ChainRequest IsNot Nothing Then
             Console.WriteLine($"CHAIN requested: {result.ChainRequest.Filename}")
             If result.ChainRequest.LineNumber.HasValue Then
               Console.WriteLine($"Chain to line: {result.ChainRequest.LineNumber.Value}")
             End If
-
-            ' Basic CHAIN handling for now - just indicate success
-            ' Full implementation would require:
-            ' 1. Load and parse target file
-            ' 2. Reset all state except COMMON variables
-            ' 3. Continue execution at target file (optionally at specific line)
-
             Environment.Exit(0)
           End If
 
@@ -146,11 +153,9 @@ Namespace Global.QB
           End If
 
           m_previous = compilation
-
         End If
 
       Finally
-        ' Unsubscribe from events
         If m_logWriter IsNot Nothing OrElse m_logToConsole Then
           RemoveHandler compilation.StatementExecuting, AddressOf OnStatementExecuting
           RemoveHandler compilation.VariableChanged, AddressOf OnVariableChanged

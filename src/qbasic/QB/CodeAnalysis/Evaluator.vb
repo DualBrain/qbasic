@@ -1241,10 +1241,11 @@ Namespace Global.QB.CodeAnalysis
 
       ' Check if this variable shadows an array
       ' FOR loop variables are local, but they can shadow global arrays
-      ' We need to check if a global array with this name exists
-      Dim shadowsArray = Not variable.IsArray AndAlso m_globals.ContainsKey(variable.Name) AndAlso TypeOf m_globals(variable.Name) Is List(Of Object)
+      ' Check if a global array with this name exists
+      ' In QBasic, a variable can be both scalar and array, so we need to preserve the array
+      Dim hasGlobalArray = m_globals.ContainsKey(variable.Name) AndAlso TypeOf m_globals(variable.Name) Is List(Of Object)
 
-      If shadowsArray Then
+      If hasGlobalArray Then
         ' Store values with _scalar_ suffix to preserve array
         AssignWithScalarSuffix(variable, CObj(lower))
         While True
@@ -1266,6 +1267,7 @@ Namespace Global.QB.CodeAnalysis
           AssignWithScalarSuffix(variable, EvaluateExpression(increment))
         End While
         ' Store final value for later lookup
+        'Console.WriteLine("DEBUG FOR: storing m_forLoopFinalValues(" & variable.Name & ") = " & m_globals(variable.Name & "_scalar_").ToString())
         m_forLoopFinalValues(variable.Name) = m_globals(variable.Name & "_scalar_")
       Else
         ' Normal case - no array to preserve
@@ -3368,16 +3370,19 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Private Function EvaluateVariableExpression(node As BoundVariableExpression) As Object
+      ' Check for FOR loop final value FIRST - this takes precedence
+      ' In QBasic, a variable can be both scalar and array. After FOR loop completes,
+      ' the scalar value takes precedence over array reference
+      If m_forLoopFinalValues.ContainsKey(node.Variable.Name) Then
+        Return m_forLoopFinalValues(node.Variable.Name)
+      End If
+
+      ' Check _scalar_ suffix for in-progress FOR loops
+      If m_globals.ContainsKey(node.Variable.Name & "_scalar_") Then
+        Return m_globals(node.Variable.Name & "_scalar_")
+      End If
+
       If node.Variable.Kind = SymbolKind.GlobalVariable Then
-        ' Check for FOR loop scalar value (stored with _scalar_ suffix)
-        ' This takes precedence during FOR loop evaluation
-        If m_forLoopFinalValues.ContainsKey(node.Variable.Name) Then
-          Return m_forLoopFinalValues(node.Variable.Name)
-        End If
-        ' Also check _scalar_ suffix for in-progress FOR loops
-        If Not node.Variable.IsArray AndAlso m_globals.ContainsKey(node.Variable.Name & "_scalar_") Then
-          Return m_globals(node.Variable.Name & "_scalar_")
-        End If
         ' Check if this global variable has been shadowed by a local variable
         ' This happens with FOR loop variables that shadow array names
         If m_locals IsNot Nothing AndAlso m_locals.Count > 0 Then
@@ -3392,7 +3397,13 @@ Namespace Global.QB.CodeAnalysis
           End If
         End If
         If m_globals.ContainsKey(node.Variable.Name) Then
-          Return m_globals(node.Variable.Name)
+          Dim gv = m_globals(node.Variable.Name)
+          ' In QBasic, a variable can be both scalar and array. If the global contains
+          ' an array (List) and there's no FOR loop value, return default 0 for scalar reference
+          If TypeOf gv Is List(Of Object) Then
+            Return 0
+          End If
+          Return gv
         Else
           Return Nothing
         End If
@@ -3421,7 +3432,13 @@ Namespace Global.QB.CodeAnalysis
         End If
         ' Check if there's a global with this name (array case)
         If m_globals.ContainsKey(node.Variable.Name) Then
-          Return m_globals(node.Variable.Name)
+          Dim gv2 = m_globals(node.Variable.Name)
+          ' In QBasic, a variable can be both scalar and array. If the global contains
+          ' an array (List) and there's no FOR loop value, return default 0 for scalar reference
+          If TypeOf gv2 Is List(Of Object) Then
+            Return 0
+          End If
+          Return gv2
         End If
         Return Nothing
       End If

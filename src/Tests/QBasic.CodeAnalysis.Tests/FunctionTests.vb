@@ -1761,6 +1761,104 @@ result = PT
 
     End Sub
 
+
+    <Fact>
+    Public Sub HexConstants()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[result = &HFF]]></bas>.Value, 255),
+          (<bas><![CDATA[result = &H10]]></bas>.Value, 16),
+          (<bas><![CDATA[result = &H100]]></bas>.Value, 256),
+          (<bas><![CDATA[result = &H3C00]]></bas>.Value, 15360)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub IfComparisonOperators()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[X = 5: IF X = 5 THEN result = 1 ELSE result = 0]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 5: IF X <> 5 THEN result = 1 ELSE result = 0]]></bas>.Value, 0),
+          (<bas><![CDATA[X = 5: IF X > 3 THEN result = 1 ELSE result = 0]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 5: IF X < 3 THEN result = 1 ELSE result = 0]]></bas>.Value, 0),
+          (<bas><![CDATA[X = 5: IF X >= 5 THEN result = 1 ELSE result = 0]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 5: IF X <= 5 THEN result = 1 ELSE result = 0]]></bas>.Value, 1)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub ComparisonToZero()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[result = 5 = 0]]></bas>.Value, 0),
+          (<bas><![CDATA[result = 0 = 0]]></bas>.Value, -1),
+          (<bas><![CDATA[result = -1 = 0]]></bas>.Value, 0),
+          (<bas><![CDATA[result = 5 <> 0]]></bas>.Value, -1),
+          (<bas><![CDATA[result = 0 <> 0]]></bas>.Value, 0)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub BitwiseNot()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[result = NOT 0]]></bas>.Value, -1),
+          (<bas><![CDATA[result = NOT -1]]></bas>.Value, 0),
+          (<bas><![CDATA[result = NOT 255]]></bas>.Value, -256)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub NegativeNumberComparisons()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[X = -1: result = X > 127]]></bas>.Value, 0),
+          (<bas><![CDATA[X = -1: result = X < 0]]></bas>.Value, -1),
+          (<bas><![CDATA[X = -128: result = X >= -128]]></bas>.Value, -1),
+          (<bas><![CDATA[X = -129: result = X < -128]]></bas>.Value, -1)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
   End Class
 
 End Namespace

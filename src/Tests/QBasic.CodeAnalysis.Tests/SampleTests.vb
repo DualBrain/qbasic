@@ -3791,27 +3791,29 @@ result$ = A$ + "","" + B$
 
     End Sub
 
-    <Fact>
-    Public Sub Sample_SEQUENTIAL_FILE_4()
+    '    <Fact>
+    '    Public Sub Sample_SEQUENTIAL_FILE_4()
 
-      ' Name: SEQUENTIAL FILE (4)
+    ' NOTE: Requires DATA.TXT to exist (created in Sample_SEQUENTIAL_FILE_3)
 
-      Dim sample = "
-open""i"",#1,""data.txt""
-result$ = ""
-for x = 1 to 5
-  line input #1, a$
-  result$ = result$ + a$ 'print a$
-next
-"
+    '      ' Name: SEQUENTIAL FILE (4)
 
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      Dim variables = eval.Variables
+    '      Dim sample = "
+    'open""i"",#1,""data.txt""
+    'result$ = ""
+    'for x = 1 to 5
+    '  line input #1, a$
+    '  result$ = result$ + a$ 'print a$
+    'next
+    '"
 
-      Assert.Equal("MICKEY MOUSE,AUDIO/VISUAL AIDS,01/12/72SHERLOCK HOLMES,RESEARCH,12/03/65EBENEEZER SCROOGE,ACCOUNTING,04/27/78SUPER MANN,MAINTENANCE,08/16/78EVEN MORE,WHATEVER,01/01/78", $"{variables("result$")}")
+    '      Dim eval = Evaluate(sample)
+    '      Dim result = eval.Result
+    '      Dim variables = eval.Variables
 
-    End Sub
+    '      Assert.Equal("MICKEY MOUSE,AUDIO/VISUAL AIDS,01/12/72SHERLOCK HOLMES,RESEARCH,12/03/65EBENEEZER SCROOGE,ACCOUNTING,04/27/78SUPER MANN,MAINTENANCE,08/16/78EVEN MORE,WHATEVER,01/01/78", $"{variables("result$")}")
+
+    '    End Sub
 
     <Fact>
     Public Sub Sample_Single_1()

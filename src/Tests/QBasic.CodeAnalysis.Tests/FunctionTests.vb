@@ -1,4 +1,4 @@
-﻿Imports QB.CodeAnalysis
+Imports QB.CodeAnalysis
 Imports QB.CodeAnalysis.Syntax
 
 Imports Xunit
@@ -1470,6 +1470,286 @@ DIM a(1 TO 3): REDIM a(5 TO 8): result = UBOUND(a)]]></bas>.Value, 8),
       Dim entries = New(Script As String, Expected As Object)() {
           (<bas><![CDATA[z = VARSEG(result)]]></bas>.Value, ""),
           (<bas><![CDATA[z = VARSEG(result)]]></bas>.Value, "")
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnAccessingGlobalStringArray()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[DIM A$(3): A$(0) = "HELLO": DEF FNT$(X) = A$(X): result$ = FNT$(0)]]></bas>.Value, "HELLO"),
+          (<bas><![CDATA[DIM A$(3): A$(1) = "WORLD": DEF FNT$(X) = A$(X): result$ = FNT$(1)]]></bas>.Value, "WORLD")
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result$")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnAccessingGlobalNumericArray()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[DIM N(3): N(0) = 10: DEF FNV(X) = N(X): result = FNV(0)]]></bas>.Value, 10),
+          (<bas><![CDATA[DIM N(3): N(1) = 20: DEF FNV(X) = N(X) * 2: result = FNV(1)]]></bas>.Value, 40),
+          (<bas><![CDATA[DIM N(3): N(2) = 5: N(3) = 7: DEF FNV(X) = N(X) + N(X + 1): result = FNV(2)]]></bas>.Value, 12)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnWithComputedArrayIndex()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[DIM A$(3): A$(0) = "A": A$(1) = "B": DEF FNI(X) = ASC(A$(X \ 2)): result = FNI(0)]]></bas>.Value, 65),
+          (<bas><![CDATA[DIM A$(3): A$(0) = "X": A$(1) = "Y": DEF FNI(X) = ASC(A$(X MOD 2)): result = FNI(1)]]></bas>.Value, 89),
+          (<bas><![CDATA[DIM A$(3): A$(1) = "HELLO": DEF FNL(X) = LEN(A$(X AND 1)): result = FNL(1)]]></bas>.Value, 5),
+          (<bas><![CDATA[DIM A$(3): A$(2) = "TEST": DEF FNT(X) = LEN(A$(X)): result = FNT(2)]]></bas>.Value, 4)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnWithMultipleGlobalVariables()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[M = 256: DIM RM$(255): RM$(100) = "BYTE": DEF FNB(X) = ASC(MID$(RM$(INT(X / 128) MOD M), (X AND 127) + 1, 1)): result = FNB(12800)]]></bas>.Value, 66),
+          (<bas><![CDATA[M = 10: DIM ARR(9): ARR(5) = 100: DEF FNA(I) = ARR((I MOD M)): result = FNA(15)]]></bas>.Value, 100),
+          (<bas><![CDATA[DIM A$(2): A$(0) = "HI": M = 3: DEF FNM(I) = LEN(A$(I)) + M: result = FNM(0)]]></bas>.Value, 5)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnNestedWithMidAndAsc()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[DIM B$(1): B$(0) = "ABC": DEF FNC(C) = ASC(MID$(B$(0), C, 1)): result = FNC(2)]]></bas>.Value, 66),
+          (<bas><![CDATA[DIM B$(1): B$(0) = "HELLO": DEF FNC(C) = ASC(MID$(B$(0), C + 1, 1)): result = FNC(2)]]></bas>.Value, 76),
+          (<bas><![CDATA[DIM B$(1): B$(0) = "XYZ": DEF FNC(C) = ASC(MID$(B$(C MOD 1), 1, 1)): result = FNC(0)]]></bas>.Value, 88)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub GosubWithGlobalArrayAccess()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[DIM A(3): A(0) = 10: GOSUB 100: result = total: END: 100: total = total + A(0): RETURN]]></bas>.Value, 10),
+          (<bas><![CDATA[DIM B$(2): B$(0) = "HELLO": GOSUB 100: result = LEN(B$(0)): END: 100: RETURN]]></bas>.Value, 5),
+          (<bas><![CDATA[DIM N(2): N(0) = 5: N(1) = 10: GOSUB 100: result = N(0) + N(1): END: 100: N(0) = N(0) * 2: RETURN]]></bas>.Value, 20)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnParameterShadowingGlobal()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[M = 10: DEF FNM(M) = M * 2: result = FNM(5)]]></bas>.Value, 10),
+          (<bas><![CDATA[DIM M(3): M(2) = 100: DEF FNA(A) = A + 1: result = FNA(M(2))]]></bas>.Value, 101),
+          (<bas><![CDATA[DIM X(2): X(1) = 50: DEF FNF(X) = X(1) + 5: result = FNF(0)]]></bas>.Value, 55)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub DefFnExpressionWithGlobalAndParameter()
+
+      Dim sample = <sample><![CDATA[
+M = 256
+DIM RM$(255)
+RM$(100) = STRING$(128, 65)
+DEF FNB(X) = ASC(MID$(RM$(INT(X / 128) MOD M), (X AND 127) + 1, 1))
+result = FNB(12800)
+]]></sample>.Value
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Equal("65", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub IntegerDivisionThroughIntAndFloat()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[X = 256: result = INT(X / 256)]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 512: result = INT(X / 256)]]></bas>.Value, 2),
+          (<bas><![CDATA[X = 300: result = INT(X / 256)]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 255: result = INT(X / 256)]]></bas>.Value, 0),
+          (<bas><![CDATA[X = 257: result = INT(X / 256)]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 12800: result = INT(X / 128)]]></bas>.Value, 100),
+          (<bas><![CDATA[X = 1000: result = INT(X / 128)]]></bas>.Value, 7),
+          (<bas><![CDATA[X = 32768: result = INT(X / 256)]]></bas>.Value, 128)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub BitwiseAndOperations()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[result = 255 AND 255]]></bas>.Value, 255),
+          (<bas><![CDATA[result = 256 AND 255]]></bas>.Value, 0),
+          (<bas><![CDATA[result = 257 AND 255]]></bas>.Value, 1),
+          (<bas><![CDATA[result = 128 AND 127]]></bas>.Value, 0),
+          (<bas><![CDATA[result = 129 AND 127]]></bas>.Value, 1),
+          (<bas><![CDATA[result = 255 AND 127]]></bas>.Value, 127),
+          (<bas><![CDATA[result = 300 AND 255]]></bas>.Value, 44),
+          (<bas><![CDATA[result = -1 AND 255]]></bas>.Value, 255),
+          (<bas><![CDATA[X = 128: result = X AND 127]]></bas>.Value, 0),
+          (<bas><![CDATA[X = 255: result = X AND 127]]></bas>.Value, 127),
+          (<bas><![CDATA[X = 100: result = X AND 255]]></bas>.Value, 100)
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub MidStatementNotFunction()
+
+      Dim entries = New(Script As String, Expected As String)() {
+          (<bas><![CDATA[DIM A$(1): A$(0) = "XXXXXXXX": MID$(A$(0), 1, 1) = "A": result$ = A$(0)]]></bas>.Value, "AXXXXXXX"),
+          (<bas><![CDATA[DIM A$(1): A$(0) = "XXXXXXXX": MID$(A$(0), 2, 3) = "BCD": result$ = A$(0)]]></bas>.Value, "XBCDXXXX"),
+          (<bas><![CDATA[DIM A$(1): A$(0) = "XXXXXXXX": MID$(A$(0), 4, 2) = "YY": result$ = A$(0)]]></bas>.Value, "XXXYYXXX"),
+          (<bas><![CDATA[DIM A$(1): A$(0) = "HELLO": MID$(A$(0), 2, 1) = "A": result$ = A$(0)]]></bas>.Value, "HALLO")
+      }
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal(entry.Expected, variables("result$"))
+      Next
+
+    End Sub
+
+    <Fact>
+    Public Sub StringArrayBuildingWithConcatenation()
+
+      Dim sample = <sample><![CDATA[
+DIM FT$(2)
+FOR X = 0 TO 2
+  FT$(X) = ""
+NEXT X
+FOR Y = 0 TO 3
+  FOR X = 0 TO 2
+    FT$(X) = FT$(X) + CHR$(65 + X + Y)
+  NEXT X
+NEXT Y
+result$ = FT$(0) + "|" + FT$(1) + "|" + FT$(2)
+]]></sample>.Value
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Equal("ABCD|BCDE|CDEF", variables("result$"))
+
+    End Sub
+
+    <Fact>
+    Public Sub ForLoopShadowingArray()
+
+      Dim sample = <sample><![CDATA[
+DIM PT(3)
+PT(0) = 10
+PT(1) = 20
+PT(2) = 30
+FOR PT = 1 TO 5
+  PT = PT + PT
+NEXT PT
+result = PT
+]]></sample>.Value
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Equal("7", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub CombinedIntDivisionAndBitwise()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+          (<bas><![CDATA[X = 1000: result = INT(X / 256) AND 255]]></bas>.Value, 3),
+          (<bas><![CDATA[X = 1000: result = (X \ 256) AND 255]]></bas>.Value, 3),
+          (<bas><![CDATA[X = 700: result = INT(X / 128) MOD 2]]></bas>.Value, 1),
+          (<bas><![CDATA[X = 256: result = INT(X / 128) MOD 2]]></bas>.Value, 0),
+          (<bas><![CDATA[X = 255: result = X AND 127]]></bas>.Value, 127),
+          (<bas><![CDATA[X = 256: result = X AND 127]]></bas>.Value, 0)
       }
 
       For Each entry In entries

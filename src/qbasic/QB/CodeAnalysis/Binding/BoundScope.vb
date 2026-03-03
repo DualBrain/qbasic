@@ -70,7 +70,17 @@ Namespace Global.QB.CodeAnalysis.Binding
       If m_symbols Is Nothing Then
         m_symbols = New Dictionary(Of String, Symbol)
       End If
+
+      ' For functions, always allow overwrite (actual SUB/FUNCTION replaces DECLARE placeholder)
+      If symbol.Kind = SymbolKind.Function Then
+        m_symbols(key) = symbol
+        Return True
+      End If
+
+      ' Check if there's already a symbol with this key
       If m_symbols.ContainsKey(key) Then
+        ' If there's already a function here, don't overwrite
+        ' The lookup logic will handle finding the right one based on parameter types
         Return False
       End If
       m_symbols(key) = symbol
@@ -118,6 +128,43 @@ Namespace Global.QB.CodeAnalysis.Binding
       ' If not found in current scope, try parent scope
       If Parent IsNot Nothing Then
         Return Parent.TryLookupFunction(name, parameters)
+      End If
+      Return Nothing
+    End Function
+
+    ' Lookup function by name and arity (argument count) - ignores parameter types
+    Public Function TryLookupFunctionByNameAndArity(name As String, arity As Integer) As Symbol
+      Dim key = $"{name.ToLower}[{arity}]"
+      Dim result = TryLookupSymbol(key)
+      If result IsNot Nothing Then Return result
+
+      ' If not found in current scope, try parent scope
+      If Parent IsNot Nothing Then
+        Return Parent.TryLookupFunctionByNameAndArity(name, arity)
+      End If
+      Return Nothing
+    End Function
+
+    ' Lookup function by name and arity, preferring specific types over Any
+    Public Function TryLookupFunctionByNameAndArityPreferSpecific(name As String, arity As Integer) As Symbol
+      ' First try to find a function with specific (non-Any) parameter types
+      If m_symbols IsNot Nothing Then
+        Dim matchingKeys = m_symbols.Keys.Where(Function(k) k.StartsWith($"{name.ToLower}[{arity}]")).ToList()
+        For Each k In matchingKeys
+          Dim func = TryCast(m_symbols(k), FunctionSymbol)
+          If func IsNot Nothing AndAlso func.Parameters.Any(Function(p) p.Type IsNot TypeSymbol.Any) Then
+            Return func
+          End If
+        Next
+      End If
+
+      ' Fall back to Any parameters
+      Dim result = TryLookupFunctionByNameAndArity(name, arity)
+      If result IsNot Nothing Then Return result
+
+      ' Try parent scope
+      If Parent IsNot Nothing Then
+        Return Parent.TryLookupFunctionByNameAndArityPreferSpecific(name, arity)
       End If
       Return Nothing
     End Function

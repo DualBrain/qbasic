@@ -47,6 +47,16 @@ Namespace Global.QB.CodeAnalysis.Binding
         Return New BoundGlobalScope(previous, binder.Diagnostics.ToImmutableArray, Nothing, Nothing, ImmutableArray(Of FunctionSymbol).Empty, ImmutableArray(Of VariableSymbol).Empty, ImmutableArray(Of BoundStatement).Empty)
       End If
 
+      ' Process DECLARE statements FIRST - these register function signatures that will be used
+      ' when binding actual SUB/FUNCTION definitions (which come later)
+      Dim declareStatements = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax).
+                                            Where(Function(gs) TypeOf gs.Statement Is DeclareStatementSyntax).
+                                            Select(Function(gs) CType(gs.Statement, DeclareStatementSyntax))
+
+      For Each declareStmt In declareStatements
+        binder.BindDeclareStatement(declareStmt)
+      Next
+
       Dim functionDeclarations = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of FunctionDeclarationSyntax)
 
       For Each func In functionDeclarations
@@ -70,16 +80,6 @@ Namespace Global.QB.CodeAnalysis.Binding
       For Each func In singleLineDefDeclarations
         binder.BindDefDeclaration(func)
       Next
-
-      ' Process DECLARE statements
-      ' Since DECLARE statements are optional in this implementation,
-      ' we'll just collect them but defer full validation to a future enhancement
-      Dim declareStatements = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax)().
-                                            Where(Function(gs) TypeOf gs.Statement Is DeclareStatementSyntax).
-                                            Select(Function(gs) CType(gs.Statement, DeclareStatementSyntax))
-
-      ' DECLARE statements are now processed without validation since they are optional
-      ' Full validation against SUB/FUNCTION definitions can be added later
 
       Dim globalStatements = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax)
 
@@ -286,6 +286,10 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim diagnostics = ImmutableArray.CreateBuilder(Of Diagnostic)()
 
       For Each func In globalScope.Functions
+        ' Skip functions without a declaration (e.g., built-in or placeholder functions)
+        If func.Declaration Is Nothing Then
+          Continue For
+        End If
         Dim binder = New Binder(isScript, parentScope, func)
         Dim body = binder.BindStatement(func.Declaration.Statements)
         Dim loweredBody = Lowerer.Lower(func, body)
@@ -326,18 +330,20 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Dim seenParameterNames As New HashSet(Of String)
 
-      For Each parameterSyntax In syntax.Parameters
-        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
-        Dim parameterType = BindAsClause(parameterSyntax.AsClause)
-        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
-        If Not seenParameterNames.Add(parameterName) Then
-          Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
-        Else
-          ' FUNCTION parameters are passed ByRef by default in QBasic
-          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
-          parameters.Add(parameter)
-        End If
-      Next
+      If syntax.Parameters IsNot Nothing Then
+        For Each parameterSyntax In syntax.Parameters
+          Dim parameterName = parameterSyntax.Identifier.Identifier.Text
+          Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+          If parameterType Is Nothing Then parameterType = TypeSymbol.Single
+          If Not seenParameterNames.Add(parameterName) Then
+            Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
+          Else
+            ' FUNCTION parameters are passed ByRef by default in QBasic
+            Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
+            parameters.Add(parameter)
+          End If
+        Next
+      End If
 
       Dim type = BindAsClause(syntax.AsClause)
       If type Is Nothing Then type = TypeSymbol.Single
@@ -357,18 +363,20 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Dim seenParameterNames As New HashSet(Of String)
 
-      For Each parameterSyntax In syntax.Parameters
-        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
-        Dim parameterType = BindAsClause(parameterSyntax.AsClause)
-        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
-        If Not seenParameterNames.Add(parameterName) Then
-          Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
-        Else
-          ' SUB parameters are passed ByRef by default in QBasic
-          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
-          parameters.Add(parameter)
-        End If
-      Next
+      If syntax.Parameters IsNot Nothing Then
+        For Each parameterSyntax In syntax.Parameters
+          Dim parameterName = parameterSyntax.Identifier.Identifier.Text
+          Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+          If parameterType Is Nothing Then parameterType = TypeSymbol.Single
+          If Not seenParameterNames.Add(parameterName) Then
+            Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
+          Else
+            ' SUB parameters are passed ByRef by default in QBasic
+            Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
+            parameters.Add(parameter)
+          End If
+        Next
+      End If
 
       Dim type = TypeSymbol.Nothing ' SUB returns nothing
 
@@ -428,17 +436,19 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Dim seenParameterNames As New HashSet(Of String)
 
-      For Each parameterSyntax In syntax.Parameters
-        Dim parameterName = parameterSyntax.Identifier.Identifier.Text
-        Dim parameterType = BindAsClause(parameterSyntax.AsClause)
-        If parameterType Is Nothing Then parameterType = TypeSymbol.Single
-        If Not seenParameterNames.Add(parameterName) Then
-          Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
-        Else
-          Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count)
-          parameters.Add(parameter)
-        End If
-      Next
+      If syntax.Parameters IsNot Nothing Then
+        For Each parameterSyntax In syntax.Parameters
+          Dim parameterName = parameterSyntax.Identifier.Identifier.Text
+          Dim parameterType = BindAsClause(parameterSyntax.AsClause)
+          If parameterType Is Nothing Then parameterType = TypeSymbol.Single
+          If Not seenParameterNames.Add(parameterName) Then
+            Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
+          Else
+            Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count)
+            parameters.Add(parameter)
+          End If
+        Next
+      End If
 
       Dim type As TypeSymbol = Nothing
       Dim identifierText = syntax.Identifier.Identifier.Text
@@ -619,6 +629,7 @@ Namespace Global.QB.CodeAnalysis.Binding
         Case SyntaxKind.OpenStatement : Return BindOpenStatement(CType(syntax, OpenStatementSyntax))
         Case SyntaxKind.CloseStatement : Return BindCloseStatement(CType(syntax, CloseStatementSyntax))
         Case SyntaxKind.ResetStatement : Return BindResetStatement(CType(syntax, ResetStatementSyntax))
+        Case SyntaxKind.RandomizeStatement : Return New BoundNopStatement()
         Case SyntaxKind.SeekStatement : Return BindSeekStatement(CType(syntax, SeekStatementSyntax))
         Case SyntaxKind.OptionStatement : Return BindOptionStatement(CType(syntax, OptionStatementSyntax))
         Case SyntaxKind.PokeStatement : Return BindPokeStatement(CType(syntax, PokeStatementSyntax))
@@ -818,14 +829,31 @@ Namespace Global.QB.CodeAnalysis.Binding
         Next
       End If
 
-      Dim symbol = m_scope.TryLookupFunction(syntax.Identifier.Text, parameters)
+      ' In QBasic, DECLARE statements may not specify parameter types, so we need to try
+      ' name-only lookup first (which finds DECLAREd functions) before type-specific lookup
+      ' First, try to find by name and argument count, preferring specific types over Any
+      Dim argCount = If(syntax.Arguments IsNot Nothing, syntax.Arguments.Count, 0)
+      Dim symbol = m_scope.TryLookupFunctionByNameAndArityPreferSpecific(syntax.Identifier.Text, argCount)
+      If symbol Is Nothing Then
+        ' Fallback to type-specific lookup for built-in functions
+        symbol = m_scope.TryLookupFunction(syntax.Identifier.Text, parameters)
+      End If
+
+
       If symbol IsNot Nothing Then
         Dim func = TryCast(symbol, FunctionSymbol)
+        If func IsNot Nothing Then
+          For i = 0 To func.Parameters.Length - 1
+          Next
+        End If
+
         If func Is Nothing Then
           Diagnostics.ReportNotAFunction(syntax.Identifier.Location, syntax.Identifier.Text)
           Return New BoundErrorExpression
         End If
 
+        ' Skip type checking for DECLAREd functions (they have TypeSymbol.Any parameters)
+        ' Just verify argument count matches
         If If(syntax.Arguments?.Count, 0) <> func.Parameters.Length Then
           Dim span As TextSpan
           If syntax.Arguments.Count > func.Parameters.Length Then
@@ -855,6 +883,26 @@ Namespace Global.QB.CodeAnalysis.Binding
         End If
 
         Return New BoundCallExpression(func, boundArguments.ToImmutable(), syntax)
+      End If
+
+      ' Fallback: try to find function by name only (ignoring parameter types)
+      ' This handles cases where DECLARE statements don't specify parameter types
+      ' but the actual SUB/FUNCTION does
+      Dim symbolFallback = m_scope.TryLookupFunction(syntax.Identifier.Text, Nothing)
+      If symbolFallback IsNot Nothing Then
+        Dim funcFallback = TryCast(symbolFallback, FunctionSymbol)
+        If funcFallback IsNot Nothing Then
+          ' Convert arguments to match function's parameter types
+          If syntax.Arguments IsNot Nothing AndAlso funcFallback.Parameters.Length > 0 Then
+            For i = 0 To Math.Min(syntax.Arguments.Count, funcFallback.Parameters.Length) - 1
+              Dim argumentLocation = syntax.Arguments(i).Location
+              Dim argument = boundArguments(i)
+              Dim parameter = funcFallback.Parameters(i)
+              boundArguments(i) = BindConversion(argumentLocation, argument, parameter.Type)
+            Next
+          End If
+          Return New BoundCallExpression(funcFallback, boundArguments.ToImmutable(), syntax)
+        End If
       End If
 
       ' Not function, check for automatic array dimensioning
@@ -1039,6 +1087,11 @@ Namespace Global.QB.CodeAnalysis.Binding
                                      expression As BoundExpression,
                                      [type] As TypeSymbol,
                                      Optional allowExplicit As Boolean = True) As BoundExpression
+      ' If target type is Any, accept any type without conversion
+      If [type] Is TypeSymbol.Any Then
+        Return expression
+      End If
+
       Dim c = Conversion.Classify(expression.Type, [type])
       If Not c.Exists Then
         If expression.Type IsNot TypeSymbol.Error AndAlso [type] IsNot TypeSymbol.Error Then
@@ -2113,10 +2166,47 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Private Function BindDeclareStatement(syntax As DeclareStatementSyntax) As BoundStatement
-      ' DECLARE statements are declarations, not executable statements.
-      ' For now, we'll just return a NOP statement since the validation
-      ' will happen during a separate pass when all function/sub declarations
-      ' are collected.
+
+      ' DECLARE statements register the function signature in the scope
+      ' so that calls can be validated against it
+      ' NOTE: In QBasic, DECLARE doesn't specify parameter types - the actual SUB/FUNCTION definition does.
+      ' So we register with TypeSymbol.Any to indicate "accept any type" for parameters
+      Dim parameters = ImmutableArray.CreateBuilder(Of ParameterSymbol)()
+
+      If syntax.Parameters IsNot Nothing Then
+        For Each paramSyntax In syntax.Parameters
+          Dim paramName = paramSyntax.Identifier.Identifier.Text
+          ' Use TypeSymbol.Any to indicate this parameter accepts any type
+          ' The actual type will be determined from the variable passed at call site
+          Dim param = New ParameterSymbol(paramName, TypeSymbol.Any, parameters.Count, isByRef:=True)
+          parameters.Add(param)
+        Next
+      End If
+
+      Dim returnType As TypeSymbol
+      If syntax.TypeKeyword IsNot Nothing AndAlso syntax.TypeKeyword.Text.ToUpper() = "FUNCTION" Then
+        ' Check return type from identifier suffix
+        Dim name = syntax.Identifier.Text
+        If name.EndsWith("$") Then
+          returnType = TypeSymbol.String
+        ElseIf name.EndsWith("%") Then
+          returnType = TypeSymbol.Integer
+        ElseIf name.EndsWith("&") Then
+          returnType = TypeSymbol.Long
+        ElseIf name.EndsWith("!") Then
+          returnType = TypeSymbol.Single
+        ElseIf name.EndsWith("#") Then
+          returnType = TypeSymbol.Double
+        Else
+          returnType = TypeSymbol.Single
+        End If
+      Else
+        returnType = TypeSymbol.Nothing ' SUB
+      End If
+
+      Dim func = New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), returnType)
+      m_scope.TryDeclareFunction(func)
+
       Return New BoundNopStatement()
     End Function
 
@@ -2566,8 +2656,11 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Private Function BindCallStatement(syntax As CallStatementSyntax) As BoundStatement
       Dim callSyntax = New CallExpressionSyntax(syntax.SyntaxTree, syntax.Identifier, syntax.OpenParen, syntax.Expressions, syntax.CloseParen)
-      Dim boundCall = CType(BindExpression(callSyntax, True), BoundCallExpression)
-      Return New BoundCallStatement(syntax, boundCall)
+      Dim boundCall = BindExpression(callSyntax, True)
+      If boundCall Is Nothing OrElse TypeOf boundCall Is BoundErrorExpression Then
+        Return New BoundNopStatement()
+      End If
+      Return New BoundCallStatement(syntax, CType(boundCall, BoundCallExpression))
     End Function
 
     Private Sub BindDimensionsClause(syntax As DimensionsClauseSyntax, ByRef lower As BoundExpression, ByRef upper As BoundExpression)

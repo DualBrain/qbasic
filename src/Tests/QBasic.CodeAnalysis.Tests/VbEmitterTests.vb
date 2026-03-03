@@ -100,14 +100,14 @@ Namespace QBasic.CodeAnalysis.Tests
     Public Sub EmitsPrintExpression()
       Dim text = "PRINT 1 + 1"
       Dim result = Emit(text)
-      Assert.Contains("System.Console.WriteLine(""2"")", result)
+      Assert.Contains("System.Console.WriteLine(2)", result)
     End Sub
 
     <Fact>
     Public Sub EmitsPrintWithConstantFolding()
       Dim source = "PRINT 1 + 1; ""test""; ""there"""
       Dim result = Emit(source)
-      Assert.Contains("System.Console.Write(""2"")", result)
+      Assert.Contains("System.Console.Write(2)", result)
       Assert.Contains("System.Console.Write(""test"")", result)
       Assert.Contains("System.Console.WriteLine(""there"")", result)
     End Sub

@@ -391,7 +391,10 @@ Namespace Global.QB.CodeAnalysis
         For Each kv In current.Functions
           Dim func = kv.Key
           Dim body = kv.Value
-          m_functions.Add(func, body)
+          ' Skip if already exists (e.g., from previous compilation with DECLARE)
+          If Not m_functions.ContainsKey(func) Then
+            m_functions.Add(func, body)
+          End If
         Next
         current = current.Previous
       End While
@@ -4489,6 +4492,12 @@ Namespace Global.QB.CodeAnalysis
         If locals IsNot Nothing Then
           m_locals.Push(locals)
         End If
+
+        ' Get function body - skip if no body (shouldn't happen for valid code)
+        If Not m_functions.ContainsKey(node.Function) Then
+          Throw New QBasicRuntimeException(ErrorCode.Internal, $"Function '{node.Function.Name}' has no implementation")
+        End If
+
         Dim statement = m_functions(node.Function)
         m_container.Push(node.Function.Name)
         Dim result = EvaluateStatement(statement, Nothing)

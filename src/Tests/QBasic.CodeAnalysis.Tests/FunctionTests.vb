@@ -1559,7 +1559,10 @@ DIM a(1 TO 3): REDIM a(5 TO 8): result = UBOUND(a)]]></bas>.Value, 8),
       Dim entries = New(Script As String, Expected As Object)() {
           (<bas><![CDATA[DIM B$(1): B$(0) = "ABC": DEF FNC(C) = ASC(MID$(B$(0), C, 1)): result = FNC(2)]]></bas>.Value, 66),
           (<bas><![CDATA[DIM B$(1): B$(0) = "HELLO": DEF FNC(C) = ASC(MID$(B$(0), C + 1, 1)): result = FNC(2)]]></bas>.Value, 76),
-          (<bas><![CDATA[DIM B$(1): B$(0) = "XYZ": DEF FNC(C) = ASC(MID$(B$(C MOD 1), 1, 1)): result = FNC(0)]]></bas>.Value, 88)
+          (<bas><![CDATA[DIM B$(1): B$(0) = "XYZ": DEF FNC(C) = ASC(MID$(B$(C MOD 1), 1, 1)): result = FNC(0)]]></bas>.Value, 88),
+          (<bas><![CDATA[DIM RM$(2): FOR A = 0 TO 2: FOR I = 0 TO 127: RM$(A) = RM$(A) + CHR$(I + 65): NEXT: NEXT: DEF FNB(X) = ASC(MID$(RM$(INT(X / 128)), (X AND 127) + 1, 1)): result = FNB(0)]]></bas>.Value, 65),
+          (<bas><![CDATA[DIM RM$(2): FOR A = 0 TO 2: FOR I = 0 TO 127: RM$(A) = RM$(A) + CHR$(I + 65): NEXT: NEXT: DEF FNB(X) = ASC(MID$(RM$(INT(X / 128)), (X AND 127) + 1, 1)): result = FNB(128)]]></bas>.Value, 65),
+          (<bas><![CDATA[DIM RM$(2): FOR A = 0 TO 2: FOR I = 0 TO 127: RM$(A) = RM$(A) + CHR$((I MOD 26) + 65): NEXT: NEXT: DEF FNB(X) = ASC(MID$(RM$(INT(X / 128)), (X AND 127) + 1, 1)): result = FNB(129)]]></bas>.Value, 66)
       }
 
       For Each entry In entries

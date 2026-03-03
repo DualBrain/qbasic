@@ -1930,6 +1930,26 @@ END
 
     End Sub
 
+    <Fact>
+    Public Sub BitwiseAndWithLargerValues()
+
+      Dim entries = New(Script As String, Expected As Object)() {
+      (<bas><![CDATA[X = 128: result = X And 127]]></bas>.Value, 0), ' X AND 127 where X > 127
+      (<bas><![CDATA[X = 16406: result = X And 127]]></bas>.Value, 22),
+      (<bas><![CDATA[X = 255: result = X And 127]]></bas>.Value, 127),
+      (<bas><![CDATA[X = 256: result = X And 127]]></bas>.Value, 0),
+      (<bas><![CDATA[X = 16406: result = (X And 127) + 1]]></bas>.Value, 23), ' Precedence: (X AND 127) + 1 vs X AND (127 + 1)
+      (<bas><![CDATA[X = 16406: result = X And 127 + 1]]></bas>.Value, 0)}
+
+      For Each entry In entries
+        Dim eval = Evaluate(entry.Script)
+        Dim result = eval.Result
+        Dim variables = eval.Variables
+        Assert.Equal($"{entry.Expected}", $"{variables("result")}")
+      Next
+
+    End Sub
+
   End Class
 
 End Namespace

@@ -145,22 +145,35 @@ Namespace Global.QB.CodeAnalysis.Binding
       Return Nothing
     End Function
 
-    ' Lookup function by name and arity, preferring specific types over Any
+    ' Lookup function by name and arity, preferring specific types over Any and functions with bodies
     Public Function TryLookupFunctionByNameAndArityPreferSpecific(name As String, arity As Integer) As Symbol
-      ' First try to find a function with specific (non-Any) parameter types
+      ' First try to find a function with specific (non-Any) parameter types AND has a declaration (body)
       If m_symbols IsNot Nothing Then
         Dim matchingKeys = m_symbols.Keys.Where(Function(k) k.StartsWith($"{name.ToLower}[{arity}]")).ToList()
         For Each k In matchingKeys
           Dim func = TryCast(m_symbols(k), FunctionSymbol)
-          If func IsNot Nothing AndAlso func.Parameters.Any(Function(p) p.Type IsNot TypeSymbol.Any) Then
+          If func IsNot Nothing AndAlso func.Parameters.Any(Function(p) p.Type IsNot TypeSymbol.Any) AndAlso func.Declaration IsNot Nothing Then
             Return func
           End If
         Next
       End If
 
-      ' Fall back to Any parameters
+      ' Fall back to Any parameters but prefer ones with declarations
       Dim result = TryLookupFunctionByNameAndArity(name, arity)
-      If result IsNot Nothing Then Return result
+      If result IsNot Nothing Then
+        Dim funcResult = TryCast(result, FunctionSymbol)
+        ' If result has no declaration, try to find one that does in the dictionary
+        If funcResult IsNot Nothing AndAlso funcResult.Declaration Is Nothing AndAlso m_symbols IsNot Nothing Then
+          Dim matchingKeys = m_symbols.Keys.Where(Function(k) k.StartsWith($"{name.ToLower}[{arity}]")).ToList()
+          For Each k In matchingKeys
+            Dim func = TryCast(m_symbols(k), FunctionSymbol)
+            If func IsNot Nothing AndAlso func.Declaration IsNot Nothing Then
+              Return func
+            End If
+          Next
+        End If
+        Return result
+      End If
 
       ' Try parent scope
       If Parent IsNot Nothing Then

@@ -550,12 +550,18 @@ result = -1 AND 8
       Dim sample = "
 DECLARE SUB SwapVal (a,b)
 
+ON ERROR GOTO Handler
+
 a = 1
 b = 2
 CALL SwapVal(a, b)
 result$ = STR$(a) + "" "" + STR$(b)
 END
-    
+
+Handler:
+  result$ = ""ERR = "" + STR$(ERR))
+  END
+
 SUB SwapVal(x,y)
   temp = x
   x = y

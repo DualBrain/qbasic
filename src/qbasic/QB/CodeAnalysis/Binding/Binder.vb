@@ -2204,8 +2204,8 @@ Namespace Global.QB.CodeAnalysis.Binding
         returnType = TypeSymbol.Nothing ' SUB
       End If
 
-      Dim func = New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), returnType)
-      m_scope.TryDeclareFunction(func)
+      'Dim func = New FunctionSymbol(syntax.Identifier.Text, parameters.ToImmutable(), returnType)
+      'm_scope.TryDeclareFunction(func)
 
       Return New BoundNopStatement()
     End Function

@@ -4781,7 +4781,7 @@ Namespace Global.QB.CodeAnalysis
          Not File.Exists(fileName) AndAlso File.Exists(originalFileName) Then
         fileNameToTry = originalFileName
       End If
-            Try
+      Try
         Dim stream = New FileStream(fileNameToTry, mode, access, FileShare.ReadWrite)
         m_openFiles.Add(fileNumber, stream)
         m_fileModes.Add(fileNumber, modeString.ToUpper())

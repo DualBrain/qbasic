@@ -1058,7 +1058,7 @@ Namespace Global.QB.CodeAnalysis
             Case BoundNodeKind.DateStatement : EvaluateDateStatement(CType(s, BoundDateStatement)) : index += 1
             Case BoundNodeKind.ErrorStatement : EvaluateErrorStatement(CType(s, BoundErrorStatement), body.Statements, index) : index += 1
             Case BoundNodeKind.ReadStatement : EvaluateReadStatement(CType(s, BoundReadStatement)) : index += 1
-            Case BoundNodeKind.RestoreStatement : EvaluateRestoreStatement(CType(s, BoundRestoreStatement)) : index += 1
+            Case BoundNodeKind.RestoreStatement : EvaluateRestoreStatement(CType(s, BoundRestoreStatement), localLabelToIndex) : index += 1
             Case BoundNodeKind.TimeStatement : EvaluateTimeStatement(CType(s, BoundTimeStatement)) : index += 1
             Case BoundNodeKind.SleepStatement : EvaluateSleepStatement(CType(s, BoundSleepStatement), index, localLabelToIndex) : index += 1
             Case BoundNodeKind.OnTimerGosubStatement : EvaluateOnTimerGosubStatement(CType(s, BoundOnTimerGosubStatement)) : index += 1
@@ -1330,7 +1330,7 @@ Namespace Global.QB.CodeAnalysis
       Next
     End Sub
 
-    Private Sub EvaluateRestoreStatement(node As BoundRestoreStatement)
+    Private Sub EvaluateRestoreStatement(node As BoundRestoreStatement, labelToIndex As Dictionary(Of String, Integer))
       If node.HasTarget Then
         Dim targetName = node.Target.Name
         If IsNumeric(targetName) Then
@@ -1346,12 +1346,37 @@ Namespace Global.QB.CodeAnalysis
             End If
           End If
         Else
-          m_dataIndex = 0
+          ' It's a label name - look it up in the labelToIndex dictionary
+          If labelToIndex IsNot Nothing AndAlso labelToIndex.ContainsKey(targetName) Then
+            Dim labelIndex = labelToIndex(targetName)
+            m_dataIndex = FindDataIndexAfterLabel(labelIndex)
+          Else
+            m_dataIndex = 0
+          End If
         End If
       Else
         m_dataIndex = 0
       End If
     End Sub
+
+    Private Function FindDataIndexAfterLabel(labelIndex As Integer) As Integer
+      ' Look for the next DATA statement after the label
+      ' and return the index where its data values start in m_data
+      Dim dataPosition = 0
+      For i = 0 To m_globalStatements.Length - 1
+        Dim stmt = m_globalStatements(i)
+        If TypeOf stmt Is BoundDataStatement Then
+          If i >= labelIndex + 1 Then
+            ' Found DATA after the label, return the current data position
+            Return dataPosition
+          End If
+          ' Accumulate DATA values before the label
+          Dim dataStmt = CType(stmt, BoundDataStatement)
+          dataPosition += dataStmt.Data.Length
+        End If
+      Next
+      Return 0
+    End Function
 
     Private Sub AssignToExpression(target As BoundExpression, value As Object)
       Select Case target.Kind
@@ -5316,9 +5341,11 @@ Namespace Global.QB.CodeAnalysis
     ''' Recursively processes DATA statements in a block statement.
     ''' </summary>
     Private Sub PreprocessDataStatementsInBlock(block As BoundBlockStatement)
-      For Each statement In block.Statements
+      For i = 0 To block.Statements.Length - 1
+        Dim statement = block.Statements(i)
         If TypeOf statement Is BoundDataStatement Then
           Dim dataStatement = CType(statement, BoundDataStatement)
+          ' Only store if not already present (keep first DATA for each line number)
           If Not m_restoreTargets.ContainsKey(dataStatement.LineNumber) Then
             m_restoreTargets(dataStatement.LineNumber) = m_data.Count
           End If

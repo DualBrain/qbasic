@@ -3343,13 +3343,13 @@ repeat:
 
     Private Function ParseRestoreStatement() As RestoreStatementSyntax
 
-      'QBasic: RESTORE [line]
+      'QBasic: RESTORE [line | label]
 
       Dim restoreKeyword = MatchToken(SyntaxKind.RestoreKeyword)
 
       Dim numberToken As SyntaxToken = Nothing
-      If Current.Kind = SyntaxKind.NumberToken Then
-        numberToken = MatchToken(SyntaxKind.NumberToken)
+      If Current.Kind = SyntaxKind.NumberToken OrElse Current.Kind = SyntaxKind.IdentifierToken Then
+        numberToken = MatchTokens({SyntaxKind.NumberToken, SyntaxKind.IdentifierToken})
       End If
 
       Return New RestoreStatementSyntax(m_syntaxTree, restoreKeyword, numberToken)

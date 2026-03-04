@@ -25,11 +25,13 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private m_arrayModeDynamic As Boolean = False ' Track current $DYNAMIC/$STATIC metacommand state (default $STATIC)
     Private ReadOnly m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
     Private m_currentLineNumber As Integer = 0 ' Track current line number for DATA statements
+    Private ReadOnly m_knownLabels As HashSet(Of String) ' Track known labels for RESTORE/GOTO resolution
 
-    Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol)
+    Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol, Optional knownLabels As HashSet(Of String) = Nothing)
       m_scope = New BoundScope(parent)
       m_isScript = isScript
       m_function = [function]
+      m_knownLabels = knownLabels
       If [function] IsNot Nothing Then
         For Each p In [function].Parameters
           m_scope.TryDeclareVariable(p)
@@ -40,7 +42,24 @@ Namespace Global.QB.CodeAnalysis.Binding
     Public Shared Function BindGlobalScope(isScript As Boolean, previous As BoundGlobalScope, syntaxTrees As ImmutableArray(Of SyntaxTree)) As BoundGlobalScope
 
       Dim parentScope = CreateParentScope(previous)
-      Dim binder = New Binder(isScript, parentScope, Nothing)
+
+      ' Collect all labels from the program for RESTORE/GOTO resolution - BEFORE creating binder
+      Dim globalStatementsForLabels = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax)
+      Dim knownLabels As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+      For Each gs In globalStatementsForLabels
+        If TypeOf gs.Statement Is LabelStatementSyntax Then
+          Dim labelStmt = CType(gs.Statement, LabelStatementSyntax)
+          Dim labelName = labelStmt.Label.Text
+          If labelStmt.Label.Kind = SyntaxKind.Label Then
+            labelName = labelName.Substring(0, labelName.Length - 1) ' Remove trailing colon
+          End If
+          knownLabels.Add(labelName.ToLower)
+          System.Diagnostics.Debug.WriteLine($"[BINDER] Found label: {labelName.ToLower}")
+        End If
+      Next
+
+      System.Diagnostics.Debug.WriteLine($"[BINDER] Total known labels: {knownLabels.Count}")
+      Dim binder = New Binder(isScript, parentScope, Nothing, knownLabels)
 
       binder.Diagnostics.AddRange(syntaxTrees.SelectMany(Function(st) st.Diagnostics))
       If binder.Diagnostics.Any Then
@@ -3071,7 +3090,18 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private Function BindRestoreStatement(syntax As RestoreStatementSyntax) As BoundStatement
       If syntax.NumberToken IsNot Nothing Then
         Dim value = syntax.NumberToken.Text.ToLower()
-        Dim label = New BoundLabel(value)
+        Dim label As BoundLabel = Nothing
+        ' If it's an identifier (not a number), check if it's a known label
+        If Not IsNumeric(value) Then
+          If m_knownLabels IsNot Nothing AndAlso m_knownLabels.Contains(value) Then
+            label = New BoundLabel(value)
+          Else
+            Diagnostics.ReportUndefinedVariable(syntax.NumberToken.Location, value)
+            Return New BoundRestoreStatement(Nothing)
+          End If
+        Else
+          label = New BoundLabel(value)
+        End If
         Return New BoundRestoreStatement(label)
       End If
       Return New BoundRestoreStatement(Nothing)

@@ -1862,6 +1862,185 @@ result = PT
 
     End Sub
 
+    <Fact>
+    Public Sub RestoreWithLabelName()
+
+      ' it appears that a label *can* be on the same line as *more code*
+      ' so we need to account for the fact that a line starting with a string
+      ' token followed by a colon can be either a label or parameter-less SUB
+
+      Dim sample = "
+RESTORE mylabel
+READ A
+RESTORE another
+READ B
+'PRINT A
+'PRINT B
+END
+mylabel: DATA 42
+another: DATA 99
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("42", $"{variables("A")}")
+      Assert.Equal("99", $"{variables("B")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub TypeWithArrayParameter()
+
+      Dim sample = "
+TYPE snakeBody
+  row AS INTEGER
+  col AS INTEGER
+END TYPE
+
+TYPE snaketype
+  length AS INTEGER
+  head AS INTEGER
+END TYPE
+
+DECLARE SUB TestSub (snake() AS snaketype)
+
+DIM s(10) AS snaketype
+s(1).length = 5
+result = s(1).length
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("5", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub TypeWithMultipleArrayParameters()
+
+      Dim sample = "
+TYPE snakeBody
+  row AS INTEGER
+  col AS INTEGER
+END TYPE
+
+TYPE snaketype
+  length AS INTEGER
+  head AS INTEGER
+END TYPE
+
+DECLARE SUB TestSub (snake() AS snaketype, snakeBod() AS snakeBody, snakeNum)
+
+DIM s(10) AS snaketype
+DIM b(10) AS snakeBody
+s(1).length = 5
+b(2).row = 10
+result = s(1).length + b(2).row
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("15", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub SubParameterTypeResolution()
+
+      Dim sample = "
+TYPE PointType
+  x AS INTEGER
+  y AS INTEGER
+END TYPE
+
+DECLARE SUB MoveSnake (snake() AS PointType, BYVAL num)
+
+DIM snake(5) AS PointType
+snake(1).x = 10
+snake(1).y = 20
+result = snake(1).x + snake(1).y
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("30", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub VariableScopeInLoopWhile()
+
+      Dim sample = "
+DECLARE SUB TestSub ()
+StillWantsToPlay = -1
+DO
+  CALL TestSub
+LOOP WHILE StillWantsToPlay
+result = 1
+END
+
+SUB TestSub
+  StillWantsToPlay = 0
+END SUB
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("1", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub SubCallsWithMixedParameterTypes()
+
+      Dim sample = "
+DECLARE SUB GetInputs (NumPlayers, speed, diff$, monitor$)
+
+DIM NumPlayers AS INTEGER
+DIM speed AS SINGLE
+DIM diff$ AS STRING
+DIM monitor$ AS STRING
+
+CALL GetInputs(NumPlayers, speed, diff$, monitor$)
+
+result$ = diff$ + monitor$
+END
+
+SUB GetInputs (NumPlayers, speed, diff$, monitor$)
+  NumPlayers = 1
+  speed = 5.5
+  diff$ = ""EASY""
+  monitor$ = ""Mono""
+END SUB
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("EASYMono", $"{variables("result$")}")
+
+    End Sub
+
   End Class
 
 End Namespace

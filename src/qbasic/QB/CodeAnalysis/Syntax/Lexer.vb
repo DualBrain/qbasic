@@ -774,7 +774,6 @@ Namespace Global.QB.CodeAnalysis.Syntax
       ' Test to see if this is a Label
       If bol AndAlso
          Current = ":"c AndAlso
-         LookAhead <> " "c AndAlso
          Char.IsLetter(text(0)) AndAlso
          Not text.Contains(" "c) AndAlso
          Not text.Contains("%"c) AndAlso

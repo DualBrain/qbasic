@@ -782,13 +782,21 @@ Namespace Global.QB.CodeAnalysis.Syntax
          Not text.Contains("#"c) AndAlso
          Not text.Contains("$"c) Then
 
-        ' start of line
-        ' start with a-z character (yes)
-        ' no spaces or %!&#$ (yes)
-        ' no reserved words?
-        ' end with a colon (:) (yes)
-        m_kind = SyntaxKind.Label
-        m_position += 1 ' move past the colon (:)
+' start of line
+         ' start with a-z character (yes)
+         ' no spaces or %!&#$ (yes)
+         ' no reserved words?
+         ' end with a colon (:) (yes)
+         ' Check if it's a keyword first
+         Dim keywordKind = SyntaxFacts.GetKeywordKind(text)
+         If keywordKind <> SyntaxKind.IdentifierToken Then
+           ' It's a keyword, not a label
+           m_kind = keywordKind
+         Else
+           ' It's not a keyword, so it's a label
+           m_kind = SyntaxKind.Label
+           m_position += 1 ' move past the colon (:)
+         End If
       Else
         m_kind = SyntaxFacts.GetKeywordKind(text)
       End If

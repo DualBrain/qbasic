@@ -386,7 +386,18 @@ Namespace Global.QB.CodeAnalysis.Binding
         For Each parameterSyntax In syntax.Parameters
           Dim parameterName = parameterSyntax.Identifier.Identifier.Text
           Dim parameterType = BindAsClause(parameterSyntax.AsClause)
-          If parameterType Is Nothing Then parameterType = TypeSymbol.Single
+          If parameterType Is Nothing Then
+            Dim suffix = parameterName.Last
+            Select Case suffix
+              Case "%"c : parameterType = TypeSymbol.Integer
+              Case "&"c : parameterType = TypeSymbol.Long
+              Case "!"c : parameterType = TypeSymbol.Single
+              Case "#"c : parameterType = TypeSymbol.Double
+              Case "$"c : parameterType = TypeSymbol.String
+              Case Else
+                parameterType = TypeSymbol.Single
+            End Select
+          End If
           If Not seenParameterNames.Add(parameterName) Then
             Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
           Else

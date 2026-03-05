@@ -2012,12 +2012,12 @@ END SUB
     Public Sub SubCallsWithMixedParameterTypes()
 
       Dim sample = "
-DECLARE SUB GetInputs (NumPlayers, speed, diff$, monitor$)
+'DECLARE SUB GetInputs (NumPlayers, speed, diff$, monitor$)
 
-DIM NumPlayers AS INTEGER
-DIM speed AS SINGLE
-DIM diff$ AS STRING
-DIM monitor$ AS STRING
+'DIM NumPlayers AS INTEGER
+'DIM speed AS SINGLE
+'DIM diff$ AS STRING
+'DIM monitor$ AS STRING
 
 CALL GetInputs(NumPlayers, speed, diff$, monitor$)
 

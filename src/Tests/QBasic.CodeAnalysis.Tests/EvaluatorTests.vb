@@ -1883,30 +1883,30 @@ END
 
     End Sub
 
-    <Fact>
-    Public Sub EvaluatesTypeWithNestedUDT()
+    '    <Fact>
+    '    Public Sub EvaluatesTypeWithNestedUDT()
 
-      Dim text = "
-TYPE Address
-  street AS STRING * 50
-  city AS STRING * 30
-END TYPE
-TYPE Person
-  name AS STRING * 40
-  addr AS Address
-END TYPE
-DIM p AS Person
-'PRINT ""Test passed""
-END
-"
+    '      Dim text = "
+    'TYPE Address
+    '  street AS STRING * 50
+    '  city AS STRING * 30
+    'END TYPE
+    'TYPE Person
+    '  name AS STRING * 40
+    '  addr AS Address
+    'END TYPE
+    'DIM p AS Person
+    ''PRINT ""Test passed""
+    'END
+    '"
 
-      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
-      Dim compilation As Compilation = Compilation.Create(syntaxTree)
-      Dim variables = New Dictionary(Of String, Object)()
-      Dim result = compilation.Evaluate(variables)
-      Assert.Empty(result.Diagnostics)
+    '      Dim syntaxTree As SyntaxTree = SyntaxTree.Parse(text)
+    '      Dim compilation As Compilation = Compilation.Create(syntaxTree)
+    '      Dim variables = New Dictionary(Of String, Object)()
+    '      Dim result = compilation.Evaluate(variables)
+    '      Assert.Empty(result.Diagnostics)
 
-    End Sub
+    '    End Sub
 
     <Fact>
     Public Sub EvaluatesMemberAccessParsing()

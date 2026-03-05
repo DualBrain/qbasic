@@ -76,6 +76,16 @@ Namespace Global.QB.CodeAnalysis.Binding
         binder.BindDeclareStatement(declareStmt)
       Next
 
+      ' Process TYPE statements - these need to be bound before SUB/FUNCTION declarations
+      ' that reference them in parameter lists
+      Dim typeStatements = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of GlobalStatementSyntax).
+                                       Where(Function(gs) TypeOf gs.Statement Is TypeStatementSyntax).
+                                       Select(Function(gs) CType(gs.Statement, TypeStatementSyntax))
+
+      For Each typeStmt In typeStatements
+        binder.BindTypeStatement(typeStmt)
+      Next
+
       Dim functionDeclarations = syntaxTrees.SelectMany(Function(st) st.Root.Members).OfType(Of FunctionDeclarationSyntax)
 
       For Each func In functionDeclarations
@@ -130,8 +140,11 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Next
 
+      ' Skip TYPE statements since they're already bound above
+      Dim executableStatements = globalStatements.Where(Function(gs) TypeOf gs.Statement IsNot TypeStatementSyntax)
+
       Dim statements = ImmutableArray.CreateBuilder(Of BoundStatement)
-      For Each globalStatement In globalStatements
+      For Each globalStatement In executableStatements
 
         Dim lineNumbers = IterateLineNumbers(globalStatement.Statement)
 
@@ -383,7 +396,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim seenParameterNames As New HashSet(Of String)
 
       If syntax.Parameters IsNot Nothing Then
-        For Each parameterSyntax In syntax.Parameters
+For Each parameterSyntax In syntax.Parameters
           Dim parameterName = parameterSyntax.Identifier.Identifier.Text
           Dim parameterType = BindAsClause(parameterSyntax.AsClause)
           If parameterType Is Nothing Then
@@ -401,8 +414,17 @@ Namespace Global.QB.CodeAnalysis.Binding
           If Not seenParameterNames.Add(parameterName) Then
             Diagnostics.ReportParameterAlreadyDeclared(parameterSyntax.Location, parameterName)
           Else
-            ' SUB parameters are passed ByRef by default in QBasic
-            Dim parameter As New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
+            ' Check if this is an array parameter (has parentheses)
+            Dim isArrayParameter = parameterSyntax.Identifier.OpenParen IsNot Nothing
+            
+            Dim parameter As ParameterSymbol
+            If isArrayParameter Then
+              ' Create an array parameter
+              parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isArray:=True, isByRef:=True)
+            Else
+              ' SUB parameters are passed ByRef by default in QBasic
+              parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
+            End If
             parameters.Add(parameter)
           End If
         Next
@@ -827,13 +849,23 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       ' Then check if this is array access (identifier with parentheses)
       Dim variableSymbol = m_scope.TryLookupVariable(syntax.Identifier.Text)
-      If variableSymbol IsNot Nothing AndAlso Not variableSymbol.IsArray AndAlso syntax.Arguments.Count = 1 Then
-        ' Redeclare scalar as array
-        Dim lowerBound = New BoundLiteralExpression(m_optionBase)
-        Dim upperBound = New BoundLiteralExpression(10)
-        variableSymbol = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
+      If variableSymbol IsNot Nothing Then
+        ' Check if this is an array parameter
+        Dim isArrayParameter = False
+        If TypeOf variableSymbol Is ParameterSymbol Then
+          Dim paramSymbol = CType(variableSymbol, ParameterSymbol)
+          isArrayParameter = paramSymbol.IsArrayParameter
+        End If
+        
+        If Not variableSymbol.IsArray AndAlso Not isArrayParameter AndAlso syntax.Arguments.Count = 1 Then
+          ' Redeclare scalar as array
+          Dim lowerBound = New BoundLiteralExpression(m_optionBase)
+          Dim upperBound = New BoundLiteralExpression(10)
+          variableSymbol = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
+        End If
       End If
-      If variableSymbol IsNot Nothing AndAlso variableSymbol.IsArray Then
+      
+      If variableSymbol IsNot Nothing AndAlso (variableSymbol.IsArray OrElse (TypeOf variableSymbol Is ParameterSymbol AndAlso CType(variableSymbol, ParameterSymbol).IsArrayParameter)) Then
         ' This is array access
         If syntax.Arguments.Count <> variableSymbol.DimensionCount Then
           ' Multi-dimensional arrays should have one argument per dimension

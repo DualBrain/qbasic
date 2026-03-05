@@ -7,6 +7,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     DefStatement
     DimAsClause
     TypeCharacter
+    ParameterAsClause
   End Enum
 
   Public Class VariableSymbol

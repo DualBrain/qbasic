@@ -1940,10 +1940,16 @@ DECLARE SUB TestSub (snake() AS snaketype, snakeBod() AS snakeBody, snakeNum)
 
 DIM s(10) AS snaketype
 DIM b(10) AS snakeBody
-s(1).length = 5
-b(2).row = 10
+s(1).length = 4 '5
+b(2).row = 9 '10
+CALL TestSub(snake(), snakeBod(), 1)
 result = s(1).length + b(2).row
 END
+
+SUB TestSub (snake() AS snaketype, snakeBod() AS snakeBody, snakeNum)
+  s(1).length = s(1).length + snakeNum
+  b(2).row = b(2).row + snakeNum
+END SUB
 "
 
       Dim eval = Evaluate(sample)
@@ -1964,13 +1970,19 @@ TYPE PointType
   y AS INTEGER
 END TYPE
 
-DECLARE SUB MoveSnake (snake() AS PointType, BYVAL num)
+DECLARE SUB MoveSnake (snake() AS PointType, num)
 
 DIM snake(5) AS PointType
 snake(1).x = 10
 snake(1).y = 20
+CALL MoveSnake(snake(), 5)
 result = snake(1).x + snake(1).y
+
 END
+
+SUB MoveSnake(snake() AS PointType, num)
+  snake(1).x = snake(1).x + num
+END SUB
 "
 
       Dim eval = Evaluate(sample)

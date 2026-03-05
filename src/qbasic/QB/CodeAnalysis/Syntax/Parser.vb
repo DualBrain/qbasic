@@ -4442,10 +4442,25 @@ repeat:
 
     Private Function ParseParameter() As ParameterSyntax
 
-      ' ... *identifier* AS *type* ...
+      ' ... *identifier* [()] AS *type* ...
 
-      'Dim identifier = MatchToken(SyntaxKind.IdentifierToken)
-      Dim identifier = ParseIdentifier()
+      ' First, get the base identifier (potentially with parentheses for arrays)
+      Dim identifierToken = MatchToken(SyntaxKind.IdentifierToken)
+      Dim openParen As SyntaxToken = Nothing
+      Dim closeParen As SyntaxToken = Nothing
+
+      ' Check for array parameter: identifier()
+      If Current.Kind = SyntaxKind.OpenParenToken Then
+        openParen = MatchToken(SyntaxKind.OpenParenToken)
+        ' Consume empty parens for array
+        closeParen = MatchToken(SyntaxKind.CloseParenToken)
+      End If
+
+      ' Construct an IdentifierSyntax with the array information
+      Dim identifier As New IdentifierSyntax(m_syntaxTree, identifierToken, openParen,
+                                             New SeparatedSyntaxList(Of ExpressionSyntax)(ImmutableArray.Create(Of SyntaxNode)()),
+                                             closeParen)
+
       Dim asClause As AsClause = Nothing
       If Current.Kind = SyntaxKind.AsKeyword Then asClause = ParseAsClause()
       Return New ParameterSyntax(m_syntaxTree, identifier, asClause)

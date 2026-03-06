@@ -4510,7 +4510,6 @@ Namespace Global.QB.CodeAnalysis
           Else
             If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
             Dim value = EvaluateExpression(argument)
-            Debug.Assert(value IsNot Nothing)
             locals.Add(parameter.Name, value)
           End If
         Next

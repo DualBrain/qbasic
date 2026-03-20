@@ -2080,6 +2080,76 @@ END SUB
 
     End Sub
 
+    <Fact>
+    Public Sub LoopWhileWithVariableCondition()
+
+      Dim sample = "
+x = 0
+done = -1
+DO
+  x = x + 1
+LOOP WHILE NOT done
+
+result = x
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.ErrorDiagnostics)
+      Assert.Equal(1, CInt(variables("result")))
+
+    End Sub
+
+    <Fact>
+    Public Sub LoopUntilWithVariableCondition()
+
+      Dim sample = "
+x = 0
+done = 0
+DO
+  x = x + 1
+  IF x >= 1 THEN done = -1
+LOOP UNTIL done
+
+result = x
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.ErrorDiagnostics)
+      Assert.Equal(1, CInt(variables("result")))
+
+    End Sub
+
+    <Fact>
+    Public Sub IfConditionWithFunctionNameUsedAsIdentifier()
+
+      Dim sample = "
+done = -1
+IF done THEN
+  result = 1
+ELSE
+  result = 0
+END IF
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.ErrorDiagnostics)
+      Assert.Equal(1, CInt(variables("result")))
+
+    End Sub
+
   End Class
 
 End Namespace

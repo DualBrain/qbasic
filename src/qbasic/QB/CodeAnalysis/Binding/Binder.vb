@@ -745,6 +745,7 @@ For Each parameterSyntax In syntax.Parameters
         Case SyntaxKind.ViewPrintStatement : Return New BoundNopStatement()
         Case SyntaxKind.PlayStatement : Return New BoundNopStatement()
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
+        Case SyntaxKind.SharedStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")

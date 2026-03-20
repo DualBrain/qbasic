@@ -47,7 +47,17 @@ Namespace Global.QB.CodeAnalysis.Binding
     End Function
 
     Public Function GetDeclaredTypes() As ImmutableArray(Of UdtTypeSymbol)
-      Return GetDeclaredSymbols(Of UdtTypeSymbol)()
+      Dim result = New List(Of UdtTypeSymbol)()
+
+      Dim currentTypes = GetDeclaredSymbols(Of UdtTypeSymbol)()
+      result.AddRange(currentTypes)
+
+      If Parent IsNot Nothing Then
+        Dim parentTypes = Parent.GetDeclaredTypes()
+        result.AddRange(parentTypes)
+      End If
+
+      Return result.ToImmutableArray()
     End Function
 
     Private Function TryDeclareSymbol(Of TSymbol As Symbol)(symbol As TSymbol) As Boolean

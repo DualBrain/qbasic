@@ -381,28 +381,9 @@ ScanAgain:
       '     If the "LET" style utilized, default return to min return value. ("Classic")
       '     Otherwise, default to "Modern" (requiring Return).
 
-      Dim returnCount = 0
-      Dim nameCount = 0
-      For Each entry In body.Statements
-        If entry.Kind = BoundNodeKind.ReturnStatement Then
-          returnCount += 1
-        ElseIf entry.Kind = BoundNodeKind.ExpressionStatement Then
-          Dim es = CType(entry, BoundExpressionStatement)
-          If es.Expression.Kind = BoundNodeKind.AssignmentExpression Then
-            Dim ae = CType(es.Expression, BoundAssignmentExpression)
-            If TypeOf ae.Variable Is BoundVariableExpression AndAlso String.Compare(CType(ae.Variable, BoundVariableExpression).Variable.Name, name, True) = 0 Then
-              nameCount += 1
-            End If
-          End If
-        ElseIf entry.Kind = BoundNodeKind.LetStatement Then
-          Dim s = CType(entry, BoundLetStatement)
-          If String.Compare(s.Variable.Name, name, True) = 0 Then
-            nameCount += 1
-          End If
-        End If
-      Next
+      Dim nameCount = CountFunctionNameAssignments(name, body)
 
-      If nameCount > 0 AndAlso returnCount = 0 Then
+      If nameCount > 0 Then
         ' Classic Mode
         Return True
       Else
@@ -419,6 +400,54 @@ ScanAgain:
 
     End Function
 
+    Private Shared Function CountFunctionNameAssignments(name As String, statement As BoundStatement) As Integer
+      Dim count = 0
+      Select Case statement.Kind
+        Case BoundNodeKind.ReturnStatement
+          count += 1
+        Case BoundNodeKind.ExpressionStatement
+          Dim es = CType(statement, BoundExpressionStatement)
+          If es.Expression.Kind = BoundNodeKind.AssignmentExpression Then
+            Dim ae = CType(es.Expression, BoundAssignmentExpression)
+            If TypeOf ae.Variable Is BoundVariableExpression Then
+              Dim varName = CType(ae.Variable, BoundVariableExpression).Variable.Name
+              If String.Compare(varName, name, True) = 0 Then
+                count += 1
+              End If
+            End If
+          End If
+        Case BoundNodeKind.LetStatement
+          Dim s = CType(statement, BoundLetStatement)
+          If String.Compare(s.Variable.Name, name, True) = 0 Then
+            count += 1
+          End If
+        Case BoundNodeKind.IfStatement
+          Dim ifStmt = CType(statement, BoundIfStatement)
+          count += CountFunctionNameAssignments(name, ifStmt.Statements)
+          If ifStmt.ElseStatement IsNot Nothing Then
+            count += CountFunctionNameAssignments(name, ifStmt.ElseStatement)
+          End If
+        Case BoundNodeKind.BlockStatement
+          Dim block = CType(statement, BoundBlockStatement)
+          For Each s In block.Statements
+            count += CountFunctionNameAssignments(name, s)
+          Next
+        Case BoundNodeKind.WhileStatement
+          Dim whileStmt = CType(statement, BoundWhileStatement)
+          count += CountFunctionNameAssignments(name, whileStmt.Statements)
+        Case BoundNodeKind.DoUntilStatement
+          Dim doStmt = CType(statement, BoundDoUntilStatement)
+          count += CountFunctionNameAssignments(name, doStmt.Statements)
+        Case BoundNodeKind.DoWhileStatement
+          Dim doStmt = CType(statement, BoundDoWhileStatement)
+          count += CountFunctionNameAssignments(name, doStmt.Statements)
+        Case BoundNodeKind.ForStatement
+          Dim forStmt = CType(statement, BoundForStatement)
+          count += CountFunctionNameAssignments(name, forStmt.Body)
+      End Select
+      Return count
+    End Function
+
   End Class
 
-End Namespace
+ End Namespace

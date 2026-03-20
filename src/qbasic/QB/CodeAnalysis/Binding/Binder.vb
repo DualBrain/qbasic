@@ -25,7 +25,8 @@ Namespace Global.QB.CodeAnalysis.Binding
     Private m_arrayModeDynamic As Boolean = False ' Track current $DYNAMIC/$STATIC metacommand state (default $STATIC)
     Private ReadOnly m_defTypeRanges As New Dictionary(Of String, TypeSymbol) ' Store DEF type ranges
     Private m_currentLineNumber As Integer = 0 ' Track current line number for DATA statements
-    Private ReadOnly m_knownLabels As HashSet(Of String) ' Track known labels for RESTORE/GOTO resolution
+    Private ReadOnly m_knownLabels As HashSet(Of String)
+    Private Shared s_memberAccessCounter As Integer = 0
 
     Public Sub New(isScript As Boolean, parent As BoundScope, [function] As FunctionSymbol, Optional knownLabels As HashSet(Of String) = Nothing)
       m_scope = New BoundScope(parent)
@@ -33,9 +34,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       m_function = [function]
       m_knownLabels = knownLabels
       If [function] IsNot Nothing Then
-        'Console.Error.WriteLine($"[BINDER CTOR] Creating binder for function: {[function].Name}, has { [function].Parameters.Length} parameters")
         For Each p In [function].Parameters
-          'Console.Error.WriteLine($"[BINDER CTOR] Declaring parameter: {p.Name}")
           m_scope.TryDeclareVariable(p)
         Next
       End If
@@ -421,13 +420,27 @@ For Each parameterSyntax In syntax.Parameters
             ' Check if this is an array parameter (has parentheses)
             Dim isArrayParameter = parameterSyntax.Identifier.OpenParen IsNot Nothing
             
+            ' If parameter type is UDT, look up the actual UDT type
+            Dim typeName As String = Nothing
+            If parameterType Is TypeSymbol.Udt AndAlso parameterSyntax.AsClause IsNot Nothing Then
+              typeName = parameterSyntax.AsClause.Identifier.Text
+            End If
+            
             Dim parameter As ParameterSymbol
             If isArrayParameter Then
               ' Create an array parameter
-              parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isArray:=True, isByRef:=True)
+              If typeName IsNot Nothing Then
+                parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isArray:=True, isByRef:=True, typeName:=typeName)
+              Else
+                parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isArray:=True, isByRef:=True)
+              End If
             Else
               ' SUB parameters are passed ByRef by default in QBasic
-              parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
+              If typeName IsNot Nothing Then
+                parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True, typeName:=typeName)
+              Else
+                parameter = New ParameterSymbol(parameterName, parameterType, parameters.Count, isByRef:=True)
+              End If
             End If
             parameters.Add(parameter)
           End If
@@ -804,7 +817,31 @@ For Each parameterSyntax In syntax.Parameters
 
     Private Function BindAssignmentExpression(syntax As AssignmentExpressionSyntax) As BoundExpression
 
-      Dim boundLeft = BindExpression(syntax.Variable, canBeVoid:=True)
+      Dim boundLeft As BoundExpression = Nothing
+
+      ' Special handling for function name assignments (e.g., StillWantsToPlay = TRUE)
+      If TypeOf syntax.Variable Is IdentifierSyntax Then
+        Dim identifier = CType(syntax.Variable, IdentifierSyntax)
+        Dim name = identifier.Identifier.Text
+        ' Try to find a function with 0 parameters (function name assignment)
+        Dim funcSymbol = TryCast(m_scope.TryLookupFunction(name, Nothing), FunctionSymbol)
+        If funcSymbol IsNot Nothing AndAlso funcSymbol.Parameters.Length = 0 Then
+          ' This is a function name with 0 parameters being assigned
+          ' In QBasic, this assigns to the function's return value
+          Dim varSymbol = m_scope.TryLookupVariable(name)
+          If varSymbol Is Nothing Then
+            ' Create a variable symbol for this function
+            varSymbol = New LocalVariableSymbol(name, False, funcSymbol.Type, Nothing)
+            m_scope.TryDeclareVariable(varSymbol)
+          End If
+          boundLeft = New BoundVariableExpression(varSymbol, syntax.Variable)
+        End If
+      End If
+
+      If boundLeft Is Nothing Then
+        boundLeft = BindExpression(syntax.Variable, canBeVoid:=True)
+      End If
+
       Dim boundRight = BindExpression(syntax.Expression)
 
       Return New BoundAssignmentExpression(boundLeft, boundRight)
@@ -877,7 +914,9 @@ For Each parameterSyntax In syntax.Parameters
       
       If variableSymbol IsNot Nothing AndAlso (variableSymbol.IsArray OrElse (TypeOf variableSymbol Is ParameterSymbol AndAlso CType(variableSymbol, ParameterSymbol).IsArrayParameter)) Then
         ' This is array access
-        If syntax.Arguments.Count > 0 AndAlso syntax.Arguments.Count <> variableSymbol.DimensionCount Then
+        ' For array parameters (declared with ()), accept any number of arguments
+        ' For regular arrays, check that argument count matches dimension count
+        If syntax.Arguments.Count > 0 AndAlso variableSymbol.IsArray AndAlso syntax.Arguments.Count <> variableSymbol.DimensionCount Then
           ' Multi-dimensional arrays should have one argument per dimension
           ' But if arguments count is 0, it means pass the whole array by reference
           Return New BoundErrorExpression()
@@ -1014,6 +1053,8 @@ For Each parameterSyntax In syntax.Parameters
 
       ' Get the member name
       Dim memberName = syntax.Identifier.Text
+      s_memberAccessCounter += 1
+      Dim callId = s_memberAccessCounter
 
       ' If the base is a UDT variable or array access of UDT, look up the field
       If baseExpr.Type Is TypeSymbol.Udt Then
@@ -1028,7 +1069,7 @@ For Each parameterSyntax In syntax.Parameters
             Dim paramSym = TryCast(CType(baseExpr, BoundVariableExpression).Variable, ParameterSymbol)
             If paramSym IsNot Nothing Then
               ' Look up the UDT type from the scope using the parameter's type name
-              Dim paramUdtType As UdtTypeSymbol = m_scope.TryLookupType(paramSym.Type.Name)
+              Dim paramUdtType As UdtTypeSymbol = m_scope.TryLookupType(paramSym.TypeName)
               If paramUdtType IsNot Nothing Then
                 ' Look up the field
                 Dim field = paramUdtType.GetField(memberName)
@@ -1042,26 +1083,19 @@ For Each parameterSyntax In syntax.Parameters
             End If
           End If
         ElseIf TypeOf baseExpr Is BoundArrayAccessExpression Then
-          ' First check if this is an array parameter (ParameterSymbol)
-          Dim arrParamSym = TryCast(CType(baseExpr, BoundArrayAccessExpression).Variable, ParameterSymbol)
-          If arrParamSym IsNot Nothing Then
-            ' Search for UDT types that have this field
-            Console.Error.WriteLine($"[DEBUG] Searching for UDT type, member: {memberName}")
-            Dim searchScope = m_scope
-            While searchScope IsNot Nothing
-              Dim allTypes = searchScope.GetDeclaredTypes()
-              Console.Error.WriteLine($"[DEBUG] Found {allTypes.Length} types in scope")
-              For Each udtType In allTypes
-                Console.Error.WriteLine($"[DEBUG] Checking UDT: {udtType.Name}")
-                Dim field = udtType.GetField(memberName)
-                If field IsNot Nothing Then
-                  Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax, field.FixedLength)
-                End If
-              Next
-              searchScope = searchScope.Parent
-            End While
-            Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
-            Return New BoundErrorExpression()
+          Dim arrAccess = CType(baseExpr, BoundArrayAccessExpression)
+          Dim arrParamSym = TryCast(arrAccess.Variable, ParameterSymbol)
+          If arrParamSym IsNot Nothing AndAlso arrParamSym.TypeName IsNot Nothing Then
+            Dim arrUdtType = m_scope.TryLookupType(arrParamSym.TypeName)
+            If arrUdtType IsNot Nothing Then
+              Dim field = arrUdtType.GetField(memberName)
+              If field IsNot Nothing Then
+                Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax, field.FixedLength)
+              Else
+                Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
+                Return New BoundErrorExpression()
+              End If
+            End If
           End If
           varSymbol = CType(baseExpr, BoundArrayAccessExpression).Variable
         ElseIf TypeOf baseExpr Is BoundMemberAccessExpression Then

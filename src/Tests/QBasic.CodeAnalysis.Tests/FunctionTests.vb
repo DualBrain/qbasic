@@ -2150,6 +2150,182 @@ END
 
     End Sub
 
+    <Fact>
+    Public Sub TypeWithMultipleFields()
+
+      Dim sample = "
+TYPE SnakeInfo
+  row AS INTEGER
+  col AS INTEGER
+  direction AS INTEGER
+  length AS INTEGER
+  alive AS INTEGER
+END TYPE
+
+DIM snake AS SnakeInfo
+snake.row = 10
+snake.col = 20
+snake.direction = 3
+snake.length = 5
+snake.alive = -1
+
+result = snake.row + snake.col + snake.direction + snake.length + snake.alive
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal(37, CInt(variables("result")))
+
+    End Sub
+
+    <Fact>
+    Public Sub GlobalArrayOfUDT()
+
+      Dim sample = "
+TYPE SnakeInfo
+  row AS INTEGER
+  col AS INTEGER
+END TYPE
+
+DIM snakes(5) AS SnakeInfo
+
+snakes(1).row = 100
+snakes(1).col = 200
+snakes(2).row = 300
+snakes(2).col = 400
+
+result = snakes(1).row + snakes(1).col + snakes(2).row + snakes(2).col
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal(1000, CInt(variables("result")))
+
+    End Sub
+
+    <Fact>
+    Public Sub ConstTrueFalse()
+
+      Dim sample = "
+CONST TRUE = -1
+CONST FALSE = 0
+
+IF TRUE THEN
+  result = 1
+ELSE
+  result = 0
+END IF
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal(1, CInt(variables("result")))
+
+    End Sub
+
+    <Fact>
+    Public Sub InlineIfWithColonSeparator()
+
+      Dim sample = "
+x = 1
+IF x = 1 THEN result1 = 100 ELSE result1 = 0
+IF x = 2 THEN result2 = 200 ELSE result2 = 0
+
+result = result1 + result2
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal(100, CInt(variables("result")))
+
+    End Sub
+
+    <Fact>
+    Public Sub MultipleStatementsOnOneLine()
+
+      Dim sample = "
+a = 1: b = 2: c = 3
+
+result = a + b + c
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal(6, CInt(variables("result")))
+
+    End Sub
+
+    '    <Fact>
+    '    Public Sub GosubWithLabelAndReturn()
+
+    '      Dim sample = "
+    'GOSUB mylabel
+    'result = 99
+    'END
+
+    'mylabel:
+    '  RETURN 42
+    '"
+
+    '      Dim eval = Evaluate(sample)
+    '      Dim result = eval.Result
+    '      Dim variables = eval.Variables
+
+    '      Assert.Empty(result.Diagnostics)
+    '      Assert.Equal(99, CInt(variables("result")))
+
+    '    End Sub
+
+    <Fact>
+    Public Sub LoopWithComplexCondition()
+
+      Dim sample = "
+counter = 0
+done = 0
+DO WHILE done = 0
+  counter = counter + 1
+  IF counter >= 5 THEN done = -1
+LOOP
+
+result = counter
+
+END
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal(5, CInt(variables("result")))
+
+    End Sub
+
   End Class
 
 End Namespace

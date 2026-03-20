@@ -2694,11 +2694,26 @@ For Each parameterSyntax In syntax.Parameters
       For Each variableNode In syntax.Variables
         If TypeOf variableNode Is VariableDeclarationSyntax Then
           Dim variableDecl = CType(variableNode, VariableDeclarationSyntax)
-          Dim boundDecl = CType(BindVariableDeclaration(variableDecl), BoundVariableDeclaration)
-          Dim variable = boundDecl.Variable
-          If Not m_scope.TryDeclareVariable(variable) Then
-            Diagnostics.ReportSymbolAlreadyDeclared(variableDecl.Identifier.Location, variable.Name)
+          Dim boundExpr As BoundExpression = Nothing
+          Dim constValue As BoundConstant = Nothing
+          If variableDecl.Initializer IsNot Nothing AndAlso variableDecl.Initializer.Initializer.Count > 0 Then
+            boundExpr = BindExpression(CType(variableDecl.Initializer.Initializer(0), ExpressionSyntax))
+            If boundExpr IsNot Nothing Then
+              constValue = boundExpr.ConstantValue
+            End If
           End If
+          Dim variableName = variableDecl.Identifier.Text
+          Dim existingSymbol = m_scope.TryLookupSymbol(variableName)
+          Dim variable As VariableSymbol
+          If existingSymbol IsNot Nothing AndAlso TypeOf existingSymbol Is VariableSymbol Then
+            variable = CType(existingSymbol, VariableSymbol)
+            If constValue IsNot Nothing Then
+              variable.SetConstant(constValue)
+            End If
+          Else
+            variable = BindVariableDeclaration(variableDecl.Identifier, True, boundExpr?.Type, constValue)
+          End If
+          Dim boundDecl = New BoundVariableDeclaration(variable, boundExpr)
           boundDeclarations.Add(boundDecl)
         End If
       Next

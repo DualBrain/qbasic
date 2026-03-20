@@ -3398,6 +3398,11 @@ Namespace Global.QB.CodeAnalysis
     End Function
 
     Private Function EvaluateVariableExpression(node As BoundVariableExpression) As Object
+      ' Check if this is a constant (CONST TRUE = -1) - constants are inlined at compile time
+      If node.Variable.Constant IsNot Nothing Then
+        Return node.Variable.Constant.Value
+      End If
+
       ' Check for FOR loop final value FIRST - this takes precedence
       ' In QBasic, a variable can be both scalar and array. After FOR loop completes,
       ' the scalar value takes precedence over array reference

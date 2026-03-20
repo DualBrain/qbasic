@@ -16,13 +16,14 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Variable
 
     Private ReadOnly m_udtType As UdtTypeSymbol
+    Private m_constant As BoundConstant
 
     Friend Sub New(name As String, isArray As Boolean, type As TypeSymbol, lower As BoundExpression, upper As BoundExpression, isStaticArray As Boolean, dimensionCount As Integer, typeSource As VariableTypeSource, isCommon As Boolean, Optional udtType As UdtTypeSymbol = Nothing)
       MyBase.New(name)
       Me.IsReadOnly = False
       Me.IsArray = isArray
       Me.Type = type
-      Me.Constant = Nothing
+      Me.m_constant = Nothing
       Me.Lower = lower
       Me.Upper = upper
       Me.IsStaticArray = isStaticArray
@@ -40,7 +41,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
       MyBase.New(name)
       Me.IsReadOnly = isReadOnly
       Me.Type = type
-      Me.Constant = If(isReadOnly, constant, Nothing)
+      Me.m_constant = If(isReadOnly, constant, Nothing)
       Me.IsArray = False
       Me.Lower = Nothing
       Me.Upper = Nothing
@@ -56,7 +57,17 @@ Namespace Global.QB.CodeAnalysis.Symbols
 
     Public ReadOnly Property IsReadOnly As Boolean
     Public ReadOnly Property Type As TypeSymbol
-    Friend ReadOnly Property Constant As BoundConstant
+    Friend Property Constant As BoundConstant
+      Get
+        Return m_constant
+      End Get
+      Set(value As BoundConstant)
+        m_constant = value
+      End Set
+    End Property
+    Friend Sub SetConstant(value As BoundConstant)
+      m_constant = value
+    End Sub
     Public ReadOnly Property IsArray As Boolean
     Friend ReadOnly Property Lower As BoundExpression
     Friend ReadOnly Property Upper As BoundExpression

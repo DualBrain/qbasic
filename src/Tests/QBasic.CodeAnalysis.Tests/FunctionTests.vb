@@ -2222,8 +2222,10 @@ CONST FALSE = 0
 
 IF TRUE THEN
   result = 1
-ELSE
-  result = 0
+END IF
+
+IF NOT FALSE THEN
+  result2 = 1
 END IF
 
 END
@@ -2235,6 +2237,7 @@ END
 
       Assert.Empty(result.Diagnostics)
       Assert.Equal(1, CInt(variables("result")))
+      Assert.Equal(1, CInt(variables("result2")))
 
     End Sub
 

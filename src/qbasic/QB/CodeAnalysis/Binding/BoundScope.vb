@@ -104,8 +104,8 @@ Namespace Global.QB.CodeAnalysis.Binding
       End If
 
       ' Try array access (for variables like a(0))
-      If name.EndsWith("]") Then
-        Dim arrayBaseName = name.Substring(0, name.IndexOf("["))
+      If name.EndsWith("]"c) Then
+        Dim arrayBaseName = name.Substring(0, name.IndexOf("["c))
         Dim arraySymbol = TryLookupSymbol(arrayBaseName.ToLower())
         If TypeOf arraySymbol Is VariableSymbol Then
           Return DirectCast(arraySymbol, VariableSymbol)
@@ -184,17 +184,21 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     Public Function TryLookupSymbol(name As String) As Symbol
       Dim symbol As Symbols.Symbol = Nothing
+      'Console.Error.WriteLine($"[LOOKUP] TryLookupSymbol('{name}')")
       'If Not "%&!#$".Contains(name.Last) Then name &= "!"c
       If m_symbols IsNot Nothing AndAlso m_symbols.TryGetValue(name.ToLower, symbol) Then
+        'Console.Error.WriteLine($"[LOOKUP] Found '{name}' in current scope")
         Return symbol
-      ElseIf m_symbols IsNot Nothing AndAlso name.EndsWith("[") Then
+      ElseIf m_symbols IsNot Nothing AndAlso name.EndsWith("["c) Then
         Dim result = (From p In m_symbols Where p.Key.StartsWith(name.ToLower) Select p.Value).FirstOrDefault
         If result IsNot Nothing Then Return result
       End If
+      'Console.Error.WriteLine($"[LOOKUP] Not found '{name}' in current scope, checking parent")
       ' If current scope has no symbols or symbol not found, try parent scope
       If Parent IsNot Nothing Then
         Return Parent.TryLookupSymbol(name)
       End If
+      'Console.Error.WriteLine($"[LOOKUP] Not found '{name}' at all")
       Return Nothing
     End Function
 

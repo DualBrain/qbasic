@@ -1395,7 +1395,7 @@ Namespace Global.QB.CodeAnalysis
 
     Private Sub AssignToArrayAccess(arrayAccess As BoundArrayAccessExpression, value As Object)
       Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
-      tuple.Item1(tuple.Item2) = value
+      tuple.Array(tuple.Index) = value
     End Sub
 
     Private Sub EvaluateDateStatement(node As BoundDateStatement)
@@ -2202,9 +2202,9 @@ Namespace Global.QB.CodeAnalysis
       ElseIf TypeOf node.TargetExpression Is BoundArrayAccessExpression Then
         Dim arrayAccess = CType(node.TargetExpression, BoundArrayAccessExpression)
         Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
-        Dim temp = CStr(tuple.Item1(tuple.Item2))
+        Dim temp = CStr(tuple.Array(tuple.Index))
         Mid(temp, positionValue, lengthValue) = value
-        tuple.Item1(tuple.Item2) = temp
+        tuple.Array(tuple.Index) = temp
       Else
         Throw New Exception("MID$ target must be a variable or array access")
       End If
@@ -3490,20 +3490,34 @@ Namespace Global.QB.CodeAnalysis
       Return Nothing
     End Function
 
+    Private Function ResolveArrayName(name As String) As String
+      If m_locals IsNot Nothing AndAlso m_locals.Count > 0 Then
+        Dim locals = m_locals.Peek
+        If locals.ContainsKey(name) Then
+          Dim value = locals(name)
+          If TypeOf value Is ByRefVariable Then
+            Return DirectCast(value, ByRefVariable).Name
+          End If
+        End If
+      End If
+      Return name
+    End Function
+
     Private Function EvaluateParenExpression(node As BoundParenExpression) As Object
       Return EvaluateExpression(node.Expression)
     End Function
 
     Private Function EvaluateArrayAccessExpression(node As BoundArrayAccessExpression) As Object
+      Dim arrayName = ResolveArrayName(node.Variable.Name)
       Dim arrayValue As List(Of Object)
-      ' Assume all arrays are global for now
-      arrayValue = CType(m_globals(node.Variable.Name), List(Of Object))
+      System.IO.File.AppendAllText("C:/temp/debug.txt", $"EvaluateArrayAccess: {node.Variable.Name} -> {arrayName}" & vbCrLf)
+      arrayValue = CType(m_globals(arrayName), List(Of Object))
 
       ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
       Dim lower As Integer
       Dim upper As Integer
-      If m_arrayBounds.ContainsKey(node.Variable.Name) Then
-        Dim bounds = m_arrayBounds(node.Variable.Name)
+      If m_arrayBounds.ContainsKey(arrayName) Then
+        Dim bounds = m_arrayBounds(arrayName)
         lower = bounds.Lower
         upper = bounds.Upper
       Else
@@ -3520,25 +3534,26 @@ Namespace Global.QB.CodeAnalysis
       Return arrayValue(index - lower)
     End Function
 
-    Private Function EvaluateArrayAccessExpressionForAssignment(node As BoundArrayAccessExpression) As Tuple(Of List(Of Object), Integer)
+    Private Function EvaluateArrayAccessExpressionForAssignment(node As BoundArrayAccessExpression, Optional shadowName As String = Nothing) As (Array As List(Of Object), Index As Integer)
+      Dim arrayName = If(shadowName IsNot Nothing, shadowName, ResolveArrayName(node.Variable.Name))
       Dim arrayValue As List(Of Object)
       ' Assume all arrays are global for now
-      If Not m_globals.ContainsKey(node.Variable.Name) Then
+      If Not m_globals.ContainsKey(arrayName) Then
         ' Create array if it doesn't exist
         Dim size = 11 ' Default size 0-10
         Dim list = New List(Of Object)(size)
         For i = 0 To size - 1
           list.Add(0)
         Next
-        m_globals(node.Variable.Name) = list
+        m_globals(arrayName) = list
       End If
-      arrayValue = CType(m_globals(node.Variable.Name), List(Of Object))
+      arrayValue = CType(m_globals(arrayName), List(Of Object))
 
       ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
       Dim lower As Integer
       Dim upper As Integer
-      If m_arrayBounds.ContainsKey(node.Variable.Name) Then
-        Dim bounds = m_arrayBounds(node.Variable.Name)
+      If m_arrayBounds.ContainsKey(arrayName) Then
+        Dim bounds = m_arrayBounds(arrayName)
         lower = bounds.Lower
         upper = bounds.Upper
       Else
@@ -3552,7 +3567,7 @@ Namespace Global.QB.CodeAnalysis
         Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
       End If
 
-      Return Tuple.Create(arrayValue, index - lower)
+      Return (arrayValue, index - lower)
     End Function
 
     Private Function EvaluateAssignmentExpression(node As BoundAssignmentExpression) As Object
@@ -4243,7 +4258,7 @@ Namespace Global.QB.CodeAnalysis
         '  End Select
         'End If
 
-        Select Case Index
+        Select Case index
           Case 0
             ' -1 if the light pen has been activated since the most recent call to PEN; 0 if not
             Return If(PenService.PollWasPressed(), -1, 0)
@@ -4507,6 +4522,10 @@ Namespace Global.QB.CodeAnalysis
           If parameter.IsByRef AndAlso TypeOf argument.Syntax Is IdentifierExpressionSyntax Then
             If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
             locals.Add(parameter.Name, New ByRefVariable(GetVariableNameFromSyntax(argument.Syntax)))
+          ElseIf parameter.IsByRef AndAlso argument.Kind = BoundNodeKind.VariableExpression Then
+            If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
+            Dim temp = CType(argument, BoundVariableExpression)
+            locals.Add(parameter.Name, New ByRefVariable(temp.Variable.Name)) ' Creates a "shadow name" for the global variable.
           Else
             If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
             Dim value = EvaluateExpression(argument)
@@ -4670,11 +4689,15 @@ Namespace Global.QB.CodeAnalysis
         Assign(variable, value, m_currentPhysicalLine, m_currentQbasicLine)
       ElseIf TypeOf expression Is BoundArrayAccessExpression Then
         Dim arrayAccess = CType(expression, BoundArrayAccessExpression)
-        Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
-        tuple.Item1(tuple.Item2) = value
+        Dim locals = m_locals.Peek
+        Dim shadowName As String = Nothing
+        If locals.ContainsKey(arrayAccess.Variable.Name) Then shadowName = CType(locals(arrayAccess.Variable.Name), ByRefVariable).Name
+        Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess, shadowName)
+        Dim oldValue = tuple.Array(tuple.Index)
+        tuple.Array(tuple.Index) = value
         ' Fire callback for array element assignment
-        Dim indices As Object() = {tuple.Item2}
-        If Global.Globals.s_logging Then FireVariableChanged(arrayAccess.Variable.Name, Nothing, value, m_currentPhysicalLine, m_currentQbasicLine, VariableChangedEventArgs.VariableKind.ArrayElement, indices)
+        Dim indices As Object() = {tuple.Index}
+        If Global.Globals.s_logging Then FireVariableChanged(If(shadowName, arrayAccess.Variable.Name), oldValue, value, m_currentPhysicalLine, m_currentQbasicLine, VariableChangedEventArgs.VariableKind.ArrayElement, indices)
       ElseIf TypeOf expression Is BoundMemberAccessExpression Then
         Dim memberAccess = CType(expression, BoundMemberAccessExpression)
         ' Get the UDT instance
@@ -4693,7 +4716,7 @@ Namespace Global.QB.CodeAnalysis
           Else
           End If
           Dim tuple = EvaluateArrayAccessExpressionForAssignment(arrayAccess)
-          instanceValue = tuple.Item1(tuple.Item2)
+          instanceValue = tuple.Array(tuple.Index)
         ElseIf TypeOf instanceExpr Is BoundMemberAccessExpression Then
           ' Handle nested UDT member access like p.addr.street
           ' First, evaluate the outer member access (p.addr)

@@ -1942,13 +1942,13 @@ DIM s(10) AS snaketype
 DIM b(10) AS snakeBody
 s(1).length = 4 '5
 b(2).row = 9 '10
-CALL TestSub(snake(), snakeBod(), 1)
+CALL TestSub(s(), b(), 1)
 result = s(1).length + b(2).row
 END
 
 SUB TestSub (snake() AS snaketype, snakeBod() AS snakeBody, snakeNum)
-  s(1).length = s(1).length + snakeNum
-  b(2).row = b(2).row + snakeNum
+  snake(1).length = snake(1).length + snakeNum
+  snakeBod(2).row = snakeBod(2).row + snakeNum
 END SUB
 "
 
@@ -1958,6 +1958,33 @@ END SUB
 
       Assert.Empty(result.Diagnostics)
       Assert.Equal("15", $"{variables("result")}")
+
+    End Sub
+
+    <Fact>
+    Public Sub SubParameterShadowNameResolution()
+
+      Dim sample = "
+'DECLARE SUB Adder (z() AS INTEGER, num AS INTEGER)
+
+DIM arr(5) AS INTEGER
+arr(1) = 10
+CALL Adder(arr(), 20)
+result = arr(1)
+END
+
+SUB Adder(x() AS INTEGER, num AS INTEGER)
+  x(1) = x(1) + num
+  'x(1) = num
+END SUB
+"
+
+      Dim eval = Evaluate(sample)
+      Dim result = eval.Result
+      Dim variables = eval.Variables
+
+      Assert.Empty(result.Diagnostics)
+      Assert.Equal("30", $"{variables("result")}")
 
     End Sub
 
@@ -1990,7 +2017,7 @@ END SUB
       Dim variables = eval.Variables
 
       Assert.Empty(result.Diagnostics)
-      Assert.Equal("30", $"{variables("result")}")
+      Assert.Equal("35", $"{variables("result")}")
 
     End Sub
 

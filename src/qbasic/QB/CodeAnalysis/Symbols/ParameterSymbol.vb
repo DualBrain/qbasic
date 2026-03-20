@@ -21,6 +21,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
       Me.Ordinal = ordinal
       Me.IsByRef = isByRef
       Me.IsArrayParameter = isArray
+      Me.DimensionCount = 1
     End Sub
 
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.Parameter

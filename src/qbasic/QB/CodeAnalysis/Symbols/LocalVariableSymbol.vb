@@ -13,6 +13,11 @@ Namespace Global.QB.CodeAnalysis.Symbols
       MyBase.New(name, isReadOnly, type, constant, VariableTypeSource.DefaultType, False)
     End Sub
 
+    Friend Sub New(name As String, isReadOnly As Boolean, type As TypeSymbol, constant As BoundConstant, dimensionCount As Integer)
+      MyBase.New(name, isReadOnly, type, constant, VariableTypeSource.DefaultType, False)
+      MyBase.DimensionCount = dimensionCount
+    End Sub
+
     Public Overrides ReadOnly Property Kind As SymbolKind = SymbolKind.LocalVariable
 
   End Class

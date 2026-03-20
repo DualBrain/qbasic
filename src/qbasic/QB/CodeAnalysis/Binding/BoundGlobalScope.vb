@@ -1,4 +1,4 @@
-﻿Imports System.Collections.Immutable
+Imports System.Collections.Immutable
 
 Imports QB.CodeAnalysis.Symbols
 
@@ -12,7 +12,8 @@ Namespace Global.QB.CodeAnalysis.Binding
                    scriptFunction As FunctionSymbol,
                    functions As ImmutableArray(Of FunctionSymbol),
                    variables As ImmutableArray(Of VariableSymbol),
-                   statements As ImmutableArray(Of BoundStatement))
+                   statements As ImmutableArray(Of BoundStatement),
+                   Optional types As ImmutableArray(Of UdtTypeSymbol) = Nothing)
       Me.Previous = previous
       Me.Diagnostics = diagnostics
       Me.MainFunction = mainFunction
@@ -20,6 +21,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Me.Functions = functions
       Me.Variables = variables
       Me.Statements = statements
+      Me.Types = types
     End Sub
 
     Public ReadOnly Property Previous As BoundGlobalScope
@@ -29,6 +31,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     Public ReadOnly Property Functions As ImmutableArray(Of FunctionSymbol)
     Public ReadOnly Property Variables As ImmutableArray(Of VariableSymbol)
     Public ReadOnly Property Statements As ImmutableArray(Of BoundStatement)
+    Public ReadOnly Property Types As ImmutableArray(Of UdtTypeSymbol)
 
   End Class
 

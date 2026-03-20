@@ -33,7 +33,9 @@ Namespace Global.QB.CodeAnalysis.Binding
       m_function = [function]
       m_knownLabels = knownLabels
       If [function] IsNot Nothing Then
+        'Console.Error.WriteLine($"[BINDER CTOR] Creating binder for function: {[function].Name}, has { [function].Parameters.Length} parameters")
         For Each p In [function].Parameters
+          'Console.Error.WriteLine($"[BINDER CTOR] Declaring parameter: {p.Name}")
           m_scope.TryDeclareVariable(p)
         Next
       End If
@@ -54,16 +56,16 @@ Namespace Global.QB.CodeAnalysis.Binding
             labelName = labelName.Substring(0, labelName.Length - 1) ' Remove trailing colon
           End If
           knownLabels.Add(labelName.ToLower)
-          System.Diagnostics.Debug.WriteLine($"[BINDER] Found label: {labelName.ToLower}")
+          'System.Diagnostics.Debug.WriteLine($"[BINDER] Found label: {labelName.ToLower}")
         End If
       Next
 
-      System.Diagnostics.Debug.WriteLine($"[BINDER] Total known labels: {knownLabels.Count}")
+      'System.Diagnostics.Debug.WriteLine($"[BINDER] Total known labels: {knownLabels.Count}")
       Dim binder = New Binder(isScript, parentScope, Nothing, knownLabels)
 
       binder.Diagnostics.AddRange(syntaxTrees.SelectMany(Function(st) st.Diagnostics))
       If binder.Diagnostics.Any Then
-        Return New BoundGlobalScope(previous, binder.Diagnostics.ToImmutableArray, Nothing, Nothing, ImmutableArray(Of FunctionSymbol).Empty, ImmutableArray(Of VariableSymbol).Empty, ImmutableArray(Of BoundStatement).Empty)
+        Return New BoundGlobalScope(previous, binder.Diagnostics.ToImmutableArray, Nothing, Nothing, ImmutableArray(Of FunctionSymbol).Empty, ImmutableArray(Of VariableSymbol).Empty, ImmutableArray(Of BoundStatement).Empty, ImmutableArray(Of UdtTypeSymbol).Empty)
       End If
 
       ' Process DECLARE statements FIRST - these register function signatures that will be used
@@ -249,11 +251,13 @@ Namespace Global.QB.CodeAnalysis.Binding
 
       Dim variables = binder.m_scope.GetDeclaredVariables
 
+      Dim types = binder.m_scope.GetDeclaredTypes
+
       If previous IsNot Nothing Then
         diagnostics = diagnostics.InsertRange(0, previous.Diagnostics)
       End If
 
-      Return New BoundGlobalScope(previous, diagnostics, mainFunction, scriptFunction, functions, variables, statements.ToImmutable)
+      Return New BoundGlobalScope(previous, diagnostics, mainFunction, scriptFunction, functions, variables, statements.ToImmutable, types)
 
     End Function
 
@@ -539,6 +543,9 @@ For Each parameterSyntax In syntax.Parameters
         Next
         For Each v In previous.Variables
           scope.TryDeclareVariable(v)
+        Next
+        For Each t In previous.Types
+          scope.TryDeclareType(t)
         Next
         parent = scope
       End While
@@ -843,7 +850,7 @@ For Each parameterSyntax In syntax.Parameters
     Private Function BindCallExpression(syntax As CallExpressionSyntax) As BoundExpression
 
       ' First check if this is a built-in function that takes an array as first argument
-      If syntax.Identifier.Text.ToUpper() = "LBOUND" Or syntax.Identifier.Text.ToUpper() = "UBOUND" Then
+      If syntax.Identifier.Text.ToUpper() = "LBOUND" OrElse syntax.Identifier.Text.ToUpper() = "UBOUND" Then
         Return BindBoundFunction(syntax)
       End If
 
@@ -867,9 +874,15 @@ For Each parameterSyntax In syntax.Parameters
       
       If variableSymbol IsNot Nothing AndAlso (variableSymbol.IsArray OrElse (TypeOf variableSymbol Is ParameterSymbol AndAlso CType(variableSymbol, ParameterSymbol).IsArrayParameter)) Then
         ' This is array access
-        If syntax.Arguments.Count <> variableSymbol.DimensionCount Then
+        If syntax.Arguments.Count > 0 AndAlso syntax.Arguments.Count <> variableSymbol.DimensionCount Then
           ' Multi-dimensional arrays should have one argument per dimension
+          ' But if arguments count is 0, it means pass the whole array by reference
           Return New BoundErrorExpression()
+        End If
+
+        ' If arguments count is 0, pass the whole array by reference (no index)
+        If syntax.Arguments.Count = 0 Then
+          Return New BoundVariableExpression(variableSymbol)
         End If
 
         ' For multi-dimensional arrays, we need to combine the indices
@@ -977,6 +990,15 @@ For Each parameterSyntax In syntax.Parameters
         Return New BoundArrayAccessExpression(autoArray, index)
       End If
 
+      ' Check if this is an array passed without index (e.g., CALL TestSub(arr()))
+      ' In QBasic, arrays can be passed without index to pass the entire array by reference
+      If syntax.Arguments.Count = 0 Then
+        Dim arrayVarSymbol = m_scope.TryLookupVariable(syntax.Identifier.Text)
+        If arrayVarSymbol IsNot Nothing AndAlso arrayVarSymbol.IsArray Then
+          Return New BoundVariableExpression(arrayVarSymbol)
+        End If
+      End If
+
       ' Error
       Diagnostics.ReportUndefinedFunction(syntax.Identifier.Location, syntax.Identifier.Text)
       Return New BoundErrorExpression
@@ -998,7 +1020,46 @@ For Each parameterSyntax In syntax.Parameters
 
         If TypeOf baseExpr Is BoundVariableExpression Then
           varSymbol = TryCast(CType(baseExpr, BoundVariableExpression).Variable, VariableSymbol)
+          ' Handle ParameterSymbol - try to look up UDT type from the parameter's type name
+          If varSymbol Is Nothing Then
+            Dim paramSym = TryCast(CType(baseExpr, BoundVariableExpression).Variable, ParameterSymbol)
+            If paramSym IsNot Nothing Then
+              ' Look up the UDT type from the scope using the parameter's type name
+              Dim paramUdtType As UdtTypeSymbol = m_scope.TryLookupType(paramSym.Type.Name)
+              If paramUdtType IsNot Nothing Then
+                ' Look up the field
+                Dim field = paramUdtType.GetField(memberName)
+                If field IsNot Nothing Then
+                  Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax, field.FixedLength)
+                Else
+                  Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
+                  Return New BoundErrorExpression()
+                End If
+              End If
+            End If
+          End If
         ElseIf TypeOf baseExpr Is BoundArrayAccessExpression Then
+          ' First check if this is an array parameter (ParameterSymbol)
+          Dim arrParamSym = TryCast(CType(baseExpr, BoundArrayAccessExpression).Variable, ParameterSymbol)
+          If arrParamSym IsNot Nothing Then
+            ' Search for UDT types that have this field
+            Console.Error.WriteLine($"[DEBUG] Searching for UDT type, member: {memberName}")
+            Dim searchScope = m_scope
+            While searchScope IsNot Nothing
+              Dim allTypes = searchScope.GetDeclaredTypes()
+              Console.Error.WriteLine($"[DEBUG] Found {allTypes.Length} types in scope")
+              For Each udtType In allTypes
+                Console.Error.WriteLine($"[DEBUG] Checking UDT: {udtType.Name}")
+                Dim field = udtType.GetField(memberName)
+                If field IsNot Nothing Then
+                  Return New BoundMemberAccessExpression(baseExpr, memberName, field.FieldType, syntax, field.FixedLength)
+                End If
+              Next
+              searchScope = searchScope.Parent
+            End While
+            Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, memberName)
+            Return New BoundErrorExpression()
+          End If
           varSymbol = CType(baseExpr, BoundArrayAccessExpression).Variable
         ElseIf TypeOf baseExpr Is BoundMemberAccessExpression Then
           ' Handle nested UDT member access (e.g., p.addr.street)
@@ -1864,7 +1925,12 @@ For Each parameterSyntax In syntax.Parameters
       End If
       If variable IsNot Nothing Then
         If syntax.OpenParen IsNot Nothing Then
-          If Not variable.IsArray Then
+          ' Check if it's an array - either IsArray (for VariableSymbol) or IsArrayParameter (for ParameterSymbol)
+          Dim isArray As Boolean = variable.IsArray
+          If Not isArray AndAlso TypeOf variable Is ParameterSymbol Then
+            isArray = CType(variable, ParameterSymbol).IsArrayParameter
+          End If
+          If Not isArray Then
             Diagnostics.ReportUndefinedVariable(syntax.Identifier.Location, name)
             Return New BoundErrorExpression
           End If

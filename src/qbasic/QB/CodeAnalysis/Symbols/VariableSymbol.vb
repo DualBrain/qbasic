@@ -61,7 +61,7 @@ Namespace Global.QB.CodeAnalysis.Symbols
     Friend ReadOnly Property Lower As BoundExpression
     Friend ReadOnly Property Upper As BoundExpression
     Friend ReadOnly Property IsStaticArray As Boolean
-    Public ReadOnly Property DimensionCount As Integer
+    Public Property DimensionCount As Integer
     Public ReadOnly Property TypeSource As VariableTypeSource
     Public ReadOnly Property IsCommon As Boolean
 

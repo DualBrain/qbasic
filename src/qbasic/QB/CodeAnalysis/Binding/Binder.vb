@@ -742,6 +742,8 @@ For Each parameterSyntax In syntax.Parameters
         Case SyntaxKind.DefSegStatement : Return BindDefSegStatement(CType(syntax, DefSegStatementSyntax))
         Case SyntaxKind.TypeStatement : Return BindTypeStatement(CType(syntax, TypeStatementSyntax))
         Case SyntaxKind.CommonStatement : Return BindCommonStatement(CType(syntax, CommonStatementSyntax))
+        Case SyntaxKind.ViewPrintStatement : Return New BoundNopStatement()
+        Case SyntaxKind.PlayStatement : Return New BoundNopStatement()
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
         Case Else
@@ -1954,6 +1956,13 @@ For Each parameterSyntax In syntax.Parameters
       End If
       Dim variable = BindVariableReference(syntax.Identifier)
       If variable Is Nothing Then
+        ' In QBasic, a function name without parentheses (e.g., StillWantsToPlay in LOOP WHILE StillWantsToPlay)
+        ' should be treated as a function call with 0 arguments.
+        ' Check if a function exists with this name and 0 parameters.
+        Dim funcSymbol = TryCast(m_scope.TryLookupFunctionByNameAndArityPreferSpecific(name, 0), FunctionSymbol)
+        If funcSymbol IsNot Nothing Then
+          Return New BoundCallExpression(funcSymbol, ImmutableArray.Create(Of BoundExpression)(), syntax)
+        End If
         Return New BoundErrorExpression
       End If
       Return New BoundVariableExpression(variable, syntax)
@@ -1968,6 +1977,13 @@ For Each parameterSyntax In syntax.Parameters
       End If
       Dim variable = BindVariableReference(syntax.Identifier.Identifier)
       If variable Is Nothing Then
+        ' In QBasic, a function name without parentheses (e.g., StillWantsToPlay in LOOP WHILE StillWantsToPlay)
+        ' should be treated as a function call with 0 arguments.
+        ' Check if a function exists with this name and 0 parameters.
+        Dim funcSymbol = TryCast(m_scope.TryLookupFunctionByNameAndArityPreferSpecific(name, 0), FunctionSymbol)
+        If funcSymbol IsNot Nothing Then
+          Return New BoundCallExpression(funcSymbol, ImmutableArray.Create(Of BoundExpression)(), syntax)
+        End If
         Return New BoundErrorExpression
       End If
       Return New BoundVariableExpression(variable, syntax)
@@ -3038,7 +3054,7 @@ For Each parameterSyntax In syntax.Parameters
 
         If foundFunction Then
           ' There's a function with this name - don't create a local variable
-          Diagnostics.ReportNotAVariable(identifierToken.Location, name)
+          ' Return Nothing silently; BindNameExpression will check for function and create a call
           Return Nothing
         End If
 
@@ -3077,6 +3093,10 @@ For Each parameterSyntax In syntax.Parameters
           Return Nothing
         End If
       Else
+        ' Check if it's a function symbol - if so, return Nothing silently for BindNameExpression to handle
+        If TypeOf s Is FunctionSymbol Then
+          Return Nothing
+        End If
         Diagnostics.ReportNotAVariable(identifierToken.Location, name)
         Return Nothing
       End If

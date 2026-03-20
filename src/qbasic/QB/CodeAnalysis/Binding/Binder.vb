@@ -181,6 +181,10 @@ Namespace Global.QB.CodeAnalysis.Binding
         '  End If
         'Next
 
+
+        ' Process metacommands from trivia before binding the statement
+        ' This handles cases like '$DYNAMIC that appear as trivia on the next statement
+        ProcessMetacommandsFromTrivia(binder, globalStatement.Statement)
         Dim statement = binder.BindGlobalStatement(globalStatement.Statement)
         statements.Add(statement)
 
@@ -760,6 +764,10 @@ For Each parameterSyntax In syntax.Parameters
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SharedStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
+        Case SyntaxKind.SbPaletteStatement : Return BindPaletteStatement(CType(syntax, StatementSyntax))
+        Case SyntaxKind.SbPaletteDefaultStatement : Return BindPaletteStatement(CType(syntax, StatementSyntax))
+        Case SyntaxKind.SbPaletteHsvStatement : Return BindPaletteStatement(CType(syntax, StatementSyntax))
+        Case SyntaxKind.SbPaletteShiftStatement : Return BindPaletteStatement(CType(syntax, StatementSyntax))
         Case Else
           Throw New Exception($"Unexpected syntax {syntax.Kind}")
       End Select
@@ -2198,6 +2206,37 @@ For Each parameterSyntax In syntax.Parameters
       Next
     End Sub
 
+
+    Private Shared Sub ProcessMetacommandsFromTrivia(binder As Binder, syntax As StatementSyntax)
+      Dim firstToken = GetFirstToken(syntax)
+      If firstToken IsNot Nothing Then
+        binder.ProcessMetacommandsInTrivia(firstToken.LeadingTrivia)
+      End If
+    End Sub
+
+    Private Shared Function GetFirstToken(syntax As StatementSyntax) As SyntaxToken
+      For Each child In syntax.GetChildren()
+        If TypeOf child Is SyntaxToken Then
+          Return CType(child, SyntaxToken)
+        ElseIf TypeOf child Is SyntaxNode Then
+          Dim result = GetFirstToken(CType(child, SyntaxNode))
+          If result IsNot Nothing Then Return result
+        End If
+      Next
+      Return Nothing
+    End Function
+
+    Private Shared Function GetFirstToken(syntax As SyntaxNode) As SyntaxToken
+      For Each child In syntax.GetChildren()
+        If TypeOf child Is SyntaxToken Then
+          Return CType(child, SyntaxToken)
+        ElseIf TypeOf child Is SyntaxNode Then
+          Dim result = GetFirstToken(CType(child, SyntaxNode))
+          If result IsNot Nothing Then Return result
+        End If
+      Next
+      Return Nothing
+    End Function
     Private Function BindRemStatement(syntax As RemStatementSyntax) As BoundStatement
       ' Check for metacommands
       Dim comment = syntax.Comment.ToUpper().Trim()
@@ -2464,6 +2503,10 @@ For Each parameterSyntax In syntax.Parameters
 
       Return New BoundScreenStatement(mode, colorBurst, apage, vpage, [erase])
 
+    End Function
+
+    Private Function BindPaletteStatement(syntax As StatementSyntax) As BoundStatement
+      Return New BoundNopStatement()
     End Function
 
     Private Function BindSingleLineIfStatement(syntax As SingleLineIfStatementSyntax) As BoundStatement

@@ -4830,6 +4830,29 @@ Namespace Global.QB.CodeAnalysis
          Not File.Exists(fileName) AndAlso File.Exists(originalFileName) Then
         fileNameToTry = originalFileName
       End If
+
+      ' For INPUT mode, do case-insensitive filename matching (for cross-platform compatibility)
+      If (modeString.ToUpper() = "INPUT" OrElse modeString.ToUpper() = "I") AndAlso Not File.Exists(fileNameToTry) Then
+        ' Try to find a file with the same name but different case
+        Try
+          Dim dirPath = If(Path.IsPathRooted(fileNameToTry), Path.GetDirectoryName(fileNameToTry), ".")
+          Dim justFileName = Path.GetFileName(fileNameToTry)
+          
+          ' Search for case-insensitive match
+          If System.IO.Directory.Exists(dirPath) Then
+            Dim files = System.IO.Directory.GetFiles(dirPath)
+            For Each filepath In files
+              If String.Equals(Path.GetFileName(filepath), justFileName, StringComparison.OrdinalIgnoreCase) Then
+                fileNameToTry = filepath
+                Exit For
+              End If
+            Next
+          End If
+        Catch
+          ' If case-insensitive search fails, continue with original filename (will fail with FileNotFound)
+        End Try
+      End If
+
       Try
         Dim stream = New FileStream(fileNameToTry, mode, access, FileShare.ReadWrite)
         m_openFiles.Add(fileNumber, stream)

@@ -283,11 +283,11 @@ Namespace Global.QB.CodeAnalysis
         ' No error handler, print error directly and exit
         Dim errorLine = FindLineNumberFromStatements(statements, index)
         If errorLine > 0 Then
-          Console.WriteLine()
-          Console.WriteLine($"{GetErrorMessage(m_err)} in {errorLine}")
+          Console.Write(vbCrLf) ' Use explicit CRLF for cross-platform compatibility
+          Console.Write($"{GetErrorMessage(m_err)} in {errorLine}")
         Else
-          Console.WriteLine()
-          Console.WriteLine($"{GetErrorMessage(m_err)} in {index + 1}")
+          Console.Write(vbCrLf) ' Use explicit CRLF for cross-platform compatibility
+          Console.Write($"{GetErrorMessage(m_err)} in {index + 1}")
         End If
         m_errorPending = False
         index = statements.Length ' Exit the evaluation loop
@@ -3515,7 +3515,8 @@ Namespace Global.QB.CodeAnalysis
     Private Function EvaluateArrayAccessExpression(node As BoundArrayAccessExpression) As Object
       Dim arrayName = ResolveArrayName(node.Variable.Name)
       Dim arrayValue As List(Of Object)
-      System.IO.File.AppendAllText("C:/temp/debug.txt", $"EvaluateArrayAccess: {node.Variable.Name} -> {arrayName}" & vbCrLf)
+      Dim debugPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "debug.txt")
+      System.IO.File.AppendAllText(debugPath, $"EvaluateArrayAccess: {node.Variable.Name} -> {arrayName}" & vbCrLf)
       arrayValue = CType(m_globals(arrayName), List(Of Object))
 
       ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
@@ -3577,7 +3578,7 @@ Namespace Global.QB.CodeAnalysis
 
     Private Function EvaluateAssignmentExpression(node As BoundAssignmentExpression) As Object
       Dim value = EvaluateExpression(node.Expression)
-      Debug.Assert(value IsNot Nothing)
+      ' Note: value can be Nothing if the expression is a function that exits early via EXIT FUNCTION
       If node.Variable.Type Is TypeSymbol.String AndAlso (TypeOf value IsNot String AndAlso TypeOf value IsNot Char) Then
         Throw New QBasicRuntimeException(ErrorCode.TypeMismatch)
       ElseIf node.Variable.Type IsNot TypeSymbol.String AndAlso (TypeOf value Is String OrElse TypeOf value Is Char) Then
@@ -4537,6 +4538,20 @@ Namespace Global.QB.CodeAnalysis
             locals.Add(parameter.Name, value)
           End If
         Next
+        
+        ' Initialize function's return variable (the function name itself)
+        ' This allows assignments like "F% = 1" inside the function to go to a local variable
+        If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
+        
+        ' Initialize with default value based on return type
+        Dim defaultValue As Object = Nothing
+        If node.Function.Type Is TypeSymbol.String Then
+          defaultValue = ""
+        ElseIf node.Function.Type IsNot Nothing AndAlso node.Function.Type IsNot TypeSymbol.Any Then
+          defaultValue = 0
+        End If
+        locals.Add(node.Function.Name, defaultValue)
+        
         If locals IsNot Nothing Then
           m_locals.Push(locals)
         End If
@@ -4550,6 +4565,13 @@ Namespace Global.QB.CodeAnalysis
         m_container.Push(node.Function.Name)
         Dim result = EvaluateStatement(statement, Nothing)
         m_container.Pop()
+        
+        ' Retrieve the final value of the function variable and use it as the return value
+        Dim currentLocals = If(m_locals.Count > 0, m_locals.Peek(), Nothing)
+        If currentLocals IsNot Nothing AndAlso currentLocals.ContainsKey(node.Function.Name) Then
+          result = currentLocals(node.Function.Name)
+        End If
+        
         m_locals.Pop()
         Return result
       End If
@@ -5063,7 +5085,7 @@ Namespace Global.QB.CodeAnalysis
         Dim output = FormatUsingOutput(node.Nodes, node.Format)
         If output IsNot Nothing Then
           writer.Write(output)
-          writer.WriteLine()
+          writer.Write(vbCrLf) ' Use explicit CRLF for cross-platform compatibility
         End If
       Else
         ' No USING format - output raw values
@@ -5080,7 +5102,7 @@ Namespace Global.QB.CodeAnalysis
             ' Semicolon (";") suppresses spacing - don't output anything
           End If
         Next
-        writer.WriteLine()
+        writer.Write(vbCrLf) ' Use explicit CRLF for cross-platform compatibility
       End If
       writer.Flush()
     End Sub

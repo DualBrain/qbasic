@@ -162,6 +162,10 @@ Friend Module Program
             upgradeGwBasicMode = True
           Case "--convert-vbnet", "-v"
             convertToVbNetMode = True
+          Case "--run-selftest-exit"
+            ' Run quick self-test for EXIT FUNCTION / EXIT SUB behavior and exit
+            SelfTests.RunExitFunctionTest()
+            Return False
           Case "--log", "-l"
             ' Optional filename argument: --log or --log filename
             If i + 1 < args.Length AndAlso Not args(i + 1).StartsWith("-") Then

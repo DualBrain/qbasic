@@ -938,9 +938,10 @@ Namespace Global.QBLib
           Console.Clear()
         Catch
           ' Ignore...
-          m_cursorCol = 1
-          m_cursorRow = 1
         End Try
+        ' Always reset cursor position in stdout mode, whether Clear succeeded or not
+        m_cursorCol = 1
+        m_cursorRow = 1
       Else
         For index = 0 To Screen0.Length - 1
           Screen0(index) = CUShort((((m_fgColor << 4) Or m_bgColor) * 256) + 32)
@@ -1172,23 +1173,14 @@ Namespace Global.QBLib
     End Function
 
     Public Shared Function POS(Optional dummy As Integer = 0) As Integer
-      If dummy = 0 Then
-      End If
-      If StdoutMode Then
-        Try
-          Dim p = Console.GetCursorPosition
-          Return p.Left + 1
-        Catch
-          Return m_cursorCol
-        End Try
-      Else
-        Return m_cursorCol
-      End If
+      ' Return the logical cursor column position (1-indexed)
+      ' In StdoutMode, use tracked m_cursorCol since actual console position may differ
+      Return m_cursorCol
     End Function
 
     Public Shared Sub PRINT()
       If StdoutMode Then
-        Console.WriteLine()
+        Console.Write(vbCrLf) ' Use explicit CRLF for cross-platform compatibility
         m_cursorCol = 1
         m_cursorRow += 1
       Else
@@ -1212,7 +1204,7 @@ Namespace Global.QBLib
           Loop
         End If
         If Not noCr Then
-          Console.WriteLine()
+          Console.Write(vbCrLf) ' Use explicit CRLF for cross-platform compatibility
           m_cursorCol = 1 : m_cursorRow += 1
         End If
         Return

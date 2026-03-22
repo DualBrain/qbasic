@@ -1314,6 +1314,18 @@ For Each parameterSyntax In syntax.Parameters
 
     Private Function BindExitStatement(syntax As ExitStatementSyntax) As BoundStatement
 
+      ' Support EXIT FUNCTION and EXIT SUB which exit the current routine
+      If syntax.ScopeKeyword IsNot Nothing Then
+        Dim scopeText = syntax.ScopeKeyword.Text.ToUpperInvariant()
+        If scopeText = "FUNCTION" OrElse scopeText = "SUB" Then
+          ' Emit a return statement to exit the current function/subroutine
+          ' The Evaluator handles returning the function's variable value
+          Dim expression As BoundExpression = Nothing
+          Return New BoundReturnStatement(expression)
+        End If
+      End If
+
+      ' Otherwise, treat as loop EXIT (EXIT DO/FOR/WHILE)
       If m_loopStack.Count = 0 Then
         Diagnostics.ReportInvalidBreakOrContinue(syntax.ExitKeyword.Location, syntax.ExitKeyword.Text)
         Return BindErrorStatement()

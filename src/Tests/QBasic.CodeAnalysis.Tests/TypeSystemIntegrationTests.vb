@@ -8,6 +8,7 @@ Imports Xunit
 
 Namespace QBasic.CodeAnalysis.Tests
 
+  <Collection("NonParallel")>
   Public Class TypeSystemIntegrationTests
 
     Private Function CompileAndEvaluate(text As String) As Dictionary(Of String, Object)

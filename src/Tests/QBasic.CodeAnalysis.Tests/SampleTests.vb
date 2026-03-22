@@ -5,11 +5,18 @@ Imports QBLib
 
 Imports Xunit
 
+'<Assembly: CollectionBehavior(DisableTestParallelization:=True)>
+
 Namespace QBasic.CodeAnalysis.Tests
 
+  <CollectionDefinition("NonParallel", DisableParallelization:=True)>
+  Public Class NonParallelCollection
+  End Class
+
+  <Collection("NonParallel")>
   Public Class SampleTests
 
-    Private Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
+    Private Shared Function Evaluate(text As String) As (Result As EvaluationResult, Variables As Dictionary(Of String, Object))
 
       Dim variables = New Dictionary(Of String, Object)
 

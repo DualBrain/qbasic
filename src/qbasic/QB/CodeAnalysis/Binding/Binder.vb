@@ -655,6 +655,7 @@ For Each parameterSyntax In syntax.Parameters
       End If
       Select Case syntax.Kind
         Case SyntaxKind.BeepStatement : Return BindBeepStatement(CType(syntax, BeepStatementSyntax))
+        Case SyntaxKind.SoundStatement : Return BindSoundStatement(CType(syntax, SoundStatementSyntax))
         Case SyntaxKind.BlockStatement : Return BindBlockStatement(CType(syntax, BlockStatementSyntax))
         Case SyntaxKind.ChDirStatement : Return BindChDirStatement(CType(syntax, ChDirStatementSyntax))
         Case SyntaxKind.CircleStatement : Return BindCircleStatement(CType(syntax, CircleStatementSyntax))
@@ -1304,6 +1305,12 @@ For Each parameterSyntax In syntax.Parameters
 
     Private Shared Function BindBeepStatement(syntax As BeepStatementSyntax) As BoundStatement
       Return New BoundBeepStatement(syntax)
+    End Function
+
+    Private Function BindSoundStatement(syntax As SoundStatementSyntax) As BoundStatement
+      Dim frequency = BindExpression(syntax.Frequency)
+      Dim duration = BindExpression(syntax.Duration)
+      Return New BoundSoundStatement(syntax, frequency, duration)
     End Function
 
     Private Shared Function BindEndStatement(syntax As EndStatementSyntax) As BoundStatement

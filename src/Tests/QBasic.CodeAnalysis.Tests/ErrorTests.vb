@@ -263,6 +263,27 @@ handler:
       Assert.Equal("Error 13", vars("output$"))
 
     End Sub
+    <Fact>
+    Public Sub TestHandledError_NoRuntimeErrorInfo()
+      ' Test that when an error is handled with ON ERROR GOTO, RuntimeErrorInfo is Nothing
+
+      Dim text = "
+ON ERROR GOTO handler
+X$ = ""1""
+X$ = 2
+END
+
+handler:
+  PRINT ""Error:"", ERR
+  RESUME NEXT
+"
+
+      Dim evalResult = Evaluate(text)
+      Dim result = evalResult.Result
+
+      Assert.False(result.HasRuntimeError)
+      Assert.Null(result.RuntimeErrorInfo)
+    End Sub
 
   End Class
 

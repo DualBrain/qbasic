@@ -216,19 +216,26 @@ ERASE A
       ' changed after initialized; even after ERASE
 
       Dim sample = <sample><![CDATA[
+ON ERROR GOTO Handler
 DIM B(250)
 ERASE B
 DIM B(3,4)
+END
+Handler:
+  E = ERR
+  END
 ]]></sample>.Value
 
-      Dim expected = "Wrong number of dimensions"
+      'Dim expected = "Wrong number of dimensions"
 
-      Dim eval = EvaluateOutputRedirect(sample)
+      'Dim eval = EvaluateOutputRedirect(sample)
+      Dim eval = Evaluate(sample)
       Dim result = eval.Result
-      Dim actual = eval.Output?.Trim
+      'Dim actual = eval.Output?.Trim
       Dim variables = eval.Variables
 
-      Assert.Equal(expected, actual)
+      'Assert.Equal(expected, actual)
+      Assert.Equal("13", $"{variables("E")}")
 
     End Sub
 

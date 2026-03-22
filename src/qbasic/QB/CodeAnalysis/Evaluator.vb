@@ -11,6 +11,7 @@ Imports QB.CodeAnalysis.Symbols
 Imports QB.CodeAnalysis.Syntax
 
 Imports QBLib
+Imports QBLib.Audio
 
 Namespace Global.QB.CodeAnalysis
 
@@ -60,6 +61,9 @@ Namespace Global.QB.CodeAnalysis
     Private m_errorPending As Boolean = False ' Flag indicating if an error occurred and needs handling
     Private m_errorResumeIndex As Integer = -1 ' Index to resume execution after error handling
 
+
+    ' Unhandled runtime error captured for IDE error display
+    Private m_unhandledRuntimeError As RuntimeErrorInfo
     ' Timer event state
     Private m_timerHandlerTarget As Object = Nothing ' Target for ON TIMER GOSUB (label or line number)
     Private m_timerInterval As Double = 0 ' Timer interval in seconds
@@ -369,6 +373,12 @@ Namespace Global.QB.CodeAnalysis
       End Get
     End Property
 
+
+    Public ReadOnly Property UnhandledRuntimeError As RuntimeErrorInfo
+      Get
+        Return m_unhandledRuntimeError
+      End Get
+    End Property
     Sub New(program As BoundProgram, variables As Dictionary(Of VariableSymbol, Object), globalVariables As ImmutableArray(Of VariableSymbol), globalStatements As ImmutableArray(Of BoundStatement), Optional commandLineArgs As String() = Nothing, Optional callbacks As IEvaluationCallbacks = Nothing, Optional commandString As String = Nothing)
 
       m_program = program
@@ -526,7 +536,15 @@ Namespace Global.QB.CodeAnalysis
         Try
           Select Case s.Kind
             Case BoundNodeKind.BeepStatement
-              ' TODO: Implement BEEP sound
+              AudioDevice.Beep()
+              index += 1
+            Case BoundNodeKind.SoundStatement
+              Dim soundStmt = CType(s, BoundSoundStatement)
+              Dim frequency = EvaluateExpression(soundStmt.Frequency)
+              Dim duration = EvaluateExpression(soundStmt.Duration)
+              Dim freqValue As Integer = CInt(CDbl(frequency))
+              Dim durValue As Integer = CInt(CDbl(duration))
+              AudioDevice.Sound(freqValue, durValue)
               index += 1
             Case BoundNodeKind.PokeStatement
               ' TODO: Implement POKE memory write

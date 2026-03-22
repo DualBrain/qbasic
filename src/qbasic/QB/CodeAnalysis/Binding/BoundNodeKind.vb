@@ -10,6 +10,7 @@ Namespace Global.QB.CodeAnalysis.Binding
 
     ' Statements
     BeepStatement
+    SoundStatement
     BlockStatement
     CallStatement
     ChainStatement

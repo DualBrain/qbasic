@@ -130,6 +130,7 @@ Friend Module Program
     Dim upgradeGwBasicMode As Boolean = False
     Dim convertToVbNetMode As Boolean = False
     Dim logFilePath As String = preParsedLogFilePath
+    Dim audioDebugPath As String = Nothing
     Dim programArgs As New List(Of String)()
     Dim commandString As String = Nothing
 
@@ -177,7 +178,13 @@ Friend Module Program
             End If
           Case "-b", "-monochrome"
             ' Backward compatibility: -B - monochrome display mode
-            ' In modern .NET, this is accepted for compatibility
+          Case "--audio-debug"
+            If i + 1 < args.Length AndAlso Not args(i + 1).StartsWith("-") Then
+              audioDebugPath = args(i + 1)
+              i += 1
+            Else
+              audioDebugPath = "audio_debug.wav"
+            End If
           Case "-h", "-highlines"
             ' Backward compatibility: -H - display maximum lines
             ' In modern implementation, maximum lines are always displayed
@@ -291,7 +298,7 @@ Friend Module Program
       HandleRoundtripMode(filename)
       Return False ' Exit after roundtrip
     ElseIf filename IsNot Nothing AndAlso (runModeExplicit OrElse stdoutMode) Then
-      HandleRunMode(filename, stdoutMode, runModeExplicit, dumpGlobals, commandLineArgs, logFilePath, commandString)
+      HandleRunMode(filename, stdoutMode, runModeExplicit, dumpGlobals, commandLineArgs, logFilePath, commandString, audioDebugPath)
       Return False ' Exit after running program
     ElseIf filename IsNot Nothing AndAlso upgradeGwBasicMode Then
       HandleUpgradeGwBasicMode(filename)
@@ -365,6 +372,7 @@ Friend Module Program
     Console.WriteLine("  qbasic program.bas --run --log       Run with console logging")
     Console.WriteLine("  qbasic program.bas --run --log out.txt Run with file logging")
     Console.WriteLine("  qbasic program.bas --run --stdout     Run with stdout output (for piping)")
+    Console.WriteLine("  qbasic program.bas --audio-debug      Save audio to audio_debug.wav")
     Console.WriteLine("  qbasic -H")
     Console.WriteLine("  qbasic --help")
   End Sub
@@ -508,7 +516,7 @@ Friend Module Program
     End If
   End Sub
 
-  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, runModeExplicit As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing, Optional commandString As String = Nothing)
+  Private Sub HandleRunMode(filename As String, stdoutMode As Boolean, runModeExplicit As Boolean, dumpGlobals As Boolean, commandLineArgs As String(), Optional logFilePath As String = Nothing, Optional commandString As String = Nothing, Optional audioDebugPath As String = Nothing)
     Dim interpreter As QB.Interpreter = Nothing
     Try
       Dim sourceText = File.ReadAllText(filename)
@@ -531,7 +539,15 @@ Friend Module Program
 
       ' Create interpreter and run the program
       interpreter = New QB.Interpreter()
+      If audioDebugPath IsNot Nothing Then
+        QBLib.Audio.AudioDevice.EnableAudioDebug(audioDebugPath)
+      End If
+      interpreter = New QB.Interpreter()
       interpreter.Run(sourceText, dumpGlobals, commandLineArgs, effectiveLogFilePath, logToConsole, commandString)
+      If audioDebugPath IsNot Nothing Then
+        QBLib.Audio.AudioDevice.DisableAudioDebug()
+        Console.WriteLine($"Audio debug saved to: {System.IO.Path.GetFullPath(audioDebugPath)}")
+      End If
 
     Catch ex As Exception
       Console.WriteLine(ex.ToString())

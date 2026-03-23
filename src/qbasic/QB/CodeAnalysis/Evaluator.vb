@@ -5556,7 +5556,7 @@ Namespace Global.QB.CodeAnalysis
             i += 1
             If i < command.Length AndAlso Char.IsDigit(command(i)) Then
               Dim length = AscW(command(i)) - AscW("0"c)
-              If length > 0 Then m_playNoteLength = 60.0 / length
+              If length > 0 Then m_playNoteLength = 4.0 / length
             End If
           Case "V"c
             i += 1
@@ -5581,7 +5581,8 @@ Namespace Global.QB.CodeAnalysis
             Dim freq = GetNoteFrequency(noteType, isSharp)
             If freq > 0 Then
               Dim clockTicks = CInt(m_playNoteLength * 18.2)
-              AudioDevice.Sound(CInt(freq), clockTicks)
+            AudioDevice.Sound(CInt(freq), clockTicks)
+              AudioDevice.WaitForSound()
             End If
           Case "A"c To "G"c
             Dim noteType = c
@@ -5592,6 +5593,7 @@ Namespace Global.QB.CodeAnalysis
             If freq > 0 Then
               Dim clockTicks = CInt(m_playNoteLength * 18.2)
               AudioDevice.Sound(CInt(freq), clockTicks)
+              AudioDevice.WaitForSound()
             End If
           Case Else
             i += 1

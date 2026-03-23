@@ -115,6 +115,18 @@ Namespace Global.QBLib.Audio
       End SyncLock
     End Sub
 
+    Public Sub EnableAudioDebug(filePath As String)
+      If s_isWindows Then
+        WindowsAudio.EnableDebugOutput(filePath)
+      End If
+    End Sub
+
+    Public Sub DisableAudioDebug()
+      If s_isWindows Then
+        WindowsAudio.DisableDebugOutput()
+      End If
+    End Sub
+
   End Module
 
 End Namespace

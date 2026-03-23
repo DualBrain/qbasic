@@ -1,5 +1,7 @@
 Imports System
 Imports System.Runtime.InteropServices
+Imports System.Threading
+Imports System.Threading.Tasks
 
 Namespace Global.QBLib.Audio
 
@@ -201,6 +203,102 @@ Namespace Global.QBLib.Audio
 
 #Region "Sound (ticks-based duration)"
 
+    Public Shared Sub SoundAsync(frequency As Integer, duration As Integer, token As CancellationToken)
+      If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then
+        AudioDevice.OnSoundFinished()
+        Return
+      End If
+      If duration < 0 Then
+        AudioDevice.OnSoundFinished()
+        Return
+      End If
+
+      Dim durationMs = CInt(duration * 1000.0 / 18.2)
+      If durationMs < 1 Then durationMs = 1
+
+      Task.Run(Sub()
+        Try
+          If frequency <= 65535 AndAlso durationMs <= 65535 Then
+            Beep(CUInt(frequency), CUInt(durationMs))
+          Else
+            BeepWithWaveOutAsync(frequency, durationMs, token)
+          End If
+        Catch
+        Finally
+          If Not token.IsCancellationRequested Then
+            AudioDevice.OnSoundFinished()
+          End If
+        End Try
+      End Sub, token)
+    End Sub
+
+    Private Shared Sub BeepWithWaveOutAsync(frequency As Integer, durationMs As Integer, token As CancellationToken)
+      Try
+        Dim waveFormat = New WAVEFORMATEX() With {
+          .wFormatTag = CShort(WAVE_FORMAT_PCM),
+          .nChannels = CShort(AudioConstants.CHANNELS),
+          .nSamplesPerSec = AudioConstants.SAMPLE_RATE,
+          .wBitsPerSample = CShort(AudioConstants.BITS_PER_SAMPLE),
+          .cbSize = 0
+        }
+        waveFormat.nBlockAlign = CShort(waveFormat.nChannels * waveFormat.wBitsPerSample / 8)
+        waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign
+
+        Dim hWaveOut As IntPtr = IntPtr.Zero
+        Dim result = waveOutOpen(hWaveOut, UInt32.MaxValue, waveFormat, IntPtr.Zero, IntPtr.Zero, 0)
+        If result <> MMRESULT.MMSYSERR_NOERROR Then Return
+
+        Try
+          Dim numSamples = CULng(AudioConstants.SAMPLE_RATE) * CULng(durationMs) \ 1000UL
+          Dim bufferSizeBytes = CULng(AudioConstants.BITS_PER_SAMPLE \ 8) * numSamples
+          Dim bufferSizeInt = CInt(Math.Min(bufferSizeBytes, CUInt(Integer.MaxValue)))
+
+          Dim waveHeader = New WAVEHDR()
+          waveHeader.lpData = HeapAlloc(Diagnostics.Process.GetCurrentProcess().Handle, HEAP_ZERO_MEMORY, New IntPtr(bufferSizeInt))
+          If waveHeader.lpData = IntPtr.Zero Then Return
+
+          Try
+            GenerateSineWave(waveHeader.lpData, frequency, numSamples)
+
+            waveHeader.dwBufferLength = CUInt(bufferSizeInt)
+            result = waveOutPrepareHeader(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
+            If result <> MMRESULT.MMSYSERR_NOERROR Then Return
+
+            Try
+              result = waveOutWrite(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
+              If result = MMRESULT.MMSYSERR_NOERROR Then
+                WaitForWaveDoneAsync(hWaveOut, token)
+              End If
+            Finally
+              waveOutUnprepareHeader(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
+            End Try
+          Finally
+            HeapFree(Diagnostics.Process.GetCurrentProcess().Handle, 0, waveHeader.lpData)
+          End Try
+        Finally
+          waveOutClose(hWaveOut)
+        End Try
+      Catch
+      End Try
+    End Sub
+
+    Private Shared Sub WaitForWaveDoneAsync(hWaveOut As IntPtr, token As CancellationToken)
+      Dim waveHeader = New WAVEHDR()
+      Dim timeout = Environment.TickCount + 30000
+
+      While Not token.IsCancellationRequested AndAlso Environment.TickCount < timeout
+        Dim result = waveOutWrite(hWaveOut, waveHeader, 0)
+        If result <> MMRESULT.MMSYSERR_NOERROR Then Exit While
+        If (waveHeader.dwFlags And WHDR_DONE) <> 0 Then Exit While
+        Threading.Thread.Sleep(10)
+      End While
+
+      If Not token.IsCancellationRequested Then
+        waveOutReset(hWaveOut)
+      End If
+    End Sub
+
+    ' Keep synchronous version for BEEP
     Public Shared Sub Sound(frequency As Integer, duration As Integer)
       If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then
         Return

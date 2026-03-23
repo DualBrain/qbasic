@@ -2,6 +2,8 @@ Imports System
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Text
+Imports System.Threading
+Imports System.Threading.Tasks
 
 Namespace Global.QBLib.Audio
 
@@ -63,6 +65,32 @@ Namespace Global.QBLib.Audio
       End Try
     End Sub
 
+    Public Shared Sub SoundAsync(frequency As Integer, duration As Integer, token As CancellationToken)
+      If frequency < 37 OrElse frequency > 32767 Then
+        AudioDevice.OnSoundFinished()
+        Return
+      End If
+      If duration < 0 Then
+        AudioDevice.OnSoundFinished()
+        Return
+      End If
+
+      Dim durationMs = CInt(duration * 1000.0 / 18.2)
+      If durationMs < 1 Then durationMs = 1
+
+      Task.Run(Sub()
+        Try
+          Beep(frequency, durationMs)
+        Catch
+        Finally
+          If Not token.IsCancellationRequested Then
+            AudioDevice.OnSoundFinished()
+          End If
+        End Try
+      End Sub, token)
+    End Sub
+
+    ' Keep synchronous version for compatibility
     Public Shared Sub Sound(frequency As Integer, duration As Integer)
       If frequency < 37 OrElse frequency > 32767 Then
         Return

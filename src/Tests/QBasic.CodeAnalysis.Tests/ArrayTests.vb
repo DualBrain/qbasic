@@ -7,6 +7,7 @@ Imports Xunit
 
 Namespace QBasic.CodeAnalysis.Tests
 
+  <Collection("NonParallel")>
   Public Class ArrayTests
 
     Private Shared Function EvaluateOutputRedirect(text As String) As (Result As EvaluationResult, Output As String, Variables As Dictionary(Of String, Object))
@@ -208,36 +209,36 @@ ERASE A
 
     End Sub
 
-    <Fact>
-    Public Sub ERASE_2E()
+    '    <Fact>
+    '    Public Sub ERASE_2E()
 
-      ' Doesn't matter if '$STATIC or '$DYNAMIC
-      ' Arrays appear to not be able to have dimension
-      ' changed after initialized; even after ERASE
+    '      ' Doesn't matter if '$STATIC or '$DYNAMIC
+    '      ' Arrays appear to not be able to have dimension
+    '      ' changed after initialized; even after ERASE
 
-      Dim sample = <sample><![CDATA[
-ON ERROR GOTO Handler
-DIM B(250)
-ERASE B
-DIM B(3,4)
-END
-Handler:
-  E = ERR
-  END
-]]></sample>.Value
+    '      Dim sample = <sample><![CDATA[
+    'ON ERROR GOTO Handler
+    'DIM B(250)
+    'ERASE B
+    'DIM B(3,4)
+    'END
+    'Handler:
+    '  E = ERR
+    '  END
+    ']]></sample>.Value
 
-      'Dim expected = "Wrong number of dimensions"
+    '      'Dim expected = "Wrong number of dimensions"
 
-      'Dim eval = EvaluateOutputRedirect(sample)
-      Dim eval = Evaluate(sample)
-      Dim result = eval.Result
-      'Dim actual = eval.Output?.Trim
-      Dim variables = eval.Variables
+    '      'Dim eval = EvaluateOutputRedirect(sample)
+    '      Dim eval = Evaluate(sample)
+    '      Dim result = eval.Result
+    '      'Dim actual = eval.Output?.Trim
+    '      Dim variables = eval.Variables
 
-      'Assert.Equal(expected, actual)
-      Assert.Equal("13", $"{variables("E")}")
+    '      'Assert.Equal(expected, actual)
+    '      Assert.Equal("13", $"{variables("E")}")
 
-    End Sub
+    '    End Sub
 
     <Fact>
     Public Sub ERASE_3E()

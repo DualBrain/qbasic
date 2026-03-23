@@ -63,7 +63,7 @@ Namespace Global.QB.CodeAnalysis
 
 
     ' Unhandled runtime error captured for IDE error display
-    Private m_unhandledRuntimeError As RuntimeErrorInfo
+    Private ReadOnly m_unhandledRuntimeError As RuntimeErrorInfo
     ' Timer event state
     Private m_timerHandlerTarget As Object = Nothing ' Target for ON TIMER GOSUB (label or line number)
     Private m_timerInterval As Double = 0 ' Timer interval in seconds
@@ -4567,11 +4567,11 @@ Namespace Global.QB.CodeAnalysis
             locals.Add(parameter.Name, value)
           End If
         Next
-        
+
         ' Initialize function's return variable (the function name itself)
         ' This allows assignments like "F% = 1" inside the function to go to a local variable
         If locals Is Nothing Then locals = New Dictionary(Of String, Object)()
-        
+
         ' Initialize with default value based on return type
         Dim defaultValue As Object = Nothing
         If node.Function.Type Is TypeSymbol.String Then
@@ -4580,7 +4580,7 @@ Namespace Global.QB.CodeAnalysis
           defaultValue = 0
         End If
         locals.Add(node.Function.Name, defaultValue)
-        
+
         If locals IsNot Nothing Then
           m_locals.Push(locals)
         End If
@@ -4594,13 +4594,13 @@ Namespace Global.QB.CodeAnalysis
         m_container.Push(node.Function.Name)
         Dim result = EvaluateStatement(statement, Nothing)
         m_container.Pop()
-        
+
         ' Retrieve the final value of the function variable and use it as the return value
         Dim currentLocals = If(m_locals.Count > 0, m_locals.Peek(), Nothing)
         If currentLocals IsNot Nothing AndAlso currentLocals.ContainsKey(node.Function.Name) Then
           result = currentLocals(node.Function.Name)
         End If
-        
+
         m_locals.Pop()
         Return result
       End If
@@ -4866,7 +4866,7 @@ Namespace Global.QB.CodeAnalysis
         Try
           Dim dirPath = If(Path.IsPathRooted(fileNameToTry), Path.GetDirectoryName(fileNameToTry), ".")
           Dim justFileName = Path.GetFileName(fileNameToTry)
-          
+
           ' Search for case-insensitive match
           If System.IO.Directory.Exists(dirPath) Then
             Dim files = System.IO.Directory.GetFiles(dirPath)

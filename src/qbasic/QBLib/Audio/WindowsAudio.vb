@@ -115,8 +115,8 @@ Namespace Global.QBLib.Audio
     Private Const BUFFER_COUNT As Integer = 4
     Private Const BUFFER_DURATION_MS As Integer = 50
     Private Shared s_hWaveOut As IntPtr = IntPtr.Zero
-    Private Shared s_buffers(BUFFER_COUNT - 1) As WAVEHDR
-    Private Shared s_bufferData(BUFFER_COUNT - 1) As IntPtr
+    Private Shared ReadOnly s_buffers(BUFFER_COUNT - 1) As WAVEHDR
+    Private Shared ReadOnly s_bufferData(BUFFER_COUNT - 1) As IntPtr
     Private Shared s_isStreaming As Boolean = False
     Private Shared s_streamThread As Thread = Nothing
     Private Shared s_cts As CancellationTokenSource = Nothing
@@ -126,7 +126,7 @@ Namespace Global.QBLib.Audio
     Private Shared s_samplesRemaining As Integer = 0
     Private Shared s_samplePhase As Double = 0.0
     Private Shared s_currentAmplitude As Double = 0.0
-    Private Shared s_streamLock As New Object()
+    Private Shared ReadOnly s_streamLock As New Object()
 
     Private Shared s_debugEnabled As Boolean = False
     Private Shared s_debugStream As System.IO.FileStream = Nothing
@@ -410,11 +410,11 @@ Namespace Global.QBLib.Audio
 
     Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, token As CancellationToken)
       Task.Run(Sub()
-        Try
-          PlayTone(frequency, durationTicks, token)
-        Catch
-        End Try
-      End Sub, token)
+                 Try
+                   PlayTone(frequency, durationTicks, token)
+                 Catch
+                 End Try
+               End Sub, token)
     End Sub
 
     Public Shared Sub StopTone()

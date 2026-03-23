@@ -79,19 +79,19 @@ Namespace Global.QBLib.Audio
       If durationMs < 1 Then durationMs = 1
 
       Task.Run(Sub()
-        Try
-          Beep(frequency, durationMs)
-        Catch
-        Finally
-          If Not token.IsCancellationRequested Then
-            AudioDevice.OnSoundFinished()
-          End If
-        End Try
-      End Sub, token)
+                 Try
+                   Beep(frequency, durationMs)
+                 Catch
+                 Finally
+                   If Not token.IsCancellationRequested Then
+                     AudioDevice.OnSoundFinished()
+                   End If
+                 End Try
+               End Sub, token)
     End Sub
 
     Private Shared s_currentProcess As Process = Nothing
-    Private Shared s_processLock As New Object()
+    Private Shared ReadOnly s_processLock As New Object()
 
     Public Shared Sub StopTone()
       SyncLock s_processLock

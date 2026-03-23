@@ -1,7 +1,7 @@
-Imports System.Runtime.InteropServices
 Imports System
-Imports System.Threading
 Imports System.Collections.Generic
+Imports System.Runtime.InteropServices
+Imports System.Threading
 
 Namespace Global.QBLib.Audio
 
@@ -19,7 +19,7 @@ Namespace Global.QBLib.Audio
     End Enum
 
     Private m_musicMode As MusicMode = MusicMode.Foreground
-    Private m_musicQueue As New List(Of (Frequency As Integer, Duration As Integer))
+    Private ReadOnly m_musicQueue As New List(Of (Frequency As Integer, Duration As Integer))
     Private ReadOnly m_musicQueueLock As New Object()
     Private m_backgroundPlayerThread As Thread = Nothing
     Private m_backgroundPlayerCts As CancellationTokenSource = Nothing

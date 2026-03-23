@@ -403,7 +403,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim seenParameterNames As New HashSet(Of String)
 
       If syntax.Parameters IsNot Nothing Then
-For Each parameterSyntax In syntax.Parameters
+        For Each parameterSyntax In syntax.Parameters
           Dim parameterName = parameterSyntax.Identifier.Identifier.Text
           Dim parameterType = BindAsClause(parameterSyntax.AsClause)
           If parameterType Is Nothing Then
@@ -423,13 +423,13 @@ For Each parameterSyntax In syntax.Parameters
           Else
             ' Check if this is an array parameter (has parentheses)
             Dim isArrayParameter = parameterSyntax.Identifier.OpenParen IsNot Nothing
-            
+
             ' If parameter type is UDT, look up the actual UDT type
             Dim typeName As String = Nothing
             If parameterType Is TypeSymbol.Udt AndAlso parameterSyntax.AsClause IsNot Nothing Then
               typeName = parameterSyntax.AsClause.Identifier.Text
             End If
-            
+
             Dim parameter As ParameterSymbol
             If isArrayParameter Then
               ' Create an array parameter
@@ -912,7 +912,7 @@ For Each parameterSyntax In syntax.Parameters
           Dim paramSymbol = CType(variableSymbol, ParameterSymbol)
           isArrayParameter = paramSymbol.IsArrayParameter
         End If
-        
+
         If Not variableSymbol.IsArray AndAlso Not isArrayParameter AndAlso syntax.Arguments.Count = 1 Then
           ' Redeclare scalar as array
           Dim lowerBound = New BoundLiteralExpression(m_optionBase)
@@ -920,7 +920,7 @@ For Each parameterSyntax In syntax.Parameters
           variableSymbol = BindArrayDeclaration(syntax.Identifier, TypeSymbol.Single, lowerBound, upperBound, 1)
         End If
       End If
-      
+
       If variableSymbol IsNot Nothing AndAlso (variableSymbol.IsArray OrElse (TypeOf variableSymbol Is ParameterSymbol AndAlso CType(variableSymbol, ParameterSymbol).IsArrayParameter)) Then
         ' This is array access
         ' For array parameters (declared with ()), accept any number of arguments

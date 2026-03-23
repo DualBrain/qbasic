@@ -41,6 +41,11 @@ Namespace Global.QBLib.Audio
       SyncLock GetType(AudioDevice)
         If duration = 0 Then
           If m_soundPlaying Then
+            If s_isWindows Then
+              WindowsAudio.StopTone()
+            ElseIf s_isLinux Then
+              LinuxAudio.StopTone()
+            End If
             CancelCurrentSound()
           End If
           Return
@@ -55,7 +60,7 @@ Namespace Global.QBLib.Audio
         m_soundPlaying = True
 
         If s_isWindows Then
-          WindowsAudio.SoundAsync(frequency, duration, token)
+          WindowsAudio.PlayToneAsync(frequency, duration, token)
         ElseIf s_isLinux Then
           LinuxAudio.SoundAsync(frequency, duration, token)
         End If
@@ -71,13 +76,15 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Private Sub CancelCurrentSound()
-      If m_currentSoundCts IsNot Nothing Then
-        m_currentSoundCts.Cancel()
-        m_currentSoundCts.Dispose()
-        m_currentSoundCts = Nothing
-      End If
-      m_soundPlaying = False
-      Monitor.PulseAll(GetType(AudioDevice))
+      SyncLock GetType(AudioDevice)
+        If m_currentSoundCts IsNot Nothing Then
+          m_currentSoundCts.Cancel()
+          m_currentSoundCts.Dispose()
+          m_currentSoundCts = Nothing
+        End If
+        m_soundPlaying = False
+        Monitor.PulseAll(GetType(AudioDevice))
+      End SyncLock
     End Sub
 
     Friend Sub OnSoundFinished()
@@ -87,6 +94,23 @@ Namespace Global.QBLib.Audio
           m_currentSoundCts.Dispose()
           m_currentSoundCts = Nothing
         End If
+        Monitor.PulseAll(GetType(AudioDevice))
+      End SyncLock
+    End Sub
+
+    Friend Sub StopAudio()
+      SyncLock GetType(AudioDevice)
+        If s_isWindows Then
+          WindowsAudio.StopTone()
+        ElseIf s_isLinux Then
+          LinuxAudio.StopTone()
+        End If
+        If m_currentSoundCts IsNot Nothing Then
+          m_currentSoundCts.Cancel()
+          m_currentSoundCts.Dispose()
+          m_currentSoundCts = Nothing
+        End If
+        m_soundPlaying = False
         Monitor.PulseAll(GetType(AudioDevice))
       End SyncLock
     End Sub

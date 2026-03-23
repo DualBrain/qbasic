@@ -90,6 +90,21 @@ Namespace Global.QBLib.Audio
       End Sub, token)
     End Sub
 
+    Private Shared s_currentProcess As Process = Nothing
+    Private Shared s_processLock As New Object()
+
+    Public Shared Sub StopTone()
+      SyncLock s_processLock
+        If s_currentProcess IsNot Nothing AndAlso Not s_currentProcess.HasExited Then
+          Try
+            s_currentProcess.Kill()
+          Catch
+          End Try
+          s_currentProcess = Nothing
+        End If
+      End SyncLock
+    End Sub
+
     ' Keep synchronous version for compatibility
     Public Shared Sub Sound(frequency As Integer, duration As Integer)
       If frequency < 37 OrElse frequency > 32767 Then

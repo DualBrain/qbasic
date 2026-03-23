@@ -64,6 +64,7 @@ Namespace Global.QB.CodeAnalysis.Binding
     KeyStatement
     'KeyOffStatement
     StrigStatement
+    PlayStatement
     PlayEventStatement
     PenStatement
     OpenStatement

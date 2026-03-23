@@ -761,7 +761,7 @@ For Each parameterSyntax In syntax.Parameters
         Case SyntaxKind.TypeStatement : Return BindTypeStatement(CType(syntax, TypeStatementSyntax))
         Case SyntaxKind.CommonStatement : Return BindCommonStatement(CType(syntax, CommonStatementSyntax))
         Case SyntaxKind.ViewPrintStatement : Return New BoundNopStatement()
-        Case SyntaxKind.PlayStatement : Return New BoundNopStatement()
+        Case SyntaxKind.PlayStatement : Return BindPlayStatement(CType(syntax, PlayStatementSyntax))
         Case SyntaxKind.StatementSeparatorStatement : Return New BoundNopStatement()
         Case SyntaxKind.SharedStatement : Return New BoundNopStatement()
         Case SyntaxKind.SubStatement : Throw New Exception("SUB statements should not be bound as executable statements")
@@ -1311,6 +1311,11 @@ For Each parameterSyntax In syntax.Parameters
       Dim frequency = BindExpression(syntax.Frequency)
       Dim duration = BindExpression(syntax.Duration)
       Return New BoundSoundStatement(syntax, frequency, duration)
+    End Function
+
+    Private Function BindPlayStatement(syntax As PlayStatementSyntax) As BoundStatement
+      Dim command = BindExpression(syntax.Command)
+      Return New BoundPlayStatement(syntax, command)
     End Function
 
     Private Shared Function BindEndStatement(syntax As EndStatementSyntax) As BoundStatement

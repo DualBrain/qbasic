@@ -1,6 +1,7 @@
 Imports System.Runtime.InteropServices
 Imports System
 Imports System.Threading
+Imports System.Collections.Generic
 
 Namespace Global.QBLib.Audio
 
@@ -12,6 +13,22 @@ Namespace Global.QBLib.Audio
     Private m_soundPlaying As Boolean = False
     Private m_currentSoundCts As CancellationTokenSource = Nothing
 
+    Private Enum MusicMode
+      Foreground
+      Background
+    End Enum
+
+    Private m_musicMode As MusicMode = MusicMode.Foreground
+    Private m_musicQueue As New List(Of (Frequency As Integer, Duration As Integer))
+    Private ReadOnly m_musicQueueLock As New Object()
+    Private m_backgroundPlayerThread As Thread = Nothing
+    Private m_backgroundPlayerCts As CancellationTokenSource = Nothing
+    Private m_playEventHandler As Action = Nothing
+    Private m_playEventThreshold As Integer = 32
+    Private m_playEventEnabled As Boolean = False
+    Private m_playEventStopped As Boolean = False
+    Private m_playEventPending As Boolean = False
+
     Public Property IsSoundPlaying As Boolean
       Get
         Return m_soundPlaying
@@ -20,6 +37,125 @@ Namespace Global.QBLib.Audio
         m_soundPlaying = value
       End Set
     End Property
+
+    Public ReadOnly Property MusicQueueDepth As Integer
+      Get
+        SyncLock m_musicQueueLock
+          Return m_musicQueue.Count
+        End SyncLock
+      End Get
+    End Property
+
+    Public Sub SetMusicModeForeground()
+      m_musicMode = MusicMode.Foreground
+    End Sub
+
+    Public Sub SetMusicModeBackground()
+      m_musicMode = MusicMode.Background
+      StartBackgroundPlayer()
+    End Sub
+
+    Public Sub SetPlayEventHandler(handler As Action, threshold As Integer)
+      m_playEventHandler = handler
+      m_playEventThreshold = threshold
+    End Sub
+
+    Public Sub EnablePlayEvents()
+      m_playEventEnabled = True
+      m_playEventStopped = False
+      CheckPlayEvent()
+    End Sub
+
+    Public Sub DisablePlayEvents()
+      m_playEventEnabled = False
+      m_playEventStopped = False
+      m_playEventPending = False
+    End Sub
+
+    Public Sub StopPlayEvents()
+      m_playEventStopped = True
+    End Sub
+
+    Friend Sub CheckPlayEvent()
+      If m_playEventEnabled AndAlso Not m_playEventStopped AndAlso m_playEventHandler IsNot Nothing Then
+        Dim queueDepth As Integer
+        SyncLock m_musicQueueLock
+          queueDepth = m_musicQueue.Count
+        End SyncLock
+
+        If queueDepth < m_playEventThreshold AndAlso Not m_playEventPending Then
+          m_playEventPending = True
+          m_playEventHandler()
+        End If
+      End If
+    End Sub
+
+    Friend Sub OnPlayEventHandled()
+      m_playEventPending = False
+      If m_playEventStopped Then
+        m_playEventEnabled = True
+        m_playEventStopped = False
+      End If
+    End Sub
+
+    Private Sub StartBackgroundPlayer()
+      If m_backgroundPlayerThread IsNot Nothing AndAlso m_backgroundPlayerThread.IsAlive Then
+        Return
+      End If
+
+      m_backgroundPlayerCts = New CancellationTokenSource()
+      m_backgroundPlayerThread = New Thread(AddressOf BackgroundPlayerLoop)
+      m_backgroundPlayerThread.IsBackground = True
+      m_backgroundPlayerThread.Start()
+    End Sub
+
+    Private Sub BackgroundPlayerLoop()
+      Do
+        If m_backgroundPlayerCts.Token.IsCancellationRequested Then
+          Exit Do
+        End If
+
+        Dim note As (Frequency As Integer, Duration As Integer)?
+        SyncLock m_musicQueueLock
+          If m_musicQueue.Count > 0 Then
+            note = m_musicQueue(0)
+            m_musicQueue.RemoveAt(0)
+          End If
+        End SyncLock
+
+        If note IsNot Nothing Then
+          CheckPlayEvent()
+          PlayNoteForeground(note.Value.Frequency, note.Value.Duration)
+        Else
+          Thread.Sleep(10)
+        End If
+      Loop While Not m_backgroundPlayerCts.Token.IsCancellationRequested OrElse m_musicQueue.Count > 0
+    End Sub
+
+    Private Sub PlayNoteForeground(frequency As Integer, durationTicks As Integer)
+      If frequency = 0 Then
+        Return
+      End If
+
+      If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then
+        Return
+      End If
+
+      m_currentSoundCts = New CancellationTokenSource()
+      Dim token = m_currentSoundCts.Token
+
+      SyncLock GetType(AudioDevice)
+        m_soundPlaying = True
+      End SyncLock
+
+      If s_isWindows Then
+        WindowsAudio.PlayToneAsync(frequency, durationTicks, token)
+      ElseIf s_isLinux Then
+        LinuxAudio.SoundAsync(frequency, durationTicks, token)
+      End If
+
+      WaitForSound()
+    End Sub
 
     Public Sub Beep()
       If s_isWindows Then
@@ -48,6 +184,18 @@ Namespace Global.QBLib.Audio
             End If
             CancelCurrentSound()
           End If
+          SyncLock m_musicQueueLock
+            m_musicQueue.Clear()
+          End SyncLock
+          Return
+        End If
+
+        If m_musicMode = MusicMode.Background Then
+          SyncLock m_musicQueueLock
+            If m_musicQueue.Count < 32 Then
+              m_musicQueue.Add((frequency, duration))
+            End If
+          End SyncLock
           Return
         End If
 
@@ -112,6 +260,15 @@ Namespace Global.QBLib.Audio
         End If
         m_soundPlaying = False
         Monitor.PulseAll(GetType(AudioDevice))
+      End SyncLock
+
+      If m_backgroundPlayerCts IsNot Nothing Then
+        m_backgroundPlayerCts.Cancel()
+        m_backgroundPlayerCts.Dispose()
+        m_backgroundPlayerCts = Nothing
+      End If
+      SyncLock m_musicQueueLock
+        m_musicQueue.Clear()
       End SyncLock
     End Sub
 

@@ -4221,7 +4221,7 @@ repeat:
     Private Function ParseNameOrCallExpression() As ExpressionSyntax
       ' First parse the base expression (identifier or call)
       Dim baseExpr As ExpressionSyntax
-      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword OrElse Current.Kind = SyntaxKind.PenKeyword OrElse Current.Kind = SyntaxKind.ScreenKeyword) AndAlso
+      If (Current.Kind = SyntaxKind.IdentifierToken OrElse Current.Kind = SyntaxKind.MidKeyword OrElse Current.Kind = SyntaxKind.PenKeyword OrElse Current.Kind = SyntaxKind.PlayKeyword OrElse Current.Kind = SyntaxKind.ScreenKeyword) AndAlso
           Peek(1).Kind = SyntaxKind.OpenParenToken Then
         baseExpr = ParseCallExpression()
       ElseIf (Current.Kind = SyntaxKind.IdentifierToken AndAlso (Current.Text.ToLower = "command$" OrElse
@@ -4278,6 +4278,7 @@ repeat:
       If Current.Kind = SyntaxKind.IdentifierToken OrElse
          Current.Kind = SyntaxKind.MidKeyword OrElse
          Current.Kind = SyntaxKind.PenKeyword OrElse
+         Current.Kind = SyntaxKind.PlayKeyword OrElse
          Current.Kind = SyntaxKind.ScreenKeyword Then
         Return NextToken()
       End If

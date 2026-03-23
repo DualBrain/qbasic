@@ -4325,7 +4325,12 @@ Namespace Global.QB.CodeAnalysis
             Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
         End Select
       ElseIf node.Function Is BuiltinFunctions.Play Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        Dim n = CInt(EvaluateExpression(node.Arguments(0)))
+        If n = 0 Then
+          Return AudioDevice.MusicQueueDepth
+        Else
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
       ElseIf node.Function Is BuiltinFunctions.Pmap Then
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Point1 Then
@@ -5546,33 +5551,82 @@ Namespace Global.QB.CodeAnalysis
             i += 1
             If i < command.Length AndAlso Char.IsDigit(command(i)) Then
               m_playOctave = AscW(command(i)) - AscW("0"c)
+              i += 1
             End If
           Case "T"c
             i += 1
-            If i < command.Length AndAlso Char.IsDigit(command(i)) Then
-              m_playTempo = (AscW(command(i)) - AscW("0"c)) * 30 + 30
+            Dim tempoValue As Integer = 0
+            While i < command.Length AndAlso Char.IsDigit(command(i))
+              tempoValue = tempoValue * 10 + (AscW(command(i)) - AscW("0"c))
+              i += 1
+            End While
+            If tempoValue >= 32 AndAlso tempoValue <= 255 Then
+              m_playTempo = tempoValue
             End If
           Case "L"c
             i += 1
-            If i < command.Length AndAlso Char.IsDigit(command(i)) Then
-              Dim length = AscW(command(i)) - AscW("0"c)
-              If length > 0 Then m_playNoteLength = 4.0 / length
+            Dim lengthValue As Integer = 0
+            While i < command.Length AndAlso Char.IsDigit(command(i))
+              lengthValue = lengthValue * 10 + (AscW(command(i)) - AscW("0"c))
+              i += 1
+            End While
+            If lengthValue >= 1 AndAlso lengthValue <= 64 Then
+              m_playNoteLength = 4.0 / lengthValue
             End If
           Case "V"c
             i += 1
             If i < command.Length AndAlso Char.IsDigit(command(i)) Then
               m_playVolume = AscW(command(i)) - AscW("0"c)
+              i += 1
             End If
           Case "N"c
             i += 1
             If i < command.Length AndAlso Char.IsDigit(command(i)) Then
-              PlayNoteNumber(command(i))  ' Simplified - just take first digit
+              PlayNoteNumber(command(i))
+              i += 1
             End If
           Case "M"c
             i += 1
             If i < command.Length Then
-              m_playMode = If(Char.ToUpperInvariant(command(i)) = "M", "MF", "MB")
+              Dim modeChar = Char.ToUpperInvariant(command(i))
+              Select Case modeChar
+                Case "B"c
+                  m_playMode = "MB"
+                  AudioDevice.SetMusicModeBackground()
+                  i += 1
+                Case "F"c
+                  m_playMode = "MF"
+                  AudioDevice.SetMusicModeForeground()
+                  i += 1
+                Case "N"c
+                  m_playStyle = PlayStyle.Normal
+                  i += 1
+                Case "L"c
+                  m_playStyle = PlayStyle.Legato
+                  i += 1
+                Case "S"c
+                  m_playStyle = PlayStyle.Staccato
+                  i += 1
+                Case "M"c
+                  m_playMode = "MF"
+                  AudioDevice.SetMusicModeForeground()
+                  i += 1
+                Case Else
+                  m_playMode = "MF"
+                  AudioDevice.SetMusicModeForeground()
+              End Select
             End If
+          Case "P"c
+            i += 1
+            If i < command.Length AndAlso Char.IsDigit(command(i)) Then
+              i += 1
+            End If
+          Case ">"c
+            m_playOctave = Math.Min(6, m_playOctave + 1)
+            i += 1
+          Case "<"c
+            m_playOctave = Math.Max(0, m_playOctave - 1)
+            i += 1
           Case "R"c, "B"c
             Dim noteType = c
             i += 1
@@ -5580,9 +5634,11 @@ Namespace Global.QB.CodeAnalysis
             If isSharp Then i += 1
             Dim freq = GetNoteFrequency(noteType, isSharp)
             If freq > 0 Then
-              Dim clockTicks = CInt(m_playNoteLength * 18.2)
-            AudioDevice.Sound(CInt(freq), clockTicks)
-              AudioDevice.WaitForSound()
+              Dim clockTicks = CalculatePlayDuration()
+              AudioDevice.Sound(CInt(freq), clockTicks)
+              If m_playMode = "MF" Then
+                AudioDevice.WaitForSound()
+              End If
             End If
           Case "A"c To "G"c
             Dim noteType = c
@@ -5591,15 +5647,33 @@ Namespace Global.QB.CodeAnalysis
             If isSharp Then i += 1
             Dim freq = GetNoteFrequency(noteType, isSharp)
             If freq > 0 Then
-              Dim clockTicks = CInt(m_playNoteLength * 18.2)
+              Dim clockTicks = CalculatePlayDuration()
               AudioDevice.Sound(CInt(freq), clockTicks)
-              AudioDevice.WaitForSound()
+              If m_playMode = "MF" Then
+                AudioDevice.WaitForSound()
+              End If
             End If
+          Case "."c
+            i += 1
           Case Else
             i += 1
         End Select
       End While
     End Sub
+
+    Private Function CalculatePlayDuration() As Integer
+      Dim styleFactor = 1.0
+      Select Case m_playStyle
+        Case PlayStyle.Normal
+          styleFactor = 7.0 / 8.0
+        Case PlayStyle.Staccato
+          styleFactor = 3.0 / 4.0
+        Case PlayStyle.Legato
+          styleFactor = 1.0
+      End Select
+      Dim durationTicks = (18.2 * 240.0) / (m_playTempo * m_playNoteLength) * styleFactor
+      Return CInt(durationTicks)
+    End Function
 
     Private Function GetNoteFrequency(noteChar As Char, sharp As Boolean) As Double
       Dim noteIndex = AscW(Char.ToUpperInvariant(noteChar)) - AscW("A"c)
@@ -5615,16 +5689,23 @@ Namespace Global.QB.CodeAnalysis
         AudioDevice.Sound(0, 0)
       ElseIf noteNum >= 1 AndAlso noteNum <= 84 Then
         Dim freq = 440.0 * Math.Pow(2.0, (noteNum - 49) / 12.0)
-        Dim clockTicks = CInt(m_playNoteLength * 18.2)
+        Dim clockTicks = CalculatePlayDuration()
         AudioDevice.Sound(CInt(freq), clockTicks)
       End If
     End Sub
 
+    Private Enum PlayStyle
+      Normal
+      Legato
+      Staccato
+    End Enum
+
     Private m_playOctave As Integer = 4
     Private m_playTempo As Integer = 120
-    Private m_playNoteLength As Double = 0.25
+    Private m_playNoteLength As Double = 4.0
     Private m_playVolume As Integer = 8
-    Private m_playMode As String = "MB"
+    Private m_playMode As String = "MF"
+    Private m_playStyle As PlayStyle = PlayStyle.Normal
 
   End Class
 

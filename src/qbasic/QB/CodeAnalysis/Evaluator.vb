@@ -97,6 +97,10 @@ Namespace Global.QB.CodeAnalysis
     ' KEY event pending flags (one per key, for STOP state preservation)
     Private ReadOnly m_keyEventPending As Boolean() = New Boolean(20) {} ' Whether a KEY event is pending for each key
 
+    ' DEF SEG and PEEK/POKE state
+    Private m_defSeg As Integer = -1 ' Current segment (-1 = default), 0 = BIOS Data Area
+    Private ReadOnly m_peekMemory As New Dictionary(Of Integer, Byte) ' Memory for PEEK/POKE
+
     ' File I/O state
     Private ReadOnly m_openFiles As New Dictionary(Of Integer, FileStream) ' File number to FileStream mapping
     Private ReadOnly m_fileModes As New Dictionary(Of Integer, String) ' File number to access mode mapping
@@ -392,6 +396,9 @@ Namespace Global.QB.CodeAnalysis
       m_commandLineArgs = If(commandLineArgs, Array.Empty(Of String)())
       m_commandString = commandString
 
+      ' Initialize KeyboardEmulator with default state (NUM LOCK ON)
+      QBLib.KeyboardEmulator.Initialize()
+
       ' Restore any preserved COMMON variables
       CommonVariablePreserver.RestoreCommonVariables(Me, m_globalStatements.OfType(Of BoundCommonStatement)().ToImmutableArray())
       m_locals.Push(New Dictionary(Of String, Object))
@@ -553,7 +560,23 @@ Namespace Global.QB.CodeAnalysis
               PlayCommand(commandString)
               index += 1
             Case BoundNodeKind.PokeStatement
-              ' TODO: Implement POKE memory write
+              Dim pokeStmt = CType(s, BoundPokeStatement)
+              Dim addressValue = EvaluateExpression(pokeStmt.Offset)
+              Dim dataValue = EvaluateExpression(pokeStmt.Value)
+              Dim address = CInt(addressValue)
+              Dim data = CInt(dataValue)
+              If address < 0 OrElse address > 65535 OrElse data < 0 OrElse data > 255 Then
+                Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+              End If
+              If m_defSeg = 0 AndAlso QBLib.KeyboardEmulator.IsKnownBiosAddress(address) Then
+                If QBLib.KeyboardEmulator.IsImplementedBiosAddress(address) Then
+                  QBLib.KeyboardEmulator.SetKeyboardFlags(address, CByte(data))
+                Else
+                  Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+                End If
+              Else
+                m_peekMemory(address) = CByte(data)
+              End If
               index += 1
             Case BoundNodeKind.OutStatement
               Dim outStmt = CType(s, BoundOutStatement)
@@ -1141,7 +1164,12 @@ Namespace Global.QB.CodeAnalysis
               ' The type defaults are registered in the binder
               index += 1
             Case BoundNodeKind.DefSegStatement
-              ' DEF SEG statement - handled at bind time for memory addressing
+              Dim defSegStmt = CType(s, BoundDefSegStatement)
+              If defSegStmt.Address Is Nothing Then
+                m_defSeg = -1
+              Else
+                m_defSeg = CInt(EvaluateExpression(defSegStmt.Address))
+              End If
               index += 1
             Case Else
               Throw New Exception($"Unexpected kind {s.Kind}")
@@ -4274,7 +4302,23 @@ Namespace Global.QB.CodeAnalysis
         Dim value = CSng(EvaluateExpression(node.Arguments(0)))
         Return Microsoft.VisualBasic.Oct(value)
       ElseIf node.Function Is BuiltinFunctions.Peek Then
-        Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+        Dim address = CInt(EvaluateExpression(node.Arguments(0)))
+        If address < 0 OrElse address > 65535 Then
+          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        End If
+        If m_defSeg = 0 AndAlso QBLib.KeyboardEmulator.IsKnownBiosAddress(address) Then
+          If QBLib.KeyboardEmulator.IsImplementedBiosAddress(address) Then
+            Return QBLib.KeyboardEmulator.GetKeyboardFlags(address)
+          Else
+            Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
+          End If
+        Else
+          If m_peekMemory.ContainsKey(address) Then
+            Return m_peekMemory(address)
+          Else
+            Return CByte(0)
+          End If
+        End If
       ElseIf node.Function Is BuiltinFunctions.Pen Then
         ' PEN(n) function - returns pen state information
         ' PEN ON must be the current state for the PEN() function to work.

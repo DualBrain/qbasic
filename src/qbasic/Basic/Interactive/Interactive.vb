@@ -121,6 +121,9 @@ Namespace Global.Basic
       'm_peek.Clear() ' = New Dictionary(Of Integer, Byte)
       'm_peek.Add(0, CByte(m_speed \ 4))
 
+      ' Initialize keyboard emulator with default state (NUM LOCK ON)
+      QBLib.KeyboardEmulator.Initialize()
+
       ' ON TIMER
       m_onTimerState = OnState.Off
       m_onTimerLine = 0
@@ -362,7 +365,7 @@ Namespace Global.Basic
     'Private m_penLastActivated As Boolean = False
     Private m_penActivatedSinceLastPoll As Boolean = False
 
-    'Private m_defSeg As Integer = -1 ' Default DS
+    Private m_defSeg As Integer = -1 ' Default segment (-1 = default BASIC segment)
 
     ' WIDTH
     'Private m_widthScrn As Short = 80 ' 40 and 80 are the only numbers that are valid.
@@ -3818,7 +3821,21 @@ Namespace Global.Basic
             If Not PopToken.IsParenCloseToken() Then Return ThrowBasicError(BasicError.SyntaxError)
 
             If CInt(index1).Between(0, 65535) Then
-              If m_peek.ContainsKey(CInt(index1)) Then
+              If m_defSeg = 0 Then
+                If QBLib.KeyboardEmulator.IsKnownBiosAddress(CInt(index1)) Then
+                  If QBLib.KeyboardEmulator.IsImplementedBiosAddress(CInt(index1)) Then
+                    result = QBLib.KeyboardEmulator.GetKeyboardFlags(CInt(index1))
+                  Else
+                    Return ThrowBasicError(BasicError.AdvancedFeature)
+                  End If
+                Else
+                  If m_peek.ContainsKey(CInt(index1)) Then
+                    result = m_peek(CInt(index1))
+                  Else
+                    result = 0
+                  End If
+                End If
+              ElseIf m_peek.ContainsKey(CInt(index1)) Then
                 result = m_peek(CInt(index1))
               Else
                 result = 0
@@ -6828,13 +6845,13 @@ dimension As Short,
         If PeekToken.ToString.StartsWith("SEG") Then
           PopToken()
           If PeekToken() Is Nothing Then
-            'm_defSeg = -1
+            m_defSeg = -1
           ElseIf PeekToken.IsWord("=") Then
             PopToken()
             Dim address As Double
             If Not ExecuteExpression(address) Then Return False
             If address.Between(0, 65535) Then
-              'm_defSeg = CInt(address)
+              m_defSeg = CInt(address)
             Else
               Return ThrowBasicError(BasicError.IllegalFunctionCall)
             End If
@@ -12190,19 +12207,43 @@ nameList As List(Of String)) As Boolean
       If PeekToken() Is Nothing Then
         If CInt(param1).Between(0, 65535) AndAlso
          param2.Between(0, 255) Then
-          If Not m_peek.ContainsKey(CInt(param1)) Then
-            m_peek.Add(CInt(param1), CByte(param2))
+          If m_defSeg = 0 Then
+            If QBLib.KeyboardEmulator.IsKnownBiosAddress(CInt(param1)) Then
+              If QBLib.KeyboardEmulator.IsImplementedBiosAddress(CInt(param1)) Then
+                QBLib.KeyboardEmulator.SetKeyboardFlags(CInt(param1), CByte(param2))
+              Else
+                Return ThrowBasicError(BasicError.AdvancedFeature)
+              End If
+            Else
+              If Not m_peek.ContainsKey(CInt(param1)) Then
+                m_peek.Add(CInt(param1), CByte(param2))
+              End If
+              m_peek(CInt(param1)) = CByte(param2)
+              Select Case CInt(param1)
+                Case 0 ' Speed
+                  'If param2 = 255 Then
+                  'm_speed = 10000
+                  'Else
+                  'm_speed = CShort(1 + (CByte(param2) * 4)) ' Provides a range of 1 to 1021
+                  'End If
+                Case Else
+              End Select
+            End If
+          Else
+            If Not m_peek.ContainsKey(CInt(param1)) Then
+              m_peek.Add(CInt(param1), CByte(param2))
+            End If
+            m_peek(CInt(param1)) = CByte(param2)
+            Select Case CInt(param1)
+              Case 0 ' Speed
+                'If param2 = 255 Then
+                'm_speed = 10000
+                'Else
+                'm_speed = CShort(1 + (CByte(param2) * 4)) ' Provides a range of 1 to 1021
+                'End If
+              Case Else
+            End Select
           End If
-          m_peek(CInt(param1)) = CByte(param2)
-          Select Case CInt(param1)
-            Case 0 ' Speed
-              'If param2 = 255 Then
-              'm_speed = 10000
-              'Else
-              'm_speed = CShort(1 + (CByte(param2) * 4)) ' Provides a range of 1 to 1021
-              'End If
-            Case Else
-          End Select
         Else
           Return ThrowBasicError(BasicError.IllegalFunctionCall)
         End If

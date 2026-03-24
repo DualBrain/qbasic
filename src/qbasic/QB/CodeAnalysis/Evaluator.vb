@@ -44,8 +44,9 @@ Namespace Global.QB.CodeAnalysis
     Private ReadOnly m_container As New Stack(Of String)
     Private ReadOnly m_parentLabelStack As New Stack(Of Dictionary(Of String, Integer))
 
-    ' Track current array bounds (updated by REDIM)
-    Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Lower As Integer, Upper As Integer))
+    ' Track current array bounds (updated by REDIM) - stores list of (Lower, Upper) for each dimension
+    ' Also track dimension count for static arrays
+    Private ReadOnly m_arrayBounds As New Dictionary(Of String, (Bounds As List(Of (Lower As Integer, Upper As Integer)), DimensionCount As Integer))
 
     ' Track FOR loop final variable values (to preserve array + scalar coexistence)
     Private ReadOnly m_forLoopFinalValues As New Dictionary(Of String, Object)
@@ -359,6 +360,55 @@ Namespace Global.QB.CodeAnalysis
           m_globals(varName) = 0
         End If
       End If
+    End Sub
+
+    Private Function ResolveByRefVariable(byRefVar As ByRefVariable, Optional defaultValue As Object = Nothing) As Object
+      Dim targetName = byRefVar.Name
+      If m_globals.ContainsKey(targetName) Then
+        Return m_globals(targetName)
+      End If
+      ' Target doesn't exist in globals - check nested locals for nested SUB calls
+      If m_locals.Count > 1 Then
+        ' Skip the current locals (index 0 after pop) and check outer scopes
+        For i As Integer = m_locals.Count - 1 To 1 Step -1
+          Dim outerLocals = m_locals(i)
+          If outerLocals.ContainsKey(targetName) Then
+            Dim outerValue = outerLocals(targetName)
+            If TypeOf outerValue Is ByRefVariable Then
+              ' Recursively resolve nested ByRef
+              Return ResolveByRefVariable(DirectCast(outerValue, ByRefVariable), defaultValue)
+            End If
+            Return outerValue
+          End If
+        Next
+      End If
+      Return defaultValue
+    End Function
+
+    Private Sub SetByRefVariable(byRefVar As ByRefVariable, value As Object)
+      Dim targetName = byRefVar.Name
+      If m_globals.ContainsKey(targetName) Then
+        m_globals(targetName) = value
+        Return
+      End If
+      ' Target doesn't exist in globals - check nested locals for nested SUB calls
+      If m_locals.Count > 1 Then
+        For i As Integer = m_locals.Count - 1 To 1 Step -1
+          Dim outerLocals = m_locals(i)
+          If outerLocals.ContainsKey(targetName) Then
+            Dim outerValue = outerLocals(targetName)
+            If TypeOf outerValue Is ByRefVariable Then
+              ' Recursively handle nested ByRef
+              SetByRefVariable(DirectCast(outerValue, ByRefVariable), value)
+            Else
+              outerLocals(targetName) = value
+            End If
+            Return
+          End If
+        Next
+      End If
+      ' Variable doesn't exist anywhere - create it in globals as a default
+      m_globals(targetName) = value
     End Sub
 
     ' Added so that we can access the "variables" for unit testing.
@@ -3313,7 +3363,9 @@ Namespace Global.QB.CodeAnalysis
           ' Update current bounds for this array
           Dim lowerBound = CInt(EvaluateExpression(variable.Lower))
           Dim upperBound = CInt(EvaluateExpression(variable.Upper))
-          m_arrayBounds(variable.Name) = (lowerBound, upperBound)
+          Dim boundsList = New List(Of (Lower As Integer, Upper As Integer))()
+          boundsList.Add((lowerBound, upperBound))
+          m_arrayBounds(variable.Name) = (boundsList, 1)
         End If
       Next
     End Sub
@@ -3399,14 +3451,16 @@ Namespace Global.QB.CodeAnalysis
 
       ' Check if array has current runtime bounds (updated by REDIM)
       If m_arrayBounds.ContainsKey(arrayName) Then
-        Dim bounds = m_arrayBounds(arrayName)
-        Return If(node.IsLbound, bounds.Lower, bounds.Upper)
-      Else
-        ' Use symbol bounds (from DIM declaration)
-        Dim lower = If(node.ArrayVariable.Lower IsNot Nothing, CInt(EvaluateExpression(node.ArrayVariable.Lower)), 0)
-        Dim upper = If(node.ArrayVariable.Upper IsNot Nothing, CInt(EvaluateExpression(node.ArrayVariable.Upper)), 10)
-        Return If(node.IsLbound, lower, upper)
+        Dim boundsInfo = m_arrayBounds(arrayName)
+        Dim bounds = boundsInfo.Bounds
+        If dimension - 1 < bounds.Count Then
+          Return If(node.IsLbound, bounds(dimension - 1).Lower, bounds(dimension - 1).Upper)
+        End If
       End If
+      ' Use symbol bounds (from DIM declaration)
+      Dim lower = If(node.ArrayVariable.Lower IsNot Nothing, CInt(EvaluateExpression(node.ArrayVariable.Lower)), 0)
+      Dim upper = If(node.ArrayVariable.Upper IsNot Nothing, CInt(EvaluateExpression(node.ArrayVariable.Upper)), 10)
+      Return If(node.IsLbound, lower, upper)
     End Function
 
     Private Function EvaluateExpression(node As BoundExpression) As Object
@@ -3475,7 +3529,7 @@ Namespace Global.QB.CodeAnalysis
           If currentLocals.ContainsKey(node.Variable.Name) Then
             Dim value = currentLocals(node.Variable.Name)
             If TypeOf value Is ByRefVariable Then
-              Return m_globals(DirectCast(value, ByRefVariable).Name)
+              Return ResolveByRefVariable(DirectCast(value, ByRefVariable), 0)
             Else
               Return value
             End If
@@ -3499,7 +3553,7 @@ Namespace Global.QB.CodeAnalysis
           If currentLocals.ContainsKey(node.Variable.Name) Then
             Dim value = currentLocals(node.Variable.Name)
             If TypeOf value Is ByRefVariable Then
-              Return m_globals(DirectCast(value, ByRefVariable).Name)
+              Return ResolveByRefVariable(DirectCast(value, ByRefVariable), 0)
             Else
               Return value
             End If
@@ -3567,29 +3621,101 @@ Namespace Global.QB.CodeAnalysis
     Private Function EvaluateArrayAccessExpression(node As BoundArrayAccessExpression) As Object
       Dim arrayName = ResolveArrayName(node.Variable.Name)
       Dim arrayValue As List(Of Object)
-      Dim debugPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "debug.txt")
-      System.IO.File.AppendAllText(debugPath, $"EvaluateArrayAccess: {node.Variable.Name} -> {arrayName}" & vbCrLf)
       arrayValue = CType(m_globals(arrayName), List(Of Object))
 
-      ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
-      Dim lower As Integer
-      Dim upper As Integer
-      If m_arrayBounds.ContainsKey(arrayName) Then
-        Dim bounds = m_arrayBounds(arrayName)
-        lower = bounds.Lower
-        upper = bounds.Upper
+      ' Get dimension information
+      Dim dimensionCount = node.Variable.DimensionCount
+      Dim boundsInfo As (Bounds As List(Of (Lower As Integer, Upper As Integer)), DimCount As Integer) = Nothing
+      Dim hasRuntimeBounds = m_arrayBounds.TryGetValue(arrayName, boundsInfo)
+
+      ' Determine number of indices we're dealing with
+      Dim indicesCount = 0
+      If node.Index IsNot Nothing Then
+        indicesCount = 1
+      ElseIf node.Indices.Length > 0 Then
+        indicesCount = node.Indices.Length
+      End If
+
+      ' Calculate flat index for multi-dimensional arrays
+      Dim flatIndex As Integer
+
+      If hasRuntimeBounds AndAlso indicesCount > 1 Then
+        ' Multi-dimensional array with runtime bounds
+        Dim bounds = boundsInfo.Bounds
+        Dim indices = New Integer(indicesCount - 1) {}
+
+        ' Evaluate all indices
+        For i = 0 To indicesCount - 1
+          If node.Index IsNot Nothing AndAlso i = 0 Then
+            indices(i) = CInt(EvaluateExpression(node.Index))
+          ElseIf node.Indices.Length > 0 Then
+            indices(i) = CInt(EvaluateExpression(node.Indices(i)))
+          End If
+
+          ' Bounds checking for each dimension
+          Dim lower = bounds(i).Lower
+          Dim upper = bounds(i).Upper
+          If indices(i) < lower OrElse indices(i) > upper Then
+            Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+          End If
+        Next
+
+        ' Calculate flat index: for 2D: (i1 - lower1) * (upper2 - lower2 + 1) + (i2 - lower2)
+        flatIndex = 0
+        Dim multiplier = 1
+        For i = indicesCount - 1 To 0 Step -1
+          Dim lower = bounds(i).Lower
+          flatIndex += (indices(i) - lower) * multiplier
+          If i > 0 Then
+            multiplier *= (bounds(i - 1).Upper - bounds(i - 1).Lower + 1)
+          End If
+        Next
+      ElseIf hasRuntimeBounds Then
+        ' Single dimension with runtime bounds
+        Dim bounds = boundsInfo.Bounds(0)
+        Dim index = CInt(EvaluateExpression(node.Index))
+        If index < bounds.Lower OrElse index > bounds.Upper Then
+          Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+        End If
+        flatIndex = index - bounds.Lower
       Else
-        lower = If(node.Variable.Lower IsNot Nothing, CInt(EvaluateExpression(node.Variable.Lower)), 0)
-        upper = If(node.Variable.Upper IsNot Nothing, CInt(EvaluateExpression(node.Variable.Upper)), arrayValue.Count - 1)
-      End If
-      Dim index = CInt(EvaluateExpression(node.Index))
+        ' No runtime bounds - use symbol bounds or infer
+        Dim lower = If(node.Variable.Lower IsNot Nothing, CInt(EvaluateExpression(node.Variable.Lower)), 0)
+        Dim upper = If(node.Variable.Upper IsNot Nothing, CInt(EvaluateExpression(node.Variable.Upper)), arrayValue.Count - 1)
 
-      ' Handle bounds checking
-      If index < lower OrElse index > upper Then
-        Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+        If indicesCount > 1 Then
+          ' Multi-dimensional but no runtime bounds - need to infer from array size
+          ' For arena(1 TO 50, 1 TO 80), we have 4000 elements
+          ' We can try to infer the second dimension size
+          Dim indices = New Integer(indicesCount - 1) {}
+          For i = 0 To indicesCount - 1
+            If node.Index IsNot Nothing AndAlso i = 0 Then
+              indices(i) = CInt(EvaluateExpression(node.Index))
+            ElseIf node.Indices.Length > 0 Then
+              indices(i) = CInt(EvaluateExpression(node.Indices(i)))
+            End If
+          Next
+
+          ' Calculate flat index assuming dimension 2 size = totalSize / dimension1 size
+          ' This is a heuristic - for arena(1 TO 50, 1 TO 80), totalSize = 4000, dim1 = 50, so dim2 = 80
+          Dim dim1Size = upper - lower + 1
+          If dimensionCount = 2 AndAlso arrayValue.Count Mod dim1Size = 0 Then
+            Dim dim2Size = arrayValue.Count \ dim1Size
+            flatIndex = (indices(0) - lower) * dim2Size + (indices(1) - lower)
+          Else
+            flatIndex = indices(0) - lower
+          End If
+        Else
+          ' Single dimension
+          Dim index = CInt(EvaluateExpression(node.Index))
+          If index < lower OrElse index > upper Then
+            Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+          End If
+          flatIndex = index - lower
+        End If
       End If
 
-      Return arrayValue(index - lower)
+      Return arrayValue(flatIndex)
     End Function
 
     Private Function EvaluateArrayAccessExpressionForAssignment(node As BoundArrayAccessExpression, Optional shadowName As String = Nothing) As (Array As List(Of Object), Index As Integer)
@@ -3607,25 +3733,96 @@ Namespace Global.QB.CodeAnalysis
       End If
       arrayValue = CType(m_globals(arrayName), List(Of Object))
 
-      ' Use current bounds if available (updated by REDIM), otherwise use symbol bounds
-      Dim lower As Integer
-      Dim upper As Integer
-      If m_arrayBounds.ContainsKey(arrayName) Then
-        Dim bounds = m_arrayBounds(arrayName)
-        lower = bounds.Lower
-        upper = bounds.Upper
+      ' Get dimension information
+      Dim dimensionCount = node.Variable.DimensionCount
+      Dim boundsInfo As (Bounds As List(Of (Lower As Integer, Upper As Integer)), DimCount As Integer) = Nothing
+      Dim hasRuntimeBounds = m_arrayBounds.TryGetValue(arrayName, boundsInfo)
+
+      ' Determine number of indices
+      Dim indicesCount = 0
+      If node.Index IsNot Nothing Then
+        indicesCount = 1
+      ElseIf node.Indices.Length > 0 Then
+        indicesCount = node.Indices.Length
+      End If
+
+      ' Calculate flat index for multi-dimensional arrays
+      Dim flatIndex As Integer
+
+      If hasRuntimeBounds AndAlso indicesCount > 1 Then
+        ' Multi-dimensional array with runtime bounds
+        Dim bounds = boundsInfo.Bounds
+        Dim indices = New Integer(indicesCount - 1) {}
+
+        ' Evaluate all indices
+        For i = 0 To indicesCount - 1
+          If node.Index IsNot Nothing AndAlso i = 0 Then
+            indices(i) = CInt(EvaluateExpression(node.Index))
+          ElseIf node.Indices.Length > 0 Then
+            indices(i) = CInt(EvaluateExpression(node.Indices(i)))
+          End If
+
+          ' Bounds checking for each dimension
+          Dim lower = bounds(i).Lower
+          Dim upper = bounds(i).Upper
+          If indices(i) < lower OrElse indices(i) > upper Then
+            Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+          End If
+        Next
+
+        ' Calculate flat index
+        flatIndex = 0
+        Dim multiplier = 1
+        For i = indicesCount - 1 To 0 Step -1
+          Dim lower = bounds(i).Lower
+          flatIndex += (indices(i) - lower) * multiplier
+          If i > 0 Then
+            multiplier *= (bounds(i - 1).Upper - bounds(i - 1).Lower + 1)
+          End If
+        Next
+      ElseIf hasRuntimeBounds Then
+        ' Single dimension with runtime bounds
+        Dim bounds = boundsInfo.Bounds(0)
+        Dim index = CInt(EvaluateExpression(node.Index))
+        If index < bounds.Lower OrElse index > bounds.Upper Then
+          Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+        End If
+        flatIndex = index - bounds.Lower
       Else
-        lower = If(node.Variable.Lower IsNot Nothing, CInt(EvaluateExpression(node.Variable.Lower)), 0)
-        upper = If(node.Variable.Upper IsNot Nothing, CInt(EvaluateExpression(node.Variable.Upper)), arrayValue.Count - 1)
-      End If
-      Dim index = CInt(EvaluateExpression(node.Index))
+        ' No runtime bounds - use symbol bounds or infer
+        Dim lower = If(node.Variable.Lower IsNot Nothing, CInt(EvaluateExpression(node.Variable.Lower)), 0)
+        Dim upper = If(node.Variable.Upper IsNot Nothing, CInt(EvaluateExpression(node.Variable.Upper)), arrayValue.Count - 1)
 
-      ' Handle bounds checking
-      If index < lower OrElse index > upper Then
-        Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+        If indicesCount > 1 Then
+          ' Multi-dimensional but no runtime bounds
+          Dim indices = New Integer(indicesCount - 1) {}
+          For i = 0 To indicesCount - 1
+            If node.Index IsNot Nothing AndAlso i = 0 Then
+              indices(i) = CInt(EvaluateExpression(node.Index))
+            ElseIf node.Indices.Length > 0 Then
+              indices(i) = CInt(EvaluateExpression(node.Indices(i)))
+            End If
+          Next
+
+          ' Calculate flat index using heuristic
+          Dim dim1Size = upper - lower + 1
+          If dimensionCount = 2 AndAlso arrayValue.Count Mod dim1Size = 0 Then
+            Dim dim2Size = arrayValue.Count \ dim1Size
+            flatIndex = (indices(0) - lower) * dim2Size + (indices(1) - lower)
+          Else
+            flatIndex = indices(0) - lower
+          End If
+        Else
+          ' Single dimension
+          Dim index = CInt(EvaluateExpression(node.Index))
+          If index < lower OrElse index > upper Then
+            Throw New QBasicRuntimeException(ErrorCode.SubscriptOutOfRange)
+          End If
+          flatIndex = index - lower
+        End If
       End If
 
-      Return (arrayValue, index - lower)
+      Return (arrayValue, flatIndex)
     End Function
 
     Private Function EvaluateAssignmentExpression(node As BoundAssignmentExpression) As Object
@@ -4737,7 +4934,7 @@ Namespace Global.QB.CodeAnalysis
       Else
         Dim locals = m_locals.Peek
         If locals.ContainsKey(variable.Name) AndAlso TypeOf locals(variable.Name) Is ByRefVariable Then
-          m_globals(DirectCast(locals(variable.Name), ByRefVariable).Name) = value
+          SetByRefVariable(DirectCast(locals(variable.Name), ByRefVariable), value)
           If Global.Globals.s_logging Then FireVariableChanged(variable.Name, If(hasOldValue, oldValue, Nothing), value, physicalLine, qbasicLine, VariableChangedEventArgs.VariableKind.Scalar)
         Else
           locals(variable.Name) = value
@@ -5084,7 +5281,10 @@ Namespace Global.QB.CodeAnalysis
       For i = 0 To length - 1
         result.Add(defaultValue)
       Next
-      m_arrayBounds(variable.Name) = (lower, upper)
+      ' Store bounds as list with dimension count
+      Dim boundsList = New List(Of (Lower As Integer, Upper As Integer))()
+      boundsList.Add((lower, upper))
+      m_arrayBounds(variable.Name) = (boundsList, variable.DimensionCount)
       Return result
     End Function
 

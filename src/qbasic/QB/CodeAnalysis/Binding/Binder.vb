@@ -936,11 +936,19 @@ Namespace Global.QB.CodeAnalysis.Binding
           Return New BoundVariableExpression(variableSymbol)
         End If
 
-        ' For multi-dimensional arrays, we need to combine the indices
-        ' For now, just bind the first argument (single dimension arrays)
-        ' TODO: Implement proper multi-dimensional index calculation
-        Dim index = BindExpression(syntax.Arguments(0))
-        Return New BoundArrayAccessExpression(variableSymbol, index)
+        ' For multi-dimensional arrays, bind all indices
+        If syntax.Arguments.Count = 1 Then
+          ' Single dimension array
+          Dim index = BindExpression(syntax.Arguments(0))
+          Return New BoundArrayAccessExpression(variableSymbol, index)
+        Else
+          ' Multi-dimensional array - bind all indices
+          Dim indices = ImmutableArray.CreateBuilder(Of BoundExpression)()
+          For Each arg In syntax.Arguments
+            indices.Add(BindExpression(arg))
+          Next
+          Return New BoundArrayAccessExpression(variableSymbol, indices.ToImmutable())
+        End If
       End If
 
       ' Check for function calls

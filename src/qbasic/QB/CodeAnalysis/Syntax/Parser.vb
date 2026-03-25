@@ -242,6 +242,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.ShellKeyword : Return ParseShellStatement()
         Case SyntaxKind.SleepKeyword : Return ParseSleepStatement()
         Case SyntaxKind.SoundKeyword : Return ParseSoundStatement()
+        Case SyntaxKind.NoiseKeyword : Return ParseNoiseStatement()
         Case SyntaxKind.StaticKeyword : Return ParseStaticStatement()
         Case SyntaxKind.StopKeyword : Return ParseStopStatement()
         Case SyntaxKind.StrigKeyword : Return ParseStrigStatement()
@@ -3711,6 +3712,21 @@ repeat:
       Dim duration = ParseExpression()
 
       Return New SoundStatementSyntax(m_syntaxTree, soundKeyword, frequency, comma, duration)
+
+    End Function
+
+    Private Function ParseNoiseStatement() As NoiseStatementSyntax
+
+      'Tandy/PCjr: NOISE source, volume, duration
+
+      Dim noiseKeyword = MatchToken(SyntaxKind.NoiseKeyword)
+      Dim source = ParseExpression()
+      Dim comma1 = MatchToken(SyntaxKind.CommaToken)
+      Dim volume = ParseExpression()
+      Dim comma2 = MatchToken(SyntaxKind.CommaToken)
+      Dim duration = ParseExpression()
+
+      Return New NoiseStatementSyntax(m_syntaxTree, noiseKeyword, source, comma1, volume, comma2, duration)
 
     End Function
 

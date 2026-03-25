@@ -244,6 +244,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case "single" : Return SyntaxKind.SingleKeyword
         Case "sleep" : Return SyntaxKind.SleepKeyword
         Case "sound" : Return SyntaxKind.SoundKeyword
+        Case "noise" : Return SyntaxKind.NoiseKeyword
         Case "spc" : Return SyntaxKind.SpcKeyword
         Case "static" : Return SyntaxKind.StaticKeyword
         Case "step" : Return SyntaxKind.StepKeyword
@@ -444,6 +445,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
         Case SyntaxKind.SingleKeyword : Return "SINGLE"
         Case SyntaxKind.SleepKeyword : Return "SLEEP"
         Case SyntaxKind.SoundKeyword : Return "SOUND"
+        Case SyntaxKind.NoiseKeyword : Return "NOISE"
         Case SyntaxKind.SpcKeyword : Return "SPC"
         Case SyntaxKind.StaticKeyword : Return "STATIC"
         Case SyntaxKind.StepKeyword : Return "STEP"

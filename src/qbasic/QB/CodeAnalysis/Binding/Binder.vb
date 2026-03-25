@@ -656,6 +656,7 @@ Namespace Global.QB.CodeAnalysis.Binding
       Select Case syntax.Kind
         Case SyntaxKind.BeepStatement : Return BindBeepStatement(CType(syntax, BeepStatementSyntax))
         Case SyntaxKind.SoundStatement : Return BindSoundStatement(CType(syntax, SoundStatementSyntax))
+        Case SyntaxKind.NoiseStatement : Return BindNoiseStatement(CType(syntax, NoiseStatementSyntax))
         Case SyntaxKind.BlockStatement : Return BindBlockStatement(CType(syntax, BlockStatementSyntax))
         Case SyntaxKind.ChDirStatement : Return BindChDirStatement(CType(syntax, ChDirStatementSyntax))
         Case SyntaxKind.CircleStatement : Return BindCircleStatement(CType(syntax, CircleStatementSyntax))
@@ -1319,6 +1320,13 @@ Namespace Global.QB.CodeAnalysis.Binding
       Dim frequency = BindExpression(syntax.Frequency)
       Dim duration = BindExpression(syntax.Duration)
       Return New BoundSoundStatement(syntax, frequency, duration)
+    End Function
+
+    Private Function BindNoiseStatement(syntax As NoiseStatementSyntax) As BoundStatement
+      Dim source = BindExpression(syntax.Source)
+      Dim volume = BindExpression(syntax.Volume)
+      Dim duration = BindExpression(syntax.Duration)
+      Return New BoundNoiseStatement(syntax, source, volume, duration)
     End Function
 
     Private Function BindPlayStatement(syntax As PlayStatementSyntax) As BoundStatement

@@ -235,6 +235,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     SingleKeyword
     SleepKeyword
     SoundKeyword
+    NoiseKeyword
     SpcKeyword
     StaticKeyword
     StepKeyword
@@ -402,6 +403,7 @@ Namespace Global.QB.CodeAnalysis.Syntax
     ShellStatement
     SleepStatement
     SoundStatement
+    NoiseStatement
     StaticStatement
     StopStatement
     StrigStatement

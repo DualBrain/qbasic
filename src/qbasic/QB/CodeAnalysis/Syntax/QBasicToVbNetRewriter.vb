@@ -331,6 +331,8 @@ Namespace Global.QB.CodeAnalysis.Syntax
           Analysis.ChangesMade.Add("BEEP statement converted to use parentheses")
         Case SyntaxKind.SoundStatement
           Analysis.ChangesMade.Add("SOUND statement converted to use parentheses")
+        Case SyntaxKind.NoiseStatement
+          Analysis.ChangesMade.Add("NOISE statement converted to use parentheses")
         Case SyntaxKind.CircleStatement
           Analysis.ChangesMade.Add("CIRCLE statement converted to use parentheses")
         Case SyntaxKind.ColorStatement

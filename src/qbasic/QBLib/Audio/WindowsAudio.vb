@@ -125,7 +125,6 @@ Namespace Global.QBLib.Audio
     Private Shared s_targetFrequency As Integer = 0
     Private Shared s_samplesRemaining As Integer = 0
     Private Shared s_samplePhase As Double = 0.0
-    Private Shared s_currentAmplitude As Double = 0.0
     Private Shared ReadOnly s_streamLock As New Object()
 
     Private Shared s_debugEnabled As Boolean = False
@@ -219,7 +218,6 @@ Namespace Global.QBLib.Audio
       s_targetFrequency = 0
       s_samplesRemaining = 0
       s_samplePhase = 0.0
-      s_currentAmplitude = 0.0
 
       s_streamThread = New Thread(AddressOf StreamingLoop)
       s_streamThread.IsBackground = True
@@ -324,35 +322,31 @@ Namespace Global.QBLib.Audio
 
     Private Shared Sub GenerateBuffer(buffer As IntPtr, numSamples As Integer, frequency As Integer)
       Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
-      Const RAMP_SAMPLES As Integer = 50
+      Const ATTACK_SAMPLES As Integer = 20
+      Const DECAY_SAMPLES As Integer = 20
 
       Dim phase = s_samplePhase
-      Dim currentAmp = s_currentAmplitude
       Dim twoPiF As Double = 2.0 * Math.PI * frequency
-      Dim targetAmp As Double = 0.0
-      Dim noteEndSamples As Integer = 0
-
-      If frequency > 0 AndAlso s_samplesRemaining > 0 Then
-        targetAmp = MAX_AMPLITUDE
-        noteEndSamples = Math.Min(RAMP_SAMPLES, s_samplesRemaining \ 4)
-      End If
+      Dim samplesRemaining = s_samplesRemaining
+      Dim inNote As Boolean = (frequency > 0 AndAlso samplesRemaining > 0)
+      Dim decayStart As Integer = Math.Max(0, samplesRemaining - DECAY_SAMPLES)
 
       For j As Integer = 0 To numSamples - 1
         Dim env As Double = 1.0
-        Dim samplesRemaining = s_samplesRemaining - j
 
-        If samplesRemaining <= 0 Then
+        If Not inNote Then
           env = 0.0
         Else
-          If currentAmp < MAX_AMPLITUDE * 0.9 Then
-            env = Math.Min(1.0, currentAmp / MAX_AMPLITUDE + 0.1)
-          End If
-          If samplesRemaining <= noteEndSamples Then
-            env = CDbl(samplesRemaining) / noteEndSamples
+          Dim sampleIndex = samplesRemaining - j
+          If sampleIndex > samplesRemaining - ATTACK_SAMPLES Then
+            env = CDbl(samplesRemaining - sampleIndex) / ATTACK_SAMPLES
+          ElseIf sampleIndex <= decayStart Then
+            env = CDbl(sampleIndex) / decayStart
           End If
         End If
 
-        Dim sample As Double = MAX_AMPLITUDE * env * Math.Sin(phase)
+        Dim squareValue As Double = If(Math.Sin(phase) >= 0.0, MAX_AMPLITUDE, -MAX_AMPLITUDE)
+        Dim sample As Double = squareValue * env
         Dim sampleShort As Short = CShort(Math.Max(Short.MinValue, Math.Min(Short.MaxValue, sample)))
         Marshal.WriteInt16(buffer, j * 2, sampleShort)
 
@@ -367,7 +361,6 @@ Namespace Global.QBLib.Audio
       Next
 
       s_samplePhase = phase
-      s_currentAmplitude = targetAmp
       s_samplesRemaining = Math.Max(0, s_samplesRemaining - numSamples)
     End Sub
 
@@ -376,9 +369,12 @@ Namespace Global.QBLib.Audio
         StartStream()
       End If
 
-      If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then
+      If frequency > AudioConstants.MAX_FREQUENCY Then
         AudioDevice.OnSoundFinished()
         Return
+      End If
+      If frequency < 1 Then
+        frequency = 1
       End If
       If durationTicks < 0 Then
         AudioDevice.OnSoundFinished()
@@ -423,7 +419,6 @@ Namespace Global.QBLib.Audio
         s_targetFrequency = 0
         s_currentFrequency = 0
         s_samplePhase = 0.0
-        s_currentAmplitude = 0.0
       End SyncLock
     End Sub
 
@@ -474,7 +469,7 @@ Namespace Global.QBLib.Audio
           If waveHeader.lpData = IntPtr.Zero Then Return
 
           Try
-            GenerateSineWave(waveHeader.lpData, frequency, numSamples)
+            GenerateSquareWave(waveHeader.lpData, frequency, numSamples)
 
             waveHeader.dwBufferLength = CUInt(bufferSizeInt)
             result = waveOutPrepareHeader(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
@@ -512,14 +507,26 @@ Namespace Global.QBLib.Audio
       waveOutReset(hWaveOut)
     End Sub
 
-    Private Shared Sub GenerateSineWave(buffer As IntPtr, frequency As Integer, numSamples As ULong)
-      Dim amplitude As Double = 0.7 * Short.MaxValue
+    Private Shared Sub GenerateSquareWave(buffer As IntPtr, frequency As Integer, numSamples As ULong)
+      Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
+      Const ATTACK_SAMPLES As Integer = 20
+      Const DECAY_SAMPLES As Integer = 20
+
       Dim twoPiF As Double = 2.0 * Math.PI * frequency
       Dim offset As Integer = 0
+      Dim totalSamples = CInt(Math.Min(numSamples, CUInt(Integer.MaxValue)))
+      Dim decayStart As Integer = Math.Max(0, totalSamples - DECAY_SAMPLES)
 
-      For i As Integer = 0 To CInt(Math.Min(numSamples, CUInt(Integer.MaxValue))) - 1
-        Dim t As Double = CDbl(i) / AudioConstants.SAMPLE_RATE
-        Dim sample As Double = amplitude * Math.Sin(twoPiF * t)
+      For i As Integer = 0 To totalSamples - 1
+        Dim env As Double = 1.0
+        If i < ATTACK_SAMPLES Then
+          env = CDbl(i) / ATTACK_SAMPLES
+        ElseIf i >= decayStart Then
+          env = CDbl(totalSamples - i) / DECAY_SAMPLES
+        End If
+
+        Dim squareValue As Double = If(Math.Sin(twoPiF * CDbl(i) / AudioConstants.SAMPLE_RATE) >= 0.0, MAX_AMPLITUDE, -MAX_AMPLITUDE)
+        Dim sample As Double = squareValue * env
         Dim sampleShort As Short = CShort(Math.Max(Short.MinValue, Math.Min(Short.MaxValue, sample)))
         Marshal.WriteInt16(buffer, offset, sampleShort)
         offset += 2
@@ -540,7 +547,6 @@ Namespace Global.QBLib.Audio
 
       Dim durationMs = CInt(duration * 1000.0 / 18.2)
       If durationMs < 1 Then durationMs = 1
-
 
       Beep(frequency, durationMs)
     End Sub

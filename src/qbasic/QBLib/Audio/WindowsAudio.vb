@@ -143,8 +143,9 @@ Namespace Global.QBLib.Audio
       If s_debugStream IsNot Nothing Then
         s_debugStream.Flush()
         Dim dataSize = s_debugSamples * 2
+        Dim riffSize = 36 + dataSize
         s_debugStream.Seek(4, System.IO.SeekOrigin.Begin)
-        s_debugStream.Write(BitConverter.GetBytes(dataSize), 0, 4)
+        s_debugStream.Write(BitConverter.GetBytes(riffSize), 0, 4)
         s_debugStream.Seek(40, System.IO.SeekOrigin.Begin)
         s_debugStream.Write(BitConverter.GetBytes(dataSize), 0, 4)
         s_debugStream.Flush()
@@ -191,11 +192,12 @@ Namespace Global.QBLib.Audio
       waveFormat.nBlockAlign = CShort(waveFormat.nChannels * waveFormat.wBitsPerSample / 8)
       waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign
 
-      Dim result = waveOutOpen(s_hWaveOut, UInt32.MaxValue, waveFormat, IntPtr.Zero, IntPtr.Zero, 0)
+      Dim hWaveOut As IntPtr = IntPtr.Zero
+      Dim result = waveOutOpen(hWaveOut, UInt32.MaxValue, waveFormat, IntPtr.Zero, IntPtr.Zero, 0)
       If result <> MMRESULT.MMSYSERR_NOERROR Then
-        s_hWaveOut = IntPtr.Zero
         Return
       End If
+      s_hWaveOut = hWaveOut
 
       Dim bufferSize = AudioConstants.SAMPLE_RATE * (AudioConstants.BITS_PER_SAMPLE \ 8) * BUFFER_DURATION_MS \ 1000
       Dim heap = GetProcessHeap()
@@ -309,7 +311,9 @@ Namespace Global.QBLib.Audio
           GenerateBuffer(s_bufferData(i), samplesToGenerate, s_currentFrequency)
 
           Dim result = waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(bufferSize))
-          If result <> MMRESULT.MMSYSERR_NOERROR Then Exit Do
+          If result <> MMRESULT.MMSYSERR_NOERROR Then
+            Exit Do
+          End If
         Next
 
         If audioStarted AndAlso Not hasAudio Then

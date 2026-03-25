@@ -542,7 +542,6 @@ Friend Module Program
       If audioDebugPath IsNot Nothing Then
         QBLib.Audio.AudioDevice.EnableAudioDebug(audioDebugPath)
       End If
-      interpreter = New QB.Interpreter()
       interpreter.Run(sourceText, dumpGlobals, commandLineArgs, effectiveLogFilePath, logToConsole, commandString)
       If audioDebugPath IsNot Nothing Then
         QBLib.Audio.AudioDevice.DisableAudioDebug()

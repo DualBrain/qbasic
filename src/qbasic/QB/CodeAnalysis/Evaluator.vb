@@ -6008,17 +6008,19 @@ Namespace Global.QB.CodeAnalysis
       If sharp Then noteIndex += 1
       If flat Then noteIndex -= 1
       noteIndex = ((noteIndex Mod 12) + 12) Mod 12
-      ' QBasic: A4 = 440Hz at note 57 (octave 4, A = 9)
-      ' formula: 440 * 2^((n-57)/12)
-      Dim noteNum = octave * 12 + noteIndex
-      Return 440.0 * Math.Pow(2.0, (noteNum - 57) / 12.0)
+      ' QBasic: O4C = middle C = 261.63 Hz
+      ' MIDI note 60 = C4 = middle C
+      ' formula: freq = 440 * 2^((noteNum - 69) / 12)
+      ' where noteNum = 12 + octave * 12 + noteIndex (O4 = octave 4 -> note 60)
+      Dim noteNum = 12 + octave * 12 + noteIndex
+      Return 440.0 * Math.Pow(2.0, (noteNum - 69) / 12.0)
     End Function
 
     Private Sub PlayNoteNumber(noteNum As Integer, dotCount As Integer)
       If noteNum = 0 Then
         AudioDevice.Sound(0, 0)
       ElseIf noteNum >= 1 AndAlso noteNum <= 84 Then
-        Dim freq = 440.0 * Math.Pow(2.0, (noteNum - 49) / 12.0)
+        Dim freq = 440.0 * Math.Pow(2.0, (noteNum - 69) / 12.0)
         EmitPlayNote(freq, dotCount, False)
       End If
     End Sub
@@ -6072,7 +6074,7 @@ Namespace Global.QB.CodeAnalysis
         AudioDevice.EmitTone(0, 0, 0.001, False, 0)
       Else
         Dim freq = CInt(frequency)
-        If freq < 37 Then freq = 37
+        If freq < 1 Then freq = 1
         If freq > 32767 Then freq = 32767
         AudioDevice.EmitTone(0, freq, durationSec, False, m_playVolume)
       End If

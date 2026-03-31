@@ -285,7 +285,6 @@ Namespace Global.QBLib.Audio
       Dim bufferSize = CInt(s_buffers(0).dwBufferLength)
       Dim samplesPerBuffer = bufferSize \ 2
 
-      Console.WriteLine("StreamingLoop: starting")
       Do
         If s_cts.IsCancellationRequested Then Exit Do
 
@@ -300,44 +299,37 @@ Namespace Global.QBLib.Audio
         End SyncLock
 
         If hasAudio Then
-          Console.WriteLine("StreamingLoop: got audio from queue")
           ' Write queued audio data to waveOut buffers
           Dim offset As Integer = 0
           Dim remaining = audioData.Length
 
-          ' Just try to write - don't wait initially
-
-          Console.WriteLine("StreamingLoop: entering while, remaining=" & remaining)
-          While remaining > 0 AndAlso Not s_cts.IsCancellationRequested
-            Console.WriteLine("StreamingLoop: while loop, remaining=" & remaining)
-            ' Find a free buffer
-            Dim freeBuffer As Integer = -1
+          ' Just write all at once without checking - fill all buffers
+          For i As Integer = 0 To BUFFER_COUNT - 1
+            Dim copySize As Integer = Math.Min(samplesPerBuffer * 2, remaining)
+            If copySize <= 0 Then Exit For
+            Marshal.Copy(audioData, offset, s_bufferData(i), copySize)
+            Dim result = waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(copySize))
+            offset += copySize
+            remaining -= copySize
+          Next
+          
+          ' Now wait for all buffers to finish, writing more as they become free
+          Do While remaining > 0
+            Thread.Sleep(5) ' Small delay to let buffers play
+            ' Check if any buffer is done
             For i As Integer = 0 To BUFFER_COUNT - 1
               If (s_buffers(i).dwFlags And WHDR_DONE) <> 0 Then
-                freeBuffer = i
-                Exit For
+                ' Buffer is done - write more
+                Dim copySize As Integer = Math.Min(samplesPerBuffer * 2, remaining)
+                If copySize <= 0 Then Exit Do
+                Marshal.Copy(audioData, offset, s_bufferData(i), copySize)
+                Dim result = waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(copySize))
+                offset += copySize
+                remaining -= copySize
               End If
             Next
-
-            If freeBuffer >= 0 Then
-              ' Copy audio to buffer
-              Dim copySize As Integer = Math.Min(samplesPerBuffer * 2, remaining)
-              Marshal.Copy(audioData, offset, s_bufferData(freeBuffer), copySize)
-
-              ' Write to device
-              Dim result = waveOutWrite(s_hWaveOut, s_buffers(freeBuffer), CUInt(copySize))
-              Console.WriteLine(Now.ToString("HH:mm:ss.fff") & " waveOutWrite result=" & result & " copySize=" & copySize)
-              If result <> MMRESULT.MMSYSERR_NOERROR Then
-                Console.WriteLine("StreamingLoop: waveOutWrite FAILED!")
-              End If
-
-              offset += copySize
-              remaining -= copySize
-            Else
-              ' No free buffer, wait a bit
-              Thread.Sleep(1)
-            End If
-          End While
+          Loop
+          Console.WriteLine("Finished writing all audio")
         Else
           ' No audio in queue, sleep briefly
           Thread.Sleep(10)
@@ -471,10 +463,8 @@ Namespace Global.QBLib.Audio
       Dim samplesToPlay As Integer = AudioConstants.SAMPLE_RATE * durationMs \ 1000
       
       ' Generate all audio data upfront and queue it
-      Console.WriteLine("PlayTone: queuing " & samplesToPlay & " samples")
       Dim audioData As Byte() = GenerateAudioData(samplesToPlay, frequency)
       s_audioQueue.Enqueue(audioData)
-      Console.WriteLine("PlayTone: queue count = " & s_audioQueue.Count)
       SyncLock s_streamLock
         s_queuedSamples += samplesToPlay
       End SyncLock

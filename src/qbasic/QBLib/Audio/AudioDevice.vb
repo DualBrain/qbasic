@@ -314,7 +314,6 @@ Namespace Global.QBLib.Audio
         Dim token = m_currentSoundCts.Token
         m_soundPlaying = True
 
-        Console.WriteLine("AudioDevice.Sound: freq=" & frequency & ", duration=" & duration)
         If s_isWindows Then
           WindowsAudio.PlayToneAsync(frequency, duration, token)
         ElseIf s_isLinux Then

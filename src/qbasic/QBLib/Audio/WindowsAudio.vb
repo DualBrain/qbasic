@@ -314,6 +314,14 @@ Namespace Global.QBLib.Audio
           If result <> MMRESULT.MMSYSERR_NOERROR Then
             Exit Do
           End If
+
+          ' Wait for this buffer to finish before writing the next
+          Dim waitStart = Environment.TickCount
+          Do
+            If (s_buffers(i).dwFlags And WHDR_DONE) <> 0 Then Exit Do
+            If Environment.TickCount - waitStart > BUFFER_DURATION_MS Then Exit Do
+            Thread.Sleep(1)
+          Loop
         Next
 
         If audioStarted AndAlso Not hasAudio Then

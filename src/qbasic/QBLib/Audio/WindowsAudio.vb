@@ -399,27 +399,15 @@ Namespace Global.QBLib.Audio
     ' Generate audio data as byte array (for queue-based playback)
     Private Shared Function GenerateAudioData(numSamples As Integer, frequency As Integer) As Byte()
       Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
-      Const ATTACK_SAMPLES As Integer = 20
-      Const DECAY_SAMPLES As Integer = 20
 
       Dim twoPiF As Double = 2.0 * Math.PI * frequency
-      Dim decayStart As Integer = Math.Max(0, numSamples - DECAY_SAMPLES)
       Dim audioData(numSamples * 2 - 1) As Byte
 
       Dim phase = s_samplePhase
       For j As Integer = 0 To numSamples - 1
-        Dim env As Double = 1.0
-
-        Dim sampleIndex = numSamples - j
-        If sampleIndex > numSamples - ATTACK_SAMPLES Then
-          env = CDbl(numSamples - sampleIndex) / ATTACK_SAMPLES
-        ElseIf sampleIndex <= decayStart Then
-          env = CDbl(sampleIndex) / decayStart
-        End If
-
+        ' Constant amplitude - no attack/decay
         Dim squareValue As Double = If(Math.Sin(phase) >= 0.0, MAX_AMPLITUDE, -MAX_AMPLITUDE)
-        Dim sample As Double = squareValue * env
-        Dim sampleShort As Short = CShort(Math.Max(Short.MinValue, Math.Min(Short.MaxValue, sample)))
+        Dim sampleShort As Short = CShort(squareValue)
 
         Dim bytes() As Byte = BitConverter.GetBytes(sampleShort)
         audioData(j * 2) = bytes(0)

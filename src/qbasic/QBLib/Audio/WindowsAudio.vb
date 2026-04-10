@@ -161,6 +161,7 @@ Namespace Global.QBLib.Audio
         s_debugStream.Close()
         s_debugStream = Nothing
       End If
+      StopStream()
     End Sub
 
     Private Shared Sub WriteWavHeader(stream As System.IO.FileStream, sampleRate As Integer, channels As Short, bitsPerSample As Short)
@@ -350,33 +351,12 @@ Namespace Global.QBLib.Audio
         Else
           ' No audio in queue - write silence to debug
           WriteSilenceToDebug(samplesPerBuffer * 2)
-          Thread.Sleep(10)
+          Thread.Sleep(BUFFER_DURATION_MS)
         End If
 
-        ' Check if we should stop - exit when nothing left to play
-        Dim queueEmpty As Boolean = False
-        Dim noPending As Boolean = False
-        Dim noPendingSounds As Boolean = False
-        SyncLock s_streamLock
-          queueEmpty = (s_audioQueue.Count = 0)
-          noPending = (s_queuedSamples = 0)
-          noPendingSounds = (s_pendingSamples = 0)
-        End SyncLock
-        
-        If queueEmpty AndAlso noPending AndAlso noPendingSounds Then
-          ' All audio finished - check if buffers are done, then exit
-          Dim allDone As Boolean = True
-          For i As Integer = 0 To BUFFER_COUNT - 1
-            If (s_buffers(i).dwFlags And WHDR_DONE) = 0 Then
-              allDone = False
-              Exit For
-            End If
-          Next
-          If allDone Then 
-            Exit Do
-          End If
-        End If
-      Loop While s_isStreaming AndAlso Not s_cts.IsCancellationRequested
+        ' Continue recording silence while debug is enabled
+        ' The loop will exit when DisableDebugOutput is called (which sets s_debugEnabled = False)
+      Loop While s_isStreaming AndAlso (s_cts IsNot Nothing AndAlso Not s_cts.IsCancellationRequested)
     End Sub
 
     Private Shared Sub GenerateBuffer(buffer As IntPtr, numSamples As Integer, frequency As Integer)
@@ -453,7 +433,6 @@ Namespace Global.QBLib.Audio
       If s_debugEnabled AndAlso s_debugStream IsNot Nothing Then
         s_debugStream.Write(data, offset, length)
         s_debugSamples += length \ 2
-        Console.WriteLine("WriteAudioToDebug: wrote " & (length \ 2) & " samples, total=" & s_debugSamples)
       End If
     End Sub
 
@@ -545,81 +524,56 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Public Shared Sub Beep(frequency As Integer, durationMs As Integer)
-      If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then
-        Return
-      End If
-      If durationMs < 0 Then Return
-
-      If frequency <= 65535 AndAlso durationMs <= 65535 Then
-        Beep(CUInt(frequency), CUInt(durationMs))
-      Else
-        BeepWithWaveOut(frequency, durationMs)
-      End If
+      Sound(frequency, CInt(durationMs * 18.2 / 1000.0))
     End Sub
 
     Private Shared Sub BeepWithWaveOut(frequency As Integer, durationMs As Integer)
-      Try
-        Dim waveFormat = New WAVEFORMATEX() With {
-          .wFormatTag = CShort(WAVE_FORMAT_PCM),
-          .nChannels = CShort(AudioConstants.CHANNELS),
-          .nSamplesPerSec = AudioConstants.SAMPLE_RATE,
-          .wBitsPerSample = CShort(AudioConstants.BITS_PER_SAMPLE),
-          .cbSize = 0
-        }
-        waveFormat.nBlockAlign = CShort(waveFormat.nChannels * waveFormat.wBitsPerSample / 8)
-        waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign
+      If (Not s_isStreaming) OrElse (s_streamThread Is Nothing) OrElse (Not s_streamThread.IsAlive) Then
+        StartStream()
+      End If
 
-        Dim hWaveOut As IntPtr = IntPtr.Zero
-        Dim result = waveOutOpen(hWaveOut, UInt32.MaxValue, waveFormat, IntPtr.Zero, IntPtr.Zero, 0)
-        If result <> MMRESULT.MMSYSERR_NOERROR Then Return
+      Dim numSamples = CULng(AudioConstants.SAMPLE_RATE) * CULng(durationMs) \ 1000UL
+      Dim audioData As Byte() = GenerateAudioDataForDuration(CInt(numSamples), frequency)
 
-        Try
-          Dim numSamples = CULng(AudioConstants.SAMPLE_RATE) * CULng(durationMs) \ 1000UL
-          Dim bufferSizeBytes = CULng(AudioConstants.BITS_PER_SAMPLE \ 8) * numSamples
-          Dim bufferSizeInt = CInt(Math.Min(bufferSizeBytes, CUInt(Integer.MaxValue)))
+      ' Queue the audio for the streaming system
+      s_audioQueue.Enqueue(Tuple.Create(audioData, CInt(numSamples)))
+      SyncLock s_streamLock
+        s_queuedSamples += CInt(numSamples)
+      End SyncLock
 
-          Dim waveHeader = New WAVEHDR()
-          waveHeader.lpData = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, New IntPtr(bufferSizeInt))
-          If waveHeader.lpData = IntPtr.Zero Then Return
-
-          Try
-            GenerateSquareWave(waveHeader.lpData, frequency, numSamples)
-
-            waveHeader.dwBufferLength = CUInt(bufferSizeInt)
-            result = waveOutPrepareHeader(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
-            If result <> MMRESULT.MMSYSERR_NOERROR Then Return
-
-            Try
-              result = waveOutWrite(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
-              If result = MMRESULT.MMSYSERR_NOERROR Then
-                WaitForWaveDone(hWaveOut)
-              End If
-            Finally
-              waveOutUnprepareHeader(hWaveOut, waveHeader, CUInt(Marshal.SizeOf(waveHeader)))
-            End Try
-          Finally
-            HeapFree(GetProcessHeap(), 0, waveHeader.lpData)
-          End Try
-        Finally
-          waveOutClose(hWaveOut)
-        End Try
-      Catch ex As Exception
-      End Try
+      ' Wait for audio to finish playing
+      Dim durationSec As Double = numSamples / 44100.0
+      Dim totalWaitMs As Integer = CInt(durationSec * 1000.0) + 100
+      Threading.Thread.Sleep(totalWaitMs)
     End Sub
 
-    Private Shared Sub WaitForWaveDone(hWaveOut As IntPtr)
-      Dim waveHeader = New WAVEHDR()
-      Dim timeout = Environment.TickCount + 30000
+    Private Shared Function GenerateAudioDataForDuration(numSamples As Integer, frequency As Integer) As Byte()
+      Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
+      Const ATTACK_SAMPLES As Integer = 20
+      Const DECAY_SAMPLES As Integer = 20
 
-      While Environment.TickCount < timeout
-        Dim result = waveOutWrite(hWaveOut, waveHeader, 0)
-        If result <> MMRESULT.MMSYSERR_NOERROR Then Exit While
-        If (waveHeader.dwFlags And WHDR_DONE) <> 0 Then Exit While
-        Threading.Thread.Sleep(10)
-      End While
+      Dim twoPiF As Double = 2.0 * Math.PI * frequency
+      Dim audioData(numSamples * 2 - 1) As Byte
+      Dim decayStart As Integer = Math.Max(0, numSamples - DECAY_SAMPLES)
 
-      waveOutReset(hWaveOut)
-    End Sub
+      For i As Integer = 0 To numSamples - 1
+        Dim env As Double = 1.0
+        If i < ATTACK_SAMPLES Then
+          env = CDbl(i) / ATTACK_SAMPLES
+        ElseIf i >= decayStart Then
+          env = CDbl(numSamples - i) / DECAY_SAMPLES
+        End If
+
+        Dim squareValue As Double = If(Math.Sin(twoPiF * CDbl(i) / AudioConstants.SAMPLE_RATE) >= 0.0, MAX_AMPLITUDE, -MAX_AMPLITUDE)
+        Dim sample As Double = squareValue * env
+        Dim sampleShort As Short = CShort(Math.Max(Short.MinValue, Math.Min(Short.MaxValue, sample)))
+        Dim bytes() As Byte = BitConverter.GetBytes(sampleShort)
+        audioData(i * 2) = bytes(0)
+        audioData(i * 2 + 1) = bytes(1)
+      Next
+
+      Return audioData
+    End Function
 
     Private Shared Sub GenerateSquareWave(buffer As IntPtr, frequency As Integer, numSamples As ULong)
       Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
@@ -662,7 +616,7 @@ Namespace Global.QBLib.Audio
       Dim durationMs = CInt(duration * 1000.0 / 18.2)
       If durationMs < 1 Then durationMs = 1
 
-      Beep(frequency, durationMs)
+      BeepWithWaveOut(frequency, durationMs)
     End Sub
 
 #End Region

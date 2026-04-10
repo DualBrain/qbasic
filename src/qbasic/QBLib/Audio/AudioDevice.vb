@@ -269,19 +269,13 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Public Sub Beep()
-      If s_isWindows Then
-        WindowsAudio.Beep()
-      ElseIf s_isLinux Then
-        LinuxAudio.Beep()
-      End If
+      Dim durationTicks As Integer = CInt(AudioConstants.DEFAULT_BEEP_DURATION_MS * 18.2 / 1000.0)
+      Sound(AudioConstants.DEFAULT_BEEP_FREQUENCY, durationTicks)
     End Sub
 
     Public Sub Beep(frequency As Integer, durationMs As Integer)
-      If s_isWindows Then
-        WindowsAudio.Beep(frequency, durationMs)
-      ElseIf s_isLinux Then
-        LinuxAudio.Beep(frequency, durationMs)
-      End If
+      Dim durationTicks As Integer = CInt(durationMs * 18.2 / 1000.0)
+      Sound(frequency, durationTicks)
     End Sub
 
     Public Sub Sound(frequency As Integer, duration As Integer)
@@ -315,10 +309,11 @@ Namespace Global.QBLib.Audio
         m_soundPlaying = True
 
         If s_isWindows Then
-          WindowsAudio.PlayToneAsync(frequency, duration, token)
+          WindowsAudio.Sound(frequency, duration)
         ElseIf s_isLinux Then
-          LinuxAudio.SoundAsync(frequency, duration, token)
+          LinuxAudio.Sound(frequency, duration)
         End If
+        m_soundPlaying = False
       End SyncLock
     End Sub
 

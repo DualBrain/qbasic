@@ -493,20 +493,11 @@ Namespace Global.QBLib.Audio
       s_audioQueue.Enqueue(Tuple.Create(audioData, samplesToPlay))
       SyncLock s_streamLock
         s_queuedSamples += samplesToPlay
-        s_pendingSamples = samplesToPlay  ' Track THIS sound's samples
+        s_pendingSamples = samplesToPlay
       End SyncLock
 
-      ' Wait for THIS sound's samples to be written to buffers
-      ' StreamingLoop will decrement s_pendingSamples as it writes
-      Do
-        Dim pending As Integer = 0
-        SyncLock s_streamLock
-          pending = s_pendingSamples
-        End SyncLock
-        If pending <= 0 Then Exit Do
-        Thread.Sleep(10)
-      Loop
-
+      ' For foreground (MF) mode, we don't wait here - caller will Call WaitForSound()
+      ' Return immediately - sound plays asynchronously via streaming loop
       If Not token.IsCancellationRequested Then
         AudioDevice.OnSoundFinished()
       End If

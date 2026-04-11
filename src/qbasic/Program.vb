@@ -544,7 +544,7 @@ Friend Module Program
       End If
       interpreter.Run(sourceText, dumpGlobals, commandLineArgs, effectiveLogFilePath, logToConsole, commandString)
       If audioDebugPath IsNot Nothing Then
-        Threading.Thread.Sleep(500) ' Allow debug recording to capture any trailing silence
+        Threading.Thread.Sleep(1000) ' Allow final sounds to be queued and finish playing
         QBLib.Audio.AudioDevice.DisableAudioDebug()
         Console.WriteLine($"Audio debug saved to: {System.IO.Path.GetFullPath(audioDebugPath)}")
       End If

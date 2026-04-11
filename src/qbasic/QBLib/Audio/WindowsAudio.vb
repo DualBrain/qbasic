@@ -148,7 +148,16 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Public Shared Sub DisableDebugOutput()
+      ' First disable debug mode - this signals the streaming loop to stop gracefully
       s_debugEnabled = False
+      
+      ' Wait for streaming loop to finish naturally (with timeout)
+      Dim timeout = Environment.TickCount + 2000
+      Do While s_isStreaming AndAlso s_streamThread IsNot Nothing AndAlso s_streamThread.IsAlive AndAlso Environment.TickCount < timeout
+        Threading.Thread.Sleep(10)
+      Loop
+      
+      ' Then close the file and stop the stream if needed
       If s_debugStream IsNot Nothing Then
         s_debugStream.Flush()
         Dim dataSize = s_debugSamples * 2
@@ -161,7 +170,11 @@ Namespace Global.QBLib.Audio
         s_debugStream.Close()
         s_debugStream = Nothing
       End If
-      StopStream()
+      
+      ' Now stop the stream if still running
+      If s_isStreaming Then
+        StopStream()
+      End If
     End Sub
 
     Private Shared Sub WriteWavHeader(stream As System.IO.FileStream, sampleRate As Integer, channels As Short, bitsPerSample As Short)
@@ -305,57 +318,63 @@ Namespace Global.QBLib.Audio
         End SyncLock
 
         Dim audioData() As Byte = Nothing
-        If hasAudio Then
+If hasAudio Then
           audioData = audioEntry.Item1
-          ' Write queued audio data to waveOut buffers
           Dim offset As Integer = 0
           Dim remaining = audioData.Length
 
-          ' Just write all at once without checking - fill all buffers
+          ' Write all available buffers first (without waiting)
           For i As Integer = 0 To BUFFER_COUNT - 1
+            If remaining <= 0 Then Exit For
             Dim copySize As Integer = Math.Min(samplesPerBuffer * 2, remaining)
-            If copySize <= 0 Then 
-              ' Fill rest with silence for debug
-              WriteSilenceToDebug(samplesPerBuffer * 2 - remaining)
-              Exit For
-            End If
             Marshal.Copy(audioData, offset, s_bufferData(i), copySize)
             WriteAudioToDebug(audioData, offset, copySize)
-            Dim result = waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(copySize))
+            waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(copySize))
             offset += copySize
             remaining -= copySize
           Next
-          
-          ' Write remaining audio at fixed intervals, decrementing pending samples
+
+          ' Then write remaining audio - wait for buffer to become free
           Do While remaining > 0
-            Thread.Sleep(50) ' Write every 50ms
-            ' Try to write to any buffer
+            Thread.Sleep(BUFFER_DURATION_MS)
             For i As Integer = 0 To BUFFER_COUNT - 1
-              If remaining <= 0 Then 
-                WriteSilenceToDebug(samplesPerBuffer * 2)
-                Exit Do
+              If remaining <= 0 Then Exit Do
+              If (s_buffers(i).dwFlags And WHDR_DONE) <> 0 Then
+                Dim copySize As Integer = Math.Min(samplesPerBuffer * 2, remaining)
+                Marshal.Copy(audioData, offset, s_bufferData(i), copySize)
+                WriteAudioToDebug(audioData, offset, copySize)
+                waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(copySize))
+                offset += copySize
+                remaining -= copySize
               End If
-              Dim copySize As Integer = Math.Min(samplesPerBuffer * 2, remaining)
-              Marshal.Copy(audioData, offset, s_bufferData(i), copySize)
-              WriteAudioToDebug(audioData, offset, copySize)
-              waveOutWrite(s_hWaveOut, s_buffers(i), CUInt(copySize))
-              offset += copySize
-              remaining -= copySize
-              ' Track samples as they're written
-              SyncLock s_streamLock
-                s_pendingSamples = Math.Max(0, s_pendingSamples - (copySize \ 2))
-              End SyncLock
             Next
           Loop
-          Console.WriteLine("Finished writing all audio")
         Else
-          ' No audio in queue - write silence to debug
-          WriteSilenceToDebug(samplesPerBuffer * 2)
-          Thread.Sleep(BUFFER_DURATION_MS)
+          ' No audio in queue - don't write anything
+          Thread.Sleep(10)
         End If
 
-        ' Continue recording silence while debug is enabled
-        ' The loop will exit when DisableDebugOutput is called (which sets s_debugEnabled = False)
+        ' Keep streaming alive while debug recording is enabled
+        If Not s_debugEnabled Then
+          ' Check if all audio is done and we should exit
+          Dim queueEmpty As Boolean = False
+          Dim noPending As Boolean = False
+          SyncLock s_streamLock
+            queueEmpty = (s_audioQueue.Count = 0)
+            noPending = (s_queuedSamples = 0)
+          End SyncLock
+          
+          If queueEmpty AndAlso noPending Then
+            Dim allDone As Boolean = True
+            For i As Integer = 0 To BUFFER_COUNT - 1
+              If s_bufferData(i) <> IntPtr.Zero AndAlso (s_buffers(i).dwFlags And WHDR_DONE) = 0 Then
+                allDone = False
+                Exit For
+              End If
+            Next
+            If allDone Then Exit Do
+          End If
+        End If
       Loop While s_isStreaming AndAlso (s_cts IsNot Nothing AndAlso Not s_cts.IsCancellationRequested)
     End Sub
 
@@ -540,11 +559,7 @@ Namespace Global.QBLib.Audio
       SyncLock s_streamLock
         s_queuedSamples += CInt(numSamples)
       End SyncLock
-
-      ' Wait for audio to finish playing
-      Dim durationSec As Double = numSamples / 44100.0
-      Dim totalWaitMs As Integer = CInt(durationSec * 1000.0) + 100
-      Threading.Thread.Sleep(totalWaitMs)
+      ' Return immediately - sound plays asynchronously
     End Sub
 
     Private Shared Function GenerateAudioDataForDuration(numSamples As Integer, frequency As Integer) As Byte()

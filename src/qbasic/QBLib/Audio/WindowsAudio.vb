@@ -534,6 +534,35 @@ Namespace Global.QBLib.Audio
       End While
     End Sub
 
+    Public Shared Function HasQueuedAudio() As Boolean
+      ' Check if there are buffers still playing or audio in queue
+      Dim hasPlaying As Boolean = False
+      For i As Integer = 0 To BUFFER_COUNT - 1
+        If s_bufferData(i) <> IntPtr.Zero AndAlso (s_buffers(i).dwFlags And WHDR_DONE) = 0 Then
+          hasPlaying = True
+          Exit For
+        End If
+      Next
+      Dim hasQueued As Boolean = False
+      SyncLock s_streamLock
+        hasQueued = s_audioQueue.Count > 0 OrElse s_queuedSamples > 0 OrElse hasPlaying
+      End SyncLock
+      Return hasQueued
+    End Function
+
+    Private Shared s_lastSoundEndTime As Long = 0
+
+    Public Shared Sub WaitForPendingAudio()
+      ' Simply wait a reasonable time for the previous sound to finish
+      ' The duration of the last sound was stored, so just wait for that
+      Dim endTime As Long = Interlocked.Read(s_lastSoundEndTime)
+      If endTime > Environment.TickCount Then
+        Do While endTime > Environment.TickCount
+          Thread.Sleep(10)
+        Loop
+      End If
+    End Sub
+
 #End Region
 
 #Region "Legacy Beep (for simple beeps)"
@@ -559,6 +588,11 @@ Namespace Global.QBLib.Audio
       SyncLock s_streamLock
         s_queuedSamples += CInt(numSamples)
       End SyncLock
+      
+      ' Set when this sound will finish playing
+      ' We estimate playback time based on samples / sample rate + buffer
+      Dim playTimeMs As Integer = CInt(numSamples) * 1000 \ AudioConstants.SAMPLE_RATE + 100
+      Interlocked.Exchange(s_lastSoundEndTime, Environment.TickCount + playTimeMs + 100)
       ' Return immediately - sound plays asynchronously
     End Sub
 

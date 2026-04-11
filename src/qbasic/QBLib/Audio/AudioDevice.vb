@@ -304,6 +304,12 @@ Namespace Global.QBLib.Audio
           Return
         End If
 
+        ' Wait for any previously started sound to finish playing
+        ' Based on the duration/timing from when it was started
+        If s_isWindows Then
+          WindowsAudio.WaitForPendingAudio()
+        End If
+
         m_currentSoundCts = New CancellationTokenSource()
         Dim token = m_currentSoundCts.Token
         m_soundPlaying = True

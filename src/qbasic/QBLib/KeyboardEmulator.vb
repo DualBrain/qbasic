@@ -2,7 +2,7 @@ Namespace Global.QBLib
 
   Public NotInheritable Class KeyboardEmulator
 
-    Private Shared m_memory(65535) As Byte
+    Private Shared ReadOnly m_memory(65535) As Byte
     Private Shared m_initialized As Boolean = False
 
     Private Shared ReadOnly ImplementedBiosAddresses As New Dictionary(Of Integer, String) From {

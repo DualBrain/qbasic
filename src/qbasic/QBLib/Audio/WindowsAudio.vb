@@ -126,12 +126,12 @@ Namespace Global.QBLib.Audio
     Private Shared s_samplesRemaining As Integer = 0
     Private Shared s_samplePhase As Double = 0.0
     Private Shared ReadOnly s_streamLock As New Object()
-    
+
     ' Queue-based audio buffer system
     ' Each entry: (audioData As Byte(), totalSamples As Integer)
     Private Shared ReadOnly s_audioQueue As New System.Collections.Concurrent.ConcurrentQueue(Of Tuple(Of Byte(), Integer))
     Private Shared s_queuedSamples As Integer = 0
-    
+
     ' Track samples pending completion for current SOUND
     Private Shared s_pendingSamples As Integer = 0
     Private Shared s_currentAudioSamples As Integer = 0
@@ -150,13 +150,13 @@ Namespace Global.QBLib.Audio
     Public Shared Sub DisableDebugOutput()
       ' First disable debug mode - this signals the streaming loop to stop gracefully
       s_debugEnabled = False
-      
+
       ' Wait for streaming loop to finish naturally (with timeout)
       Dim timeout = Environment.TickCount + 2000
       Do While s_isStreaming AndAlso s_streamThread IsNot Nothing AndAlso s_streamThread.IsAlive AndAlso Environment.TickCount < timeout
         Threading.Thread.Sleep(10)
       Loop
-      
+
       ' Then close the file and stop the stream if needed
       If s_debugStream IsNot Nothing Then
         s_debugStream.Flush()
@@ -170,7 +170,7 @@ Namespace Global.QBLib.Audio
         s_debugStream.Close()
         s_debugStream = Nothing
       End If
-      
+
       ' Now stop the stream if still running
       If s_isStreaming Then
         StopStream()
@@ -318,7 +318,7 @@ Namespace Global.QBLib.Audio
         End SyncLock
 
         Dim audioData() As Byte = Nothing
-If hasAudio Then
+        If hasAudio Then
           audioData = audioEntry.Item1
           Dim offset As Integer = 0
           Dim remaining = audioData.Length
@@ -363,7 +363,7 @@ If hasAudio Then
             queueEmpty = (s_audioQueue.Count = 0)
             noPending = (s_queuedSamples = 0)
           End SyncLock
-          
+
           If queueEmpty AndAlso noPending Then
             Dim allDone As Boolean = True
             For i As Integer = 0 To BUFFER_COUNT - 1
@@ -487,7 +487,7 @@ If hasAudio Then
       End If
 
       Dim samplesToPlay As Integer = AudioConstants.SAMPLE_RATE * durationMs \ 1000
-      
+
       ' Generate all audio data upfront and queue it as tuple (data, sampleCount)
       Dim audioData As Byte() = GenerateAudioData(samplesToPlay, frequency)
       s_audioQueue.Enqueue(Tuple.Create(audioData, samplesToPlay))
@@ -517,7 +517,7 @@ If hasAudio Then
                  Try
                    PlayTone(frequency, durationTicks, token)
                  Catch ex As Exception
-                   End Try
+                 End Try
                End Sub, token)
     End Sub
 

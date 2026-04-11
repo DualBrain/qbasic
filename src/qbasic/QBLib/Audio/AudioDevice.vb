@@ -131,7 +131,7 @@ Namespace Global.QBLib.Audio
       New TimedQueue(),
       New TimedQueue()
     }
-    Private m_noiseFrequencies As Double() = {
+    Private ReadOnly m_noiseFrequencies As Double() = {
       3579545.0 / 1024.0,
       3579545.0 / 1024.0 / 2.0,
       3579545.0 / 1024.0 / 4.0,

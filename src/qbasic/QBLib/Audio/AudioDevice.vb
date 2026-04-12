@@ -233,6 +233,8 @@ Namespace Global.QBLib.Audio
           If m_musicQueue.Count > 0 Then
             note = m_musicQueue(0)
             m_musicQueue.RemoveAt(0)
+          Else
+            Exit Do
           End If
         End SyncLock
 

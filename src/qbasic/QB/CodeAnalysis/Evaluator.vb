@@ -5988,9 +5988,7 @@ Namespace Global.QB.CodeAnalysis
         End If
       End While
 
-      If m_playMode = "MB" Then
-        AudioDevice.WaitForBackground(1)
-      End If
+      'MB mode returns immediately, no waiting
     End Sub
 
     Private Function GetNoteFrequencyFromChar(noteChar As Char, octave As Integer, sharp As Boolean, flat As Boolean) As Double
@@ -6069,18 +6067,15 @@ Namespace Global.QB.CodeAnalysis
     Private Sub EmitPlayNote(frequency As Double, dotCount As Integer, isRest As Boolean)
       Dim durationSec = CalculatePlayDurationSeconds(dotCount)
       Dim durationTicks = CInt(durationSec * 18.2)
+      Dim waitForComplete = (m_playMode = "MF")
 
       If isRest OrElse frequency = 0 Then
-        AudioDevice.EmitTone(0, 0, 0.001, False, 0)
+        AudioDevice.EmitTone(0, 0, 0.001, False, 0, waitForComplete)
       Else
         Dim freq = CInt(frequency)
         If freq < 1 Then freq = 1
         If freq > 32767 Then freq = 32767
-        AudioDevice.EmitTone(0, freq, durationSec, False, m_playVolume)
-      End If
-
-      If m_playMode = "MF" Then
-        AudioDevice.WaitForSound()
+        AudioDevice.EmitTone(0, freq, durationSec, False, m_playVolume, waitForComplete)
       End If
     End Sub
 

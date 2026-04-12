@@ -254,6 +254,10 @@ Namespace Global.QBLib.Audio
         Return
       End If
 
+      If s_isWindows Then
+        WindowsAudio.WaitForPendingAudio()
+      End If
+
       m_currentSoundCts = New CancellationTokenSource()
       Dim token = m_currentSoundCts.Token
 
@@ -414,7 +418,7 @@ Namespace Global.QBLib.Audio
       m_beepOn = isOn
     End Sub
 
-    Public Sub EmitTone(voice As Integer, frequency As Integer, durationSec As Double, looped As Boolean, volume As Integer)
+    Public Sub EmitTone(voice As Integer, frequency As Integer, durationSec As Double, looped As Boolean, volume As Integer, Optional waitForComplete As Boolean = False)
       If voice < 0 OrElse voice > 3 Then Return
 
       If Not (m_beepOn OrElse m_soundOn) Then
@@ -430,12 +434,24 @@ Namespace Global.QBLib.Audio
       m_voices(voice).Add(frequency, CInt(durationSec * 1000.0), volume, False, looped)
 
       If m_soundOn Then
-        m_currentSoundCts = New CancellationTokenSource()
-        m_soundPlaying = True
-        If s_isWindows Then
-          WindowsAudio.PlayToneAsync(frequency, durationTicks, m_currentSoundCts.Token)
-        ElseIf s_isLinux Then
-          LinuxAudio.SoundAsync(frequency, durationTicks, m_currentSoundCts.Token)
+        If m_musicMode = MusicMode.Background Then
+          SyncLock m_musicQueueLock
+            If m_musicQueue.Count < 32 Then
+              m_musicQueue.Add((frequency, durationTicks))
+            End If
+          End SyncLock
+        Else
+          m_currentSoundCts = New CancellationTokenSource()
+          m_soundPlaying = True
+          If s_isWindows Then
+            WindowsAudio.PlayToneAsync(frequency, durationTicks, m_currentSoundCts.Token)
+            If waitForComplete Then
+              WindowsAudio.WaitForPendingAudio()
+            End If
+          ElseIf s_isLinux Then
+            LinuxAudio.SoundAsync(frequency, durationTicks, m_currentSoundCts.Token)
+          End If
+          m_soundPlaying = False
         End If
       End If
 

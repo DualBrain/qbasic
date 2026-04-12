@@ -379,7 +379,7 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Private Shared Sub GenerateBuffer(buffer As IntPtr, numSamples As Integer, frequency As Integer)
-      Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
+      Const MAX_AMPLITUDE As Double = 0.85 * Short.MaxValue
       Const ATTACK_SAMPLES As Integer = 20
       Const DECAY_SAMPLES As Integer = 20
 
@@ -424,7 +424,7 @@ Namespace Global.QBLib.Audio
 
     ' Generate audio data as byte array (for queue-based playback)
     Private Shared Function GenerateAudioData(numSamples As Integer, frequency As Integer) As Byte()
-      Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
+      Const MAX_AMPLITUDE As Double = 0.85 * Short.MaxValue
 
       Dim twoPiF As Double = 2.0 * Math.PI * frequency
       Dim audioData(numSamples * 2 - 1) As Byte
@@ -495,21 +495,23 @@ Namespace Global.QBLib.Audio
         s_queuedSamples += samplesToPlay
         s_pendingSamples = samplesToPlay
       End SyncLock
-
-      ' For foreground (MF) mode, we don't wait here - caller will Call WaitForSound()
-      ' Return immediately - sound plays asynchronously via streaming loop
-      If Not token.IsCancellationRequested Then
-        AudioDevice.OnSoundFinished()
-      End If
     End Sub
 
-    Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, token As CancellationToken)
+Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, token As CancellationToken)
+      ' Calculate duration upfront and set end time BEFORE async task starts
+      Dim durationMs = CInt(durationTicks * 1000.0 / 18.2)
+      If durationMs < BUFFER_DURATION_MS Then
+        durationMs = BUFFER_DURATION_MS
+      End If
+      Dim playTimeMs As Integer = durationMs + 20
+      Interlocked.Exchange(s_lastSoundEndTime, Environment.TickCount + playTimeMs)
+
       Task.Run(Sub()
-                 Try
-                   PlayTone(frequency, durationTicks, token)
-                 Catch ex As Exception
-                 End Try
-               End Sub, token)
+               Try
+                 PlayTone(frequency, durationTicks, token)
+               Catch ex As Exception
+               End Try
+             End Sub, token)
     End Sub
 
     Public Shared Sub StopTone()
@@ -588,7 +590,7 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Private Shared Function GenerateAudioDataForDuration(numSamples As Integer, frequency As Integer) As Byte()
-      Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
+      Const MAX_AMPLITUDE As Double = 0.85 * Short.MaxValue
       Const ATTACK_SAMPLES As Integer = 20
       Const DECAY_SAMPLES As Integer = 20
 
@@ -616,7 +618,7 @@ Namespace Global.QBLib.Audio
     End Function
 
     Private Shared Sub GenerateSquareWave(buffer As IntPtr, frequency As Integer, numSamples As ULong)
-      Const MAX_AMPLITUDE As Double = 0.7 * Short.MaxValue
+      Const MAX_AMPLITUDE As Double = 0.85 * Short.MaxValue
       Const ATTACK_SAMPLES As Integer = 20
       Const DECAY_SAMPLES As Integer = 20
 

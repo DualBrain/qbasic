@@ -6009,8 +6009,10 @@ Namespace Global.QB.CodeAnalysis
       ' QBasic: O4C = middle C = 261.63 Hz
       ' MIDI note 60 = C4 = middle C
       ' formula: freq = 440 * 2^((noteNum - 69) / 12)
-      ' where noteNum = 12 + octave * 12 + noteIndex (O4 = octave 4 -> note 60)
-      Dim noteNum = 12 + octave * 12 + noteIndex
+      ' where noteNum = 12 + (octave + baselineOffset) * 12 + noteIndex
+      ' baselineOffset shifts the octave mapping (DEFAULT_PLAY_OCTAVE - 4)
+      Dim baselineOffset As Integer = AudioConstants.DEFAULT_PLAY_OCTAVE - 4
+      Dim noteNum As Integer = 12 + (octave + baselineOffset) * 12 + noteIndex
       Return 440.0 * Math.Pow(2.0, (noteNum - 69) / 12.0)
     End Function
 
@@ -6029,7 +6031,7 @@ Namespace Global.QB.CodeAnalysis
       Staccato
     End Enum
 
-    Private m_playOctave As Integer = 4
+    Private m_playOctave As Integer = AudioConstants.DEFAULT_PLAY_OCTAVE
     Private m_playTempo As Integer = 120
     Private m_playNoteLength As Double = 0.25
     Private m_playVolume As Integer = 15

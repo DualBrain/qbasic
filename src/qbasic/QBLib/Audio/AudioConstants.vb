@@ -12,6 +12,8 @@ Namespace Global.QBLib.Audio
     Public Const BITS_PER_SAMPLE As Integer = 16
     Public Const CHANNELS As Integer = 1
 
+    Public Const DEFAULT_PLAY_OCTAVE As Integer = 6 ' should be 4 (based on frequency tables)??? however, in testing/comparing with MSQB there appears to be a 2 octave difference?????
+
   End Module
 
 End Namespace

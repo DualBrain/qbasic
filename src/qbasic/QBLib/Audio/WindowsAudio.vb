@@ -497,7 +497,7 @@ Namespace Global.QBLib.Audio
       End SyncLock
     End Sub
 
-Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, token As CancellationToken)
+    Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, token As CancellationToken)
       ' Calculate duration upfront and set end time BEFORE async task starts
       Dim durationMs = CInt(durationTicks * 1000.0 / 18.2)
       If durationMs < BUFFER_DURATION_MS Then
@@ -507,11 +507,11 @@ Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, 
       Interlocked.Exchange(s_lastSoundEndTime, Environment.TickCount + playTimeMs)
 
       Task.Run(Sub()
-               Try
-                 PlayTone(frequency, durationTicks, token)
-               Catch ex As Exception
-               End Try
-             End Sub, token)
+                 Try
+                   PlayTone(frequency, durationTicks, token)
+                 Catch ex As Exception
+                 End Try
+               End Sub, token)
     End Sub
 
     Public Shared Sub StopTone()
@@ -581,7 +581,7 @@ Public Shared Sub PlayToneAsync(frequency As Integer, durationTicks As Integer, 
       SyncLock s_streamLock
         s_queuedSamples += CInt(numSamples)
       End SyncLock
-      
+
       ' Set when this sound will finish playing
       ' We estimate playback time based on samples / sample rate + buffer
       Dim playTimeMs As Integer = CInt(numSamples) * 1000 \ AudioConstants.SAMPLE_RATE + 100

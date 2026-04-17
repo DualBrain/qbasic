@@ -6048,7 +6048,7 @@ Namespace Global.QB.CodeAnalysis
     Private m_playVolume As Integer = 15
     Private m_playMode As String = "MF"
     Private m_playStyle As PlayStyle = PlayStyle.Normal
-    Private m_pendingNotes As New List(Of (Frequency As Integer, Duration As Integer))
+    Private ReadOnly m_pendingNotes As New List(Of (Frequency As Integer, Duration As Integer))
 
     Private Function GetNoteDuration(dotCount As Integer) As Double
       Dim duration = m_playNoteLength
@@ -6058,7 +6058,7 @@ Namespace Global.QB.CodeAnalysis
       Return duration
     End Function
 
-Private Function CalculatePlayDurationSeconds(dotCount As Integer) As Double
+    Private Function CalculatePlayDurationSeconds(dotCount As Integer) As Double
       Dim styleFactor As Double = 1.0
       Select Case m_playStyle
         Case PlayStyle.Normal

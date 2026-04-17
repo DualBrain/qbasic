@@ -4577,12 +4577,17 @@ Namespace Global.QB.CodeAnalysis
             Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
         End Select
       ElseIf node.Function Is BuiltinFunctions.Play Then
-        Dim n = CInt(EvaluateExpression(node.Arguments(0)))
-        If n = 0 Then
-          Return AudioDevice.MusicQueueDepth
-        Else
-          Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
-        End If
+        Dim dummy = EvaluateExpression(node.Arguments(0))
+        ' return number of notes in background queue + pending notes
+        Return AudioDevice.MusicQueueDepth + m_pendingNotes.Count
+        'If n = 0 Then
+        '  Return AudioDevice.MusicQueueDepth + m_pendingNotes.Count
+        'ElseIf n = 1 Then
+        '  ' Returns non-zero if background music is playing
+        '  Return AudioDevice.IsBackgroundPlaying()
+        'Else
+        '  Throw New QBasicRuntimeException(ErrorCode.IllegalFunctionCall)
+        'End If
       ElseIf node.Function Is BuiltinFunctions.Pmap Then
         Throw New QBasicRuntimeException(ErrorCode.AdvancedFeature)
       ElseIf node.Function Is BuiltinFunctions.Point1 Then
@@ -5989,6 +5994,12 @@ Namespace Global.QB.CodeAnalysis
       End While
 
       'MB mode returns immediately, no waiting
+      ' Flush any pending notes to background queue
+      If m_playMode = "MB" AndAlso m_pendingNotes.Count > 0 Then
+        AudioDevice.SetMusicModeBackground()
+        AudioDevice.QueueNotesBatch(m_pendingNotes.ToArray())
+        m_pendingNotes.Clear()
+      End If
     End Sub
 
     Private Function GetNoteFrequencyFromChar(noteChar As Char, octave As Integer, sharp As Boolean, flat As Boolean) As Double
@@ -6037,6 +6048,7 @@ Namespace Global.QB.CodeAnalysis
     Private m_playVolume As Integer = 15
     Private m_playMode As String = "MF"
     Private m_playStyle As PlayStyle = PlayStyle.Normal
+    Private m_pendingNotes As New List(Of (Frequency As Integer, Duration As Integer))
 
     Private Function GetNoteDuration(dotCount As Integer) As Double
       Dim duration = m_playNoteLength
@@ -6046,11 +6058,11 @@ Namespace Global.QB.CodeAnalysis
       Return duration
     End Function
 
-    Private Function CalculatePlayDurationSeconds(dotCount As Integer) As Double
-      Dim styleFactor = 1.0
+Private Function CalculatePlayDurationSeconds(dotCount As Integer) As Double
+      Dim styleFactor As Double = 1.0
       Select Case m_playStyle
         Case PlayStyle.Normal
-          styleFactor = 7.0 / 8.0
+          styleFactor = 1.0  ' No gap for now
         Case PlayStyle.Staccato
           styleFactor = 3.0 / 4.0
         Case PlayStyle.Legato
@@ -6069,15 +6081,29 @@ Namespace Global.QB.CodeAnalysis
     Private Sub EmitPlayNote(frequency As Double, dotCount As Integer, isRest As Boolean)
       Dim durationSec = CalculatePlayDurationSeconds(dotCount)
       Dim durationTicks = CInt(durationSec * 18.2)
-      Dim waitForComplete = (m_playMode = "MF")
 
-      If isRest OrElse frequency = 0 Then
-        AudioDevice.EmitTone(0, 0, 0.001, False, 0, waitForComplete)
+      If m_playMode = "MF" Then
+        ' Foreground mode - play immediately
+        Dim waitForComplete = True
+        If isRest OrElse frequency = 0 Then
+          AudioDevice.EmitTone(0, 0, 0.001, False, 0, waitForComplete)
+        Else
+          Dim freq = CInt(frequency)
+          If freq < 1 Then freq = 1
+          If freq > 32767 Then freq = 32767
+          AudioDevice.EmitTone(0, freq, durationSec, False, m_playVolume, waitForComplete)
+        End If
       Else
-        Dim freq = CInt(frequency)
-        If freq < 1 Then freq = 1
-        If freq > 32767 Then freq = 32767
-        AudioDevice.EmitTone(0, freq, durationSec, False, m_playVolume, waitForComplete)
+        ' Background mode - collect notes, flush later
+        If isRest OrElse frequency = 0 Then
+          m_pendingNotes.Add((0, 1))  ' minimal duration for rest
+        Else
+          Dim freq = CInt(frequency)
+          If freq < 1 Then freq = 1
+          If freq > 32767 Then freq = 32767
+          m_pendingNotes.Add((freq, durationTicks))
+        End If
+        ' SetMusicModeBackground is called once in PlayCommand after all notes are collected
       End If
     End Sub
 

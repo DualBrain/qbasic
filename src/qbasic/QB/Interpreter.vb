@@ -21,7 +21,7 @@ Namespace Global.QB
     End Property
 
     Sub New()
-
+      ' Audio initialized lazily on first sound
     End Sub
 
     Shared Function DebugTree(text As String) As String

@@ -1,17 +1,16 @@
-Imports System
-Imports System.Collections.Generic
 Imports System.Runtime.InteropServices
 Imports System.Threading
 
 Namespace Global.QBLib.Audio
 
   Friend Class TimedQueueItem
+
     Public ReadOnly Frequency As Integer
     Public ReadOnly DurationMs As Integer
     Public ReadOnly Volume As Integer
     Public ReadOnly IsGap As Boolean
     Public ReadOnly IsLooping As Boolean
-    Public Expiry As DateTime
+    'Public Expiry As DateTime
 
     Public Sub New(frequency As Integer, durationMs As Integer, volume As Integer, isGap As Boolean, isLooping As Boolean)
       Me.Frequency = frequency
@@ -20,31 +19,36 @@ Namespace Global.QBLib.Audio
       Me.IsGap = isGap
       Me.IsLooping = isLooping
     End Sub
+
   End Class
 
   Friend NotInheritable Class TimedQueue
+
     Private ReadOnly m_items As List(Of TimedQueueItem) = New List(Of TimedQueueItem)()
+
     Private m_balloonPopped As Boolean = False
 
     Public Sub Add(frequency As Integer, durationMs As Integer, volume As Integer, isGap As Boolean, isLooping As Boolean)
-      RemoveExpired()
+
+      'RemoveExpired()
 
       If isLooping AndAlso m_items.Count > 0 AndAlso m_items(m_items.Count - 1).IsLooping Then
         m_items.RemoveAt(m_items.Count - 1)
       End If
 
-      Dim expiry As DateTime
-      If durationMs < 0 Then
-        expiry = DateTime.MaxValue
-      ElseIf m_items.Count = 0 Then
-        expiry = DateTime.Now.AddMilliseconds(durationMs)
-      Else
-        Dim lastExpiry = m_items(m_items.Count - 1).Expiry
-        expiry = If(lastExpiry > DateTime.Now, lastExpiry, DateTime.Now).AddMilliseconds(durationMs)
-      End If
+      'Dim expiry As DateTime
+      'If durationMs < 0 Then
+      '  expiry = DateTime.MaxValue
+      'ElseIf m_items.Count = 0 Then
+      '  expiry = DateTime.Now.AddMilliseconds(durationMs)
+      'Else
+      '  Dim lastExpiry = m_items(m_items.Count - 1).Expiry
+      '  expiry = If(lastExpiry > DateTime.Now, lastExpiry, DateTime.Now).AddMilliseconds(durationMs)
+      'End If
 
-      Dim item = New TimedQueueItem(frequency, durationMs, volume, isGap, isLooping) With {.Expiry = expiry}
+      Dim item = New TimedQueueItem(frequency, durationMs, volume, isGap, isLooping) 'With {.Expiry = expiry}
       m_items.Add(item)
+
     End Sub
 
     Public Sub Clear()
@@ -54,14 +58,14 @@ Namespace Global.QBLib.Audio
 
     Public ReadOnly Property Count As Integer
       Get
-        RemoveExpired()
+        'RemoveExpired()
         Return m_items.Count
       End Get
     End Property
 
     Public ReadOnly Property TonesWaiting As Integer
       Get
-        RemoveExpired()
+        'RemoveExpired()
         Dim waiting = 0
         For i = 0 To m_items.Count - 1
           If m_items(i).IsGap = False AndAlso i > 0 Then
@@ -74,28 +78,29 @@ Namespace Global.QBLib.Audio
       End Get
     End Property
 
-    Public Function GetExpiry() As DateTime
-      RemoveExpired()
-      If m_items.Count = 0 Then Return DateTime.Now
-      If m_items(m_items.Count - 1).IsLooping Then Return DateTime.Now
-      Return m_items(m_items.Count - 1).Expiry
-    End Function
+    'Public Function GetExpiry() As DateTime
+    '  RemoveExpired()
+    '  If m_items.Count = 0 Then Return DateTime.Now
+    '  If m_items(m_items.Count - 1).IsLooping Then Return DateTime.Now
+    '  Return m_items(m_items.Count - 1).Expiry
+    'End Function
 
     Public Function PeekItems() As IEnumerable(Of TimedQueueItem)
-      RemoveExpired()
+      'RemoveExpired()
       Return m_items
     End Function
 
-    Private Sub RemoveExpired()
-      Dim now = DateTime.Now
-      While m_items.Count > 0 AndAlso m_items(0).Expiry <= now
-        Dim popped = m_items(0)
-        m_items.RemoveAt(0)
-        If popped.IsLooping Then
-          m_balloonPopped = True
-        End If
-      End While
-    End Sub
+    'Private Sub RemoveExpired()
+    '  Dim now = DateTime.Now
+    '  While m_items.Count > 0 AndAlso m_items(0).Expiry <= now
+    '    Dim popped = m_items(0)
+    '    m_items.RemoveAt(0)
+    '    If popped.IsLooping Then
+    '      m_balloonPopped = True
+    '    End If
+    '  End While
+    'End Sub
+
   End Class
 
   Public Module AudioDevice
@@ -129,8 +134,7 @@ Namespace Global.QBLib.Audio
       New TimedQueue(),
       New TimedQueue(),
       New TimedQueue(),
-      New TimedQueue()
-    }
+      New TimedQueue()}
     Private ReadOnly m_noiseFrequencies As Double() = {
       3579545.0 / 1024.0,
       3579545.0 / 1024.0 / 2.0,
@@ -139,8 +143,7 @@ Namespace Global.QBLib.Audio
       3579545.0 / 1024.0,
       3579545.0 / 1024.0 / 2.0,
       3579545.0 / 1024.0 / 4.0,
-      0.0
-    }
+      0.0}
 
     Public Property IsSoundPlaying As Boolean
       Get
@@ -165,7 +168,30 @@ Namespace Global.QBLib.Audio
 
     Public Sub SetMusicModeBackground()
       m_musicMode = MusicMode.Background
-      StartBackgroundPlayer()
+    End Sub
+
+    Public Function IsBackgroundPlaying() As Boolean
+      Return m_backgroundPlayerThread IsNot Nothing AndAlso m_backgroundPlayerThread.IsAlive
+    End Function
+
+    Public Sub QueueNotesBatch(notes() As (Frequency As Integer, Duration As Integer))
+
+      If notes Is Nothing OrElse notes.Length = 0 Then Return
+
+      ' Add all notes to queue in bulk
+      SyncLock m_musicQueueLock
+        For Each note In notes
+          If m_musicQueue.Count < 32 Then
+            m_musicQueue.Add(note)
+          End If
+        Next
+      End SyncLock
+
+      ' Start background player after all notes are queued
+      If m_musicMode = MusicMode.Background Then
+        StartBackgroundPlayer()
+      End If
+
     End Sub
 
     Public Sub SetPlayEventHandler(handler As Action, threshold As Integer)
@@ -212,66 +238,85 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Private Sub StartBackgroundPlayer()
-      If m_backgroundPlayerThread IsNot Nothing AndAlso m_backgroundPlayerThread.IsAlive Then
-        Return
-      End If
+
+      ' stop any existing background player first
+      StopBackgroundPlayer()
+
+      ' clear pending audio in Windows queue to prevent choppy playback
+      If s_isWindows Then WindowsAudio.ClearAudioQueue()
+
+      ' reset sound state
+      m_soundPlaying = False
+      m_currentSoundCts = Nothing
 
       m_backgroundPlayerCts = New CancellationTokenSource()
-      m_backgroundPlayerThread = New Thread(AddressOf BackgroundPlayerLoop)
-      m_backgroundPlayerThread.IsBackground = True
+      m_backgroundPlayerThread = New Thread(AddressOf BackgroundPlayerLoop) With {.IsBackground = True}
       m_backgroundPlayerThread.Start()
+
+    End Sub
+
+    Private Sub StopBackgroundPlayer()
+      If m_backgroundPlayerCts IsNot Nothing Then m_backgroundPlayerCts.Cancel()
+      If m_backgroundPlayerThread IsNot Nothing AndAlso m_backgroundPlayerThread.IsAlive Then m_backgroundPlayerThread.Join(100)
+      m_backgroundPlayerThread = Nothing
     End Sub
 
     Private Sub BackgroundPlayerLoop()
-      Do
-        If m_backgroundPlayerCts.Token.IsCancellationRequested Then
-          Exit Do
-        End If
 
+      Do
+
+        If m_backgroundPlayerCts.Token.IsCancellationRequested Then Exit Do
+
+        ' Peek at first note without removing it yet
         Dim note As (Frequency As Integer, Duration As Integer)?
         SyncLock m_musicQueueLock
-          If m_musicQueue.Count > 0 Then
-            note = m_musicQueue(0)
-            m_musicQueue.RemoveAt(0)
-          Else
-            Exit Do
-          End If
+          If m_musicQueue.Count <= 0 Then Exit Do
+          note = m_musicQueue(0)
         End SyncLock
 
         If note IsNot Nothing Then
+
           CheckPlayEvent()
+
+          ' play the note
           PlayNoteForeground(note.Value.Frequency, note.Value.Duration)
+
+          ' simple fixed wait for note duration
+          Dim waitMs = note.Value.Duration * 1000 \ 18 + 20
+          If waitMs < 80 Then waitMs = 80
+          Thread.Sleep(waitMs)
+
+          ' now remove from queue AFTER playing
+          SyncLock m_musicQueueLock
+            If m_musicQueue.Count > 0 Then m_musicQueue.RemoveAt(0)
+          End SyncLock
+
         Else
           Thread.Sleep(10)
         End If
-      Loop While Not m_backgroundPlayerCts.Token.IsCancellationRequested OrElse m_musicQueue.Count > 0
+
+      Loop While Not m_backgroundPlayerCts.Token.IsCancellationRequested
+
     End Sub
 
     Private Sub PlayNoteForeground(frequency As Integer, durationTicks As Integer)
-      If frequency = 0 Then
-        Return
-      End If
 
-      If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then
-        Return
-      End If
+      If frequency = 0 Then Return
+      If frequency < AudioConstants.MIN_FREQUENCY OrElse frequency > AudioConstants.MAX_FREQUENCY Then Return
 
-      If s_isWindows Then
-        WindowsAudio.WaitForPendingAudio()
-      End If
+      ' in background mode, don't wait - let notes overlap naturally; WaitForPendingAudio() would cause stuttering
 
       m_currentSoundCts = New CancellationTokenSource()
+
       Dim token = m_currentSoundCts.Token
 
       SyncLock GetType(AudioDevice)
         m_soundPlaying = True
       End SyncLock
 
-      If s_isWindows Then
-        WindowsAudio.PlayToneAsync(frequency, durationTicks, token)
-      ElseIf s_isLinux Then
-        LinuxAudio.SoundAsync(frequency, durationTicks, token)
-      End If
+      If s_isWindows Then WindowsAudio.PlayToneAsync(frequency, durationTicks, token)
+      If s_isLinux Then LinuxAudio.SoundAsync(frequency, durationTicks, token)
+
     End Sub
 
     Public Sub Beep()
@@ -285,14 +330,16 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Public Sub Sound(frequency As Integer, duration As Integer)
+
+      ' ensure audio is initialized
+      Initialize()
+
       SyncLock GetType(AudioDevice)
+
         If duration = 0 Then
           If m_soundPlaying Then
-            If s_isWindows Then
-              WindowsAudio.StopTone()
-            ElseIf s_isLinux Then
-              LinuxAudio.StopTone()
-            End If
+            If s_isWindows Then WindowsAudio.StopTone()
+            If s_isLinux Then LinuxAudio.StopTone()
             CancelCurrentSound()
           End If
           SyncLock m_musicQueueLock
@@ -301,32 +348,20 @@ Namespace Global.QBLib.Audio
           Return
         End If
 
-        If m_musicMode = MusicMode.Background Then
-          SyncLock m_musicQueueLock
-            If m_musicQueue.Count < 32 Then
-              m_musicQueue.Add((frequency, duration))
-            End If
-          End SyncLock
-          Return
-        End If
+        If m_musicMode = MusicMode.Background Then Return ' don't queue here - rely on FlushMusicQueue for batch processing
 
-        ' Wait for any previously started sound to finish playing
-        ' Based on the duration/timing from when it was started
-        If s_isWindows Then
-          WindowsAudio.WaitForPendingAudio()
-        End If
+        ' wait for any previously started sound to finish playing
+        If s_isWindows Then WindowsAudio.WaitForPendingAudio()
 
         m_currentSoundCts = New CancellationTokenSource()
         Dim token = m_currentSoundCts.Token
-        m_soundPlaying = True
 
-        If s_isWindows Then
-          WindowsAudio.Sound(frequency, duration)
-        ElseIf s_isLinux Then
-          LinuxAudio.Sound(frequency, duration)
-        End If
+        If s_isWindows Then WindowsAudio.Sound(frequency, duration)
+        If s_isLinux Then LinuxAudio.Sound(frequency, duration)
         m_soundPlaying = False
+
       End SyncLock
+
     End Sub
 
     Public Sub WaitForSound()
@@ -361,12 +396,10 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Friend Sub StopAudio()
+
       SyncLock GetType(AudioDevice)
-        If s_isWindows Then
-          WindowsAudio.StopTone()
-        ElseIf s_isLinux Then
-          LinuxAudio.StopTone()
-        End If
+        If s_isWindows Then WindowsAudio.StopTone()
+        If s_isLinux Then LinuxAudio.StopTone()
         If m_currentSoundCts IsNot Nothing Then
           m_currentSoundCts.Cancel()
           m_currentSoundCts.Dispose()
@@ -381,6 +414,7 @@ Namespace Global.QBLib.Audio
         m_backgroundPlayerCts.Dispose()
         m_backgroundPlayerCts = Nothing
       End If
+
       SyncLock m_musicQueueLock
         m_musicQueue.Clear()
       End SyncLock
@@ -388,17 +422,23 @@ Namespace Global.QBLib.Audio
       For Each voice In m_voices
         voice.Clear()
       Next
+
     End Sub
 
     Public Sub EnableAudioDebug(filePath As String)
-      If s_isWindows Then
-        WindowsAudio.EnableDebugOutput(filePath)
-      End If
+      If s_isWindows Then WindowsAudio.EnableDebugOutput(filePath)
     End Sub
 
     Public Sub DisableAudioDebug()
+      If s_isWindows Then WindowsAudio.DisableDebugOutput()
+    End Sub
+
+    Public Sub Initialize()
+      ' non-blocking init
       If s_isWindows Then
-        WindowsAudio.DisableDebugOutput()
+        If WindowsAudio.IsStreaming() Then Return
+        ' wait for it to complete
+        WindowsAudio.StartStream()
       End If
     End Sub
 
@@ -408,11 +448,8 @@ Namespace Global.QBLib.Audio
         For Each voice In m_voices
           voice.Clear()
         Next
-        If s_isWindows Then
-          WindowsAudio.StopTone()
-        ElseIf s_isLinux Then
-          LinuxAudio.StopTone()
-        End If
+        If s_isWindows Then WindowsAudio.StopTone()
+        If s_isLinux Then LinuxAudio.StopTone()
       End If
     End Sub
 
@@ -421,18 +458,15 @@ Namespace Global.QBLib.Audio
     End Sub
 
     Public Sub EmitTone(voice As Integer, frequency As Integer, durationSec As Double, looped As Boolean, volume As Integer, Optional waitForComplete As Boolean = False)
+
       If voice < 0 OrElse voice > 3 Then Return
 
-      If Not (m_beepOn OrElse m_soundOn) Then
-        volume = 0
-      End If
+      If Not (m_beepOn OrElse m_soundOn) Then volume = 0
 
-      If frequency = 0 OrElse volume = 0 Then
-        m_voices(voice).Add(0, 0, 0, True, False)
-        Return
-      End If
+      If frequency = 0 OrElse volume = 0 Then m_voices(voice).Add(0, 0, 0, True, False) : Return
 
       Dim durationTicks = CInt(durationSec * 18.2)
+
       m_voices(voice).Add(frequency, CInt(durationSec * 1000.0), volume, False, looped)
 
       If m_soundOn Then
@@ -447,9 +481,7 @@ Namespace Global.QBLib.Audio
           m_soundPlaying = True
           If s_isWindows Then
             WindowsAudio.PlayToneAsync(frequency, durationTicks, m_currentSoundCts.Token)
-            If waitForComplete Then
-              WindowsAudio.WaitForPendingAudio()
-            End If
+            If waitForComplete Then WindowsAudio.WaitForPendingAudio()
           ElseIf s_isLinux Then
             LinuxAudio.SoundAsync(frequency, durationTicks, m_currentSoundCts.Token)
           End If
@@ -461,6 +493,7 @@ Namespace Global.QBLib.Audio
         m_noiseFrequencies(3) = frequency / 2.0
         m_noiseFrequencies(7) = frequency / 2.0
       End If
+
     End Sub
 
     Public Sub EmitGap(voice As Integer, durationSec As Double)
@@ -474,7 +507,6 @@ Namespace Global.QBLib.Audio
       Dim frequency = CInt(m_noiseFrequencies(source))
       Dim durationTicks = CInt(durationSec * 18.2)
       m_voices(3).Add(frequency, CInt(durationSec * 1000.0), volume, False, looped)
-
       If s_isWindows Then
         m_currentSoundCts = New CancellationTokenSource()
         m_soundPlaying = True
@@ -486,11 +518,8 @@ Namespace Global.QBLib.Audio
       For Each voice In m_voices
         voice.Clear()
       Next
-      If s_isWindows Then
-        WindowsAudio.StopTone()
-      ElseIf s_isLinux Then
-        LinuxAudio.StopTone()
-      End If
+      If s_isWindows Then WindowsAudio.StopTone()
+      If s_isLinux Then LinuxAudio.StopTone()
       CancelCurrentSound()
     End Sub
 
